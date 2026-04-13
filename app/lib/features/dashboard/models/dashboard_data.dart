@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:app/core/utils/json_converters.dart';
 import 'package:app/features/schedule/models/training_day.dart';
 
 part 'dashboard_data.freezed.dart';
@@ -20,11 +21,11 @@ sealed class DashboardData with _$DashboardData {
 @freezed
 sealed class WeeklySummary with _$WeeklySummary {
   const factory WeeklySummary({
-    @JsonKey(name: 'total_km_planned') required double totalKmPlanned,
-    @JsonKey(name: 'total_km_completed') required double totalKmCompleted,
-    @JsonKey(name: 'sessions_completed') required int sessionsCompleted,
-    @JsonKey(name: 'sessions_total') required int sessionsTotal,
-    @JsonKey(name: 'compliance_avg') double? complianceAvg,
+    @JsonKey(name: 'total_km_planned', fromJson: toDouble) required double totalKmPlanned,
+    @JsonKey(name: 'total_km_completed', fromJson: toDouble) required double totalKmCompleted,
+    @JsonKey(name: 'sessions_completed', fromJson: toInt) required int sessionsCompleted,
+    @JsonKey(name: 'sessions_total', fromJson: toInt) required int sessionsTotal,
+    @JsonKey(name: 'compliance_avg', fromJson: toDoubleOrNull) double? complianceAvg,
   }) = _WeeklySummary;
 
   factory WeeklySummary.fromJson(Map<String, dynamic> json) =>
@@ -38,7 +39,7 @@ sealed class ActiveRaceSummary with _$ActiveRaceSummary {
     required String name,
     required String distance,
     @JsonKey(name: 'race_date') required String raceDate,
-    @JsonKey(name: 'weeks_until_race') required int weeksUntilRace,
+    @JsonKey(name: 'weeks_until_race', fromJson: toInt) required int weeksUntilRace,
   }) = _ActiveRaceSummary;
 
   factory ActiveRaceSummary.fromJson(Map<String, dynamic> json) =>

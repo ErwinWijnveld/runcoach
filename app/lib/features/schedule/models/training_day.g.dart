@@ -12,11 +12,11 @@ _TrainingDay _$TrainingDayFromJson(Map<String, dynamic> json) => _TrainingDay(
   type: json['type'] as String,
   title: json['title'] as String,
   description: json['description'] as String?,
-  targetKm: (json['target_km'] as num?)?.toDouble(),
-  targetPaceSecondsPerKm: (json['target_pace_seconds_per_km'] as num?)?.toInt(),
-  targetHeartRateZone: (json['target_heart_rate_zone'] as num?)?.toInt(),
+  targetKm: toDoubleOrNull(json['target_km']),
+  targetPaceSecondsPerKm: toIntOrNull(json['target_pace_seconds_per_km']),
+  targetHeartRateZone: toIntOrNull(json['target_heart_rate_zone']),
   intervalsJson: json['intervals_json'] as Map<String, dynamic>?,
-  order: (json['order'] as num).toInt(),
+  order: toInt(json['order']),
   result: json['result'] == null
       ? null
       : TrainingResult.fromJson(json['result'] as Map<String, dynamic>),

@@ -353,7 +353,7 @@ $ActiveRaceSummaryCopyWith<$Res>? get activeRace {
 /// @nodoc
 mixin _$WeeklySummary {
 
-@JsonKey(name: 'total_km_planned') double get totalKmPlanned;@JsonKey(name: 'total_km_completed') double get totalKmCompleted;@JsonKey(name: 'sessions_completed') int get sessionsCompleted;@JsonKey(name: 'sessions_total') int get sessionsTotal;@JsonKey(name: 'compliance_avg') double? get complianceAvg;
+@JsonKey(name: 'total_km_planned', fromJson: toDouble) double get totalKmPlanned;@JsonKey(name: 'total_km_completed', fromJson: toDouble) double get totalKmCompleted;@JsonKey(name: 'sessions_completed', fromJson: toInt) int get sessionsCompleted;@JsonKey(name: 'sessions_total', fromJson: toInt) int get sessionsTotal;@JsonKey(name: 'compliance_avg', fromJson: toDoubleOrNull) double? get complianceAvg;
 /// Create a copy of WeeklySummary
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -386,7 +386,7 @@ abstract mixin class $WeeklySummaryCopyWith<$Res>  {
   factory $WeeklySummaryCopyWith(WeeklySummary value, $Res Function(WeeklySummary) _then) = _$WeeklySummaryCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'total_km_planned') double totalKmPlanned,@JsonKey(name: 'total_km_completed') double totalKmCompleted,@JsonKey(name: 'sessions_completed') int sessionsCompleted,@JsonKey(name: 'sessions_total') int sessionsTotal,@JsonKey(name: 'compliance_avg') double? complianceAvg
+@JsonKey(name: 'total_km_planned', fromJson: toDouble) double totalKmPlanned,@JsonKey(name: 'total_km_completed', fromJson: toDouble) double totalKmCompleted,@JsonKey(name: 'sessions_completed', fromJson: toInt) int sessionsCompleted,@JsonKey(name: 'sessions_total', fromJson: toInt) int sessionsTotal,@JsonKey(name: 'compliance_avg', fromJson: toDoubleOrNull) double? complianceAvg
 });
 
 
@@ -492,7 +492,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'total_km_planned')  double totalKmPlanned, @JsonKey(name: 'total_km_completed')  double totalKmCompleted, @JsonKey(name: 'sessions_completed')  int sessionsCompleted, @JsonKey(name: 'sessions_total')  int sessionsTotal, @JsonKey(name: 'compliance_avg')  double? complianceAvg)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'total_km_planned', fromJson: toDouble)  double totalKmPlanned, @JsonKey(name: 'total_km_completed', fromJson: toDouble)  double totalKmCompleted, @JsonKey(name: 'sessions_completed', fromJson: toInt)  int sessionsCompleted, @JsonKey(name: 'sessions_total', fromJson: toInt)  int sessionsTotal, @JsonKey(name: 'compliance_avg', fromJson: toDoubleOrNull)  double? complianceAvg)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WeeklySummary() when $default != null:
 return $default(_that.totalKmPlanned,_that.totalKmCompleted,_that.sessionsCompleted,_that.sessionsTotal,_that.complianceAvg);case _:
@@ -513,7 +513,7 @@ return $default(_that.totalKmPlanned,_that.totalKmCompleted,_that.sessionsComple
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'total_km_planned')  double totalKmPlanned, @JsonKey(name: 'total_km_completed')  double totalKmCompleted, @JsonKey(name: 'sessions_completed')  int sessionsCompleted, @JsonKey(name: 'sessions_total')  int sessionsTotal, @JsonKey(name: 'compliance_avg')  double? complianceAvg)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'total_km_planned', fromJson: toDouble)  double totalKmPlanned, @JsonKey(name: 'total_km_completed', fromJson: toDouble)  double totalKmCompleted, @JsonKey(name: 'sessions_completed', fromJson: toInt)  int sessionsCompleted, @JsonKey(name: 'sessions_total', fromJson: toInt)  int sessionsTotal, @JsonKey(name: 'compliance_avg', fromJson: toDoubleOrNull)  double? complianceAvg)  $default,) {final _that = this;
 switch (_that) {
 case _WeeklySummary():
 return $default(_that.totalKmPlanned,_that.totalKmCompleted,_that.sessionsCompleted,_that.sessionsTotal,_that.complianceAvg);}
@@ -530,7 +530,7 @@ return $default(_that.totalKmPlanned,_that.totalKmCompleted,_that.sessionsComple
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'total_km_planned')  double totalKmPlanned, @JsonKey(name: 'total_km_completed')  double totalKmCompleted, @JsonKey(name: 'sessions_completed')  int sessionsCompleted, @JsonKey(name: 'sessions_total')  int sessionsTotal, @JsonKey(name: 'compliance_avg')  double? complianceAvg)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'total_km_planned', fromJson: toDouble)  double totalKmPlanned, @JsonKey(name: 'total_km_completed', fromJson: toDouble)  double totalKmCompleted, @JsonKey(name: 'sessions_completed', fromJson: toInt)  int sessionsCompleted, @JsonKey(name: 'sessions_total', fromJson: toInt)  int sessionsTotal, @JsonKey(name: 'compliance_avg', fromJson: toDoubleOrNull)  double? complianceAvg)?  $default,) {final _that = this;
 switch (_that) {
 case _WeeklySummary() when $default != null:
 return $default(_that.totalKmPlanned,_that.totalKmCompleted,_that.sessionsCompleted,_that.sessionsTotal,_that.complianceAvg);case _:
@@ -545,14 +545,14 @@ return $default(_that.totalKmPlanned,_that.totalKmCompleted,_that.sessionsComple
 @JsonSerializable()
 
 class _WeeklySummary implements WeeklySummary {
-  const _WeeklySummary({@JsonKey(name: 'total_km_planned') required this.totalKmPlanned, @JsonKey(name: 'total_km_completed') required this.totalKmCompleted, @JsonKey(name: 'sessions_completed') required this.sessionsCompleted, @JsonKey(name: 'sessions_total') required this.sessionsTotal, @JsonKey(name: 'compliance_avg') this.complianceAvg});
+  const _WeeklySummary({@JsonKey(name: 'total_km_planned', fromJson: toDouble) required this.totalKmPlanned, @JsonKey(name: 'total_km_completed', fromJson: toDouble) required this.totalKmCompleted, @JsonKey(name: 'sessions_completed', fromJson: toInt) required this.sessionsCompleted, @JsonKey(name: 'sessions_total', fromJson: toInt) required this.sessionsTotal, @JsonKey(name: 'compliance_avg', fromJson: toDoubleOrNull) this.complianceAvg});
   factory _WeeklySummary.fromJson(Map<String, dynamic> json) => _$WeeklySummaryFromJson(json);
 
-@override@JsonKey(name: 'total_km_planned') final  double totalKmPlanned;
-@override@JsonKey(name: 'total_km_completed') final  double totalKmCompleted;
-@override@JsonKey(name: 'sessions_completed') final  int sessionsCompleted;
-@override@JsonKey(name: 'sessions_total') final  int sessionsTotal;
-@override@JsonKey(name: 'compliance_avg') final  double? complianceAvg;
+@override@JsonKey(name: 'total_km_planned', fromJson: toDouble) final  double totalKmPlanned;
+@override@JsonKey(name: 'total_km_completed', fromJson: toDouble) final  double totalKmCompleted;
+@override@JsonKey(name: 'sessions_completed', fromJson: toInt) final  int sessionsCompleted;
+@override@JsonKey(name: 'sessions_total', fromJson: toInt) final  int sessionsTotal;
+@override@JsonKey(name: 'compliance_avg', fromJson: toDoubleOrNull) final  double? complianceAvg;
 
 /// Create a copy of WeeklySummary
 /// with the given fields replaced by the non-null parameter values.
@@ -587,7 +587,7 @@ abstract mixin class _$WeeklySummaryCopyWith<$Res> implements $WeeklySummaryCopy
   factory _$WeeklySummaryCopyWith(_WeeklySummary value, $Res Function(_WeeklySummary) _then) = __$WeeklySummaryCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'total_km_planned') double totalKmPlanned,@JsonKey(name: 'total_km_completed') double totalKmCompleted,@JsonKey(name: 'sessions_completed') int sessionsCompleted,@JsonKey(name: 'sessions_total') int sessionsTotal,@JsonKey(name: 'compliance_avg') double? complianceAvg
+@JsonKey(name: 'total_km_planned', fromJson: toDouble) double totalKmPlanned,@JsonKey(name: 'total_km_completed', fromJson: toDouble) double totalKmCompleted,@JsonKey(name: 'sessions_completed', fromJson: toInt) int sessionsCompleted,@JsonKey(name: 'sessions_total', fromJson: toInt) int sessionsTotal,@JsonKey(name: 'compliance_avg', fromJson: toDoubleOrNull) double? complianceAvg
 });
 
 
@@ -622,7 +622,7 @@ as double?,
 /// @nodoc
 mixin _$ActiveRaceSummary {
 
- int get id; String get name; String get distance;@JsonKey(name: 'race_date') String get raceDate;@JsonKey(name: 'weeks_until_race') int get weeksUntilRace;
+ int get id; String get name; String get distance;@JsonKey(name: 'race_date') String get raceDate;@JsonKey(name: 'weeks_until_race', fromJson: toInt) int get weeksUntilRace;
 /// Create a copy of ActiveRaceSummary
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -655,7 +655,7 @@ abstract mixin class $ActiveRaceSummaryCopyWith<$Res>  {
   factory $ActiveRaceSummaryCopyWith(ActiveRaceSummary value, $Res Function(ActiveRaceSummary) _then) = _$ActiveRaceSummaryCopyWithImpl;
 @useResult
 $Res call({
- int id, String name, String distance,@JsonKey(name: 'race_date') String raceDate,@JsonKey(name: 'weeks_until_race') int weeksUntilRace
+ int id, String name, String distance,@JsonKey(name: 'race_date') String raceDate,@JsonKey(name: 'weeks_until_race', fromJson: toInt) int weeksUntilRace
 });
 
 
@@ -761,7 +761,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name,  String distance, @JsonKey(name: 'race_date')  String raceDate, @JsonKey(name: 'weeks_until_race')  int weeksUntilRace)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name,  String distance, @JsonKey(name: 'race_date')  String raceDate, @JsonKey(name: 'weeks_until_race', fromJson: toInt)  int weeksUntilRace)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ActiveRaceSummary() when $default != null:
 return $default(_that.id,_that.name,_that.distance,_that.raceDate,_that.weeksUntilRace);case _:
@@ -782,7 +782,7 @@ return $default(_that.id,_that.name,_that.distance,_that.raceDate,_that.weeksUnt
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name,  String distance, @JsonKey(name: 'race_date')  String raceDate, @JsonKey(name: 'weeks_until_race')  int weeksUntilRace)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name,  String distance, @JsonKey(name: 'race_date')  String raceDate, @JsonKey(name: 'weeks_until_race', fromJson: toInt)  int weeksUntilRace)  $default,) {final _that = this;
 switch (_that) {
 case _ActiveRaceSummary():
 return $default(_that.id,_that.name,_that.distance,_that.raceDate,_that.weeksUntilRace);}
@@ -799,7 +799,7 @@ return $default(_that.id,_that.name,_that.distance,_that.raceDate,_that.weeksUnt
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name,  String distance, @JsonKey(name: 'race_date')  String raceDate, @JsonKey(name: 'weeks_until_race')  int weeksUntilRace)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name,  String distance, @JsonKey(name: 'race_date')  String raceDate, @JsonKey(name: 'weeks_until_race', fromJson: toInt)  int weeksUntilRace)?  $default,) {final _that = this;
 switch (_that) {
 case _ActiveRaceSummary() when $default != null:
 return $default(_that.id,_that.name,_that.distance,_that.raceDate,_that.weeksUntilRace);case _:
@@ -814,14 +814,14 @@ return $default(_that.id,_that.name,_that.distance,_that.raceDate,_that.weeksUnt
 @JsonSerializable()
 
 class _ActiveRaceSummary implements ActiveRaceSummary {
-  const _ActiveRaceSummary({required this.id, required this.name, required this.distance, @JsonKey(name: 'race_date') required this.raceDate, @JsonKey(name: 'weeks_until_race') required this.weeksUntilRace});
+  const _ActiveRaceSummary({required this.id, required this.name, required this.distance, @JsonKey(name: 'race_date') required this.raceDate, @JsonKey(name: 'weeks_until_race', fromJson: toInt) required this.weeksUntilRace});
   factory _ActiveRaceSummary.fromJson(Map<String, dynamic> json) => _$ActiveRaceSummaryFromJson(json);
 
 @override final  int id;
 @override final  String name;
 @override final  String distance;
 @override@JsonKey(name: 'race_date') final  String raceDate;
-@override@JsonKey(name: 'weeks_until_race') final  int weeksUntilRace;
+@override@JsonKey(name: 'weeks_until_race', fromJson: toInt) final  int weeksUntilRace;
 
 /// Create a copy of ActiveRaceSummary
 /// with the given fields replaced by the non-null parameter values.
@@ -856,7 +856,7 @@ abstract mixin class _$ActiveRaceSummaryCopyWith<$Res> implements $ActiveRaceSum
   factory _$ActiveRaceSummaryCopyWith(_ActiveRaceSummary value, $Res Function(_ActiveRaceSummary) _then) = __$ActiveRaceSummaryCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String name, String distance,@JsonKey(name: 'race_date') String raceDate,@JsonKey(name: 'weeks_until_race') int weeksUntilRace
+ int id, String name, String distance,@JsonKey(name: 'race_date') String raceDate,@JsonKey(name: 'weeks_until_race', fromJson: toInt) int weeksUntilRace
 });
 
 

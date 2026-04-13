@@ -12,7 +12,7 @@ _TrainingWeek _$TrainingWeekFromJson(Map<String, dynamic> json) =>
       raceId: (json['race_id'] as num).toInt(),
       weekNumber: (json['week_number'] as num).toInt(),
       startsAt: json['starts_at'] as String,
-      totalKm: (json['total_km'] as num).toDouble(),
+      totalKm: toDouble(json['total_km']),
       focus: json['focus'] as String,
       coachNotes: json['coach_notes'] as String?,
       trainingDays: (json['training_days'] as List<dynamic>?)

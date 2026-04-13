@@ -9,14 +9,13 @@ part of 'training_result.dart';
 _TrainingResult _$TrainingResultFromJson(Map<String, dynamic> json) =>
     _TrainingResult(
       id: (json['id'] as num).toInt(),
-      complianceScore: (json['compliance_score'] as num).toDouble(),
-      actualKm: (json['actual_km'] as num).toDouble(),
-      actualPaceSecondsPerKm: (json['actual_pace_seconds_per_km'] as num)
-          .toInt(),
-      actualAvgHeartRate: (json['actual_avg_heart_rate'] as num?)?.toDouble(),
-      paceScore: (json['pace_score'] as num).toDouble(),
-      distanceScore: (json['distance_score'] as num).toDouble(),
-      heartRateScore: (json['heart_rate_score'] as num?)?.toDouble(),
+      complianceScore: toDouble(json['compliance_score']),
+      actualKm: toDouble(json['actual_km']),
+      actualPaceSecondsPerKm: toInt(json['actual_pace_seconds_per_km']),
+      actualAvgHeartRate: toDoubleOrNull(json['actual_avg_heart_rate']),
+      paceScore: toDouble(json['pace_score']),
+      distanceScore: toDouble(json['distance_score']),
+      heartRateScore: toDoubleOrNull(json['heart_rate_score']),
       aiFeedback: json['ai_feedback'] as String?,
     );
 

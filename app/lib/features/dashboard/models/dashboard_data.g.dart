@@ -31,11 +31,11 @@ Map<String, dynamic> _$DashboardDataToJson(_DashboardData instance) =>
 
 _WeeklySummary _$WeeklySummaryFromJson(Map<String, dynamic> json) =>
     _WeeklySummary(
-      totalKmPlanned: (json['total_km_planned'] as num).toDouble(),
-      totalKmCompleted: (json['total_km_completed'] as num).toDouble(),
-      sessionsCompleted: (json['sessions_completed'] as num).toInt(),
-      sessionsTotal: (json['sessions_total'] as num).toInt(),
-      complianceAvg: (json['compliance_avg'] as num?)?.toDouble(),
+      totalKmPlanned: toDouble(json['total_km_planned']),
+      totalKmCompleted: toDouble(json['total_km_completed']),
+      sessionsCompleted: toInt(json['sessions_completed']),
+      sessionsTotal: toInt(json['sessions_total']),
+      complianceAvg: toDoubleOrNull(json['compliance_avg']),
     );
 
 Map<String, dynamic> _$WeeklySummaryToJson(_WeeklySummary instance) =>
@@ -53,7 +53,7 @@ _ActiveRaceSummary _$ActiveRaceSummaryFromJson(Map<String, dynamic> json) =>
       name: json['name'] as String,
       distance: json['distance'] as String,
       raceDate: json['race_date'] as String,
-      weeksUntilRace: (json['weeks_until_race'] as num).toInt(),
+      weeksUntilRace: toInt(json['weeks_until_race']),
     );
 
 Map<String, dynamic> _$ActiveRaceSummaryToJson(_ActiveRaceSummary instance) =>

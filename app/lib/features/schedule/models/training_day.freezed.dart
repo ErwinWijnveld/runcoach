@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$TrainingDay {
 
- int get id; String get date; String get type; String get title; String? get description;@JsonKey(name: 'target_km') double? get targetKm;@JsonKey(name: 'target_pace_seconds_per_km') int? get targetPaceSecondsPerKm;@JsonKey(name: 'target_heart_rate_zone') int? get targetHeartRateZone;@JsonKey(name: 'intervals_json') Map<String, dynamic>? get intervalsJson; int get order; TrainingResult? get result;
+ int get id; String get date; String get type; String get title; String? get description;@JsonKey(name: 'target_km', fromJson: toDoubleOrNull) double? get targetKm;@JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull) int? get targetPaceSecondsPerKm;@JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull) int? get targetHeartRateZone;@JsonKey(name: 'intervals_json') Map<String, dynamic>? get intervalsJson;@JsonKey(fromJson: toInt) int get order; TrainingResult? get result;
 /// Create a copy of TrainingDay
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $TrainingDayCopyWith<$Res>  {
   factory $TrainingDayCopyWith(TrainingDay value, $Res Function(TrainingDay) _then) = _$TrainingDayCopyWithImpl;
 @useResult
 $Res call({
- int id, String date, String type, String title, String? description,@JsonKey(name: 'target_km') double? targetKm,@JsonKey(name: 'target_pace_seconds_per_km') int? targetPaceSecondsPerKm,@JsonKey(name: 'target_heart_rate_zone') int? targetHeartRateZone,@JsonKey(name: 'intervals_json') Map<String, dynamic>? intervalsJson, int order, TrainingResult? result
+ int id, String date, String type, String title, String? description,@JsonKey(name: 'target_km', fromJson: toDoubleOrNull) double? targetKm,@JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull) int? targetPaceSecondsPerKm,@JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull) int? targetHeartRateZone,@JsonKey(name: 'intervals_json') Map<String, dynamic>? intervalsJson,@JsonKey(fromJson: toInt) int order, TrainingResult? result
 });
 
 
@@ -172,7 +172,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String date,  String type,  String title,  String? description, @JsonKey(name: 'target_km')  double? targetKm, @JsonKey(name: 'target_pace_seconds_per_km')  int? targetPaceSecondsPerKm, @JsonKey(name: 'target_heart_rate_zone')  int? targetHeartRateZone, @JsonKey(name: 'intervals_json')  Map<String, dynamic>? intervalsJson,  int order,  TrainingResult? result)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String date,  String type,  String title,  String? description, @JsonKey(name: 'target_km', fromJson: toDoubleOrNull)  double? targetKm, @JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull)  int? targetPaceSecondsPerKm, @JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull)  int? targetHeartRateZone, @JsonKey(name: 'intervals_json')  Map<String, dynamic>? intervalsJson, @JsonKey(fromJson: toInt)  int order,  TrainingResult? result)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TrainingDay() when $default != null:
 return $default(_that.id,_that.date,_that.type,_that.title,_that.description,_that.targetKm,_that.targetPaceSecondsPerKm,_that.targetHeartRateZone,_that.intervalsJson,_that.order,_that.result);case _:
@@ -193,7 +193,7 @@ return $default(_that.id,_that.date,_that.type,_that.title,_that.description,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String date,  String type,  String title,  String? description, @JsonKey(name: 'target_km')  double? targetKm, @JsonKey(name: 'target_pace_seconds_per_km')  int? targetPaceSecondsPerKm, @JsonKey(name: 'target_heart_rate_zone')  int? targetHeartRateZone, @JsonKey(name: 'intervals_json')  Map<String, dynamic>? intervalsJson,  int order,  TrainingResult? result)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String date,  String type,  String title,  String? description, @JsonKey(name: 'target_km', fromJson: toDoubleOrNull)  double? targetKm, @JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull)  int? targetPaceSecondsPerKm, @JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull)  int? targetHeartRateZone, @JsonKey(name: 'intervals_json')  Map<String, dynamic>? intervalsJson, @JsonKey(fromJson: toInt)  int order,  TrainingResult? result)  $default,) {final _that = this;
 switch (_that) {
 case _TrainingDay():
 return $default(_that.id,_that.date,_that.type,_that.title,_that.description,_that.targetKm,_that.targetPaceSecondsPerKm,_that.targetHeartRateZone,_that.intervalsJson,_that.order,_that.result);}
@@ -210,7 +210,7 @@ return $default(_that.id,_that.date,_that.type,_that.title,_that.description,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String date,  String type,  String title,  String? description, @JsonKey(name: 'target_km')  double? targetKm, @JsonKey(name: 'target_pace_seconds_per_km')  int? targetPaceSecondsPerKm, @JsonKey(name: 'target_heart_rate_zone')  int? targetHeartRateZone, @JsonKey(name: 'intervals_json')  Map<String, dynamic>? intervalsJson,  int order,  TrainingResult? result)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String date,  String type,  String title,  String? description, @JsonKey(name: 'target_km', fromJson: toDoubleOrNull)  double? targetKm, @JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull)  int? targetPaceSecondsPerKm, @JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull)  int? targetHeartRateZone, @JsonKey(name: 'intervals_json')  Map<String, dynamic>? intervalsJson, @JsonKey(fromJson: toInt)  int order,  TrainingResult? result)?  $default,) {final _that = this;
 switch (_that) {
 case _TrainingDay() when $default != null:
 return $default(_that.id,_that.date,_that.type,_that.title,_that.description,_that.targetKm,_that.targetPaceSecondsPerKm,_that.targetHeartRateZone,_that.intervalsJson,_that.order,_that.result);case _:
@@ -225,7 +225,7 @@ return $default(_that.id,_that.date,_that.type,_that.title,_that.description,_th
 @JsonSerializable()
 
 class _TrainingDay implements TrainingDay {
-  const _TrainingDay({required this.id, required this.date, required this.type, required this.title, this.description, @JsonKey(name: 'target_km') this.targetKm, @JsonKey(name: 'target_pace_seconds_per_km') this.targetPaceSecondsPerKm, @JsonKey(name: 'target_heart_rate_zone') this.targetHeartRateZone, @JsonKey(name: 'intervals_json') final  Map<String, dynamic>? intervalsJson, required this.order, this.result}): _intervalsJson = intervalsJson;
+  const _TrainingDay({required this.id, required this.date, required this.type, required this.title, this.description, @JsonKey(name: 'target_km', fromJson: toDoubleOrNull) this.targetKm, @JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull) this.targetPaceSecondsPerKm, @JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull) this.targetHeartRateZone, @JsonKey(name: 'intervals_json') final  Map<String, dynamic>? intervalsJson, @JsonKey(fromJson: toInt) required this.order, this.result}): _intervalsJson = intervalsJson;
   factory _TrainingDay.fromJson(Map<String, dynamic> json) => _$TrainingDayFromJson(json);
 
 @override final  int id;
@@ -233,9 +233,9 @@ class _TrainingDay implements TrainingDay {
 @override final  String type;
 @override final  String title;
 @override final  String? description;
-@override@JsonKey(name: 'target_km') final  double? targetKm;
-@override@JsonKey(name: 'target_pace_seconds_per_km') final  int? targetPaceSecondsPerKm;
-@override@JsonKey(name: 'target_heart_rate_zone') final  int? targetHeartRateZone;
+@override@JsonKey(name: 'target_km', fromJson: toDoubleOrNull) final  double? targetKm;
+@override@JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull) final  int? targetPaceSecondsPerKm;
+@override@JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull) final  int? targetHeartRateZone;
  final  Map<String, dynamic>? _intervalsJson;
 @override@JsonKey(name: 'intervals_json') Map<String, dynamic>? get intervalsJson {
   final value = _intervalsJson;
@@ -245,7 +245,7 @@ class _TrainingDay implements TrainingDay {
   return EqualUnmodifiableMapView(value);
 }
 
-@override final  int order;
+@override@JsonKey(fromJson: toInt) final  int order;
 @override final  TrainingResult? result;
 
 /// Create a copy of TrainingDay
@@ -281,7 +281,7 @@ abstract mixin class _$TrainingDayCopyWith<$Res> implements $TrainingDayCopyWith
   factory _$TrainingDayCopyWith(_TrainingDay value, $Res Function(_TrainingDay) _then) = __$TrainingDayCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String date, String type, String title, String? description,@JsonKey(name: 'target_km') double? targetKm,@JsonKey(name: 'target_pace_seconds_per_km') int? targetPaceSecondsPerKm,@JsonKey(name: 'target_heart_rate_zone') int? targetHeartRateZone,@JsonKey(name: 'intervals_json') Map<String, dynamic>? intervalsJson, int order, TrainingResult? result
+ int id, String date, String type, String title, String? description,@JsonKey(name: 'target_km', fromJson: toDoubleOrNull) double? targetKm,@JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull) int? targetPaceSecondsPerKm,@JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull) int? targetHeartRateZone,@JsonKey(name: 'intervals_json') Map<String, dynamic>? intervalsJson,@JsonKey(fromJson: toInt) int order, TrainingResult? result
 });
 
 

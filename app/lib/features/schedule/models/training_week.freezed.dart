@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$TrainingWeek {
 
- int get id;@JsonKey(name: 'race_id') int get raceId;@JsonKey(name: 'week_number') int get weekNumber;@JsonKey(name: 'starts_at') String get startsAt;@JsonKey(name: 'total_km') double get totalKm; String get focus;@JsonKey(name: 'coach_notes') String? get coachNotes;@JsonKey(name: 'training_days') List<TrainingDay>? get trainingDays;
+ int get id;@JsonKey(name: 'race_id') int get raceId;@JsonKey(name: 'week_number') int get weekNumber;@JsonKey(name: 'starts_at') String get startsAt;@JsonKey(name: 'total_km', fromJson: toDouble) double get totalKm; String get focus;@JsonKey(name: 'coach_notes') String? get coachNotes;@JsonKey(name: 'training_days') List<TrainingDay>? get trainingDays;
 /// Create a copy of TrainingWeek
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $TrainingWeekCopyWith<$Res>  {
   factory $TrainingWeekCopyWith(TrainingWeek value, $Res Function(TrainingWeek) _then) = _$TrainingWeekCopyWithImpl;
 @useResult
 $Res call({
- int id,@JsonKey(name: 'race_id') int raceId,@JsonKey(name: 'week_number') int weekNumber,@JsonKey(name: 'starts_at') String startsAt,@JsonKey(name: 'total_km') double totalKm, String focus,@JsonKey(name: 'coach_notes') String? coachNotes,@JsonKey(name: 'training_days') List<TrainingDay>? trainingDays
+ int id,@JsonKey(name: 'race_id') int raceId,@JsonKey(name: 'week_number') int weekNumber,@JsonKey(name: 'starts_at') String startsAt,@JsonKey(name: 'total_km', fromJson: toDouble) double totalKm, String focus,@JsonKey(name: 'coach_notes') String? coachNotes,@JsonKey(name: 'training_days') List<TrainingDay>? trainingDays
 });
 
 
@@ -157,7 +157,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'race_id')  int raceId, @JsonKey(name: 'week_number')  int weekNumber, @JsonKey(name: 'starts_at')  String startsAt, @JsonKey(name: 'total_km')  double totalKm,  String focus, @JsonKey(name: 'coach_notes')  String? coachNotes, @JsonKey(name: 'training_days')  List<TrainingDay>? trainingDays)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'race_id')  int raceId, @JsonKey(name: 'week_number')  int weekNumber, @JsonKey(name: 'starts_at')  String startsAt, @JsonKey(name: 'total_km', fromJson: toDouble)  double totalKm,  String focus, @JsonKey(name: 'coach_notes')  String? coachNotes, @JsonKey(name: 'training_days')  List<TrainingDay>? trainingDays)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TrainingWeek() when $default != null:
 return $default(_that.id,_that.raceId,_that.weekNumber,_that.startsAt,_that.totalKm,_that.focus,_that.coachNotes,_that.trainingDays);case _:
@@ -178,7 +178,7 @@ return $default(_that.id,_that.raceId,_that.weekNumber,_that.startsAt,_that.tota
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'race_id')  int raceId, @JsonKey(name: 'week_number')  int weekNumber, @JsonKey(name: 'starts_at')  String startsAt, @JsonKey(name: 'total_km')  double totalKm,  String focus, @JsonKey(name: 'coach_notes')  String? coachNotes, @JsonKey(name: 'training_days')  List<TrainingDay>? trainingDays)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'race_id')  int raceId, @JsonKey(name: 'week_number')  int weekNumber, @JsonKey(name: 'starts_at')  String startsAt, @JsonKey(name: 'total_km', fromJson: toDouble)  double totalKm,  String focus, @JsonKey(name: 'coach_notes')  String? coachNotes, @JsonKey(name: 'training_days')  List<TrainingDay>? trainingDays)  $default,) {final _that = this;
 switch (_that) {
 case _TrainingWeek():
 return $default(_that.id,_that.raceId,_that.weekNumber,_that.startsAt,_that.totalKm,_that.focus,_that.coachNotes,_that.trainingDays);}
@@ -195,7 +195,7 @@ return $default(_that.id,_that.raceId,_that.weekNumber,_that.startsAt,_that.tota
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id, @JsonKey(name: 'race_id')  int raceId, @JsonKey(name: 'week_number')  int weekNumber, @JsonKey(name: 'starts_at')  String startsAt, @JsonKey(name: 'total_km')  double totalKm,  String focus, @JsonKey(name: 'coach_notes')  String? coachNotes, @JsonKey(name: 'training_days')  List<TrainingDay>? trainingDays)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id, @JsonKey(name: 'race_id')  int raceId, @JsonKey(name: 'week_number')  int weekNumber, @JsonKey(name: 'starts_at')  String startsAt, @JsonKey(name: 'total_km', fromJson: toDouble)  double totalKm,  String focus, @JsonKey(name: 'coach_notes')  String? coachNotes, @JsonKey(name: 'training_days')  List<TrainingDay>? trainingDays)?  $default,) {final _that = this;
 switch (_that) {
 case _TrainingWeek() when $default != null:
 return $default(_that.id,_that.raceId,_that.weekNumber,_that.startsAt,_that.totalKm,_that.focus,_that.coachNotes,_that.trainingDays);case _:
@@ -210,14 +210,14 @@ return $default(_that.id,_that.raceId,_that.weekNumber,_that.startsAt,_that.tota
 @JsonSerializable()
 
 class _TrainingWeek implements TrainingWeek {
-  const _TrainingWeek({required this.id, @JsonKey(name: 'race_id') required this.raceId, @JsonKey(name: 'week_number') required this.weekNumber, @JsonKey(name: 'starts_at') required this.startsAt, @JsonKey(name: 'total_km') required this.totalKm, required this.focus, @JsonKey(name: 'coach_notes') this.coachNotes, @JsonKey(name: 'training_days') final  List<TrainingDay>? trainingDays}): _trainingDays = trainingDays;
+  const _TrainingWeek({required this.id, @JsonKey(name: 'race_id') required this.raceId, @JsonKey(name: 'week_number') required this.weekNumber, @JsonKey(name: 'starts_at') required this.startsAt, @JsonKey(name: 'total_km', fromJson: toDouble) required this.totalKm, required this.focus, @JsonKey(name: 'coach_notes') this.coachNotes, @JsonKey(name: 'training_days') final  List<TrainingDay>? trainingDays}): _trainingDays = trainingDays;
   factory _TrainingWeek.fromJson(Map<String, dynamic> json) => _$TrainingWeekFromJson(json);
 
 @override final  int id;
 @override@JsonKey(name: 'race_id') final  int raceId;
 @override@JsonKey(name: 'week_number') final  int weekNumber;
 @override@JsonKey(name: 'starts_at') final  String startsAt;
-@override@JsonKey(name: 'total_km') final  double totalKm;
+@override@JsonKey(name: 'total_km', fromJson: toDouble) final  double totalKm;
 @override final  String focus;
 @override@JsonKey(name: 'coach_notes') final  String? coachNotes;
  final  List<TrainingDay>? _trainingDays;
@@ -263,7 +263,7 @@ abstract mixin class _$TrainingWeekCopyWith<$Res> implements $TrainingWeekCopyWi
   factory _$TrainingWeekCopyWith(_TrainingWeek value, $Res Function(_TrainingWeek) _then) = __$TrainingWeekCopyWithImpl;
 @override @useResult
 $Res call({
- int id,@JsonKey(name: 'race_id') int raceId,@JsonKey(name: 'week_number') int weekNumber,@JsonKey(name: 'starts_at') String startsAt,@JsonKey(name: 'total_km') double totalKm, String focus,@JsonKey(name: 'coach_notes') String? coachNotes,@JsonKey(name: 'training_days') List<TrainingDay>? trainingDays
+ int id,@JsonKey(name: 'race_id') int raceId,@JsonKey(name: 'week_number') int weekNumber,@JsonKey(name: 'starts_at') String startsAt,@JsonKey(name: 'total_km', fromJson: toDouble) double totalKm, String focus,@JsonKey(name: 'coach_notes') String? coachNotes,@JsonKey(name: 'training_days') List<TrainingDay>? trainingDays
 });
 
 

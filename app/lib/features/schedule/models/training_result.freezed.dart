@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$TrainingResult {
 
- int get id;@JsonKey(name: 'compliance_score') double get complianceScore;@JsonKey(name: 'actual_km') double get actualKm;@JsonKey(name: 'actual_pace_seconds_per_km') int get actualPaceSecondsPerKm;@JsonKey(name: 'actual_avg_heart_rate') double? get actualAvgHeartRate;@JsonKey(name: 'pace_score') double get paceScore;@JsonKey(name: 'distance_score') double get distanceScore;@JsonKey(name: 'heart_rate_score') double? get heartRateScore;@JsonKey(name: 'ai_feedback') String? get aiFeedback;
+ int get id;@JsonKey(name: 'compliance_score', fromJson: toDouble) double get complianceScore;@JsonKey(name: 'actual_km', fromJson: toDouble) double get actualKm;@JsonKey(name: 'actual_pace_seconds_per_km', fromJson: toInt) int get actualPaceSecondsPerKm;@JsonKey(name: 'actual_avg_heart_rate', fromJson: toDoubleOrNull) double? get actualAvgHeartRate;@JsonKey(name: 'pace_score', fromJson: toDouble) double get paceScore;@JsonKey(name: 'distance_score', fromJson: toDouble) double get distanceScore;@JsonKey(name: 'heart_rate_score', fromJson: toDoubleOrNull) double? get heartRateScore;@JsonKey(name: 'ai_feedback') String? get aiFeedback;
 /// Create a copy of TrainingResult
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -48,7 +48,7 @@ abstract mixin class $TrainingResultCopyWith<$Res>  {
   factory $TrainingResultCopyWith(TrainingResult value, $Res Function(TrainingResult) _then) = _$TrainingResultCopyWithImpl;
 @useResult
 $Res call({
- int id,@JsonKey(name: 'compliance_score') double complianceScore,@JsonKey(name: 'actual_km') double actualKm,@JsonKey(name: 'actual_pace_seconds_per_km') int actualPaceSecondsPerKm,@JsonKey(name: 'actual_avg_heart_rate') double? actualAvgHeartRate,@JsonKey(name: 'pace_score') double paceScore,@JsonKey(name: 'distance_score') double distanceScore,@JsonKey(name: 'heart_rate_score') double? heartRateScore,@JsonKey(name: 'ai_feedback') String? aiFeedback
+ int id,@JsonKey(name: 'compliance_score', fromJson: toDouble) double complianceScore,@JsonKey(name: 'actual_km', fromJson: toDouble) double actualKm,@JsonKey(name: 'actual_pace_seconds_per_km', fromJson: toInt) int actualPaceSecondsPerKm,@JsonKey(name: 'actual_avg_heart_rate', fromJson: toDoubleOrNull) double? actualAvgHeartRate,@JsonKey(name: 'pace_score', fromJson: toDouble) double paceScore,@JsonKey(name: 'distance_score', fromJson: toDouble) double distanceScore,@JsonKey(name: 'heart_rate_score', fromJson: toDoubleOrNull) double? heartRateScore,@JsonKey(name: 'ai_feedback') String? aiFeedback
 });
 
 
@@ -158,7 +158,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'compliance_score')  double complianceScore, @JsonKey(name: 'actual_km')  double actualKm, @JsonKey(name: 'actual_pace_seconds_per_km')  int actualPaceSecondsPerKm, @JsonKey(name: 'actual_avg_heart_rate')  double? actualAvgHeartRate, @JsonKey(name: 'pace_score')  double paceScore, @JsonKey(name: 'distance_score')  double distanceScore, @JsonKey(name: 'heart_rate_score')  double? heartRateScore, @JsonKey(name: 'ai_feedback')  String? aiFeedback)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'compliance_score', fromJson: toDouble)  double complianceScore, @JsonKey(name: 'actual_km', fromJson: toDouble)  double actualKm, @JsonKey(name: 'actual_pace_seconds_per_km', fromJson: toInt)  int actualPaceSecondsPerKm, @JsonKey(name: 'actual_avg_heart_rate', fromJson: toDoubleOrNull)  double? actualAvgHeartRate, @JsonKey(name: 'pace_score', fromJson: toDouble)  double paceScore, @JsonKey(name: 'distance_score', fromJson: toDouble)  double distanceScore, @JsonKey(name: 'heart_rate_score', fromJson: toDoubleOrNull)  double? heartRateScore, @JsonKey(name: 'ai_feedback')  String? aiFeedback)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TrainingResult() when $default != null:
 return $default(_that.id,_that.complianceScore,_that.actualKm,_that.actualPaceSecondsPerKm,_that.actualAvgHeartRate,_that.paceScore,_that.distanceScore,_that.heartRateScore,_that.aiFeedback);case _:
@@ -179,7 +179,7 @@ return $default(_that.id,_that.complianceScore,_that.actualKm,_that.actualPaceSe
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'compliance_score')  double complianceScore, @JsonKey(name: 'actual_km')  double actualKm, @JsonKey(name: 'actual_pace_seconds_per_km')  int actualPaceSecondsPerKm, @JsonKey(name: 'actual_avg_heart_rate')  double? actualAvgHeartRate, @JsonKey(name: 'pace_score')  double paceScore, @JsonKey(name: 'distance_score')  double distanceScore, @JsonKey(name: 'heart_rate_score')  double? heartRateScore, @JsonKey(name: 'ai_feedback')  String? aiFeedback)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'compliance_score', fromJson: toDouble)  double complianceScore, @JsonKey(name: 'actual_km', fromJson: toDouble)  double actualKm, @JsonKey(name: 'actual_pace_seconds_per_km', fromJson: toInt)  int actualPaceSecondsPerKm, @JsonKey(name: 'actual_avg_heart_rate', fromJson: toDoubleOrNull)  double? actualAvgHeartRate, @JsonKey(name: 'pace_score', fromJson: toDouble)  double paceScore, @JsonKey(name: 'distance_score', fromJson: toDouble)  double distanceScore, @JsonKey(name: 'heart_rate_score', fromJson: toDoubleOrNull)  double? heartRateScore, @JsonKey(name: 'ai_feedback')  String? aiFeedback)  $default,) {final _that = this;
 switch (_that) {
 case _TrainingResult():
 return $default(_that.id,_that.complianceScore,_that.actualKm,_that.actualPaceSecondsPerKm,_that.actualAvgHeartRate,_that.paceScore,_that.distanceScore,_that.heartRateScore,_that.aiFeedback);}
@@ -196,7 +196,7 @@ return $default(_that.id,_that.complianceScore,_that.actualKm,_that.actualPaceSe
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id, @JsonKey(name: 'compliance_score')  double complianceScore, @JsonKey(name: 'actual_km')  double actualKm, @JsonKey(name: 'actual_pace_seconds_per_km')  int actualPaceSecondsPerKm, @JsonKey(name: 'actual_avg_heart_rate')  double? actualAvgHeartRate, @JsonKey(name: 'pace_score')  double paceScore, @JsonKey(name: 'distance_score')  double distanceScore, @JsonKey(name: 'heart_rate_score')  double? heartRateScore, @JsonKey(name: 'ai_feedback')  String? aiFeedback)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id, @JsonKey(name: 'compliance_score', fromJson: toDouble)  double complianceScore, @JsonKey(name: 'actual_km', fromJson: toDouble)  double actualKm, @JsonKey(name: 'actual_pace_seconds_per_km', fromJson: toInt)  int actualPaceSecondsPerKm, @JsonKey(name: 'actual_avg_heart_rate', fromJson: toDoubleOrNull)  double? actualAvgHeartRate, @JsonKey(name: 'pace_score', fromJson: toDouble)  double paceScore, @JsonKey(name: 'distance_score', fromJson: toDouble)  double distanceScore, @JsonKey(name: 'heart_rate_score', fromJson: toDoubleOrNull)  double? heartRateScore, @JsonKey(name: 'ai_feedback')  String? aiFeedback)?  $default,) {final _that = this;
 switch (_that) {
 case _TrainingResult() when $default != null:
 return $default(_that.id,_that.complianceScore,_that.actualKm,_that.actualPaceSecondsPerKm,_that.actualAvgHeartRate,_that.paceScore,_that.distanceScore,_that.heartRateScore,_that.aiFeedback);case _:
@@ -211,17 +211,17 @@ return $default(_that.id,_that.complianceScore,_that.actualKm,_that.actualPaceSe
 @JsonSerializable()
 
 class _TrainingResult implements TrainingResult {
-  const _TrainingResult({required this.id, @JsonKey(name: 'compliance_score') required this.complianceScore, @JsonKey(name: 'actual_km') required this.actualKm, @JsonKey(name: 'actual_pace_seconds_per_km') required this.actualPaceSecondsPerKm, @JsonKey(name: 'actual_avg_heart_rate') this.actualAvgHeartRate, @JsonKey(name: 'pace_score') required this.paceScore, @JsonKey(name: 'distance_score') required this.distanceScore, @JsonKey(name: 'heart_rate_score') this.heartRateScore, @JsonKey(name: 'ai_feedback') this.aiFeedback});
+  const _TrainingResult({required this.id, @JsonKey(name: 'compliance_score', fromJson: toDouble) required this.complianceScore, @JsonKey(name: 'actual_km', fromJson: toDouble) required this.actualKm, @JsonKey(name: 'actual_pace_seconds_per_km', fromJson: toInt) required this.actualPaceSecondsPerKm, @JsonKey(name: 'actual_avg_heart_rate', fromJson: toDoubleOrNull) this.actualAvgHeartRate, @JsonKey(name: 'pace_score', fromJson: toDouble) required this.paceScore, @JsonKey(name: 'distance_score', fromJson: toDouble) required this.distanceScore, @JsonKey(name: 'heart_rate_score', fromJson: toDoubleOrNull) this.heartRateScore, @JsonKey(name: 'ai_feedback') this.aiFeedback});
   factory _TrainingResult.fromJson(Map<String, dynamic> json) => _$TrainingResultFromJson(json);
 
 @override final  int id;
-@override@JsonKey(name: 'compliance_score') final  double complianceScore;
-@override@JsonKey(name: 'actual_km') final  double actualKm;
-@override@JsonKey(name: 'actual_pace_seconds_per_km') final  int actualPaceSecondsPerKm;
-@override@JsonKey(name: 'actual_avg_heart_rate') final  double? actualAvgHeartRate;
-@override@JsonKey(name: 'pace_score') final  double paceScore;
-@override@JsonKey(name: 'distance_score') final  double distanceScore;
-@override@JsonKey(name: 'heart_rate_score') final  double? heartRateScore;
+@override@JsonKey(name: 'compliance_score', fromJson: toDouble) final  double complianceScore;
+@override@JsonKey(name: 'actual_km', fromJson: toDouble) final  double actualKm;
+@override@JsonKey(name: 'actual_pace_seconds_per_km', fromJson: toInt) final  int actualPaceSecondsPerKm;
+@override@JsonKey(name: 'actual_avg_heart_rate', fromJson: toDoubleOrNull) final  double? actualAvgHeartRate;
+@override@JsonKey(name: 'pace_score', fromJson: toDouble) final  double paceScore;
+@override@JsonKey(name: 'distance_score', fromJson: toDouble) final  double distanceScore;
+@override@JsonKey(name: 'heart_rate_score', fromJson: toDoubleOrNull) final  double? heartRateScore;
 @override@JsonKey(name: 'ai_feedback') final  String? aiFeedback;
 
 /// Create a copy of TrainingResult
@@ -257,7 +257,7 @@ abstract mixin class _$TrainingResultCopyWith<$Res> implements $TrainingResultCo
   factory _$TrainingResultCopyWith(_TrainingResult value, $Res Function(_TrainingResult) _then) = __$TrainingResultCopyWithImpl;
 @override @useResult
 $Res call({
- int id,@JsonKey(name: 'compliance_score') double complianceScore,@JsonKey(name: 'actual_km') double actualKm,@JsonKey(name: 'actual_pace_seconds_per_km') int actualPaceSecondsPerKm,@JsonKey(name: 'actual_avg_heart_rate') double? actualAvgHeartRate,@JsonKey(name: 'pace_score') double paceScore,@JsonKey(name: 'distance_score') double distanceScore,@JsonKey(name: 'heart_rate_score') double? heartRateScore,@JsonKey(name: 'ai_feedback') String? aiFeedback
+ int id,@JsonKey(name: 'compliance_score', fromJson: toDouble) double complianceScore,@JsonKey(name: 'actual_km', fromJson: toDouble) double actualKm,@JsonKey(name: 'actual_pace_seconds_per_km', fromJson: toInt) int actualPaceSecondsPerKm,@JsonKey(name: 'actual_avg_heart_rate', fromJson: toDoubleOrNull) double? actualAvgHeartRate,@JsonKey(name: 'pace_score', fromJson: toDouble) double paceScore,@JsonKey(name: 'distance_score', fromJson: toDouble) double distanceScore,@JsonKey(name: 'heart_rate_score', fromJson: toDoubleOrNull) double? heartRateScore,@JsonKey(name: 'ai_feedback') String? aiFeedback
 });
 
 
