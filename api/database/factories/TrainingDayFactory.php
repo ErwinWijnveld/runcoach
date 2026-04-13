@@ -1,0 +1,34 @@
+<?php
+
+namespace Database\Factories;
+
+use App\Models\TrainingDay;
+use App\Models\TrainingWeek;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends Factory<TrainingDay>
+ */
+class TrainingDayFactory extends Factory
+{
+    /**
+     * Define the model's default state.
+     *
+     * @return array<string, mixed>
+     */
+    public function definition(): array
+    {
+        return [
+            'training_week_id' => TrainingWeek::factory(),
+            'date' => fake()->dateTimeBetween('+1 week', '+4 months'),
+            'type' => fake()->randomElement(['easy', 'tempo', 'interval', 'long_run', 'recovery', 'rest']),
+            'title' => fake()->randomElement(['Easy Run', 'Tempo Run', 'Interval Session', 'Long Run', 'Recovery Jog', 'Rest Day']),
+            'description' => fake()->optional()->sentence(),
+            'target_km' => fake()->randomFloat(1, 3, 25),
+            'target_pace_seconds_per_km' => fake()->numberBetween(240, 420),
+            'target_heart_rate_zone' => fake()->numberBetween(1, 5),
+            'intervals_json' => null,
+            'order' => fake()->numberBetween(1, 7),
+        ];
+    }
+}

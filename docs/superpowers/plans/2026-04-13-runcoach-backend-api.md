@@ -6,9 +6,21 @@
 
 **Architecture:** Laravel 13 REST API with Sanctum token auth. Strava OAuth2 for user authentication, webhooks for activity sync. Laravel AI SDK (OpenAI) powers the coach chat with 7 tool definitions for schedule CRUD. All schedule mutations go through a proposal/approval flow. Filament admin panel is a separate plan.
 
-**Tech Stack:** Laravel 13, Sanctum, Laravel AI SDK, Strava API (OAuth2 + Webhooks), PHPUnit
+**Tech Stack:** Laravel 13, Sanctum, openai-php/laravel, Strava API (OAuth2 + Webhooks), PHPUnit
 
 **Spec:** `docs/superpowers/specs/2026-04-13-runcoach-mvp-design.md`
+
+---
+
+## Boost Conventions (apply to all tasks)
+
+- Use `php artisan make:*` with `--no-interaction` for all file generation
+- Use **Eloquent API Resources** for all JSON responses (not raw `response()->json()`)
+- Run `vendor/bin/pint --dirty --format agent` before every commit
+- Use `LazilyRefreshDatabase` instead of `RefreshDatabase` in tests
+- Use **implicit route model binding** in controllers (type-hint `Race $race` not `int $raceId`)
+- Use `search-docs` MCP tool to verify Laravel 13 API syntax when needed
+- Create factories alongside models, use factory states in tests
 
 ---
 
@@ -36,11 +48,22 @@ api/
 │   │   │   ├── StravaController.php        — Sync trigger, activities list, status
 │   │   │   ├── StravaWebhookController.php — Webhook verification + event receiver
 │   │   │   └── TrainingScheduleController.php — Schedule/week/day/result read endpoints
-│   │   └── Requests/
-│   │       ├── OnboardingRequest.php
-│   │       ├── SendMessageRequest.php
-│   │       ├── StoreRaceRequest.php
-│   │       └── UpdateProfileRequest.php
+│   │   ├── Requests/
+│   │   │   ├── OnboardingRequest.php
+│   │   │   ├── SendMessageRequest.php
+│   │   │   ├── StoreRaceRequest.php
+│   │   │   └── UpdateProfileRequest.php
+│   │   └── Resources/
+│   │       ├── CoachConversationResource.php
+│   │       ├── CoachMessageResource.php
+│   │       ├── CoachProposalResource.php
+│   │       ├── DashboardResource.php
+│   │       ├── RaceResource.php
+│   │       ├── StravaActivityResource.php
+│   │       ├── TrainingDayResource.php
+│   │       ├── TrainingResultResource.php
+│   │       ├── TrainingWeekResource.php
+│   │       └── UserResource.php
 │   ├── Jobs/
 │   │   ├── GenerateActivityFeedback.php    — AI feedback after compliance scoring
 │   │   ├── GenerateWeeklyInsight.php       — AI weekly coach notes
@@ -110,34 +133,23 @@ api/
 - Modify: `api/config/services.php`
 - Modify: `api/composer.json`
 
-- [ ] **Step 1: (USER) Create Laravel project**
+- [x] **Step 1: (USER) Create Laravel project** — DONE
 
-The user initializes the Laravel project using the standard Laravel installer:
-
-```bash
-cd /Users/erwin/personal/runcoach
-laravel new api
-```
-
-Follow the interactive prompts. Recommended choices:
-- Starter kit: **None**
-- Testing framework: **PHPUnit**
-- Database: **SQLite** (fine for local dev / MVP)
-- Run migrations: **Yes**
+User ran `laravel new api` with: no starter kit, PHPUnit, SQLite. Laravel Boost (`laravel/boost`) installed and running on port 8000.
 
 - [ ] **Step 2: Install dependencies**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 composer require laravel/sanctum openai-php/laravel
 ```
 
-Note: Laravel AI SDK (`laravel/ai`) may not be released yet at time of implementation. If unavailable, `openai-php/laravel` is the direct OpenAI client. Wrap it in a `CoachChatService` that can be swapped later when the AI SDK ships. The tool-calling pattern remains the same — you build the tools array manually and pass it to the chat completion call.
+Note: Using `openai-php/laravel` for direct OpenAI chat completions with tool calling. Wrapped in `CoachChatService` so the provider is swappable. Laravel Boost is already installed as a dev dependency.
 
 - [ ] **Step 3: Publish vendor configs**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider"
 php artisan install:api
 php artisan make:queue-table
@@ -176,7 +188,7 @@ Add to `api/config/services.php` in the return array:
 - [ ] **Step 6: Verify project boots**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan serve &
 curl -s http://localhost:8000 | head -5
 # Expected: HTML output from Laravel welcome page
@@ -186,7 +198,7 @@ kill %1
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add api/
 git commit -m "feat: scaffold Laravel project with Sanctum and OpenAI"
 ```
@@ -329,7 +341,7 @@ enum ProposalStatus: string
 - [ ] **Step 2: Commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add api/app/Enums/
 git commit -m "feat: add all enum definitions"
 ```
@@ -347,7 +359,7 @@ Use `php artisan make:migration` to generate all migration files, then fill in t
 - [ ] **Step 0: Generate all migration files**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan make:migration create_strava_tokens_table
 php artisan make:migration create_races_table
 php artisan make:migration create_training_weeks_table
@@ -545,7 +557,7 @@ Schema::create('coach_proposals', function (Blueprint $table) {
 - [ ] **Step 11: Run migrations to verify**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan migrate:fresh
 ```
 
@@ -554,7 +566,7 @@ Expected: All migrations run successfully with no errors.
 - [ ] **Step 12: Commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add api/database/migrations/
 git commit -m "feat: add all database migrations"
 ```
@@ -568,7 +580,7 @@ Use `php artisan make:model` with `--factory` to generate model and factory stub
 **Generate all models and factories:**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan make:model StravaToken --factory
 php artisan make:model Race --factory
 php artisan make:model TrainingWeek --factory
@@ -596,7 +608,7 @@ php artisan make:model CoachProposal --factory
 - [ ] **Step 1: Write failing test for model relationships**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan make:test ModelRelationshipsTest
 ```
 
@@ -625,12 +637,12 @@ use App\Models\TrainingDay;
 use App\Models\TrainingResult;
 use App\Models\TrainingWeek;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
 class ModelRelationshipsTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_user_has_one_strava_token(): void
     {
@@ -726,7 +738,7 @@ class ModelRelationshipsTest extends TestCase
 - [ ] **Step 2: Run test to verify it fails**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan test tests/Feature/ModelRelationshipsTest.php
 ```
 
@@ -1548,7 +1560,7 @@ public function definition(): array
 - [ ] **Step 14: Run tests to verify they pass**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan test tests/Feature/ModelRelationshipsTest.php
 ```
 
@@ -1557,7 +1569,7 @@ Expected: All 9 tests PASS.
 - [ ] **Step 15: Commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add api/app/Models/ api/database/factories/ api/tests/Feature/ModelRelationshipsTest.php
 git commit -m "feat: add all Eloquent models, factories, and relationship tests"
 ```
@@ -1569,7 +1581,7 @@ git commit -m "feat: add all Eloquent models, factories, and relationship tests"
 **Generate scaffolding:**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan make:controller AuthController
 php artisan make:test AuthTest
 mkdir -p app/Services
@@ -1592,13 +1604,13 @@ namespace Tests\Feature;
 
 use App\Models\StravaToken;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_strava_redirect_returns_authorize_url(): void
     {
@@ -1681,7 +1693,7 @@ class AuthTest extends TestCase
 - [ ] **Step 2: Run test to verify it fails**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan test tests/Feature/AuthTest.php
 ```
 
@@ -1884,7 +1896,7 @@ Route::prefix('v1')->group(function () {
 - [ ] **Step 6: Run tests to verify they pass**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan test tests/Feature/AuthTest.php
 ```
 
@@ -1893,7 +1905,7 @@ Expected: All 4 tests PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add api/app/Http/Controllers/AuthController.php api/app/Services/StravaSyncService.php api/routes/api.php api/tests/Feature/AuthTest.php
 git commit -m "feat: add Strava OAuth authentication with Sanctum tokens"
 ```
@@ -1905,7 +1917,7 @@ git commit -m "feat: add Strava OAuth authentication with Sanctum tokens"
 **Generate scaffolding:**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan make:controller ProfileController
 php artisan make:request UpdateProfileRequest
 php artisan make:request OnboardingRequest
@@ -1931,12 +1943,12 @@ namespace Tests\Feature;
 use App\Enums\CoachStyle;
 use App\Enums\RunnerLevel;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
 class ProfileTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     private function authUser(?User $user = null): array
     {
@@ -2001,7 +2013,7 @@ class ProfileTest extends TestCase
 - [ ] **Step 2: Run test to verify it fails**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan test tests/Feature/ProfileTest.php
 ```
 
@@ -2130,7 +2142,7 @@ use App\Http\Controllers\ProfileController;
 - [ ] **Step 6: Run tests to verify they pass**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan test tests/Feature/ProfileTest.php
 ```
 
@@ -2139,7 +2151,7 @@ Expected: All 4 tests PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add api/app/Http/Controllers/ProfileController.php api/app/Http/Requests/ api/routes/api.php api/tests/Feature/ProfileTest.php
 git commit -m "feat: add profile API with get, update, and onboarding"
 ```
@@ -2151,7 +2163,7 @@ git commit -m "feat: add profile API with get, update, and onboarding"
 **Generate scaffolding:**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan make:controller RaceController --api
 php artisan make:request StoreRaceRequest
 php artisan make:test RaceTest
@@ -2176,12 +2188,12 @@ use App\Enums\RaceDistance;
 use App\Enums\RaceStatus;
 use App\Models\Race;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
 class RaceTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     private function authUser(): array
     {
@@ -2273,7 +2285,7 @@ class RaceTest extends TestCase
 - [ ] **Step 2: Run test to verify it fails**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan test tests/Feature/RaceTest.php
 ```
 
@@ -2394,7 +2406,7 @@ use App\Http\Controllers\RaceController;
 - [ ] **Step 6: Run tests to verify they pass**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan test tests/Feature/RaceTest.php
 ```
 
@@ -2403,7 +2415,7 @@ Expected: All 6 tests PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add api/app/Http/Controllers/RaceController.php api/app/Http/Requests/StoreRaceRequest.php api/routes/api.php api/tests/Feature/RaceTest.php
 git commit -m "feat: add race CRUD API"
 ```
@@ -2415,7 +2427,7 @@ git commit -m "feat: add race CRUD API"
 **Generate scaffolding:**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan make:controller TrainingScheduleController
 php artisan make:test TrainingScheduleTest
 ```
@@ -2439,12 +2451,12 @@ use App\Models\TrainingDay;
 use App\Models\TrainingResult;
 use App\Models\TrainingWeek;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
 class TrainingScheduleTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     private function authUser(): array
     {
@@ -2540,7 +2552,7 @@ class TrainingScheduleTest extends TestCase
 - [ ] **Step 2: Run test to verify it fails**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan test tests/Feature/TrainingScheduleTest.php
 ```
 
@@ -2628,7 +2640,7 @@ use App\Http\Controllers\TrainingScheduleController;
 - [ ] **Step 5: Run tests to verify they pass**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan test tests/Feature/TrainingScheduleTest.php
 ```
 
@@ -2637,7 +2649,7 @@ Expected: All 5 tests PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add api/app/Http/Controllers/TrainingScheduleController.php api/routes/api.php api/tests/Feature/TrainingScheduleTest.php
 git commit -m "feat: add training schedule read API"
 ```
@@ -2649,7 +2661,7 @@ git commit -m "feat: add training schedule read API"
 **Generate scaffolding:**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan make:controller StravaWebhookController
 php artisan make:controller StravaController
 php artisan make:job ProcessStravaActivity
@@ -2679,13 +2691,13 @@ namespace Tests\Feature;
 use App\Jobs\ProcessStravaActivity;
 use App\Models\StravaToken;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class StravaWebhookTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     public function test_webhook_verification_challenge(): void
     {
@@ -2759,13 +2771,13 @@ namespace Tests\Feature;
 use App\Models\StravaActivity;
 use App\Models\StravaToken;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class StravaSyncTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     private function authUser(): array
     {
@@ -2812,7 +2824,7 @@ class StravaSyncTest extends TestCase
 - [ ] **Step 3: Run tests to verify they fail**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan test tests/Feature/StravaWebhookTest.php tests/Feature/StravaSyncTest.php
 ```
 
@@ -3104,7 +3116,7 @@ class ComplianceScoringService
 - [ ] **Step 10: Run tests to verify they pass**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan test tests/Feature/StravaWebhookTest.php tests/Feature/StravaSyncTest.php
 ```
 
@@ -3113,7 +3125,7 @@ Expected: All 7 tests PASS.
 - [ ] **Step 11: Commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add api/app/Http/Controllers/StravaWebhookController.php api/app/Http/Controllers/StravaController.php api/app/Jobs/ api/app/Services/ComplianceScoringService.php api/routes/api.php api/tests/Feature/StravaWebhookTest.php api/tests/Feature/StravaSyncTest.php
 git commit -m "feat: add Strava webhook handler, activity sync, and status API"
 ```
@@ -3125,7 +3137,7 @@ git commit -m "feat: add Strava webhook handler, activity sync, and status API"
 **Generate scaffolding:**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan make:test ComplianceScoringTest
 ```
 
@@ -3150,12 +3162,12 @@ use App\Models\TrainingDay;
 use App\Models\TrainingWeek;
 use App\Models\User;
 use App\Services\ComplianceScoringService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
 class ComplianceScoringTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     private ComplianceScoringService $service;
 
@@ -3266,7 +3278,7 @@ class ComplianceScoringTest extends TestCase
 - [ ] **Step 2: Run test to verify it fails**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan test tests/Feature/ComplianceScoringTest.php
 ```
 
@@ -3414,7 +3426,7 @@ class ComplianceScoringService
 - [ ] **Step 4: Run tests to verify they pass**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan test tests/Feature/ComplianceScoringTest.php
 ```
 
@@ -3423,7 +3435,7 @@ Expected: All 4 tests PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add api/app/Services/ComplianceScoringService.php api/tests/Feature/ComplianceScoringTest.php
 git commit -m "feat: implement compliance scoring with activity matching"
 ```
@@ -3435,7 +3447,7 @@ git commit -m "feat: implement compliance scoring with activity matching"
 No artisan generators for service classes — these are plain PHP classes.
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 mkdir -p app/Services/CoachTools
 ```
 
@@ -4246,7 +4258,7 @@ PROMPT;
 - [ ] **Step 9: Commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add api/app/Services/CoachChatService.php api/app/Services/CoachTools/
 git commit -m "feat: add AI coach service with 7 tool definitions and proposal system"
 ```
@@ -4258,7 +4270,7 @@ git commit -m "feat: add AI coach service with 7 tool definitions and proposal s
 **Generate scaffolding:**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan make:controller CoachController
 php artisan make:request SendMessageRequest
 php artisan make:test CoachChatTest
@@ -4287,13 +4299,13 @@ use App\Models\CoachProposal;
 use App\Models\Race;
 use App\Models\User;
 use App\Services\CoachChatService;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Mockery;
 use Tests\TestCase;
 
 class CoachChatTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     private function authUser(): array
     {
@@ -4419,7 +4431,7 @@ class CoachChatTest extends TestCase
 - [ ] **Step 2: Run test to verify it fails**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan test tests/Feature/CoachChatTest.php
 ```
 
@@ -4563,7 +4575,7 @@ use App\Http\Controllers\CoachController;
 - [ ] **Step 6: Run tests to verify they pass**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan test tests/Feature/CoachChatTest.php
 ```
 
@@ -4572,7 +4584,7 @@ Expected: All 6 tests PASS.
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add api/app/Http/Controllers/CoachController.php api/app/Http/Requests/SendMessageRequest.php api/routes/api.php api/tests/Feature/CoachChatTest.php
 git commit -m "feat: add coach chat API with conversation, messaging, and proposal endpoints"
 ```
@@ -4584,7 +4596,7 @@ git commit -m "feat: add coach chat API with conversation, messaging, and propos
 **Generate scaffolding:**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan make:controller DashboardController --invokable
 php artisan make:test DashboardTest
 ```
@@ -4610,12 +4622,12 @@ use App\Models\TrainingDay;
 use App\Models\TrainingResult;
 use App\Models\TrainingWeek;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
 class DashboardTest extends TestCase
 {
-    use RefreshDatabase;
+    use LazilyRefreshDatabase;
 
     private function authUser(): array
     {
@@ -4680,7 +4692,7 @@ class DashboardTest extends TestCase
 - [ ] **Step 2: Run test to verify it fails**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan test tests/Feature/DashboardTest.php
 ```
 
@@ -4784,7 +4796,7 @@ use App\Http\Controllers\DashboardController;
 - [ ] **Step 5: Run tests to verify they pass**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan test tests/Feature/DashboardTest.php
 ```
 
@@ -4793,7 +4805,7 @@ Expected: All 2 tests PASS.
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add api/app/Http/Controllers/DashboardController.php api/routes/api.php api/tests/Feature/DashboardTest.php
 git commit -m "feat: add dashboard aggregate API endpoint"
 ```
@@ -4805,7 +4817,7 @@ git commit -m "feat: add dashboard aggregate API endpoint"
 **Generate scaffolding:**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan make:job GenerateActivityFeedback
 php artisan make:job GenerateWeeklyInsight
 ```
@@ -4960,7 +4972,7 @@ use App\Jobs\GenerateWeeklyInsight;
 - [ ] **Step 4: Commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add api/app/Jobs/
 git commit -m "feat: add AI feedback generation jobs for activities and weekly insights"
 ```
@@ -5039,7 +5051,7 @@ Route::prefix('v1')->group(function () {
 - [ ] **Step 2: Run the full test suite**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan test
 ```
 
@@ -5048,7 +5060,7 @@ Expected: All tests across all test files PASS.
 - [ ] **Step 3: Verify route list**
 
 ```bash
-cd /Users/erwin/personal/runcoach/api
+cd /Users/erwinwijnveld/projects/runcoach/api
 php artisan route:list --path=api/v1
 ```
 
@@ -5057,7 +5069,7 @@ Expected: 22 routes listed, matching the spec.
 - [ ] **Step 4: Final commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add api/routes/api.php
 git commit -m "feat: finalize API routes and verify full test suite"
 ```

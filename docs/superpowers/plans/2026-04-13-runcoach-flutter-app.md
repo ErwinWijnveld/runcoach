@@ -131,14 +131,14 @@ app/
 - [ ] **Step 1: (USER) Create Flutter project**
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 flutter create --org com.runcoach --platforms ios,android app
 ```
 
 - [ ] **Step 2: Install production dependencies**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 flutter pub add flutter_riverpod riverpod_annotation
 flutter pub add freezed_annotation json_annotation
 flutter pub add dio retrofit
@@ -150,7 +150,7 @@ flutter pub add webview_flutter
 - [ ] **Step 3: Install dev dependencies (code generators + linting)**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 flutter pub add --dev build_runner
 flutter pub add --dev riverpod_generator freezed json_serializable retrofit_generator
 flutter pub add --dev custom_lint riverpod_lint
@@ -180,7 +180,7 @@ linter:
 - [ ] **Step 5: Create folder structure**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 mkdir -p lib/core/api lib/core/storage lib/core/theme
 mkdir -p lib/router
 mkdir -p lib/features/auth/{data,models,providers,screens}
@@ -195,7 +195,7 @@ mkdir -p test/features/{auth,dashboard,schedule,coach,races}/providers
 - [ ] **Step 6: Verify project compiles**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 flutter analyze
 flutter test
 ```
@@ -205,7 +205,7 @@ Expected: No analysis errors, default test passes.
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add app/
 git commit -m "feat: scaffold Flutter project with Riverpod, Freezed, Retrofit, GoRouter"
 ```
@@ -423,7 +423,7 @@ Dio dio(Ref ref) {
 - [ ] **Step 5: Run code generation**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 dart run build_runner build --delete-conflicting-outputs
 ```
 
@@ -432,14 +432,14 @@ Expected: Generates `token_storage.g.dart` and `dio_client.g.dart`.
 - [ ] **Step 6: Verify it compiles**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 flutter analyze
 ```
 
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add app/lib/core/
 git commit -m "feat: add app theme, token storage, Dio client with auth interceptor"
 ```
@@ -758,7 +758,7 @@ class Race with _$Race {
 - [ ] **Step 11: Run code generation**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 dart run build_runner build --delete-conflicting-outputs
 ```
 
@@ -767,14 +767,14 @@ Expected: Generates `.freezed.dart` and `.g.dart` for all 10 model files.
 - [ ] **Step 12: Verify it compiles**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 flutter analyze
 ```
 
 - [ ] **Step 13: Commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add app/lib/features/*/models/
 git commit -m "feat: add all Freezed data models with JSON serialization"
 ```
@@ -981,7 +981,7 @@ RaceApi raceApi(Ref ref) => RaceApi(ref.watch(dioProvider));
 - [ ] **Step 6: Run code generation**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 dart run build_runner build --delete-conflicting-outputs
 ```
 
@@ -990,12 +990,12 @@ Expected: Generates `.g.dart` for all 5 API client files + provider files.
 - [ ] **Step 7: Verify and commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 flutter analyze
 ```
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add app/lib/features/*/data/
 git commit -m "feat: add Retrofit API clients for all endpoints"
 ```
@@ -1243,19 +1243,19 @@ Future<Race> raceDetail(RaceDetailRef ref, {required int id}) async {
 - [ ] **Step 6: Run code generation**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 dart run build_runner build --delete-conflicting-outputs
 ```
 
 - [ ] **Step 7: Verify and commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 flutter analyze
 ```
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add app/lib/features/*/providers/
 git commit -m "feat: add Riverpod providers for all features"
 ```
@@ -1541,7 +1541,7 @@ Create the same stub pattern for all 12 remaining screens:
 - [ ] **Step 5: Run code generation and verify**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 dart run build_runner build --delete-conflicting-outputs
 flutter analyze
 ```
@@ -1549,7 +1549,7 @@ flutter analyze
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add app/lib/
 git commit -m "feat: add GoRouter with auth guards, main shell, and placeholder screens"
 ```
@@ -1851,12 +1851,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 - [ ] **Step 4: Verify and commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 flutter analyze
 ```
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add app/lib/features/auth/screens/
 git commit -m "feat: implement auth screens — welcome, Strava OAuth, onboarding"
 ```
@@ -2192,12 +2192,12 @@ These are simpler detail screens. Implement them following the same pattern — 
 - [ ] **Step 3: Verify and commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 flutter analyze
 ```
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add app/lib/features/schedule/screens/
 git commit -m "feat: implement schedule screens — weekly plan, day detail, result overlay"
 ```
@@ -2758,12 +2758,12 @@ class _ChatInput extends StatelessWidget {
 - [ ] **Step 6: Verify and commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 flutter analyze
 ```
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add app/lib/features/coach/
 git commit -m "feat: implement coach screens — chat list, chat UI, quick actions, proposals"
 ```
@@ -2797,12 +2797,12 @@ Replace `app/lib/features/races/screens/race_detail_screen.dart`. Show: race nam
 - [ ] **Step 5: Verify and commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 flutter analyze
 ```
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add app/lib/features/dashboard/screens/ app/lib/features/races/screens/
 git commit -m "feat: implement dashboard and race screens"
 ```
@@ -2818,7 +2818,7 @@ git commit -m "feat: implement dashboard and race screens"
 - [ ] **Step 1: Add test dependency**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 flutter pub add --dev mockito
 ```
 
@@ -2851,14 +2851,14 @@ void main() {
 - [ ] **Step 3: Run tests**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 flutter test
 ```
 
 - [ ] **Step 4: Commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add app/test/
 git commit -m "feat: add provider tests"
 ```
@@ -2870,14 +2870,14 @@ git commit -m "feat: add provider tests"
 - [ ] **Step 1: Run full code generation**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 dart run build_runner build --delete-conflicting-outputs
 ```
 
 - [ ] **Step 2: Run analysis**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 flutter analyze
 dart format .
 ```
@@ -2885,14 +2885,14 @@ dart format .
 - [ ] **Step 3: Run tests**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 flutter test
 ```
 
 - [ ] **Step 4: Test on device/simulator**
 
 ```bash
-cd /Users/erwin/personal/runcoach/app
+cd /Users/erwinwijnveld/projects/runcoach/app
 flutter run
 ```
 
@@ -2905,7 +2905,7 @@ Verify:
 - [ ] **Step 5: Final commit**
 
 ```bash
-cd /Users/erwin/personal/runcoach
+cd /Users/erwinwijnveld/projects/runcoach
 git add app/
 git commit -m "feat: complete Flutter app with all screens, providers, and API clients"
 ```
