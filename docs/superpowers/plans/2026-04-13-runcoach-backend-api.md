@@ -102,30 +102,49 @@ api/
 
 ### Task 1: Laravel Project Scaffolding
 
+> **Step 1 is done by the user (Erwin) manually.** The agent picks up from Step 2.
+
 **Files:**
-- Create: `api/` (via `laravel new`)
+- Create: `api/` (via `laravel new` — done by user)
 - Modify: `api/.env`
 - Modify: `api/config/services.php`
 - Modify: `api/composer.json`
 
-- [ ] **Step 1: Create Laravel project**
+- [ ] **Step 1: (USER) Create Laravel project**
+
+The user initializes the Laravel project using the standard Laravel installer:
 
 ```bash
 cd /Users/erwin/personal/runcoach
-composer create-project laravel/laravel api
+laravel new api
 ```
+
+Follow the interactive prompts. Recommended choices:
+- Starter kit: **None**
+- Testing framework: **PHPUnit**
+- Database: **SQLite** (fine for local dev / MVP)
+- Run migrations: **Yes**
 
 - [ ] **Step 2: Install dependencies**
 
 ```bash
 cd /Users/erwin/personal/runcoach/api
-composer require laravel/sanctum
-composer require openai-php/laravel
+composer require laravel/sanctum openai-php/laravel
 ```
 
-Note: Laravel AI SDK (`laravel/ai`) may not be released yet at time of implementation. If unavailable, use `openai-php/laravel` as the direct OpenAI client and wrap it in a `CoachChatService` that can be swapped later when the AI SDK ships. The tool-calling pattern remains the same — you build the tools array manually and pass it to the chat completion call.
+Note: Laravel AI SDK (`laravel/ai`) may not be released yet at time of implementation. If unavailable, `openai-php/laravel` is the direct OpenAI client. Wrap it in a `CoachChatService` that can be swapped later when the AI SDK ships. The tool-calling pattern remains the same — you build the tools array manually and pass it to the chat completion call.
 
-- [ ] **Step 3: Configure environment**
+- [ ] **Step 3: Publish vendor configs**
+
+```bash
+cd /Users/erwin/personal/runcoach/api
+php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider"
+php artisan install:api
+php artisan make:queue-table
+php artisan migrate
+```
+
+- [ ] **Step 4: Configure environment**
 
 Add to `api/.env`:
 
@@ -141,7 +160,7 @@ OPENAI_MODEL=gpt-4o
 QUEUE_CONNECTION=database
 ```
 
-- [ ] **Step 4: Add Strava config to services.php**
+- [ ] **Step 5: Add Strava config to services.php**
 
 Add to `api/config/services.php` in the return array:
 
@@ -152,14 +171,6 @@ Add to `api/config/services.php` in the return array:
     'redirect_uri' => env('STRAVA_REDIRECT_URI'),
     'webhook_verify_token' => env('STRAVA_WEBHOOK_VERIFY_TOKEN'),
 ],
-```
-
-- [ ] **Step 5: Publish Sanctum config and create queue tables migration**
-
-```bash
-cd /Users/erwin/personal/runcoach/api
-php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider"
-php artisan make:queue-table
 ```
 
 - [ ] **Step 6: Verify project boots**
@@ -327,17 +338,26 @@ git commit -m "feat: add all enum definitions"
 
 ### Task 3: Database Migrations
 
+Use `php artisan make:migration` to generate all migration files, then fill in the schema.
+
 **Files:**
 - Modify: `api/database/migrations/0001_01_01_000000_create_users_table.php`
-- Create: `api/database/migrations/2026_04_13_000001_create_strava_tokens_table.php`
-- Create: `api/database/migrations/2026_04_13_000002_create_races_table.php`
-- Create: `api/database/migrations/2026_04_13_000003_create_training_weeks_table.php`
-- Create: `api/database/migrations/2026_04_13_000004_create_training_days_table.php`
-- Create: `api/database/migrations/2026_04_13_000005_create_strava_activities_table.php`
-- Create: `api/database/migrations/2026_04_13_000006_create_training_results_table.php`
-- Create: `api/database/migrations/2026_04_13_000007_create_coach_conversations_table.php`
-- Create: `api/database/migrations/2026_04_13_000008_create_coach_messages_table.php`
-- Create: `api/database/migrations/2026_04_13_000009_create_coach_proposals_table.php`
+- Create via artisan: 9 new migrations (see steps below)
+
+- [ ] **Step 0: Generate all migration files**
+
+```bash
+cd /Users/erwin/personal/runcoach/api
+php artisan make:migration create_strava_tokens_table
+php artisan make:migration create_races_table
+php artisan make:migration create_training_weeks_table
+php artisan make:migration create_training_days_table
+php artisan make:migration create_strava_activities_table
+php artisan make:migration create_training_results_table
+php artisan make:migration create_coach_conversations_table
+php artisan make:migration create_coach_messages_table
+php artisan make:migration create_coach_proposals_table
+```
 
 - [ ] **Step 1: Modify users migration**
 
@@ -359,12 +379,9 @@ Schema::create('users', function (Blueprint $table) {
 });
 ```
 
-- [ ] **Step 2: Create strava_tokens migration**
+- [ ] **Step 2: Fill strava_tokens migration**
 
-```bash
-cd /Users/erwin/personal/runcoach/api
-php artisan make:migration create_strava_tokens_table
-```
+Edit the generated `create_strava_tokens_table` migration. Set the `up()` method:
 
 ```php
 Schema::create('strava_tokens', function (Blueprint $table) {
@@ -378,11 +395,9 @@ Schema::create('strava_tokens', function (Blueprint $table) {
 });
 ```
 
-- [ ] **Step 3: Create races migration**
+- [ ] **Step 3: Fill races migration**
 
-```bash
-php artisan make:migration create_races_table
-```
+Edit the generated `create_races_table` migration:
 
 ```php
 Schema::create('races', function (Blueprint $table) {
@@ -398,11 +413,9 @@ Schema::create('races', function (Blueprint $table) {
 });
 ```
 
-- [ ] **Step 4: Create training_weeks migration**
+- [ ] **Step 4: Fill training_weeks migration**
 
-```bash
-php artisan make:migration create_training_weeks_table
-```
+Edit the generated `create_training_weeks_table` migration:
 
 ```php
 Schema::create('training_weeks', function (Blueprint $table) {
@@ -417,11 +430,9 @@ Schema::create('training_weeks', function (Blueprint $table) {
 });
 ```
 
-- [ ] **Step 5: Create training_days migration**
+- [ ] **Step 5: Fill training_days migration**
 
-```bash
-php artisan make:migration create_training_days_table
-```
+Edit the generated `create_training_days_table` migration:
 
 ```php
 Schema::create('training_days', function (Blueprint $table) {
@@ -440,11 +451,9 @@ Schema::create('training_days', function (Blueprint $table) {
 });
 ```
 
-- [ ] **Step 6: Create strava_activities migration**
+- [ ] **Step 6: Fill strava_activities migration**
 
-```bash
-php artisan make:migration create_strava_activities_table
-```
+Edit the generated `create_strava_activities_table` migration:
 
 ```php
 Schema::create('strava_activities', function (Blueprint $table) {
@@ -466,11 +475,9 @@ Schema::create('strava_activities', function (Blueprint $table) {
 });
 ```
 
-- [ ] **Step 7: Create training_results migration**
+- [ ] **Step 7: Fill training_results migration**
 
-```bash
-php artisan make:migration create_training_results_table
-```
+Edit the generated `create_training_results_table` migration:
 
 ```php
 Schema::create('training_results', function (Blueprint $table) {
@@ -490,11 +497,9 @@ Schema::create('training_results', function (Blueprint $table) {
 });
 ```
 
-- [ ] **Step 8: Create coach_conversations migration**
+- [ ] **Step 8: Fill coach_conversations migration**
 
-```bash
-php artisan make:migration create_coach_conversations_table
-```
+Edit the generated `create_coach_conversations_table` migration:
 
 ```php
 Schema::create('coach_conversations', function (Blueprint $table) {
@@ -506,11 +511,9 @@ Schema::create('coach_conversations', function (Blueprint $table) {
 });
 ```
 
-- [ ] **Step 9: Create coach_messages migration**
+- [ ] **Step 9: Fill coach_messages migration**
 
-```bash
-php artisan make:migration create_coach_messages_table
-```
+Edit the generated `create_coach_messages_table` migration:
 
 ```php
 Schema::create('coach_messages', function (Blueprint $table) {
@@ -523,11 +526,9 @@ Schema::create('coach_messages', function (Blueprint $table) {
 });
 ```
 
-- [ ] **Step 10: Create coach_proposals migration**
+- [ ] **Step 10: Fill coach_proposals migration**
 
-```bash
-php artisan make:migration create_coach_proposals_table
-```
+Edit the generated `create_coach_proposals_table` migration:
 
 ```php
 Schema::create('coach_proposals', function (Blueprint $table) {
@@ -562,22 +563,44 @@ git commit -m "feat: add all database migrations"
 
 ### Task 4: Eloquent Models with Relationships
 
+Use `php artisan make:model` with `--factory` to generate model and factory stubs, then fill them in.
+
+**Generate all models and factories:**
+
+```bash
+cd /Users/erwin/personal/runcoach/api
+php artisan make:model StravaToken --factory
+php artisan make:model Race --factory
+php artisan make:model TrainingWeek --factory
+php artisan make:model TrainingDay --factory
+php artisan make:model StravaActivity --factory
+php artisan make:model TrainingResult --factory
+php artisan make:model CoachConversation --factory
+php artisan make:model CoachMessage --factory
+php artisan make:model CoachProposal --factory
+```
+
 **Files:**
 - Modify: `api/app/Models/User.php`
-- Create: `api/app/Models/StravaToken.php`
-- Create: `api/app/Models/Race.php`
-- Create: `api/app/Models/TrainingWeek.php`
-- Create: `api/app/Models/TrainingDay.php`
-- Create: `api/app/Models/StravaActivity.php`
-- Create: `api/app/Models/TrainingResult.php`
-- Create: `api/app/Models/CoachConversation.php`
-- Create: `api/app/Models/CoachMessage.php`
-- Create: `api/app/Models/CoachProposal.php`
+- Modify (generated): `api/app/Models/StravaToken.php`
+- Modify (generated): `api/app/Models/Race.php`
+- Modify (generated): `api/app/Models/TrainingWeek.php`
+- Modify (generated): `api/app/Models/TrainingDay.php`
+- Modify (generated): `api/app/Models/StravaActivity.php`
+- Modify (generated): `api/app/Models/TrainingResult.php`
+- Modify (generated): `api/app/Models/CoachConversation.php`
+- Modify (generated): `api/app/Models/CoachMessage.php`
+- Modify (generated): `api/app/Models/CoachProposal.php`
 - Test: `api/tests/Feature/ModelRelationshipsTest.php`
 
 - [ ] **Step 1: Write failing test for model relationships**
 
-Create `api/tests/Feature/ModelRelationshipsTest.php`:
+```bash
+cd /Users/erwin/personal/runcoach/api
+php artisan make:test ModelRelationshipsTest
+```
+
+Replace the generated `api/tests/Feature/ModelRelationshipsTest.php` with:
 
 ```php
 <?php
@@ -782,7 +805,7 @@ class User extends Authenticatable
 
 - [ ] **Step 4: Implement StravaToken model**
 
-Create `api/app/Models/StravaToken.php`:
+Replace the generated `api/app/Models/StravaToken.php` with:
 
 ```php
 <?php
@@ -828,7 +851,7 @@ class StravaToken extends Model
 
 - [ ] **Step 5: Implement Race model**
 
-Create `api/app/Models/Race.php`:
+Replace the generated `api/app/Models/Race.php` with:
 
 ```php
 <?php
@@ -886,7 +909,7 @@ class Race extends Model
 
 - [ ] **Step 6: Implement TrainingWeek model**
 
-Create `api/app/Models/TrainingWeek.php`:
+Replace the generated `api/app/Models/TrainingWeek.php` with:
 
 ```php
 <?php
@@ -934,7 +957,7 @@ class TrainingWeek extends Model
 
 - [ ] **Step 7: Implement TrainingDay model**
 
-Create `api/app/Models/TrainingDay.php`:
+Replace the generated `api/app/Models/TrainingDay.php` with:
 
 ```php
 <?php
@@ -991,7 +1014,7 @@ class TrainingDay extends Model
 
 - [ ] **Step 8: Implement StravaActivity model**
 
-Create `api/app/Models/StravaActivity.php`:
+Replace the generated `api/app/Models/StravaActivity.php` with:
 
 ```php
 <?php
@@ -1066,7 +1089,7 @@ class StravaActivity extends Model
 
 - [ ] **Step 9: Implement TrainingResult model**
 
-Create `api/app/Models/TrainingResult.php`:
+Replace the generated `api/app/Models/TrainingResult.php` with:
 
 ```php
 <?php
@@ -1123,7 +1146,7 @@ class TrainingResult extends Model
 
 - [ ] **Step 10: Implement CoachConversation model**
 
-Create `api/app/Models/CoachConversation.php`:
+Replace the generated `api/app/Models/CoachConversation.php` with:
 
 ```php
 <?php
@@ -1164,7 +1187,7 @@ class CoachConversation extends Model
 
 - [ ] **Step 11: Implement CoachMessage model**
 
-Create `api/app/Models/CoachMessage.php`:
+Replace the generated `api/app/Models/CoachMessage.php` with:
 
 ```php
 <?php
@@ -1210,7 +1233,7 @@ class CoachMessage extends Model
 
 - [ ] **Step 12: Implement CoachProposal model**
 
-Create `api/app/Models/CoachProposal.php`:
+Replace the generated `api/app/Models/CoachProposal.php` with:
 
 ```php
 <?php
@@ -1257,9 +1280,9 @@ class CoachProposal extends Model
 }
 ```
 
-- [ ] **Step 13: Create all model factories**
+- [ ] **Step 13: Fill all generated model factories**
 
-Create `api/database/factories/StravaTokenFactory.php`:
+Replace `api/database/factories/StravaTokenFactory.php`:
 
 ```php
 <?php
@@ -1543,11 +1566,20 @@ git commit -m "feat: add all Eloquent models, factories, and relationship tests"
 
 ### Task 5: Strava OAuth Authentication
 
+**Generate scaffolding:**
+
+```bash
+cd /Users/erwin/personal/runcoach/api
+php artisan make:controller AuthController
+php artisan make:test AuthTest
+mkdir -p app/Services
+```
+
 **Files:**
-- Create: `api/app/Http/Controllers/AuthController.php`
+- Modify (generated): `api/app/Http/Controllers/AuthController.php`
 - Create: `api/app/Services/StravaSyncService.php`
 - Modify: `api/routes/api.php`
-- Test: `api/tests/Feature/AuthTest.php`
+- Modify (generated): `api/tests/Feature/AuthTest.php`
 
 - [ ] **Step 1: Write failing test**
 
@@ -1870,12 +1902,22 @@ git commit -m "feat: add Strava OAuth authentication with Sanctum tokens"
 
 ### Task 6: Profile API
 
+**Generate scaffolding:**
+
+```bash
+cd /Users/erwin/personal/runcoach/api
+php artisan make:controller ProfileController
+php artisan make:request UpdateProfileRequest
+php artisan make:request OnboardingRequest
+php artisan make:test ProfileTest
+```
+
 **Files:**
-- Create: `api/app/Http/Controllers/ProfileController.php`
-- Create: `api/app/Http/Requests/UpdateProfileRequest.php`
-- Create: `api/app/Http/Requests/OnboardingRequest.php`
+- Modify (generated): `api/app/Http/Controllers/ProfileController.php`
+- Modify (generated): `api/app/Http/Requests/UpdateProfileRequest.php`
+- Modify (generated): `api/app/Http/Requests/OnboardingRequest.php`
 - Modify: `api/routes/api.php`
-- Test: `api/tests/Feature/ProfileTest.php`
+- Modify (generated): `api/tests/Feature/ProfileTest.php`
 
 - [ ] **Step 1: Write failing test**
 
@@ -2106,11 +2148,20 @@ git commit -m "feat: add profile API with get, update, and onboarding"
 
 ### Task 7: Race CRUD API
 
+**Generate scaffolding:**
+
+```bash
+cd /Users/erwin/personal/runcoach/api
+php artisan make:controller RaceController --api
+php artisan make:request StoreRaceRequest
+php artisan make:test RaceTest
+```
+
 **Files:**
-- Create: `api/app/Http/Controllers/RaceController.php`
-- Create: `api/app/Http/Requests/StoreRaceRequest.php`
+- Modify (generated): `api/app/Http/Controllers/RaceController.php`
+- Modify (generated): `api/app/Http/Requests/StoreRaceRequest.php`
 - Modify: `api/routes/api.php`
-- Test: `api/tests/Feature/RaceTest.php`
+- Modify (generated): `api/tests/Feature/RaceTest.php`
 
 - [ ] **Step 1: Write failing test**
 
@@ -2361,10 +2412,18 @@ git commit -m "feat: add race CRUD API"
 
 ### Task 8: Training Schedule Read API
 
+**Generate scaffolding:**
+
+```bash
+cd /Users/erwin/personal/runcoach/api
+php artisan make:controller TrainingScheduleController
+php artisan make:test TrainingScheduleTest
+```
+
 **Files:**
-- Create: `api/app/Http/Controllers/TrainingScheduleController.php`
+- Modify (generated): `api/app/Http/Controllers/TrainingScheduleController.php`
 - Modify: `api/routes/api.php`
-- Test: `api/tests/Feature/TrainingScheduleTest.php`
+- Modify (generated): `api/tests/Feature/TrainingScheduleTest.php`
 
 - [ ] **Step 1: Write failing test**
 
@@ -2587,14 +2646,26 @@ git commit -m "feat: add training schedule read API"
 
 ### Task 9: Strava Webhook + Activity Sync
 
+**Generate scaffolding:**
+
+```bash
+cd /Users/erwin/personal/runcoach/api
+php artisan make:controller StravaWebhookController
+php artisan make:controller StravaController
+php artisan make:job ProcessStravaActivity
+php artisan make:job SyncStravaHistory
+php artisan make:test StravaWebhookTest
+php artisan make:test StravaSyncTest
+```
+
 **Files:**
-- Create: `api/app/Http/Controllers/StravaWebhookController.php`
-- Create: `api/app/Http/Controllers/StravaController.php`
-- Create: `api/app/Jobs/ProcessStravaActivity.php`
-- Create: `api/app/Jobs/SyncStravaHistory.php`
+- Modify (generated): `api/app/Http/Controllers/StravaWebhookController.php`
+- Modify (generated): `api/app/Http/Controllers/StravaController.php`
+- Modify (generated): `api/app/Jobs/ProcessStravaActivity.php`
+- Modify (generated): `api/app/Jobs/SyncStravaHistory.php`
 - Modify: `api/routes/api.php`
-- Test: `api/tests/Feature/StravaWebhookTest.php`
-- Test: `api/tests/Feature/StravaSyncTest.php`
+- Modify (generated): `api/tests/Feature/StravaWebhookTest.php`
+- Modify (generated): `api/tests/Feature/StravaSyncTest.php`
 
 - [ ] **Step 1: Write failing webhook test**
 
@@ -3051,9 +3122,16 @@ git commit -m "feat: add Strava webhook handler, activity sync, and status API"
 
 ### Task 10: Compliance Scoring Service
 
+**Generate scaffolding:**
+
+```bash
+cd /Users/erwin/personal/runcoach/api
+php artisan make:test ComplianceScoringTest
+```
+
 **Files:**
 - Modify: `api/app/Services/ComplianceScoringService.php`
-- Test: `api/tests/Feature/ComplianceScoringTest.php`
+- Modify (generated): `api/tests/Feature/ComplianceScoringTest.php`
 
 - [ ] **Step 1: Write failing test**
 
@@ -3353,6 +3431,13 @@ git commit -m "feat: implement compliance scoring with activity matching"
 ---
 
 ### Task 11: AI Coach Service with Tool Definitions
+
+No artisan generators for service classes — these are plain PHP classes.
+
+```bash
+cd /Users/erwin/personal/runcoach/api
+mkdir -p app/Services/CoachTools
+```
 
 **Files:**
 - Create: `api/app/Services/CoachChatService.php`
@@ -4170,11 +4255,20 @@ git commit -m "feat: add AI coach service with 7 tool definitions and proposal s
 
 ### Task 12: Coach Chat API + Proposal Endpoints
 
+**Generate scaffolding:**
+
+```bash
+cd /Users/erwin/personal/runcoach/api
+php artisan make:controller CoachController
+php artisan make:request SendMessageRequest
+php artisan make:test CoachChatTest
+```
+
 **Files:**
-- Create: `api/app/Http/Controllers/CoachController.php`
-- Create: `api/app/Http/Requests/SendMessageRequest.php`
+- Modify (generated): `api/app/Http/Controllers/CoachController.php`
+- Modify (generated): `api/app/Http/Requests/SendMessageRequest.php`
 - Modify: `api/routes/api.php`
-- Test: `api/tests/Feature/CoachChatTest.php`
+- Modify (generated): `api/tests/Feature/CoachChatTest.php`
 
 - [ ] **Step 1: Write failing test**
 
@@ -4487,10 +4581,18 @@ git commit -m "feat: add coach chat API with conversation, messaging, and propos
 
 ### Task 13: Dashboard Aggregate API
 
+**Generate scaffolding:**
+
+```bash
+cd /Users/erwin/personal/runcoach/api
+php artisan make:controller DashboardController --invokable
+php artisan make:test DashboardTest
+```
+
 **Files:**
-- Create: `api/app/Http/Controllers/DashboardController.php`
+- Modify (generated): `api/app/Http/Controllers/DashboardController.php`
 - Modify: `api/routes/api.php`
-- Test: `api/tests/Feature/DashboardTest.php`
+- Modify (generated): `api/tests/Feature/DashboardTest.php`
 
 - [ ] **Step 1: Write failing test**
 
@@ -4700,9 +4802,17 @@ git commit -m "feat: add dashboard aggregate API endpoint"
 
 ### Task 14: AI Feedback Jobs
 
+**Generate scaffolding:**
+
+```bash
+cd /Users/erwin/personal/runcoach/api
+php artisan make:job GenerateActivityFeedback
+php artisan make:job GenerateWeeklyInsight
+```
+
 **Files:**
-- Create: `api/app/Jobs/GenerateActivityFeedback.php`
-- Create: `api/app/Jobs/GenerateWeeklyInsight.php`
+- Modify (generated): `api/app/Jobs/GenerateActivityFeedback.php`
+- Modify (generated): `api/app/Jobs/GenerateWeeklyInsight.php`
 - Modify: `api/app/Jobs/ProcessStravaActivity.php` (dispatch feedback job after scoring)
 
 - [ ] **Step 1: Implement GenerateActivityFeedback job**
