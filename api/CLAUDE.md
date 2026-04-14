@@ -173,3 +173,93 @@ This project has domain-specific skills available. You MUST activate the relevan
 - To filter on a particular test name: `php artisan test --compact --filter=testName` (recommended after making a change to a related file).
 
 </laravel-boost-guidelines>
+
+---
+
+# RunCoach API — Project-specific context
+
+This is the Laravel backend for **RunCoach**, a personal AI running coach app. See `../CLAUDE.md` for the monorepo overview.
+
+## What this backend does
+
+- Authenticates users via Strava OAuth2 (Sanctum tokens for the Flutter app)
+- Syncs Strava running activities (3 months on login, real-time via webhooks)
+- Runs an agentic AI coach (Laravel AI SDK) that has full access to the user's Strava data
+- Generates training schedules for races with a proposal/approval flow
+- Auto-matches completed activities to planned training days and scores compliance
+
+## Core architecture
+
+### AI Coach (the main agentic feature)
+
+The coach uses **Laravel AI SDK** (`laravel/ai`) — NOT a custom OpenAI wrapper. Key files:
+
+- `app/Ai/Agents/RunCoachAgent.php` — the Agent class. Implements `Agent`, `Conversational`, `HasTools`. Uses `Promptable` + `RemembersConversations` traits. Takes a `User` in constructor.
+- `app/Ai/Tools/*.php` — 6 tools the agent can call:
+  - `SearchStravaActivities` — queries Strava API for any date range (NOT local DB), auto-paginates, returns aggregates + individual runs
+  - `GetCurrentSchedule` — active training schedule with compliance
+  - `GetRaceInfo` — race details + readiness
+  - `GetComplianceReport` — compliance breakdown + trends
+  - `CreateSchedule` — proposes new training plan (requires approval)
+  - `ModifySchedule` — proposes schedule changes (requires approval)
+- `app/Services/ProposalService.php` — detects proposals from `agent_conversation_messages.tool_results` and applies accepted ones
+
+**How proposals work:** When the agent calls `CreateSchedule` or `ModifySchedule`, the tool returns JSON with `requires_approval: true`. The SDK stores that in `tool_results`. After `$agent->prompt()` returns, `ProposalService::detectProposalFromConversation()` queries that column, finds the proposal, and stores a `CoachProposal` record. The user accepts/rejects via `/coach/proposals/{id}/accept` or `/reject`.
+
+**The SDK manages conversations automatically** via `agent_conversations` and `agent_conversation_messages` tables (created by SDK migrations). Do NOT use `CoachConversation` or `CoachMessage` models — they no longer exist. Conversation IDs are UUIDs (36-char strings), not integers.
+
+### Strava integration
+
+- `app/Services/StravaSyncService.php` — OAuth token exchange, refresh, activity fetching
+- `app/Jobs/SyncStravaHistory.php` — queued job, fetches N months of history on login/manual sync
+- `app/Jobs/ProcessStravaActivity.php` — webhook-triggered; fetches one activity, matches to training day, scores compliance, dispatches feedback generation
+- `app/Jobs/GenerateActivityFeedback.php` — AI post-run feedback
+- `app/Jobs/GenerateWeeklyInsight.php` — AI weekly coach notes
+- `app/Services/ComplianceScoringService.php` — weighted scoring: distance 30%, pace 40%, HR 30% (redistributes to 45/55 without HR)
+
+### Domain models
+
+10 Eloquent models with factories, using Laravel 13 `#[Fillable]` attribute syntax (NOT `$fillable` property):
+- `User`, `StravaToken`, `StravaActivity`
+- `Race` → `TrainingWeek` → `TrainingDay` → `TrainingResult`
+- `CoachProposal` (with `agent_message_id` FK to SDK's messages table, `user_id` FK to users)
+
+All enums are in `app/Enums/` as PHP 8.1 backed enums: `CoachStyle`, `MessageRole`, `ProposalStatus`, `ProposalType`, `RaceDistance`, `RaceStatus`, `RunnerLevel`, `TrainingType`.
+
+### API Structure
+
+All routes under `/api/v1/*` prefix in `routes/api.php`. Public routes: Strava OAuth + webhooks. Everything else requires `auth:sanctum`.
+
+Controllers live in `app/Http/Controllers/`: Auth, Profile, Race, TrainingSchedule, Strava, StravaWebhook, Coach, Dashboard.
+
+## Project-specific conventions
+
+### Tools (Laravel AI SDK)
+
+- Every tool implements `Laravel\Ai\Contracts\Tool` with `description()`, `schema(JsonSchema $schema)`, `handle(Request $request)`.
+- `handle()` must return a **string** (use `json_encode()`).
+- Access request params with **array access**: `$request['key']` — NOT `$request->get()` or `$request->input()`.
+- **OpenAI strict mode**: every schema param MUST have `->required()`. For truly optional params, use `->required()->nullable()` — this satisfies strict mode while allowing null values. Do NOT use `->default()`.
+- Tools that need user data take `User $user` in constructor, injected from the agent.
+
+### Proposals flow
+
+Mutation tools (`CreateSchedule`, `ModifySchedule`) NEVER write to the database. They return:
+```json
+{"requires_approval": true, "proposal_type": "create_schedule", "payload": {...}}
+```
+`ProposalService::apply()` does the actual DB writes only after user approval.
+
+### Testing
+
+- 45 feature tests in `tests/Feature/`. Use `LazilyRefreshDatabase` trait (NOT `RefreshDatabase`).
+- Coach tests use `RunCoachAgent::fake(['response text'])` to mock agent responses.
+- Run: `php artisan test --compact`
+
+### Pint formatting
+
+Always run `vendor/bin/pint --dirty --format agent` after modifying PHP files.
+
+## Specs and plans
+
+All feature design specs live in `../docs/superpowers/specs/` and implementation plans in `../docs/superpowers/plans/`. Before implementing non-trivial changes, consult existing specs and plans first.
