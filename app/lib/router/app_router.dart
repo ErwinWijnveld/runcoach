@@ -1,4 +1,6 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Icons, IconData, InkWell, Material;
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:app/core/theme/app_theme.dart';
@@ -140,50 +142,134 @@ class MainShell extends StatelessWidget {
     final currentIndex = _indexOf(GoRouterState.of(context).matchedLocation);
 
     return CupertinoPageScaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: AppColors.neutral,
       child: Column(
         children: [
           Expanded(child: child),
-          CupertinoTabBar(
-            currentIndex: currentIndex,
-            activeColor: AppColors.warmBrown,
-            inactiveColor: AppColors.textSecondary,
-            backgroundColor: AppColors.cream.withValues(alpha: 0.92),
-            border: const Border(
-              top: BorderSide(color: Color(0x14000000), width: 0.0),
+          _RunCoreBottomNav(currentIndex: currentIndex),
+        ],
+      ),
+    );
+  }
+}
+
+class _RunCoreBottomNav extends StatelessWidget {
+  static const _activeColor = Color(0xFF785600);
+  static const _inactiveColor = Color(0xFFBBAA80);
+  static const _topBorder = Color(0xFFF6F3EF);
+
+  final int currentIndex;
+  const _RunCoreBottomNav({required this.currentIndex});
+
+  void _goTo(BuildContext context, int index) {
+    switch (index) {
+      case 0:
+        context.go('/dashboard');
+      case 1:
+        context.go('/schedule');
+      case 2:
+        context.go('/coach');
+      case 3:
+        context.go('/races');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.neutral,
+        border: Border(top: BorderSide(color: _topBorder)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 58,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _NavItem(
+                  icon: Icons.dashboard,
+                  label: 'Dashboard',
+                  active: currentIndex == 0,
+                  onTap: () => _goTo(context, 0),
+                ),
+                _NavItem(
+                  icon: Icons.calendar_today,
+                  label: 'Schedule',
+                  active: currentIndex == 1,
+                  onTap: () => _goTo(context, 1),
+                ),
+                _NavItem(
+                  svgAsset: 'assets/icons/ai_coach_tab.svg',
+                  label: 'AI Coach',
+                  active: currentIndex == 2,
+                  onTap: () => _goTo(context, 2),
+                ),
+                _NavItem(
+                  icon: Icons.emoji_events,
+                  label: 'Goals',
+                  active: currentIndex == 3,
+                  onTap: () => _goTo(context, 3),
+                ),
+              ],
             ),
-            onTap: (index) {
-              switch (index) {
-                case 0:
-                  context.go('/dashboard');
-                case 1:
-                  context.go('/schedule');
-                case 2:
-                  context.go('/coach');
-                case 3:
-                  context.go('/races');
-              }
-            },
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(CupertinoIcons.square_grid_2x2),
-                label: 'Dashboard',
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  final IconData? icon;
+  final String? svgAsset;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  const _NavItem({
+    this.icon,
+    this.svgAsset,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  }) : assert(icon != null || svgAsset != null);
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active
+        ? _RunCoreBottomNav._activeColor
+        : _RunCoreBottomNav._inactiveColor;
+    return Material(
+      color: const Color(0x00000000),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                height: 24,
+                child: icon != null
+                    ? Icon(icon, color: color, size: 24)
+                    : SvgPicture.asset(
+                        svgAsset!,
+                        width: 20,
+                        height: 24,
+                        colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+                      ),
               ),
-              BottomNavigationBarItem(
-                icon: Icon(CupertinoIcons.calendar),
-                label: 'Schedule',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(CupertinoIcons.chat_bubble_2),
-                label: 'Coach',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(CupertinoIcons.flag),
-                label: 'Races',
-              ),
+              const SizedBox(height: 2),
+              Text(label, style: RunCoreText.tabLabel(color: color, active: active)),
             ],
           ),
-        ],
+        ),
       ),
     );
   }

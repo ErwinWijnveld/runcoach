@@ -26,6 +26,21 @@ class Auth extends _$Auth {
     } else if (kDebugMode) {
       await loginDev();
     }
+
+    // Last-resort fallback for design previews (web with no backend running):
+    // inject a mock user so the router lands on /dashboard instead of looping
+    // back to /auth/welcome. Debug-mode only — never ships to release builds.
+    if (kDebugMode && state.value == null) {
+      state = const AsyncValue.data(
+        User(
+          id: 1,
+          name: 'Dev User',
+          email: 'dev@local.test',
+          coachStyle: 'balanced',
+          level: 'intermediate',
+        ),
+      );
+    }
   }
 
   Future<void> loginDev() async {
