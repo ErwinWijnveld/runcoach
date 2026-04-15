@@ -477,9 +477,9 @@ void main() {
       ]);
     });
 
-    test('parses tool-input-start as toolStart with humanized name', () async {
+    test('parses tool-input-available as toolStart with humanized name', () async {
       final input = _bytes([
-        'data: {"type":"tool-input-start","toolName":"SearchStravaActivities"}\n\n',
+        'data: {"type":"tool-input-available","toolName":"SearchStravaActivities"}\n\n',
         'data: [DONE]\n\n',
       ]);
 
@@ -670,7 +670,7 @@ class VercelStreamParser {
 
       return switch (type) {
         'text-delta' => VercelStreamEvent.textDelta(json['delta'] as String),
-        'tool-input-start' => VercelStreamEvent.toolStart(
+        'tool-input-available' => VercelStreamEvent.toolStart(
             _humanize(json['toolName'] as String? ?? ''),
           ),
         'tool-output-available' => const VercelStreamEvent.toolEnd(),

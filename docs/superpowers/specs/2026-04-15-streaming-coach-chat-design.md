@@ -96,7 +96,7 @@ The decision-defining choices made during brainstorming:
 | `text-start` | SDK (TextStart) | Ignored |
 | `text-delta` | SDK (TextDelta) | Append `delta` to current bubble's content; clear tool indicator |
 | `text-end` | SDK (TextEnd) | Ignored |
-| `tool-input-start` | SDK (ToolCall) | Set tool indicator pill |
+| `tool-input-available` | SDK (ToolCall) | Set tool indicator pill |
 | `tool-output-available` | SDK (ToolResult) | (No-op — keep pill until next text-delta to avoid flicker) |
 | `error` | SDK (Error) | Show error pill, mark message non-streaming |
 | `finish` | SDK (StreamEnd) | Ignored |
