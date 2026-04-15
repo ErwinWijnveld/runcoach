@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
 
 class TrainingDayDetailScreen extends ConsumerWidget {
@@ -30,149 +31,143 @@ class TrainingDayDetailScreen extends ConsumerWidget {
     final dayAsync = ref.watch(trainingDayDetailProvider(dayId));
 
     return dayAsync.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      loading: () => const CupertinoPageScaffold(
+        backgroundColor: AppColors.cream,
+        child: SafeArea(child: AppSpinner()),
       ),
-      error: (err, _) => Scaffold(
-        appBar: AppBar(),
-        body: Center(child: Text('Error: $err')),
+      error: (err, _) => CupertinoPageScaffold(
+        backgroundColor: AppColors.cream,
+        navigationBar: CupertinoNavigationBar(
+          backgroundColor: AppColors.cream.withValues(alpha: 0.92),
+          border: null,
+          leading: CupertinoButton(
+            padding: EdgeInsets.zero,
+            onPressed: () => context.go('/schedule'),
+            child: const Icon(
+              CupertinoIcons.back,
+              color: AppColors.warmBrown,
+            ),
+          ),
+        ),
+        child: SafeArea(
+          child: AppErrorState(title: 'Error: $err'),
+        ),
       ),
       data: (day) {
         final hasResult = day.result != null;
 
-        return Scaffold(
-          appBar: AppBar(
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back),
+        return CupertinoPageScaffold(
+          backgroundColor: AppColors.cream,
+          navigationBar: CupertinoNavigationBar(
+            backgroundColor: AppColors.cream.withValues(alpha: 0.92),
+            border: null,
+            leading: CupertinoButton(
+              padding: EdgeInsets.zero,
               onPressed: () => context.go('/schedule'),
+              child: const Icon(
+                CupertinoIcons.back,
+                color: AppColors.warmBrown,
+              ),
             ),
-            title: Text(day.title),
+            middle: Text(day.title),
           ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Date and type header
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.warmBrown.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        day.type.toUpperCase(),
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.warmBrown,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.warmBrown.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          day.type.toUpperCase(),
+                          style: const TextStyle(
+                            color: AppColors.warmBrown,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
+                      const SizedBox(width: 12),
+                      Text(
+                        day.date,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  if (day.description != null) ...[
                     Text(
-                      day.date,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
+                      day.description!,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        height: 1.5,
+                        color: AppColors.textPrimary,
                       ),
                     ),
+                    const SizedBox(height: 24),
                   ],
-                ),
-                const SizedBox(height: 20),
-
-                // Description
-                if (day.description != null) ...[
-                  Text(
-                    day.description!,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                ],
-
-                // Target metrics
-                Text(
-                  'TARGETS',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
-                    fontSize: 11,
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                _MetricsGrid(
-                  children: [
-                    if (day.targetKm != null)
-                      _MetricCard(
-                        icon: Icons.straighten,
-                        label: 'Distance',
-                        value: '${day.targetKm} km',
-                      ),
-                    if (day.targetPaceSecondsPerKm != null)
-                      _MetricCard(
-                        icon: Icons.speed,
-                        label: 'Pace',
-                        value: _formatPace(day.targetPaceSecondsPerKm!),
-                      ),
-                    if (day.targetHeartRateZone != null)
-                      _MetricCard(
-                        icon: Icons.favorite,
-                        label: 'HR Zone',
-                        value: _hrZoneLabel(day.targetHeartRateZone!),
-                      ),
-                  ],
-                ),
-
-                // Intervals
-                if (day.intervalsJson != null && day.intervalsJson!.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  Text(
-                    'INTERVALS',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
-                      fontSize: 11,
-                    ),
-                  ),
+                  const AppSectionLabel('TARGETS'),
                   const SizedBox(height: 12),
-                  _IntervalsCard(intervals: day.intervalsJson!),
-                ],
-
-                const SizedBox(height: 32),
-
-                // Result / status button
-                if (hasResult)
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => context.go('/schedule/day/$dayId/result'),
-                      icon: const Icon(Icons.check_circle_outline),
-                      label: const Text('View Result'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.success,
-                      ),
-                    ),
-                  )
-                else
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: null,
-                      icon: const Icon(Icons.hourglass_empty),
-                      label: const Text('Awaiting Strava sync'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.textSecondary,
-                        side: BorderSide(color: AppColors.textSecondary.withValues(alpha: 0.3)),
-                      ),
-                    ),
+                  _MetricsGrid(
+                    children: [
+                      if (day.targetKm != null)
+                        _MetricCard(
+                          icon: CupertinoIcons.arrow_right_arrow_left,
+                          label: 'Distance',
+                          value: '${day.targetKm} km',
+                        ),
+                      if (day.targetPaceSecondsPerKm != null)
+                        _MetricCard(
+                          icon: CupertinoIcons.speedometer,
+                          label: 'Pace',
+                          value: _formatPace(day.targetPaceSecondsPerKm!),
+                        ),
+                      if (day.targetHeartRateZone != null)
+                        _MetricCard(
+                          icon: CupertinoIcons.heart_fill,
+                          label: 'HR Zone',
+                          value: _hrZoneLabel(day.targetHeartRateZone!),
+                        ),
+                    ],
                   ),
-              ],
+                  if (day.intervalsJson != null &&
+                      day.intervalsJson!.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    const AppSectionLabel('INTERVALS'),
+                    const SizedBox(height: 12),
+                    _IntervalsCard(intervals: day.intervalsJson!),
+                  ],
+                  const SizedBox(height: 32),
+                  if (hasResult)
+                    AppFilledButton(
+                      label: 'View Result',
+                      icon: CupertinoIcons.check_mark_circled,
+                      color: AppColors.success,
+                      onPressed: () =>
+                          context.go('/schedule/day/$dayId/result'),
+                    )
+                  else
+                    const AppBorderedButton(
+                      label: 'Awaiting Strava sync',
+                      icon: CupertinoIcons.hourglass,
+                      color: AppColors.textSecondary,
+                    ),
+                ],
+              ),
             ),
           ),
         );
@@ -187,11 +182,7 @@ class _MetricsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: children,
-    );
+    return Wrap(spacing: 12, runSpacing: 12, children: children);
   }
 }
 
@@ -199,7 +190,6 @@ class _MetricCard extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-
   const _MetricCard({
     required this.icon,
     required this.label,
@@ -213,7 +203,7 @@ class _MetricCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.cardBg,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.button),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -222,16 +212,18 @@ class _MetricCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: AppColors.textSecondary,
+            style: const TextStyle(
               fontSize: 11,
+              color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             value,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.bold,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
             ),
           ),
         ],
@@ -246,13 +238,8 @@ class _IntervalsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
+    return AppCard(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.cardBg,
-        borderRadius: BorderRadius.circular(12),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: intervals.entries.map((entry) {
@@ -263,14 +250,17 @@ class _IntervalsCard extends StatelessWidget {
               children: [
                 Text(
                   entry.key,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  style: const TextStyle(
+                    fontSize: 14,
                     color: AppColors.textSecondary,
                   ),
                 ),
                 Text(
                   '${entry.value}',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  style: const TextStyle(
+                    fontSize: 14,
                     fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],

@@ -1,57 +1,135 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/coach/models/coach_message.dart';
 
 class MessageBubble extends StatelessWidget {
   final CoachMessage message;
+  final VoidCallback? onRetry;
 
-  const MessageBubble({super.key, required this.message});
+  const MessageBubble({super.key, required this.message, this.onRetry});
 
   bool get _isUser => message.role == 'user';
+  bool get _failed => message.errorDetail != null;
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: _isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: EdgeInsets.only(
-          left: _isUser ? 60 : 0,
-          right: _isUser ? 0 : 60,
-          bottom: 8,
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: _isUser ? AppColors.warmBrown : AppColors.lightTan,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(_isUser ? 16 : 4),
-            bottomRight: Radius.circular(_isUser ? 4 : 16),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (!_isUser)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  'COACH',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.warmBrown,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 10,
+    return Column(
+      crossAxisAlignment:
+          _isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [
+        Align(
+          alignment: _isUser ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            margin: EdgeInsets.only(
+              left: _isUser ? 60 : 0,
+              right: _isUser ? 0 : 60,
+              bottom: _failed ? 4 : 8,
+            ),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: _isUser ? AppColors.warmBrown : AppColors.lightTan,
+              borderRadius: BorderRadius.only(
+                topLeft: const Radius.circular(18),
+                topRight: const Radius.circular(18),
+                bottomLeft: Radius.circular(_isUser ? 18 : 4),
+                bottomRight: Radius.circular(_isUser ? 4 : 18),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (!_isUser)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      'COACH',
+                      style: TextStyle(
+                        color: AppColors.warmBrown,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                Text(
+                  message.content,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: _isUser
+                        ? CupertinoColors.white
+                        : AppColors.textPrimary,
+                    height: 1.35,
                   ),
                 ),
+              ],
+            ),
+          ),
+        ),
+        if (_failed)
+          _ErrorStrip(detail: message.errorDetail!, onRetry: onRetry),
+      ],
+    );
+  }
+}
+
+class _ErrorStrip extends StatelessWidget {
+  final String detail;
+  final VoidCallback? onRetry;
+
+  const _ErrorStrip({required this.detail, this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8, left: 60),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Icon(
+            CupertinoIcons.exclamationmark_circle,
+            size: 14,
+            color: AppColors.danger,
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              detail,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.danger,
               ),
-            Text(
-              message.content,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: _isUser ? Colors.white : AppColors.textPrimary,
+              textAlign: TextAlign.end,
+            ),
+          ),
+          if (onRetry != null) ...[
+            const SizedBox(width: 4),
+            CupertinoButton(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: Size.zero,
+              onPressed: onRetry,
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    CupertinoIcons.refresh,
+                    size: 14,
+                    color: AppColors.warmBrown,
+                  ),
+                  SizedBox(width: 4),
+                  Text(
+                    'Retry',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.warmBrown,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
-        ),
+        ],
       ),
     );
   }

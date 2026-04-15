@@ -14,6 +14,7 @@ Route::prefix('v1')->group(function () {
     // Auth (public)
     Route::get('auth/strava/redirect', [AuthController::class, 'redirect']);
     Route::get('auth/strava/callback', [AuthController::class, 'callback']);
+    Route::post('auth/dev-login', [AuthController::class, 'devLogin']);
 
     // Strava webhook (public, Strava-signed)
     Route::get('webhook/strava', [StravaWebhookController::class, 'verify']);

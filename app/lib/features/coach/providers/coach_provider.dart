@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:app/features/coach/data/coach_api.dart';
 import 'package:app/features/coach/models/conversation.dart';
@@ -26,22 +27,19 @@ class CoachChat extends _$CoachChat {
 
   Future<void> sendMessage(String content) async {
     final api = ref.read(coachApiProvider);
-    final current = state.value ?? [];
+    final before = state.value ?? [];
 
-    // Add user message optimistically
     final userMsg = CoachMessage(
       id: 'temp-${DateTime.now().millisecondsSinceEpoch}',
       role: 'user',
       content: content,
       createdAt: DateTime.now().toIso8601String(),
     );
-    state = AsyncData([...current, userMsg]);
+    state = AsyncData([...before, userMsg]);
 
     try {
       final data = await api.sendMessage(conversationId, {'content': content});
       final responseData = data['data'] as Map<String, dynamic>;
-
-      // Backend returns { message: { role, content }, proposal: ... }
       final msgData = responseData['message'] as Map<String, dynamic>?;
       if (msgData != null) {
         final assistantMsg = CoachMessage(
@@ -50,13 +48,34 @@ class CoachChat extends _$CoachChat {
           content: msgData['content'] as String? ?? '',
           createdAt: DateTime.now().toIso8601String(),
         );
-        state = AsyncData([...current, userMsg, assistantMsg]);
+        state = AsyncData([...before, userMsg, assistantMsg]);
       }
     } catch (e) {
-      // On error, keep the user message but show error state
-      state = AsyncData([...current, userMsg]);
-      rethrow;
+      state = AsyncData([...before, userMsg.copyWith(errorDetail: _humanize(e))]);
     }
+  }
+
+  Future<void> retry(String messageId) async {
+    final messages = state.value ?? [];
+    final failed = messages.where((m) => m.id == messageId && m.errorDetail != null).firstOrNull;
+    if (failed == null) return;
+    state = AsyncData(messages.where((m) => m.id != messageId).toList());
+    await sendMessage(failed.content);
+  }
+
+  String _humanize(Object error) {
+    if (error is DioException) {
+      final data = error.response?.data;
+      if (data is Map && data['message'] is String) return data['message'] as String;
+      return switch (error.type) {
+        DioExceptionType.connectionTimeout ||
+        DioExceptionType.sendTimeout ||
+        DioExceptionType.receiveTimeout => 'Request timed out',
+        DioExceptionType.connectionError => 'Cannot reach server',
+        _ => 'Server error (${error.response?.statusCode ?? 'network'})',
+      };
+    }
+    return error.toString();
   }
 
   Future<void> acceptProposal(int proposalId) async {

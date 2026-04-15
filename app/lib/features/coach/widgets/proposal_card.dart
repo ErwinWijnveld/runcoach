@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/features/coach/models/coach_proposal.dart';
 
 class ProposalCard extends StatelessWidget {
@@ -35,49 +36,55 @@ class ProposalCard extends StatelessWidget {
       margin: const EdgeInsets.only(right: 60, bottom: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.warmBrown, width: 2),
-        borderRadius: BorderRadius.circular(12),
+        color: CupertinoColors.white,
+        border: Border.all(color: AppColors.warmBrown, width: 1.5),
+        borderRadius: BorderRadius.circular(AppRadius.button),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.description, color: AppColors.warmBrown, size: 18),
+              const Icon(
+                CupertinoIcons.doc_text,
+                color: AppColors.warmBrown,
+                size: 18,
+              ),
               const SizedBox(width: 8),
               Text(
                 _title,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                style: const TextStyle(
                   color: AppColors.warmBrown,
                   fontWeight: FontWeight.bold,
+                  fontSize: 14,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          if (_isPending) ...[
+          if (_isPending)
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton(
+                  child: AppFilledButton(
+                    label: 'Accept',
                     onPressed: onAccept,
-                    child: const Text('Accept'),
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: OutlinedButton(
+                  child: AppBorderedButton(
+                    label: 'Adjust',
                     onPressed: onReject,
-                    child: const Text('Adjust'),
                   ),
                 ),
               ],
-            ),
-          ] else
+            )
+          else
             Text(
               proposal.status == 'accepted' ? 'Accepted' : 'Rejected',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              style: const TextStyle(
+                fontSize: 13,
                 color: AppColors.textSecondary,
               ),
             ),

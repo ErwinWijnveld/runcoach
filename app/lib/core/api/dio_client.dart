@@ -5,7 +5,7 @@ import 'package:app/core/storage/token_storage.dart';
 
 part 'dio_client.g.dart';
 
-const String baseUrl = 'http://192.168.2.104:8000/api/v1';
+const String baseUrl = 'http://localhost:8000/api/v1';
 
 @Riverpod(keepAlive: true)
 Dio dio(Ref ref) {

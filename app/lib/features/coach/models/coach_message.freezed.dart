@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$CoachMessage {
 
- String get id; String get role; String get content;@JsonKey(name: 'created_at') String get createdAt; CoachProposal? get proposal;
+ String get id; String get role; String get content;@JsonKey(name: 'created_at') String get createdAt; CoachProposal? get proposal;@JsonKey(includeFromJson: false, includeToJson: false) String? get errorDetail;
 /// Create a copy of CoachMessage
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $CoachMessageCopyWith<CoachMessage> get copyWith => _$CoachMessageCopyWithImpl<C
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CoachMessage&&(identical(other.id, id) || other.id == id)&&(identical(other.role, role) || other.role == role)&&(identical(other.content, content) || other.content == content)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.proposal, proposal) || other.proposal == proposal));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CoachMessage&&(identical(other.id, id) || other.id == id)&&(identical(other.role, role) || other.role == role)&&(identical(other.content, content) || other.content == content)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.proposal, proposal) || other.proposal == proposal)&&(identical(other.errorDetail, errorDetail) || other.errorDetail == errorDetail));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,role,content,createdAt,proposal);
+int get hashCode => Object.hash(runtimeType,id,role,content,createdAt,proposal,errorDetail);
 
 @override
 String toString() {
-  return 'CoachMessage(id: $id, role: $role, content: $content, createdAt: $createdAt, proposal: $proposal)';
+  return 'CoachMessage(id: $id, role: $role, content: $content, createdAt: $createdAt, proposal: $proposal, errorDetail: $errorDetail)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $CoachMessageCopyWith<$Res>  {
   factory $CoachMessageCopyWith(CoachMessage value, $Res Function(CoachMessage) _then) = _$CoachMessageCopyWithImpl;
 @useResult
 $Res call({
- String id, String role, String content,@JsonKey(name: 'created_at') String createdAt, CoachProposal? proposal
+ String id, String role, String content,@JsonKey(name: 'created_at') String createdAt, CoachProposal? proposal,@JsonKey(includeFromJson: false, includeToJson: false) String? errorDetail
 });
 
 
@@ -65,14 +65,15 @@ class _$CoachMessageCopyWithImpl<$Res>
 
 /// Create a copy of CoachMessage
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? role = null,Object? content = null,Object? createdAt = null,Object? proposal = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? role = null,Object? content = null,Object? createdAt = null,Object? proposal = freezed,Object? errorDetail = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
 as String,content: null == content ? _self.content : content // ignore: cast_nullable_to_non_nullable
 as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String,proposal: freezed == proposal ? _self.proposal : proposal // ignore: cast_nullable_to_non_nullable
-as CoachProposal?,
+as CoachProposal?,errorDetail: freezed == errorDetail ? _self.errorDetail : errorDetail // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 /// Create a copy of CoachMessage
@@ -166,10 +167,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String role,  String content, @JsonKey(name: 'created_at')  String createdAt,  CoachProposal? proposal)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String role,  String content, @JsonKey(name: 'created_at')  String createdAt,  CoachProposal? proposal, @JsonKey(includeFromJson: false, includeToJson: false)  String? errorDetail)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CoachMessage() when $default != null:
-return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal);case _:
+return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal,_that.errorDetail);case _:
   return orElse();
 
 }
@@ -187,10 +188,10 @@ return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String role,  String content, @JsonKey(name: 'created_at')  String createdAt,  CoachProposal? proposal)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String role,  String content, @JsonKey(name: 'created_at')  String createdAt,  CoachProposal? proposal, @JsonKey(includeFromJson: false, includeToJson: false)  String? errorDetail)  $default,) {final _that = this;
 switch (_that) {
 case _CoachMessage():
-return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal);}
+return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal,_that.errorDetail);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -204,10 +205,10 @@ return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String role,  String content, @JsonKey(name: 'created_at')  String createdAt,  CoachProposal? proposal)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String role,  String content, @JsonKey(name: 'created_at')  String createdAt,  CoachProposal? proposal, @JsonKey(includeFromJson: false, includeToJson: false)  String? errorDetail)?  $default,) {final _that = this;
 switch (_that) {
 case _CoachMessage() when $default != null:
-return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal);case _:
+return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal,_that.errorDetail);case _:
   return null;
 
 }
@@ -219,7 +220,7 @@ return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal
 @JsonSerializable()
 
 class _CoachMessage implements CoachMessage {
-  const _CoachMessage({required this.id, required this.role, required this.content, @JsonKey(name: 'created_at') required this.createdAt, this.proposal});
+  const _CoachMessage({required this.id, required this.role, required this.content, @JsonKey(name: 'created_at') required this.createdAt, this.proposal, @JsonKey(includeFromJson: false, includeToJson: false) this.errorDetail});
   factory _CoachMessage.fromJson(Map<String, dynamic> json) => _$CoachMessageFromJson(json);
 
 @override final  String id;
@@ -227,6 +228,7 @@ class _CoachMessage implements CoachMessage {
 @override final  String content;
 @override@JsonKey(name: 'created_at') final  String createdAt;
 @override final  CoachProposal? proposal;
+@override@JsonKey(includeFromJson: false, includeToJson: false) final  String? errorDetail;
 
 /// Create a copy of CoachMessage
 /// with the given fields replaced by the non-null parameter values.
@@ -241,16 +243,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CoachMessage&&(identical(other.id, id) || other.id == id)&&(identical(other.role, role) || other.role == role)&&(identical(other.content, content) || other.content == content)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.proposal, proposal) || other.proposal == proposal));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CoachMessage&&(identical(other.id, id) || other.id == id)&&(identical(other.role, role) || other.role == role)&&(identical(other.content, content) || other.content == content)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.proposal, proposal) || other.proposal == proposal)&&(identical(other.errorDetail, errorDetail) || other.errorDetail == errorDetail));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,role,content,createdAt,proposal);
+int get hashCode => Object.hash(runtimeType,id,role,content,createdAt,proposal,errorDetail);
 
 @override
 String toString() {
-  return 'CoachMessage(id: $id, role: $role, content: $content, createdAt: $createdAt, proposal: $proposal)';
+  return 'CoachMessage(id: $id, role: $role, content: $content, createdAt: $createdAt, proposal: $proposal, errorDetail: $errorDetail)';
 }
 
 
@@ -261,7 +263,7 @@ abstract mixin class _$CoachMessageCopyWith<$Res> implements $CoachMessageCopyWi
   factory _$CoachMessageCopyWith(_CoachMessage value, $Res Function(_CoachMessage) _then) = __$CoachMessageCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String role, String content,@JsonKey(name: 'created_at') String createdAt, CoachProposal? proposal
+ String id, String role, String content,@JsonKey(name: 'created_at') String createdAt, CoachProposal? proposal,@JsonKey(includeFromJson: false, includeToJson: false) String? errorDetail
 });
 
 
@@ -278,14 +280,15 @@ class __$CoachMessageCopyWithImpl<$Res>
 
 /// Create a copy of CoachMessage
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? role = null,Object? content = null,Object? createdAt = null,Object? proposal = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? role = null,Object? content = null,Object? createdAt = null,Object? proposal = freezed,Object? errorDetail = freezed,}) {
   return _then(_CoachMessage(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
 as String,content: null == content ? _self.content : content // ignore: cast_nullable_to_non_nullable
 as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String,proposal: freezed == proposal ? _self.proposal : proposal // ignore: cast_nullable_to_non_nullable
-as CoachProposal?,
+as CoachProposal?,errorDetail: freezed == errorDetail ? _self.errorDetail : errorDetail // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

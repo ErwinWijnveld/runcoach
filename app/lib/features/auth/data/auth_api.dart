@@ -16,6 +16,9 @@ abstract class AuthApi {
   @GET('/auth/strava/callback')
   Future<AuthResponse> callback(@Query('code') String code);
 
+  @POST('/auth/dev-login')
+  Future<AuthResponse> devLogin();
+
   @POST('/auth/logout')
   Future<void> logout();
 

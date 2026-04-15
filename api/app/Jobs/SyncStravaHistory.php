@@ -6,6 +6,7 @@ use App\Models\StravaActivity;
 use App\Models\User;
 use App\Services\StravaSyncService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
@@ -14,6 +15,8 @@ use Illuminate\Queue\SerializesModels;
 class SyncStravaHistory implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public int $tries = 1;
 
     public function __construct(
         public int $userId,
@@ -26,6 +29,17 @@ class SyncStravaHistory implements ShouldQueue
         $token = $user->stravaToken;
 
         if (! $token) {
+            return;
+        }
+
+        try {
+            $token->access_token;
+        } catch (DecryptException $e) {
+            logger()->warning("Strava token for user {$user->id} is unreadable (APP_KEY mismatch). Deleting so user can re-auth.", [
+                'user_id' => $user->id,
+            ]);
+            $token->delete();
+
             return;
         }
 

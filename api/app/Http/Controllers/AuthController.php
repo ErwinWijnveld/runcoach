@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\SyncStravaHistory;
+use App\Models\User;
 use App\Services\StravaSyncService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -42,5 +43,18 @@ class AuthController extends Controller
         $request->user()->currentAccessToken()->delete();
 
         return response()->json(['message' => 'Logged out']);
+    }
+
+    public function devLogin(): JsonResponse
+    {
+        abort_unless(app()->environment('local'), 404);
+
+        $user = User::orderBy('id')->firstOrFail();
+        $token = $user->createToken('dev')->plainTextToken;
+
+        return response()->json([
+            'token' => $token,
+            'user' => $user->only(['id', 'name', 'email', 'level', 'coach_style']),
+        ]);
     }
 }

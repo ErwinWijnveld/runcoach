@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/auth/screens/welcome_screen.dart';
 import 'package:app/features/auth/screens/strava_auth_screen.dart';
@@ -136,38 +137,51 @@ class MainShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _indexOf(GoRouterState.of(context).matchedLocation),
-        onTap: (index) {
-          switch (index) {
-            case 0: context.go('/dashboard');
-            case 1: context.go('/schedule');
-            case 2: context.go('/coach');
-            case 3: context.go('/races');
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard_outlined),
-            activeIcon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today_outlined),
-            activeIcon: Icon(Icons.calendar_today),
-            label: 'Schedule',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat_outlined),
-            activeIcon: Icon(Icons.chat),
-            label: 'AI Coach',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.flag_outlined),
-            activeIcon: Icon(Icons.flag),
-            label: 'Races',
+    final currentIndex = _indexOf(GoRouterState.of(context).matchedLocation);
+
+    return CupertinoPageScaffold(
+      backgroundColor: AppColors.cream,
+      child: Column(
+        children: [
+          Expanded(child: child),
+          CupertinoTabBar(
+            currentIndex: currentIndex,
+            activeColor: AppColors.warmBrown,
+            inactiveColor: AppColors.textSecondary,
+            backgroundColor: AppColors.cream.withValues(alpha: 0.92),
+            border: const Border(
+              top: BorderSide(color: Color(0x14000000), width: 0.0),
+            ),
+            onTap: (index) {
+              switch (index) {
+                case 0:
+                  context.go('/dashboard');
+                case 1:
+                  context.go('/schedule');
+                case 2:
+                  context.go('/coach');
+                case 3:
+                  context.go('/races');
+              }
+            },
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(CupertinoIcons.square_grid_2x2),
+                label: 'Dashboard',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(CupertinoIcons.calendar),
+                label: 'Schedule',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(CupertinoIcons.chat_bubble_2),
+                label: 'Coach',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(CupertinoIcons.flag),
+                label: 'Races',
+              ),
+            ],
           ),
         ],
       ),

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 
 class AppColors {
   static const cream = Color(0xFFFAF8F4);
@@ -10,69 +10,61 @@ class AppColors {
   static const textPrimary = Color(0xFF2D2D2D);
   static const textSecondary = Color(0xFF888888);
   static const success = Color(0xFF4CAF50);
+  static const danger = Color(0xFFD0504E);
   static const todayHighlight = Color(0xFF8B7355);
 }
 
 class AppTheme {
-  static ThemeData get light {
-    return ThemeData(
-      useMaterial3: true,
+  static CupertinoThemeData get cupertino {
+    return const CupertinoThemeData(
+      brightness: Brightness.light,
+      primaryColor: AppColors.warmBrown,
+      primaryContrastingColor: CupertinoColors.white,
       scaffoldBackgroundColor: AppColors.cream,
-      colorScheme: const ColorScheme.light(
-        primary: AppColors.warmBrown,
-        secondary: AppColors.gold,
-        surface: AppColors.cream,
-        onPrimary: Colors.white,
-        onSurface: AppColors.textPrimary,
-      ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.cream,
-        foregroundColor: AppColors.textPrimary,
-        elevation: 0,
-        centerTitle: false,
-        titleTextStyle: TextStyle(
+      barBackgroundColor: Color(0xE6FAF8F4),
+      textTheme: CupertinoTextThemeData(
+        primaryColor: AppColors.textPrimary,
+        textStyle: TextStyle(
           color: AppColors.textPrimary,
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
+          fontSize: 16,
+          letterSpacing: -0.2,
         ),
-      ),
-      cardTheme: CardThemeData(
-        color: AppColors.cardBg,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+        navLargeTitleTextStyle: TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 32,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.5,
         ),
-      ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: Colors.white,
-        selectedItemColor: AppColors.warmBrown,
-        unselectedItemColor: AppColors.textSecondary,
-        type: BottomNavigationBarType.fixed,
-        elevation: 8,
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.warmBrown,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
+        navTitleTextStyle: TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 17,
+          fontWeight: FontWeight.w600,
         ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: AppColors.lightTan,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+        navActionTextStyle: TextStyle(
+          color: AppColors.warmBrown,
+          fontSize: 17,
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        actionTextStyle: TextStyle(
+          color: AppColors.warmBrown,
+          fontSize: 17,
+        ),
+        tabLabelTextStyle: TextStyle(
+          fontSize: 10,
+          letterSpacing: -0.1,
+        ),
       ),
     );
   }
+}
+
+class AppRadius {
+  static const card = 16.0;
+  static const chip = 8.0;
+  static const pill = 12.0;
+  static const button = 12.0;
+}
+
+class AppInsets {
+  static const EdgeInsets screen = EdgeInsets.all(16);
+  static const EdgeInsets card = EdgeInsets.all(20);
 }

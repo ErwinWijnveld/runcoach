@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/features/races/providers/race_provider.dart';
 import 'package:app/features/races/models/race.dart';
 
@@ -13,39 +14,30 @@ class RaceDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final raceAsync = ref.watch(raceDetailProvider(raceId));
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Race Details'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+    return CupertinoPageScaffold(
+      backgroundColor: AppColors.cream,
+      navigationBar: CupertinoNavigationBar(
+        backgroundColor: AppColors.cream.withValues(alpha: 0.92),
+        border: null,
+        leading: CupertinoButton(
+          padding: EdgeInsets.zero,
           onPressed: () => context.go('/races'),
-        ),
-      ),
-      body: raceAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.warmBrown),
-        ),
-        error: (error, _) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: AppColors.textSecondary),
-              const SizedBox(height: 16),
-              Text(
-                'Could not load race details',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: () => ref.invalidate(raceDetailProvider(raceId)),
-                child: const Text('Retry'),
-              ),
-            ],
+          child: const Icon(
+            CupertinoIcons.back,
+            color: AppColors.warmBrown,
           ),
         ),
-        data: (race) => _RaceDetailBody(race: race),
+        middle: const Text('Race Details'),
+      ),
+      child: SafeArea(
+        child: raceAsync.when(
+          loading: () => const AppSpinner(),
+          error: (_, _) => AppErrorState(
+            title: 'Could not load race details',
+            onRetry: () => ref.invalidate(raceDetailProvider(raceId)),
+          ),
+          data: (race) => _RaceDetailBody(race: race),
+        ),
       ),
     );
   }
@@ -93,30 +85,18 @@ class _RaceDetailBody extends ConsumerWidget {
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Cancel Race'),
-        content: Text('Are you sure you want to delete "${race.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('No'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
+    final confirmed = await showAppConfirm(
+      context,
+      title: 'Cancel Race',
+      message: 'Are you sure you want to delete "${race.name}"?',
+      confirmLabel: 'Delete',
+      cancelLabel: 'No',
+      destructive: true,
     );
 
-    if (confirmed == true && context.mounted) {
+    if (confirmed && context.mounted) {
       await ref.read(raceActionsProvider.notifier).deleteRace(race.id);
-      if (context.mounted) {
-        context.go('/races');
-      }
+      if (context.mounted) context.go('/races');
     }
   }
 
@@ -127,160 +107,136 @@ class _RaceDetailBody extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // Countdown banner
         if (race.status == 'active' && daysLeft != null && daysLeft >= 0)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 24),
             decoration: BoxDecoration(
               color: AppColors.warmBrown,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(AppRadius.card),
             ),
             child: Column(
               children: [
                 Text(
                   daysLeft == 0 ? 'Race Day!' : '$daysLeft',
-                  style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                  style: const TextStyle(
+                    fontSize: 52,
+                    fontWeight: FontWeight.w700,
+                    color: CupertinoColors.white,
+                    letterSpacing: -1,
                   ),
                 ),
                 if (daysLeft > 0)
                   Text(
                     'days to go',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.85),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: CupertinoColors.white.withValues(alpha: 0.85),
                     ),
                   ),
               ],
             ),
           ),
         const SizedBox(height: 16),
-
-        // Race info card
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      race.name,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.darkBrown,
+                      ),
+                    ),
+                  ),
+                  AppStatusPill(label: race.status, color: _statusColor()),
+                ],
+              ),
+              const SizedBox(height: 20),
+              _DetailRow(
+                icon: CupertinoIcons.arrow_right_arrow_left,
+                label: 'Distance',
+                value: race.distance,
+              ),
+              const SizedBox(height: 12),
+              _DetailRow(
+                icon: CupertinoIcons.calendar,
+                label: 'Race Date',
+                value: race.raceDate,
+              ),
+              const SizedBox(height: 12),
+              _DetailRow(
+                icon: CupertinoIcons.timer,
+                label: 'Goal Time',
+                value: _formatGoalTime(),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (race.status == 'active')
+          AppCard(
+            padding: const EdgeInsets.all(16),
+            onTap: () => context.go('/schedule'),
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        race.name,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.darkBrown,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _statusColor().withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        race.status,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: _statusColor(),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.gold.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(AppRadius.button),
+                  ),
+                  child: const Icon(
+                    CupertinoIcons.calendar,
+                    color: AppColors.gold,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Training Schedule',
+                        style: TextStyle(
+                          fontSize: 15,
                           fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
                         ),
                       ),
-                    ),
-                  ],
+                      Text(
+                        'View your weekly training plan',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 20),
-                _DetailRow(
-                  icon: Icons.straighten,
-                  label: 'Distance',
-                  value: race.distance,
-                ),
-                const SizedBox(height: 12),
-                _DetailRow(
-                  icon: Icons.calendar_today,
-                  label: 'Race Date',
-                  value: race.raceDate,
-                ),
-                const SizedBox(height: 12),
-                _DetailRow(
-                  icon: Icons.timer,
-                  label: 'Goal Time',
-                  value: _formatGoalTime(),
+                const Icon(
+                  CupertinoIcons.chevron_right,
+                  color: AppColors.textSecondary,
+                  size: 16,
                 ),
               ],
             ),
           ),
-        ),
-        const SizedBox(height: 16),
-
-        // View schedule link
+        const SizedBox(height: 24),
         if (race.status == 'active')
-          Card(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: () => context.go('/schedule'),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppColors.gold.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.calendar_month,
-                        color: AppColors.gold,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Training Schedule',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          Text(
-                            'View your weekly training plan',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.chevron_right, color: AppColors.textSecondary),
-                  ],
-                ),
-              ),
-            ),
+          AppBorderedButton(
+            label: 'Delete Race',
+            icon: CupertinoIcons.delete,
+            color: AppColors.danger,
+            onPressed: () => _confirmDelete(context, ref),
           ),
         const SizedBox(height: 24),
-
-        // Action buttons
-        if (race.status == 'active')
-          OutlinedButton.icon(
-            onPressed: () => _confirmDelete(context, ref),
-            icon: const Icon(Icons.delete_outline, color: Colors.red),
-            label: const Text('Delete Race'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.red,
-              side: const BorderSide(color: Colors.red),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-          ),
       ],
     );
   }
@@ -290,7 +246,11 @@ class _DetailRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  const _DetailRow({required this.icon, required this.label, required this.value});
+  const _DetailRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -300,14 +260,16 @@ class _DetailRow extends StatelessWidget {
         const SizedBox(width: 12),
         Text(
           label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          style: const TextStyle(
+            fontSize: 14,
             color: AppColors.textSecondary,
           ),
         ),
         const Spacer(),
         Text(
           value,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          style: const TextStyle(
+            fontSize: 14,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
           ),

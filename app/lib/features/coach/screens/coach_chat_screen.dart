@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/features/coach/providers/coach_provider.dart';
 import 'package:app/features/coach/widgets/message_bubble.dart';
 import 'package:app/features/coach/widgets/proposal_card.dart';
@@ -26,10 +27,12 @@ class _CoachChatScreenState extends ConsumerState<CoachChatScreen> {
     _controller.clear();
     setState(() => _sending = true);
 
-    final notifier = ref.read(coachChatProvider(widget.conversationId).notifier);
+    final notifier = ref.read(
+      coachChatProvider(widget.conversationId).notifier,
+    );
     await notifier.sendMessage(content);
 
-    setState(() => _sending = false);
+    if (mounted) setState(() => _sending = false);
     _scrollToBottom();
   }
 
@@ -56,59 +59,82 @@ class _CoachChatScreenState extends ConsumerState<CoachChatScreen> {
   Widget build(BuildContext context) {
     final messagesAsync = ref.watch(coachChatProvider(widget.conversationId));
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Coach')),
-      body: Column(
-        children: [
-          Expanded(
-            child: messagesAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, _) => Center(child: Text('Error: $err')),
-              data: (messages) {
-                if (messages.isEmpty) {
-                  return _EmptyState(onQuickAction: _send);
-                }
-
-                return ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(16),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final msg = messages[index];
-                    return Column(
-                      children: [
-                        MessageBubble(message: msg),
-                        if (msg.proposal != null)
-                          ProposalCard(
-                            proposal: msg.proposal!,
-                            onAccept: () async {
-                              final notifier = ref.read(
-                                coachChatProvider(widget.conversationId).notifier,
-                              );
-                              await notifier.acceptProposal(msg.proposal!.id);
-                              ref.invalidate(coachChatProvider(widget.conversationId));
-                            },
-                            onReject: () async {
-                              final notifier = ref.read(
-                                coachChatProvider(widget.conversationId).notifier,
-                              );
-                              await notifier.rejectProposal(msg.proposal!.id);
-                              ref.invalidate(coachChatProvider(widget.conversationId));
-                            },
+    return CupertinoPageScaffold(
+      backgroundColor: AppColors.cream,
+      navigationBar: CupertinoNavigationBar(
+        backgroundColor: AppColors.cream.withValues(alpha: 0.92),
+        border: null,
+        middle: const Text('Coach'),
+      ),
+      child: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: messagesAsync.when(
+                loading: () => const AppSpinner(),
+                error: (err, _) => AppErrorState(title: 'Error: $err'),
+                data: (messages) {
+                  if (messages.isEmpty) {
+                    return _EmptyState(onQuickAction: _send);
+                  }
+                  return ListView.builder(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16),
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      final msg = messages[index];
+                      return Column(
+                        children: [
+                          MessageBubble(
+                            message: msg,
+                            onRetry: msg.errorDetail != null
+                                ? () => ref
+                                    .read(coachChatProvider(
+                                            widget.conversationId)
+                                        .notifier)
+                                    .retry(msg.id)
+                                : null,
                           ),
-                      ],
-                    );
-                  },
-                );
-              },
+                          if (msg.proposal != null)
+                            ProposalCard(
+                              proposal: msg.proposal!,
+                              onAccept: () async {
+                                final notifier = ref.read(
+                                  coachChatProvider(widget.conversationId)
+                                      .notifier,
+                                );
+                                await notifier
+                                    .acceptProposal(msg.proposal!.id);
+                                ref.invalidate(
+                                  coachChatProvider(widget.conversationId),
+                                );
+                              },
+                              onReject: () async {
+                                final notifier = ref.read(
+                                  coachChatProvider(widget.conversationId)
+                                      .notifier,
+                                );
+                                await notifier
+                                    .rejectProposal(msg.proposal!.id);
+                                ref.invalidate(
+                                  coachChatProvider(widget.conversationId),
+                                );
+                              },
+                            ),
+                        ],
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-          _ChatInput(
-            controller: _controller,
-            sending: _sending,
-            onSend: () => _send(),
-          ),
-        ],
+            _ChatInput(
+              controller: _controller,
+              sending: _sending,
+              onSend: () => _send(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -125,18 +151,26 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.directions_run, size: 48, color: AppColors.warmBrown),
+          const Icon(
+            CupertinoIcons.sparkles,
+            size: 48,
+            color: AppColors.warmBrown,
+          ),
           const SizedBox(height: 16),
-          Text(
+          const Text(
             'What can I help you with?',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+              letterSpacing: -0.3,
             ),
           ),
           const SizedBox(height: 4),
-          Text(
+          const Text(
             'I know your training history and can manage your schedule',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            style: TextStyle(
+              fontSize: 13,
               color: AppColors.textSecondary,
             ),
             textAlign: TextAlign.center,
@@ -154,19 +188,24 @@ class _EmptyState extends StatelessWidget {
                 emoji: '\u{1F4C5}',
                 title: 'Create a training plan',
                 subtitle: 'For an upcoming race',
-                onTap: () => onQuickAction('I want to create a training plan for an upcoming race'),
+                onTap: () => onQuickAction(
+                  'I want to create a training plan for an upcoming race',
+                ),
               ),
               QuickActionCard(
                 emoji: '\u{1F504}',
                 title: 'Adjust my schedule',
                 subtitle: "Modify this week's plan",
-                onTap: () => onQuickAction("Can you adjust this week's training schedule?"),
+                onTap: () =>
+                    onQuickAction("Can you adjust this week's training schedule?"),
               ),
               QuickActionCard(
                 emoji: '\u{1F4CA}',
                 title: 'Analyze my progress',
                 subtitle: 'How am I trending?',
-                onTap: () => onQuickAction('How is my training going? Give me an analysis of my progress.'),
+                onTap: () => onQuickAction(
+                  'How is my training going? Give me an analysis of my progress.',
+                ),
               ),
               QuickActionCard(
                 emoji: '\u{2753}',
@@ -202,40 +241,52 @@ class _ChatInput extends StatelessWidget {
         top: 8,
         bottom: MediaQuery.of(context).padding.bottom + 8,
       ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
+      decoration: const BoxDecoration(
+        color: CupertinoColors.white,
+        border: Border(
+          top: BorderSide(color: Color(0x14000000), width: 0.5),
+        ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           Expanded(
-            child: TextField(
+            child: CupertinoTextField(
               controller: controller,
-              decoration: const InputDecoration(
-                hintText: 'Ask your coach...',
-                border: InputBorder.none,
+              placeholder: 'Ask your coach...',
+              placeholderStyle: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 15,
               ),
-              maxLines: null,
+              style: const TextStyle(
+                fontSize: 15,
+                color: AppColors.textPrimary,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.lightTan,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 10,
+              ),
+              maxLines: 5,
+              minLines: 1,
               textInputAction: TextInputAction.send,
               onSubmitted: (_) => onSend(),
             ),
           ),
-          IconButton(
+          const SizedBox(width: 4),
+          CupertinoButton(
+            padding: const EdgeInsets.all(6),
             onPressed: sending ? null : onSend,
-            icon: sending
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.send),
-            color: AppColors.warmBrown,
+            child: sending
+                ? const CupertinoActivityIndicator()
+                : const Icon(
+                    CupertinoIcons.arrow_up_circle_fill,
+                    color: AppColors.warmBrown,
+                    size: 32,
+                  ),
           ),
         ],
       ),

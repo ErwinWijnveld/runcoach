@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:app/core/theme/app_theme.dart';
 
 class QuickActionCard extends StatelessWidget {
@@ -17,15 +17,15 @@ class QuickActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: AppColors.lightTan, width: 2),
-          borderRadius: BorderRadius.circular(12),
+          color: CupertinoColors.white,
+          border: Border.all(color: AppColors.lightTan, width: 1.5),
+          borderRadius: BorderRadius.circular(AppRadius.button),
         ),
         child: Column(
           children: [
@@ -33,15 +33,18 @@ class QuickActionCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               title,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              style: const TextStyle(
+                fontSize: 12,
                 color: AppColors.textSecondary,
               ),
               textAlign: TextAlign.center,

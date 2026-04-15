@@ -1,15 +1,16 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/app_widgets.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return CupertinoPageScaffold(
       backgroundColor: AppColors.cream,
-      body: SafeArea(
+      child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
           child: Column(
@@ -17,40 +18,42 @@ class WelcomeScreen extends StatelessWidget {
             children: [
               const Spacer(flex: 2),
               const Icon(
-                Icons.directions_run,
+                CupertinoIcons.flame_fill,
                 size: 80,
                 color: AppColors.warmBrown,
               ),
               const SizedBox(height: 24),
-              Text(
+              const Text(
                 'RunCoach',
-                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
+                style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.w700,
                   color: AppColors.darkBrown,
+                  letterSpacing: -0.5,
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
+              const Text(
                 'Your AI-powered running coach',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                style: TextStyle(
+                  fontSize: 16,
                   color: AppColors.textSecondary,
                 ),
               ),
               const Spacer(flex: 3),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => context.go('/auth/strava'),
-                  icon: const Icon(Icons.link),
-                  label: const Text('Connect with Strava'),
-                ),
+              AppFilledButton(
+                label: 'Connect with Strava',
+                icon: CupertinoIcons.link,
+                onPressed: () => context.go('/auth/strava'),
               ),
               const SizedBox(height: 12),
-              Text(
+              const Text(
                 'We use Strava to read your running data\nand create personalized training plans.',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                style: TextStyle(
+                  fontSize: 12,
                   color: AppColors.textSecondary,
+                  height: 1.4,
                 ),
               ),
               const Spacer(),

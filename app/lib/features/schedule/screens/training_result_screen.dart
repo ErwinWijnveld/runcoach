@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
 import 'package:app/features/schedule/models/training_result.dart';
 
@@ -18,7 +19,7 @@ class TrainingResultScreen extends ConsumerWidget {
   Color _scoreColor(double score) {
     if (score >= 0.8) return AppColors.success;
     if (score >= 0.5) return AppColors.gold;
-    return Colors.redAccent;
+    return AppColors.danger;
   }
 
   @override
@@ -26,200 +27,186 @@ class TrainingResultScreen extends ConsumerWidget {
     final resultAsync = ref.watch(trainingDayResultProvider(dayId));
     final dayAsync = ref.watch(trainingDayDetailProvider(dayId));
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+    return CupertinoPageScaffold(
+      backgroundColor: AppColors.cream,
+      navigationBar: CupertinoNavigationBar(
+        backgroundColor: AppColors.cream.withValues(alpha: 0.92),
+        border: null,
+        leading: CupertinoButton(
+          padding: EdgeInsets.zero,
           onPressed: () => context.go('/schedule/day/$dayId'),
+          child: const Icon(
+            CupertinoIcons.back,
+            color: AppColors.warmBrown,
+          ),
         ),
-        title: const Text('Training Result'),
+        middle: const Text('Training Result'),
       ),
-      body: resultAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Error: $err')),
-        data: (result) {
-          if (result == null) {
-            return const Center(child: Text('No result recorded yet'));
-          }
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Overall compliance score
-                _ComplianceHeader(result: result),
-                const SizedBox(height: 24),
-
-                // Actual metrics
-                Text(
-                  'ACTUAL PERFORMANCE',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
-                    fontSize: 11,
-                  ),
+      child: SafeArea(
+        child: resultAsync.when(
+          loading: () => const AppSpinner(),
+          error: (err, _) => AppErrorState(title: 'Error: $err'),
+          data: (result) {
+            if (result == null) {
+              return const Center(
+                child: Text(
+                  'No result recorded yet',
+                  style: TextStyle(color: AppColors.textSecondary),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _ResultMetricCard(
-                        label: 'Distance',
-                        value: '${result.actualKm} km',
-                        icon: Icons.straighten,
+              );
+            }
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _ComplianceHeader(result: result),
+                  const SizedBox(height: 24),
+                  const AppSectionLabel('ACTUAL PERFORMANCE'),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ResultMetricCard(
+                          label: 'Distance',
+                          value: '${result.actualKm} km',
+                          icon: CupertinoIcons.arrow_right_arrow_left,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _ResultMetricCard(
-                        label: 'Pace',
-                        value: _formatPace(result.actualPaceSecondsPerKm),
-                        icon: Icons.speed,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _ResultMetricCard(
+                          label: 'Pace',
+                          value: _formatPace(result.actualPaceSecondsPerKm),
+                          icon: CupertinoIcons.speedometer,
+                        ),
                       ),
+                    ],
+                  ),
+                  if (result.actualAvgHeartRate != null) ...[
+                    const SizedBox(height: 12),
+                    _ResultMetricCard(
+                      label: 'Avg Heart Rate',
+                      value: '${result.actualAvgHeartRate!.round()} bpm',
+                      icon: CupertinoIcons.heart_fill,
                     ),
                   ],
-                ),
-                if (result.actualAvgHeartRate != null) ...[
+                  const SizedBox(height: 24),
+                  const AppSectionLabel('SCORE BREAKDOWN'),
                   const SizedBox(height: 12),
-                  _ResultMetricCard(
-                    label: 'Avg Heart Rate',
-                    value: '${result.actualAvgHeartRate!.round()} bpm',
-                    icon: Icons.favorite,
+                  _ScoreBar(
+                    label: 'Distance',
+                    score: result.distanceScore,
+                    color: _scoreColor(result.distanceScore),
                   ),
-                ],
-
-                const SizedBox(height: 24),
-
-                // Score breakdown
-                Text(
-                  'SCORE BREAKDOWN',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
-                    fontSize: 11,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                _ScoreBar(
-                  label: 'Distance',
-                  score: result.distanceScore,
-                  color: _scoreColor(result.distanceScore),
-                ),
-                const SizedBox(height: 8),
-                _ScoreBar(
-                  label: 'Pace',
-                  score: result.paceScore,
-                  color: _scoreColor(result.paceScore),
-                ),
-                if (result.heartRateScore != null) ...[
                   const SizedBox(height: 8),
                   _ScoreBar(
-                    label: 'Heart Rate',
-                    score: result.heartRateScore!,
-                    color: _scoreColor(result.heartRateScore!),
+                    label: 'Pace',
+                    score: result.paceScore,
+                    color: _scoreColor(result.paceScore),
                   ),
-                ],
-
-                // Target comparison (if day data available)
-                dayAsync.whenOrNull(
-                  data: (day) {
-                    if (day.targetKm == null && day.targetPaceSecondsPerKm == null) {
-                      return const SizedBox.shrink();
-                    }
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 24),
+                  if (result.heartRateScore != null) ...[
+                    const SizedBox(height: 8),
+                    _ScoreBar(
+                      label: 'Heart Rate',
+                      score: result.heartRateScore!,
+                      color: _scoreColor(result.heartRateScore!),
+                    ),
+                  ],
+                  dayAsync.whenOrNull(
+                        data: (day) {
+                          if (day.targetKm == null &&
+                              day.targetPaceSecondsPerKm == null) {
+                            return const SizedBox.shrink();
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const AppSectionLabel('VS TARGET'),
+                                const SizedBox(height: 12),
+                                AppCard(
+                                  padding: const EdgeInsets.all(16),
+                                  child: Column(
+                                    children: [
+                                      if (day.targetKm != null)
+                                        _ComparisonRow(
+                                          label: 'Distance',
+                                          target: '${day.targetKm} km',
+                                          actual: '${result.actualKm} km',
+                                        ),
+                                      if (day.targetPaceSecondsPerKm != null)
+                                        _ComparisonRow(
+                                          label: 'Pace',
+                                          target: _formatPace(
+                                            day.targetPaceSecondsPerKm!,
+                                          ),
+                                          actual: _formatPace(
+                                            result.actualPaceSecondsPerKm,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ) ??
+                      const SizedBox.shrink(),
+                  if (result.aiFeedback != null) ...[
+                    const SizedBox(height: 24),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppColors.darkBrown,
+                        borderRadius: BorderRadius.circular(AppRadius.card),
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'VS TARGET',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.textSecondary,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1,
-                              fontSize: 11,
-                            ),
+                          const Row(
+                            children: [
+                              Icon(
+                                CupertinoIcons.sparkles,
+                                color: AppColors.gold,
+                                size: 16,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'COACH FEEDBACK',
+                                style: TextStyle(
+                                  color: AppColors.gold,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 12),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: AppColors.cardBg,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Column(
-                              children: [
-                                if (day.targetKm != null)
-                                  _ComparisonRow(
-                                    label: 'Distance',
-                                    target: '${day.targetKm} km',
-                                    actual: '${result.actualKm} km',
-                                  ),
-                                if (day.targetPaceSecondsPerKm != null)
-                                  _ComparisonRow(
-                                    label: 'Pace',
-                                    target: _formatPace(day.targetPaceSecondsPerKm!),
-                                    actual: _formatPace(result.actualPaceSecondsPerKm),
-                                  ),
-                              ],
+                          Text(
+                            result.aiFeedback!,
+                            style: TextStyle(
+                              color:
+                                  CupertinoColors.white.withValues(alpha: 0.9),
+                              fontSize: 14,
+                              height: 1.5,
                             ),
                           ),
                         ],
                       ),
-                    );
-                  },
-                ) ?? const SizedBox.shrink(),
-
-                // AI Feedback
-                if (result.aiFeedback != null) ...[
-                  const SizedBox(height: 24),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppColors.darkBrown,
-                      borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.auto_awesome, color: AppColors.gold, size: 16),
-                            const SizedBox(width: 8),
-                            Text(
-                              'COACH FEEDBACK',
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppColors.gold,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          result.aiFeedback!,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            height: 1.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  ],
+                  const SizedBox(height: 32),
                 ],
-
-                const SizedBox(height: 32),
-              ],
-            ),
-          );
-        },
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -236,40 +223,34 @@ class _ComplianceHeader extends StatelessWidget {
         ? AppColors.success
         : result.complianceScore >= 0.5
             ? AppColors.gold
-            : Colors.redAccent;
+            : AppColors.danger;
 
-    return Container(
-      width: double.infinity,
+    return AppCard(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppColors.cardBg,
-        borderRadius: BorderRadius.circular(16),
-      ),
       child: Column(
         children: [
           Text(
             '$pct%',
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(
-              fontWeight: FontWeight.bold,
+            style: TextStyle(
+              fontSize: 44,
+              fontWeight: FontWeight.w700,
               color: color,
+              letterSpacing: -1,
             ),
           ),
           const SizedBox(height: 4),
-          Text(
+          const Text(
             'Overall Compliance',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            style: TextStyle(
+              fontSize: 14,
               color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: result.complianceScore,
-              backgroundColor: AppColors.lightTan,
-              valueColor: AlwaysStoppedAnimation(color),
-              minHeight: 8,
-            ),
+          AppLinearBar(
+            value: result.complianceScore,
+            color: color,
+            height: 8,
           ),
         ],
       ),
@@ -281,7 +262,6 @@ class _ResultMetricCard extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
-
   const _ResultMetricCard({
     required this.label,
     required this.value,
@@ -290,33 +270,33 @@ class _ResultMetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AppCard(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.cardBg,
-        borderRadius: BorderRadius.circular(12),
-      ),
       child: Row(
         children: [
           Icon(icon, color: AppColors.warmBrown, size: 20),
           const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
-                  fontSize: 11,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
-              ),
-              Text(
-                value,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -328,7 +308,6 @@ class _ScoreBar extends StatelessWidget {
   final String label;
   final double score;
   final Color color;
-
   const _ScoreBar({
     required this.label,
     required this.score,
@@ -344,29 +323,23 @@ class _ScoreBar extends StatelessWidget {
           width: 80,
           child: Text(
             label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            style: const TextStyle(
+              fontSize: 13,
               color: AppColors.textSecondary,
             ),
           ),
         ),
         Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: score,
-              backgroundColor: AppColors.lightTan,
-              valueColor: AlwaysStoppedAnimation(color),
-              minHeight: 8,
-            ),
-          ),
+          child: AppLinearBar(value: score, color: color, height: 8),
         ),
         const SizedBox(width: 12),
         SizedBox(
           width: 40,
           child: Text(
             '$pct%',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.bold,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
               color: color,
             ),
             textAlign: TextAlign.end,
@@ -381,7 +354,6 @@ class _ComparisonRow extends StatelessWidget {
   final String label;
   final String target;
   final String actual;
-
   const _ComparisonRow({
     required this.label,
     required this.target,
@@ -398,7 +370,8 @@ class _ComparisonRow extends StatelessWidget {
             flex: 2,
             child: Text(
               label,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              style: const TextStyle(
+                fontSize: 13,
                 color: AppColors.textSecondary,
               ),
             ),
@@ -407,7 +380,8 @@ class _ComparisonRow extends StatelessWidget {
             flex: 3,
             child: Text(
               target,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              style: const TextStyle(
+                fontSize: 14,
                 color: AppColors.textSecondary,
               ),
               textAlign: TextAlign.center,
@@ -417,8 +391,10 @@ class _ComparisonRow extends StatelessWidget {
             flex: 3,
             child: Text(
               actual,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
               ),
               textAlign: TextAlign.center,
             ),

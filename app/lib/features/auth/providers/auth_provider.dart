@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:app/core/storage/token_storage.dart';
 import 'package:app/features/auth/data/auth_api.dart';
@@ -18,6 +19,26 @@ class Auth extends _$Auth {
     final hasToken = await tokenStorage.hasToken();
     if (hasToken) {
       await loadProfile();
+      if (kDebugMode && state.hasError) {
+        await tokenStorage.clearToken();
+        await loginDev();
+      }
+    } else if (kDebugMode) {
+      await loginDev();
+    }
+  }
+
+  Future<void> loginDev() async {
+    try {
+      final api = ref.read(authApiProvider);
+      final response = await api.devLogin();
+
+      final tokenStorage = ref.read(tokenStorageProvider);
+      await tokenStorage.setToken(response.token);
+
+      state = AsyncValue.data(response.user);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
     }
   }
 
