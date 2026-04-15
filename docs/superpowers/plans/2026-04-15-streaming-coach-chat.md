@@ -777,17 +777,9 @@ CoachStreamClient coachStreamClient(Ref ref) {
 }
 ```
 
-Note: `dioProvider` is the existing provider in `app/lib/core/api/dio_client.dart`. If the actual provider name differs, adjust the import accordingly. Verify with `grep -n "dioProvider" app/lib/core/api/dio_client.dart` before running codegen.
+`dioProvider` is auto-generated from `Dio dio(Ref ref)` in `app/lib/core/api/dio_client.dart` — the Riverpod code-gen convention. Verified.
 
-- [ ] **Step 2: Verify the existing dio provider name**
-
-```bash
-cd /Users/erwinwijnveld/projects/runcoach/app && grep -n "Provider" lib/core/api/dio_client.dart
-```
-
-If the provider is named differently (e.g., `dio` instead of `dioProvider`), update the `ref.watch(...)` call accordingly. The convention with `@riverpod` is that a function `Dio dio(Ref ref)` exposes `dioProvider`.
-
-- [ ] **Step 3: Run code generation**
+- [ ] **Step 2: Run code generation**
 
 ```bash
 cd /Users/erwinwijnveld/projects/runcoach/app && dart run build_runner build --delete-conflicting-outputs
@@ -795,7 +787,7 @@ cd /Users/erwinwijnveld/projects/runcoach/app && dart run build_runner build --d
 
 Expected: New `coach_stream_client.g.dart` generated. No errors.
 
-- [ ] **Step 4: Run `flutter analyze`**
+- [ ] **Step 3: Run `flutter analyze`**
 
 ```bash
 cd /Users/erwinwijnveld/projects/runcoach/app && flutter analyze
@@ -803,7 +795,7 @@ cd /Users/erwinwijnveld/projects/runcoach/app && flutter analyze
 
 Expected: "No issues found!"
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add app/lib/features/coach/data/coach_stream_client.dart app/lib/features/coach/data/coach_stream_client.g.dart
@@ -895,12 +887,11 @@ void main() {
   });
 
   test('attaches proposal to the assistant message', () async {
-    final proposal = CoachProposal(
+    const proposal = CoachProposal(
       id: 1,
       type: 'create_schedule',
       status: 'pending',
-      payload: const {},
-      createdAt: '2026-04-15T00:00:00Z',
+      payload: <String, dynamic>{},
     );
     final container = ProviderContainer(overrides: [
       coachStreamClientProvider.overrideWithValue(
@@ -972,7 +963,7 @@ void main() {
 }
 ```
 
-The test references `CoachProposal` constructor fields. Verify `app/lib/features/coach/models/coach_proposal.dart` field names match before running — adjust if `id` is `int` vs `String`, etc.
+The test uses `CoachProposal(id: 1, type: 'create_schedule', status: 'pending', payload: <String, dynamic>{})` — verified against `app/lib/features/coach/models/coach_proposal.dart`: `id` is `int`, `payload` is `Map<String, dynamic>`, no `createdAt` field exists.
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
@@ -1045,7 +1036,27 @@ import 'package:app/features/coach/models/vercel_stream_event.dart';
 
 The old `import 'package:app/features/coach/data/coach_api.dart';` is still needed because `getConversation` (in the `build` method) uses it.
 
-- [ ] **Step 4: Run the provider tests to verify they pass**
+- [ ] **Step 4: Remove the now-unused `sendMessage` from the Retrofit client**
+
+In `app/lib/features/coach/data/coach_api.dart`, delete the `sendMessage` method (lines 21-25 today):
+
+```dart
+@POST('/coach/conversations/{id}/messages')
+Future<dynamic> sendMessage(
+  @Path() String id,
+  @Body() Map<String, dynamic> body,
+);
+```
+
+The provider no longer calls `api.sendMessage` — it goes through `CoachStreamClient`. Leaving it in the interface would create dead code.
+
+Re-run code generation so `coach_api.g.dart` no longer contains the implementation:
+
+```bash
+cd /Users/erwinwijnveld/projects/runcoach/app && dart run build_runner build --delete-conflicting-outputs
+```
+
+- [ ] **Step 5: Run the provider tests to verify they pass**
 
 ```bash
 cd /Users/erwinwijnveld/projects/runcoach/app && flutter test test/features/coach/providers/coach_chat_streaming_test.dart
@@ -1053,7 +1064,7 @@ cd /Users/erwinwijnveld/projects/runcoach/app && flutter test test/features/coac
 
 Expected: PASS — all 4 tests green.
 
-- [ ] **Step 5: Run all tests + analyze**
+- [ ] **Step 6: Run all tests + analyze**
 
 ```bash
 cd /Users/erwinwijnveld/projects/runcoach/app && flutter analyze && flutter test
@@ -1061,16 +1072,17 @@ cd /Users/erwinwijnveld/projects/runcoach/app && flutter analyze && flutter test
 
 Expected: All tests pass, no analyzer issues.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add app/lib/features/coach/providers/coach_provider.dart app/test/features/coach/providers/coach_chat_streaming_test.dart
+git add app/lib/features/coach/providers/coach_provider.dart app/lib/features/coach/data/coach_api.dart app/lib/features/coach/data/coach_api.g.dart app/test/features/coach/providers/coach_chat_streaming_test.dart
 git commit -m "$(cat <<'EOF'
 feat(app): consume streaming chat events in CoachChat provider
 
 Rewrites sendMessage to subscribe to CoachStreamClient and update
 a placeholder assistant message as text-delta, tool, proposal, and
-error events arrive. Old non-streaming code path removed.
+error events arrive. Removes the now-unused non-streaming sendMessage
+from the Retrofit CoachApi.
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
 EOF
@@ -1087,11 +1099,17 @@ EOF
 
 The bubble needs two visual additions: a blinking caret at the end of streaming text, and a small pill below the bubble showing the current tool indicator.
 
-- [ ] **Step 1: Read the current `MessageBubble` to confirm structure**
+**Current `MessageBubble` structure** (`app/lib/features/coach/widgets/message_bubble.dart`):
+- Outer `Column` (cross-axis end for user, start for assistant) at lines 16-72
+- Inside: `Align` + `Container` — the bubble (lines 20-68)
+- Inner `Column` with optional `COACH` label (lines 42-54) and `Text(message.content, ...)` (lines 55-64)
+- Below the `Align`: optional `_ErrorStrip` (lines 69-70)
 
-Read `app/lib/features/coach/widgets/message_bubble.dart` to identify how the bubble currently renders message content. The caret and pill additions must not break the existing layout (user vs assistant alignment, error rendering, etc.).
+Caret integration: replace the `Text(message.content, ...)` (lines 55-64) with a `Text.rich` so we can append a `WidgetSpan` for the blinking caret when streaming.
 
-- [ ] **Step 2: Write the failing widget test**
+Pill integration: add a sibling element in the outer `Column` after the `Align` — same alignment as the bubble (assistant-side, left-aligned).
+
+- [ ] **Step 1: Write the failing widget test**
 
 Create `app/test/features/coach/widgets/message_bubble_test.dart`:
 
@@ -1169,7 +1187,7 @@ void main() {
 }
 ```
 
-- [ ] **Step 3: Run the widget tests to confirm they fail**
+- [ ] **Step 2: Run the widget tests to confirm they fail**
 
 ```bash
 cd /Users/erwinwijnveld/projects/runcoach/app && flutter test test/features/coach/widgets/message_bubble_test.dart
@@ -1177,36 +1195,133 @@ cd /Users/erwinwijnveld/projects/runcoach/app && flutter test test/features/coac
 
 Expected: FAIL — caret and pill widgets don't exist yet.
 
-- [ ] **Step 4: Modify `MessageBubble` to render caret and pill**
+- [ ] **Step 3: Modify `MessageBubble` to render caret and pill**
 
-In `app/lib/features/coach/widgets/message_bubble.dart`, add to the existing bubble's child widget tree:
-
-a) **Caret (inside the message text area):** Wrap the existing content `Text` widget so that when `message.streaming == true`, a thin animated caret (`▍`) is appended. Use a `RichText` or `Text.rich` with a `WidgetSpan` for the caret, animated via `TweenAnimationBuilder<double>` or a stateful blink.
-
-Sketch (the exact integration depends on the file's current structure — adapt to whatever wraps the message text):
+Replace the entire contents of `app/lib/features/coach/widgets/message_bubble.dart` with:
 
 ```dart
-// Replace the content Text with:
-Text.rich(
-  TextSpan(
-    text: message.content,
-    children: [
-      if (message.streaming)
-        WidgetSpan(
-          alignment: PlaceholderAlignment.middle,
-          child: _BlinkingCaret(key: const Key('streaming-caret')),
+import 'package:flutter/cupertino.dart';
+import 'package:app/core/theme/app_theme.dart';
+import 'package:app/features/coach/models/coach_message.dart';
+
+class MessageBubble extends StatelessWidget {
+  final CoachMessage message;
+  final VoidCallback? onRetry;
+
+  const MessageBubble({super.key, required this.message, this.onRetry});
+
+  bool get _isUser => message.role == 'user';
+  bool get _failed => message.errorDetail != null;
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor =
+        _isUser ? CupertinoColors.white : AppColors.textPrimary;
+
+    return Column(
+      crossAxisAlignment:
+          _isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      children: [
+        Align(
+          alignment: _isUser ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            margin: EdgeInsets.only(
+              left: _isUser ? 60 : 0,
+              right: _isUser ? 0 : 60,
+              bottom: _failed ? 4 : 8,
+            ),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: _isUser ? AppColors.warmBrown : AppColors.lightTan,
+              borderRadius: BorderRadius.only(
+                topLeft: const Radius.circular(18),
+                topRight: const Radius.circular(18),
+                bottomLeft: Radius.circular(_isUser ? 18 : 4),
+                bottomRight: Radius.circular(_isUser ? 4 : 18),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (!_isUser)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      'COACH',
+                      style: TextStyle(
+                        color: AppColors.warmBrown,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                Text.rich(
+                  TextSpan(
+                    text: message.content,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: textColor,
+                      height: 1.35,
+                    ),
+                    children: [
+                      if (message.streaming)
+                        WidgetSpan(
+                          alignment: PlaceholderAlignment.middle,
+                          child: _BlinkingCaret(
+                            key: const Key('streaming-caret'),
+                            color: textColor,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-    ],
-  ),
-  style: /* existing style */,
-),
-```
+        if (message.toolIndicator != null)
+          Padding(
+            key: const Key('tool-indicator-pill'),
+            padding: const EdgeInsets.only(bottom: 8, left: 4),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: AppColors.lightTan,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CupertinoActivityIndicator(radius: 6),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    message.toolIndicator!,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.warmBrown,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        if (_failed)
+          _ErrorStrip(detail: message.errorDetail!, onRetry: onRetry),
+      ],
+    );
+  }
+}
 
-Add this private widget in the same file:
-
-```dart
 class _BlinkingCaret extends StatefulWidget {
-  const _BlinkingCaret({super.key});
+  final Color color;
+  const _BlinkingCaret({super.key, required this.color});
 
   @override
   State<_BlinkingCaret> createState() => _BlinkingCaretState();
@@ -1235,54 +1350,77 @@ class _BlinkingCaretState extends State<_BlinkingCaret>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _controller,
-      child: const Text('▍', style: TextStyle(fontSize: 14)),
+      child: Text('▍', style: TextStyle(fontSize: 14, color: widget.color)),
+    );
+  }
+}
+
+class _ErrorStrip extends StatelessWidget {
+  final String detail;
+  final VoidCallback? onRetry;
+
+  const _ErrorStrip({required this.detail, this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8, left: 60),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Icon(
+            CupertinoIcons.exclamationmark_circle,
+            size: 14,
+            color: AppColors.danger,
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              detail,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.danger,
+              ),
+              textAlign: TextAlign.end,
+            ),
+          ),
+          if (onRetry != null) ...[
+            const SizedBox(width: 4),
+            CupertinoButton(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              minimumSize: Size.zero,
+              onPressed: onRetry,
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    CupertinoIcons.refresh,
+                    size: 14,
+                    color: AppColors.warmBrown,
+                  ),
+                  SizedBox(width: 4),
+                  Text(
+                    'Retry',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.warmBrown,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
 ```
 
-b) **Tool indicator pill (below the bubble):** Find where the bubble `Column` renders, and add a sibling element below it conditionally:
+The whole file is shown so the implementer doesn't have to reverse-engineer which lines to change. The `_ErrorStrip` private class is unchanged from the original.
 
-```dart
-if (message.toolIndicator != null)
-  Padding(
-    key: const Key('tool-indicator-pill'),
-    padding: const EdgeInsets.only(top: 6, left: 4),
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: AppColors.lightTan,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(
-            width: 12,
-            height: 12,
-            child: CupertinoActivityIndicator(radius: 6),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            message.toolIndicator!,
-            style: const TextStyle(
-              fontSize: 13,
-              color: AppColors.warmBrown,
-            ),
-          ),
-        ],
-      ),
-    ),
-  ),
-```
-
-Add the import for `AppColors` if not already present:
-
-```dart
-import 'package:app/core/theme/app_theme.dart';
-```
-
-- [ ] **Step 5: Run the widget tests to verify they pass**
+- [ ] **Step 4: Run the widget tests to verify they pass**
 
 ```bash
 cd /Users/erwinwijnveld/projects/runcoach/app && flutter test test/features/coach/widgets/message_bubble_test.dart
@@ -1290,7 +1428,7 @@ cd /Users/erwinwijnveld/projects/runcoach/app && flutter test test/features/coac
 
 Expected: PASS — all 4 widget tests green.
 
-- [ ] **Step 6: Run analyze + full test suite**
+- [ ] **Step 5: Run analyze + full test suite**
 
 ```bash
 cd /Users/erwinwijnveld/projects/runcoach/app && flutter analyze && flutter test
@@ -1298,7 +1436,7 @@ cd /Users/erwinwijnveld/projects/runcoach/app && flutter analyze && flutter test
 
 Expected: All tests pass, no analyzer issues.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add app/lib/features/coach/widgets/message_bubble.dart app/test/features/coach/widgets/message_bubble_test.dart
