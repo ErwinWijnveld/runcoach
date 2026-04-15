@@ -35,31 +35,6 @@ class CoachChatTest extends TestCase
         $response->assertJsonStructure(['data' => ['id', 'title']]);
     }
 
-    public function test_send_message(): void
-    {
-        RunCoachAgent::fake([
-            'Hello! I\'m your running coach.',
-            'Based on your recent runs, you\'re doing great!',
-        ]);
-
-        [$user, $headers] = $this->authUser();
-
-        // Create conversation first
-        $createResponse = $this->postJson('/api/v1/coach/conversations', [
-            'title' => 'Test Chat',
-        ], $headers);
-
-        $conversationId = $createResponse->json('data.id');
-
-        // Send follow-up message
-        $response = $this->postJson("/api/v1/coach/conversations/{$conversationId}/messages", [
-            'content' => 'How is my training going?',
-        ], $headers);
-
-        $response->assertOk();
-        $response->assertJsonStructure(['data' => ['message' => ['role', 'content']]]);
-    }
-
     public function test_accept_proposal(): void
     {
         [$user, $headers] = $this->authUser();

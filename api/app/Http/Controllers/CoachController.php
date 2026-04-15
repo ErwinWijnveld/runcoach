@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Laravel\Ai\Contracts\ConversationStore;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CoachController extends Controller
 {
@@ -79,35 +80,52 @@ class CoachController extends Controller
         ]);
     }
 
-    public function sendMessage(SendMessageRequest $request, string $conversationId): JsonResponse
+    public function sendMessage(SendMessageRequest $request, string $conversationId): StreamedResponse
     {
         $user = $request->user();
+        $content = $request->validated()['content'];
 
-        // Verify conversation belongs to user
         DB::table('agent_conversations')
             ->where('id', $conversationId)
             ->where('user_id', $user->id)
             ->firstOrFail();
 
-        $agent = RunCoachAgent::make(user: $user);
-        $response = $agent
-            ->continue($conversationId, as: $user)
-            ->prompt($request->validated()['content']);
+        return response()->stream(function () use ($user, $conversationId, $content) {
+            ignore_user_abort(true);
+            set_time_limit(0);
 
-        // Check for proposals in the SDK's stored tool results
-        $proposal = $this->proposalService->detectProposalFromConversation(
-            $user,
-            $conversationId,
-        );
+            $stream = RunCoachAgent::make(user: $user)
+                ->continue($conversationId, as: $user)
+                ->stream($content);
 
-        return response()->json([
-            'data' => [
-                'message' => [
-                    'role' => 'assistant',
-                    'content' => (string) $response,
-                ],
-                'proposal' => $proposal,
-            ],
+            foreach ($stream as $event) {
+                $payload = $event->toVercelProtocolArray();
+                if (! empty($payload)) {
+                    echo 'data: '.json_encode($payload)."\n\n";
+                    ob_flush();
+                    flush();
+                }
+            }
+
+            $proposal = $this->proposalService
+                ->detectProposalFromConversation($user, $conversationId);
+
+            if ($proposal) {
+                echo 'data: '.json_encode([
+                    'type' => 'data-proposal',
+                    'data' => $proposal->toArray(),
+                ])."\n\n";
+                ob_flush();
+                flush();
+            }
+
+            echo "data: [DONE]\n\n";
+            ob_flush();
+            flush();
+        }, 200, [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache, no-transform',
+            'X-Accel-Buffering' => 'no',
         ]);
     }
 
