@@ -133,6 +133,19 @@ class OnboardingController extends Controller
                 ], $base->copy()->addSecond());
                 $this->setStep($conversationId, $meta, 'awaiting_faster_distance');
             }
+
+            if ($branch === 'skip') {
+                $userId = DB::table('agent_conversations')->where('id', $conversationId)->value('user_id');
+                $user = User::find($userId);
+                $user->has_completed_onboarding = true;
+                $user->save();
+
+                $appended[] = $this->appendAssistant($conversationId, 'text',
+                    "No stress. Your running history is in and I've got it from here. "
+                    .'Whenever you want to set a goal, just ask me — I\'ll be on the coach tab.'
+                );
+                $this->setStep($conversationId, $meta, 'abandoned');
+            }
         }
 
         if ($step === 'awaiting_race_details') {
