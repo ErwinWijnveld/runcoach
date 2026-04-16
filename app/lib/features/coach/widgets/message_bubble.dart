@@ -1,16 +1,25 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/coach/models/coach_message.dart';
+import 'package:app/features/coach/widgets/chip_suggestions_row.dart';
+import 'package:app/features/coach/widgets/stats_card_bubble.dart';
 import 'package:app/features/coach/widgets/thinking_card.dart';
 
 class MessageBubble extends StatelessWidget {
   final CoachMessage message;
   final VoidCallback? onRetry;
+  final void Function(String label, String value)? onChipTap;
 
-  const MessageBubble({super.key, required this.message, this.onRetry});
+  const MessageBubble({
+    super.key,
+    required this.message,
+    this.onRetry,
+    this.onChipTap,
+  });
 
   bool get _isUser => message.role == 'user';
   bool get _failed => message.errorDetail != null;
@@ -20,6 +29,35 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final type = message.messageType;
+    final payload = message.messagePayload ?? const <String, dynamic>{};
+
+    if (type == 'loading_card') {
+      return _assistantWrapper(
+        ThinkingCard(label: (payload['label'] as String?) ?? 'Thinking…'),
+      );
+    }
+
+    if (type == 'stats_card') {
+      return _assistantWrapper(
+        _StatsCardInBubble(
+          metrics: (payload['metrics'] as Map?)?.cast<String, dynamic>() ??
+              const {},
+        ),
+      );
+    }
+
+    if (type == 'chip_suggestions') {
+      final rawChips = (payload['chips'] as List?) ?? const [];
+      final chips =
+          rawChips.map((c) => (c as Map).cast<String, dynamic>()).toList();
+      return ChipSuggestionsRow(
+        chips: chips,
+        onTap: onChipTap ?? (label, value) {},
+      );
+    }
+
+    // Default text-rendering path (messageType == 'text')
     return Column(
       crossAxisAlignment:
           _isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
@@ -34,6 +72,17 @@ class MessageBubble extends StatelessWidget {
           const SizedBox(height: 4),
           _ErrorStrip(detail: message.errorDetail!, onRetry: onRetry),
         ],
+      ],
+    );
+  }
+
+  Widget _assistantWrapper(Widget child) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _RoleLabel(isUser: false),
+        const SizedBox(height: 8),
+        child,
       ],
     );
   }
@@ -167,6 +216,31 @@ class _BlinkingCaretState extends State<_BlinkingCaret>
     return FadeTransition(
       opacity: _controller,
       child: Text('▍', style: TextStyle(fontSize: 14, color: widget.color)),
+    );
+  }
+}
+
+class _StatsCardInBubble extends StatelessWidget {
+  final Map<String, dynamic> metrics;
+  const _StatsCardInBubble({required this.metrics});
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 296),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.zero,
+            topRight: Radius.circular(24),
+            bottomLeft: Radius.circular(24),
+            bottomRight: Radius.circular(24),
+          ),
+        ),
+        child: StatsCardBubble(metrics: metrics),
+      ),
     );
   }
 }

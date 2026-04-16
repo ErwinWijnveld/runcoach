@@ -136,6 +136,10 @@ class _CoachChatScreenState extends ConsumerState<CoachChatScreen> {
                                           .notifier)
                                       .retry(msg.id)
                                   : null,
+                              onChipTap: (label, value) => ref
+                                  .read(coachChatProvider(widget.conversationId)
+                                      .notifier)
+                                  .sendMessage(label, chipValue: value),
                             ),
                             if (msg.proposal != null) ...[
                               const SizedBox(height: 10),

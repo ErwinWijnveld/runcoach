@@ -26,35 +26,40 @@ class CoachStreamClient {
 
   Stream<VercelStreamEvent> streamMessage(
     String conversationId,
-    String content,
-  ) {
+    String content, {
+    String? chipValue,
+  }) {
     if (kIsWeb) {
-      return _streamViaFetch(conversationId, content);
+      return _streamViaFetch(conversationId, content, chipValue: chipValue);
     }
-    return _streamViaDio(conversationId, content);
+    return _streamViaDio(conversationId, content, chipValue: chipValue);
   }
 
   Stream<VercelStreamEvent> _streamViaDio(
     String conversationId,
-    String content,
-  ) async* {
+    String content, {
+    String? chipValue,
+  }) async* {
+    final body = <String, dynamic>{'content': content};
+    if (chipValue != null) body['chip_value'] = chipValue;
     final response = await _dio.post<ResponseBody>(
       '/coach/conversations/$conversationId/messages',
-      data: {'content': content},
+      data: body,
       options: Options(
         responseType: ResponseType.stream,
         headers: {'Accept': 'text/event-stream'},
       ),
     );
-    final body = response.data;
-    if (body == null) return;
-    yield* _parser.parse(body.stream);
+    final responseBody = response.data;
+    if (responseBody == null) return;
+    yield* _parser.parse(responseBody.stream);
   }
 
   Stream<VercelStreamEvent> _streamViaFetch(
     String conversationId,
-    String content,
-  ) async* {
+    String content, {
+    String? chipValue,
+  }) async* {
     final token = await _tokenStorage?.getToken();
     final request = http.Request(
       'POST',
@@ -65,7 +70,9 @@ class CoachStreamClient {
     if (token != null) {
       request.headers['Authorization'] = 'Bearer $token';
     }
-    request.body = jsonEncode({'content': content});
+    final bodyMap = <String, dynamic>{'content': content};
+    if (chipValue != null) bodyMap['chip_value'] = chipValue;
+    request.body = jsonEncode(bodyMap);
 
     final client = FetchClient(mode: RequestMode.cors);
     try {

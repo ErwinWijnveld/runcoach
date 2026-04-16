@@ -29,7 +29,7 @@ class CoachChat extends _$CoachChat {
     return messagesList.map((e) => CoachMessage.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  Future<void> sendMessage(String content) async {
+  Future<void> sendMessage(String content, {String? chipValue}) async {
     if (_isStreaming) return;
     _isStreaming = true;
 
@@ -53,7 +53,8 @@ class CoachChat extends _$CoachChat {
       state = AsyncData([...before, userMsg, current]);
 
       try {
-        await for (final event in stream.streamMessage(conversationId, content)) {
+        await for (final event
+            in stream.streamMessage(conversationId, content, chipValue: chipValue)) {
           current = switch (event) {
             TextDeltaEvent(:final delta) => current.copyWith(
                 content: current.content + delta,
