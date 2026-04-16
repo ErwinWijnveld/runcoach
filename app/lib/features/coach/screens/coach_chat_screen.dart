@@ -156,7 +156,7 @@ class _CoachChatScreenState extends ConsumerState<CoachChatScreen> {
                                     coachChatProvider(widget.conversationId),
                                   );
                                 },
-                                onReject: () async {
+                                onAdjust: () async {
                                   final notifier = ref.read(
                                     coachChatProvider(widget.conversationId)
                                         .notifier,
