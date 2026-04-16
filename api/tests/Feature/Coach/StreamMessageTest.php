@@ -7,7 +7,6 @@ use App\Models\CoachProposal;
 use App\Models\User;
 use App\Services\ProposalService;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class StreamMessageTest extends TestCase
@@ -69,12 +68,12 @@ class StreamMessageTest extends TestCase
 
         $proposal = CoachProposal::factory()->create([
             'user_id' => $user->id,
-            'agent_message_id' => Str::uuid()->toString(),
         ]);
 
-        $this->mock(ProposalService::class, function ($mock) use ($proposal) {
+        $this->mock(ProposalService::class, function ($mock) use ($proposal, $user, $conversationId) {
             $mock->shouldReceive('detectProposalFromConversation')
                 ->once()
+                ->with(\Mockery::on(fn ($u) => $u instanceof User && $u->id === $user->id), $conversationId)
                 ->andReturn($proposal);
         });
 
@@ -91,7 +90,18 @@ class StreamMessageTest extends TestCase
         $body = $response->streamedContent();
 
         $this->assertStringContainsString('"type":"data-proposal"', $body);
-        $this->assertStringContainsString('"id":'.$proposal->id, $body);
+
+        $proposalLine = collect(explode("\n\n", $body))
+            ->first(fn ($line) => str_contains($line, '"type":"data-proposal"'));
+
+        $this->assertNotNull($proposalLine, 'data-proposal SSE line should be present');
+
+        $json = substr($proposalLine, strlen('data: '));
+        $event = json_decode($json, true);
+
+        $this->assertIsArray($event);
+        $this->assertSame('data-proposal', $event['type']);
+        $this->assertSame($proposal->id, $event['data']['id']);
     }
 
     public function test_does_not_emit_data_proposal_when_no_proposal_detected(): void
@@ -103,9 +113,10 @@ class StreamMessageTest extends TestCase
         $created = $this->postJson('/api/v1/coach/conversations', ['title' => 'T'], $headers);
         $conversationId = $created->json('data.id');
 
-        $this->mock(ProposalService::class, function ($mock) {
+        $this->mock(ProposalService::class, function ($mock) use ($user, $conversationId) {
             $mock->shouldReceive('detectProposalFromConversation')
                 ->once()
+                ->with(\Mockery::on(fn ($u) => $u instanceof User && $u->id === $user->id), $conversationId)
                 ->andReturn(null);
         });
 
