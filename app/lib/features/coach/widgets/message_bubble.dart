@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/coach/models/coach_message.dart';
 
@@ -55,26 +56,34 @@ class MessageBubble extends StatelessWidget {
                       ),
                     ),
                   ),
-                Text.rich(
-                  TextSpan(
-                    text: message.content,
+                if (_isUser)
+                  Text(
+                    message.content,
                     style: TextStyle(
                       fontSize: 15,
                       color: textColor,
                       height: 1.35,
                     ),
-                    children: [
-                      if (message.streaming)
-                        WidgetSpan(
-                          alignment: PlaceholderAlignment.middle,
-                          child: _BlinkingCaret(
-                            key: const Key('streaming-caret'),
-                            color: textColor,
-                          ),
-                        ),
-                    ],
+                  )
+                else if (message.content.isNotEmpty)
+                  GptMarkdown(
+                    message.content,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: textColor,
+                      height: 1.35,
+                    ),
                   ),
-                ),
+                if (message.streaming)
+                  Padding(
+                    padding: EdgeInsets.only(
+                      top: message.content.isEmpty ? 0 : 2,
+                    ),
+                    child: _BlinkingCaret(
+                      key: const Key('streaming-caret'),
+                      color: textColor,
+                    ),
+                  ),
               ],
             ),
           ),

@@ -80,6 +80,15 @@ Conversation IDs are UUIDs (36-char strings) because the Laravel AI SDK uses the
 ### 5. OpenAI strict mode compliance
 All Tool schemas must declare `->required()` on every parameter. For optional params, use `->required()->nullable()` — this satisfies OpenAI strict mode while allowing null values.
 
+### 5a. Agent tool design benchmark
+When adding or refactoring AI tools, consult **[r-huijts/strava-mcp](https://github.com/r-huijts/strava-mcp)** ([tools folder](https://github.com/r-huijts/strava-mcp/tree/main/src/tools)) as a reference for tool shape. Key takeaways — elaborated in `api/CLAUDE.md` under "Tool design guidelines":
+- One tool per *use case*, not per endpoint (separate "latest N" from "ranged query")
+- All optional params use `required()->nullable()` with handler-side defaults
+- Tool descriptions explicitly list matching queries AND counter-examples ("DO NOT use for X, use `<other_tool>` instead")
+- Param descriptions include format hints (`"YYYY-MM-DD, e.g. '2025-01-01'"`) and guardrails (`"max 50"`)
+- Pre-compute aggregates in the response so the agent doesn't sum rows itself
+- Always update `RunCoachAgent::instructions()` when adding a tool — tell the agent when to pick it vs the others
+
 ### 6. MySQL decimal columns return strings
 Fields like `total_km`, `target_km`, `compliance_score` come back as strings from MySQL decimal columns. The Flutter Freezed models use custom `fromJson` converters (`app/lib/core/utils/json_converters.dart`) to safely handle both string and number JSON values.
 
@@ -124,7 +133,7 @@ flutter run          # iOS simulator / connected device
 
 Fully functional MVP:
 - Strava OAuth + webhook sync working
-- AI coach with 6 tools: SearchStravaActivities, GetCurrentSchedule, GetRaceInfo, GetComplianceReport, CreateSchedule, ModifySchedule
+- AI coach with 8 tools: GetRecentRuns, SearchStravaActivities, GetActivityDetails, GetCurrentSchedule, GetRaceInfo, GetComplianceReport, CreateSchedule, ModifySchedule
 - Agentic plan creation flow (ask clarifying questions → fetch Strava data → analyze → propose → generate)
 - Flutter app: Dashboard, Schedule, AI Coach, Races tabs
 

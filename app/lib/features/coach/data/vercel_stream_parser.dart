@@ -5,7 +5,9 @@ import 'package:app/features/coach/models/vercel_stream_event.dart';
 
 class VercelStreamParser {
   static const _humanizedTools = {
+    'GetRecentRuns': 'Looking up your recent runs…',
     'SearchStravaActivities': 'Looking up your activities…',
+    'GetActivityDetails': 'Digging into that run…',
     'GetCurrentSchedule': 'Loading your schedule…',
     'GetRaceInfo': 'Checking your race…',
     'GetComplianceReport': 'Reviewing compliance…',

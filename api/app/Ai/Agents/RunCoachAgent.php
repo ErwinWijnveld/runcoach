@@ -3,9 +3,11 @@
 namespace App\Ai\Agents;
 
 use App\Ai\Tools\CreateSchedule;
+use App\Ai\Tools\GetActivityDetails;
 use App\Ai\Tools\GetComplianceReport;
 use App\Ai\Tools\GetCurrentSchedule;
 use App\Ai\Tools\GetRaceInfo;
+use App\Ai\Tools\GetRecentRuns;
 use App\Ai\Tools\ModifySchedule;
 use App\Ai\Tools\SearchStravaActivities;
 use App\Models\User;
@@ -45,17 +47,35 @@ class RunCoachAgent implements Agent, Conversational, HasTools
 
         ## How to use your tools
 
-        **Strava data (search_strava_activities):**
-        - You can query running data from ANY time period — recent, months ago, years ago.
-        - For a specific run: narrow date range (day before → day after).
-        - For a period: wider range. Response includes pre-computed aggregates AND weekly breakdown.
+        Pick the right Strava tool for the question — don't guess dates for simple cases.
+
+        **Recent runs (get_recent_runs):**
+        - Use for: "last run", "my recent runs", "how was this morning?", "show me my last N runs".
+        - Parameter: `limit` (null = 10 runs, max 50).
+        - This tool is your default for anything about the runner's latest activity. It never asks you to invent a date.
+
+        **Historical or ranged queries (search_strava_activities):**
+        - Use for: "April 2025", "last week", "since January", "compare this month vs last month".
+        - Requires explicit `after_date` and `before_date` in YYYY-MM-DD.
+        - Response includes pre-computed aggregates AND weekly breakdown.
         - For comparisons: call twice with different ranges, compare aggregates.
-        - ALWAYS fetch data before answering questions about performance. Never guess.
+
+        **Rules for both Strava tools:**
+        - ALWAYS fetch data before answering performance questions. Never guess.
+        - If `get_recent_runs` returns empty and the user asked about something old, fall back to `search_strava_activities` with a wide range.
+        - Do not call `search_strava_activities` with a 1-3 day window to find "the last run" — use `get_recent_runs` instead.
+
+        **Per-kilometer splits & HR curves (get_activity_details):**
+        - Use for: "pace progression", "per-km splits", "HR curve", "did I negative split?", "break down the laps".
+        - Required workflow: FIRST call `get_recent_runs` or `search_strava_activities` to find the run's `id`. THEN call `get_activity_details(activity_id=<id>)`.
+        - Every listed run in those tools' responses includes an `id` field — use that.
+        - Returns `splits_metric` (auto 1km splits with pace + HR + elevation per km), `laps` (if the athlete recorded them), and summary stats.
+        - DO NOT call `get_activity_details` without a valid id — it needs a specific run to look up.
 
         **Training plans (create_schedule):**
         Before creating a plan, you MUST go through this process:
         1. **Ask about the race** — What race? What distance? When is it? Any goal time?
-        2. **Gather fitness data** — Call search_strava_activities for the last 8-12 weeks to assess current fitness: weekly volume, avg pace, long run distance, consistency.
+        2. **Gather fitness data** — Call search_strava_activities for the last 8-12 weeks (after_date = today minus 84 days, before_date = today) to assess current fitness: weekly volume, avg pace, long run distance, consistency.
         3. **Assess readiness** — Based on the data, determine their current level, safe starting volume, and how much time they have.
         4. **Present your analysis** — Tell the runner what you found: "Based on your last 12 weeks, you're averaging X km/week at Y pace. Your longest run was Z km. For a half marathon in 10 weeks, I'd recommend..."
         5. **Get confirmation** — Ask if the approach sounds good before generating the full plan.
@@ -89,7 +109,9 @@ class RunCoachAgent implements Agent, Conversational, HasTools
     public function tools(): iterable
     {
         return [
+            new GetRecentRuns($this->user, app(StravaSyncService::class)),
             new SearchStravaActivities($this->user, app(StravaSyncService::class)),
+            new GetActivityDetails($this->user, app(StravaSyncService::class)),
             new GetCurrentSchedule($this->user),
             new GetRaceInfo($this->user),
             new GetComplianceReport($this->user),

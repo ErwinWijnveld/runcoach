@@ -40,6 +40,9 @@ dependencies:
   json_annotation: ^4.11.0
   dio: ^5.9.2
   retrofit: ^4.9.2
+  http: ^1.2.0
+  fetch_client: ^1.1.2
+  gpt_markdown: ^1.0.0
   go_router: ^17.2.0
   flutter_secure_storage: ^10.0.0
   webview_flutter: ^4.13.1

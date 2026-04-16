@@ -19,14 +19,16 @@ class SearchStravaActivities implements Tool
     public function description(): string
     {
         return <<<'DESC'
-        Query the runner's Strava account for running activities in any date range. Auto-paginates to fetch ALL runs in the period (up to 300). Returns both individual run details AND pre-computed aggregates (totals, averages, trends).
+        Query the runner's Strava account for running activities within a specific date range. Auto-paginates to fetch ALL runs in the period (up to 300). Returns both individual run details AND pre-computed aggregates (totals, averages, trends).
 
-        Use cases:
-        - "How was my last run?" → after_date: yesterday, before_date: tomorrow
+        USE THIS for date-bounded queries like:
         - "How was April last year?" → after_date: 2025-04-01, before_date: 2025-05-01
+        - "Last week's runs" → after_date: 7 days ago, before_date: today
         - "Compare this month to last month" → call twice with different date ranges
-        - "What's my longest run?" → use a wide date range, check the aggregates
         - "Am I getting faster?" → call for recent period and older period, compare avg_pace
+        - "Weekly volume since January" → after_date: 2026-01-01, before_date: today
+
+        DO NOT use this for "my last run" or "most recent runs" without an implied period — use get_recent_runs instead. That tool is unambiguous and faster.
 
         For trend analysis, make multiple calls with different date ranges and compare the aggregates.
         DESC;
@@ -177,6 +179,7 @@ class SearchStravaActivities implements Tool
         $paceSeconds = $distanceKm > 0 ? (int) round($movingTime / $distanceKm) : 0;
 
         return [
+            'id' => $activity['id'] ?? null,
             'date' => Carbon::parse($activity['start_date'])->format('Y-m-d'),
             'day' => Carbon::parse($activity['start_date'])->format('l'),
             'name' => $activity['name'] ?? 'Unknown',

@@ -195,8 +195,10 @@ This is the Laravel backend for **RunCoach**, a personal AI running coach app. S
 The coach uses **Laravel AI SDK** (`laravel/ai`) — NOT a custom OpenAI wrapper. Key files:
 
 - `app/Ai/Agents/RunCoachAgent.php` — the Agent class. Implements `Agent`, `Conversational`, `HasTools`. Uses `Promptable` + `RemembersConversations` traits. Takes a `User` in constructor.
-- `app/Ai/Tools/*.php` — 6 tools the agent can call:
-  - `SearchStravaActivities` — queries Strava API for any date range (NOT local DB), auto-paginates, returns aggregates + individual runs
+- `app/Ai/Tools/*.php` — 8 tools the agent can call:
+  - `GetRecentRuns` — fetches the N most recent runs (no date input). Use for "last run", "recent runs"
+  - `SearchStravaActivities` — queries Strava API for a date range (NOT local DB), auto-paginates, returns aggregates + individual runs
+  - `GetActivityDetails` — per-km splits, laps, HR summary for a single activity (requires `activity_id` from one of the listing tools)
   - `GetCurrentSchedule` — active training schedule with compliance
   - `GetRaceInfo` — race details + readiness
   - `GetComplianceReport` — compliance breakdown + trends
@@ -241,6 +243,34 @@ Controllers live in `app/Http/Controllers/`: Auth, Profile, Race, TrainingSchedu
 - Access request params with **array access**: `$request['key']` — NOT `$request->get()` or `$request->input()`.
 - **OpenAI strict mode**: every schema param MUST have `->required()`. For truly optional params, use `->required()->nullable()` — this satisfies strict mode while allowing null values. Do NOT use `->default()`.
 - Tools that need user data take `User $user` in constructor, injected from the agent.
+
+### Tool design guidelines
+
+When adding or refactoring agent tools, follow these principles. They are derived from reviewing [r-huijts/strava-mcp](https://github.com/r-huijts/strava-mcp) ([tools folder](https://github.com/r-huijts/strava-mcp/tree/main/src/tools)) — a production Strava MCP whose tool shapes we treat as a design benchmark. Read that repo before designing a new tool.
+
+1. **One tool per use case, not one tool per endpoint.** The MCP ships separate `getRecentActivities` (no args, latest N) and `getAllActivities` (date range + filters). We mirror this with `GetRecentRuns` + `SearchStravaActivities`. Don't force the agent to guess args for common cases — give it a narrow tool.
+
+2. **All optional params use `->required()->nullable()`.** Handler defaults apply when null. The agent should never be forced to invent a value it doesn't have.
+
+3. **Descriptions must include example queries and counter-examples.** Show the agent *what the tool is for* and *what it isn't*. Pattern:
+   ```
+   USE THIS for queries like:
+   - "..."
+   - "..."
+
+   DO NOT use for "..." — use <other_tool> instead.
+   ```
+   This is the single biggest lever for making the agent pick the right tool.
+
+4. **Param descriptions include format hints and defaults.** `"YYYY-MM-DD, e.g. '2025-01-01'"` beats `"a date"`. `"max 50, default 10 if null"` beats `"a number"`.
+
+5. **Add guardrail params where cost matters.** Cap results (`limit`, `max_activities`) and API calls (`max_api_calls`) so the agent can't blow the token budget or rate limits. Put the cap in the param description too.
+
+6. **Return shapes should include pre-computed aggregates.** The agent pays tokens per field it reads — give it `total_km`, `avg_pace`, `weekly_breakdown` so it doesn't have to sum individual runs itself.
+
+7. **Mutations always return proposals, never write.** Schedule-creating tools return `{"requires_approval": true, ...}` — persistence happens in `ProposalService::apply()` after user approval. See `CreateSchedule`/`ModifySchedule`.
+
+8. **Update `RunCoachAgent::instructions()` when adding a tool.** The system prompt must spell out *when to pick this tool vs the others*. Tool descriptions alone are not enough — the instructions give cross-tool guidance the individual tools can't.
 
 ### Proposals flow
 
