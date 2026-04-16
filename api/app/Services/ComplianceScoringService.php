@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Enums\GoalStatus;
-use App\Enums\TrainingType;
 use App\Models\StravaActivity;
 use App\Models\TrainingDay;
 use App\Models\TrainingResult;
@@ -11,11 +10,6 @@ use App\Models\User;
 
 class ComplianceScoringService
 {
-    private const NON_MATCHABLE_TYPES = [
-        TrainingType::Rest,
-        TrainingType::Mobility,
-    ];
-
     public function matchAndScore(User $user, StravaActivity $activity): void
     {
         $day = $this->findMatchingDay($user, $activity);
@@ -61,7 +55,6 @@ class ComplianceScoringService
                 $activity->start_date->copy()->subDay()->toDateString(),
                 $activity->start_date->copy()->addDay()->toDateString(),
             ])
-            ->whereNotIn('type', array_map(fn ($t) => $t->value, self::NON_MATCHABLE_TYPES))
             ->get();
 
         if ($candidates->isEmpty()) {

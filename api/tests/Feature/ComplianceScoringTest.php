@@ -100,23 +100,4 @@ class ComplianceScoringTest extends TestCase
         $this->assertNull($result->heart_rate_score);
         $this->assertGreaterThan(0, (float) $result->compliance_score);
     }
-
-    public function test_rest_day_activity_does_not_match(): void
-    {
-        [$user, $day] = $this->createUserWithPlan([
-            'type' => TrainingType::Rest,
-            'target_km' => null,
-            'target_pace_seconds_per_km' => null,
-        ]);
-
-        $activity = StravaActivity::factory()->create([
-            'user_id' => $user->id,
-            'distance_meters' => 5000,
-            'moving_time_seconds' => 1800,
-            'start_date' => now(),
-        ]);
-
-        $this->service->matchAndScore($user, $activity);
-        $this->assertNull($day->fresh()->result);
-    }
 }

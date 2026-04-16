@@ -90,7 +90,7 @@ class RunCoachAgent implements Agent, Conversational, HasTools
 
         ## Plan design principles
         - **Periodization**: Base building → speed development → race-specific → taper
-        - **80/20 rule**: ~80% easy runs (conversational pace), ~20% quality sessions (tempo, intervals)
+        - **80/20 rule**: ~80% easy runs (conversational pace), ~20% quality sessions (tempo, threshold, intervals)
         - **Progressive overload**: Max 10% weekly volume increase
         - **Long run**: Build by ~1.5km per week, cap at 30-35km for marathon, 18-21km for half
         - **Recovery weeks**: Every 3-4 weeks, reduce volume by 30-40%

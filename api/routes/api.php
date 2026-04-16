@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CoachController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GoalController;
+use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\StravaController;
 use App\Http\Controllers\StravaWebhookController;
@@ -44,6 +45,11 @@ Route::prefix('v1')->group(function () {
 
         // Dashboard
         Route::get('dashboard', DashboardController::class);
+
+        // Onboarding
+        Route::prefix('onboarding')->group(function () {
+            Route::post('/start', [OnboardingController::class, 'start']);
+        });
 
         // AI Coach
         Route::get('coach/conversations', [CoachController::class, 'index']);
