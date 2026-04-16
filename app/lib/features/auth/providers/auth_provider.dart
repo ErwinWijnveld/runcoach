@@ -83,17 +83,6 @@ class Auth extends _$Auth {
     }
   }
 
-  Future<void> completeOnboarding({
-    required String coachStyle,
-  }) async {
-    final api = ref.read(authApiProvider);
-    final data = await api.completeOnboarding({
-      'coach_style': coachStyle,
-    });
-    final user = User.fromJson(data['user'] as Map<String, dynamic>);
-    state = AsyncValue.data(user);
-  }
-
   Future<void> logout() async {
     final api = ref.read(authApiProvider);
     final tokenStorage = ref.read(tokenStorageProvider);

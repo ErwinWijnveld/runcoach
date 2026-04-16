@@ -28,8 +28,6 @@ abstract class AuthApi {
   @PUT('/profile')
   Future<dynamic> updateProfile(@Body() Map<String, dynamic> body);
 
-  @POST('/profile/onboarding')
-  Future<dynamic> completeOnboarding(@Body() Map<String, dynamic> body);
 }
 
 @riverpod

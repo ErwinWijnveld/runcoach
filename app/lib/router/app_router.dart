@@ -7,7 +7,6 @@ import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/auth/screens/welcome_screen.dart';
 import 'package:app/features/auth/screens/strava_auth_screen.dart';
-import 'package:app/features/auth/screens/onboarding_screen.dart';
 import 'package:app/features/dashboard/screens/dashboard_screen.dart';
 import 'package:app/features/schedule/screens/weekly_plan_screen.dart';
 import 'package:app/features/schedule/screens/training_day_detail_screen.dart';
@@ -53,10 +52,6 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: '/auth/strava',
         builder: (context, state) => const StravaAuthScreen(),
-      ),
-      GoRoute(
-        path: '/auth/onboarding',
-        builder: (context, state) => const OnboardingScreen(),
       ),
       GoRoute(
         path: '/onboarding',
