@@ -13,6 +13,9 @@ class MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textColor =
+        _isUser ? CupertinoColors.white : AppColors.textPrimary;
+
     return Column(
       crossAxisAlignment:
           _isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
@@ -52,23 +55,100 @@ class MessageBubble extends StatelessWidget {
                       ),
                     ),
                   ),
-                Text(
-                  message.content,
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: _isUser
-                        ? CupertinoColors.white
-                        : AppColors.textPrimary,
-                    height: 1.35,
+                Text.rich(
+                  TextSpan(
+                    text: message.content,
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: textColor,
+                      height: 1.35,
+                    ),
+                    children: [
+                      if (message.streaming)
+                        WidgetSpan(
+                          alignment: PlaceholderAlignment.middle,
+                          child: _BlinkingCaret(
+                            key: const Key('streaming-caret'),
+                            color: textColor,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
         ),
+        if (message.toolIndicator != null)
+          Padding(
+            key: const Key('tool-indicator-pill'),
+            padding: const EdgeInsets.only(bottom: 8, left: 4),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: AppColors.lightTan,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CupertinoActivityIndicator(radius: 6),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    message.toolIndicator!,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.warmBrown,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         if (_failed)
           _ErrorStrip(detail: message.errorDetail!, onRetry: onRetry),
       ],
+    );
+  }
+}
+
+class _BlinkingCaret extends StatefulWidget {
+  final Color color;
+  const _BlinkingCaret({super.key, required this.color});
+
+  @override
+  State<_BlinkingCaret> createState() => _BlinkingCaretState();
+}
+
+class _BlinkingCaretState extends State<_BlinkingCaret>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _controller,
+      child: Text('▍', style: TextStyle(fontSize: 14, color: widget.color)),
     );
   }
 }
