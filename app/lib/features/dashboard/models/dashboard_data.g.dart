@@ -52,7 +52,7 @@ _ActiveRaceSummary _$ActiveRaceSummaryFromJson(Map<String, dynamic> json) =>
       id: (json['id'] as num).toInt(),
       name: json['name'] as String,
       distance: json['distance'] as String,
-      raceDate: json['race_date'] as String,
+      targetDate: json['target_date'] as String,
       weeksUntilRace: toInt(json['weeks_until_race']),
     );
 
@@ -61,6 +61,6 @@ Map<String, dynamic> _$ActiveRaceSummaryToJson(_ActiveRaceSummary instance) =>
       'id': instance.id,
       'name': instance.name,
       'distance': instance.distance,
-      'race_date': instance.raceDate,
+      'target_date': instance.targetDate,
       'weeks_until_race': instance.weeksUntilRace,
     };

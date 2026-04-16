@@ -7,17 +7,17 @@ import 'package:app/features/schedule/models/training_result.dart';
 part 'schedule_provider.g.dart';
 
 @riverpod
-Future<List<TrainingWeek>> schedule(Ref ref, int raceId) async {
+Future<List<TrainingWeek>> schedule(Ref ref, int goalId) async {
   final api = ref.watch(scheduleApiProvider);
-  final data = await api.getSchedule(raceId);
+  final data = await api.getSchedule(goalId);
   final list = data['data'] as List;
   return list.map((e) => TrainingWeek.fromJson(e as Map<String, dynamic>)).toList();
 }
 
 @riverpod
-Future<TrainingWeek?> currentWeek(Ref ref, int raceId) async {
+Future<TrainingWeek?> currentWeek(Ref ref, int goalId) async {
   final api = ref.watch(scheduleApiProvider);
-  final data = await api.getCurrentWeek(raceId);
+  final data = await api.getCurrentWeek(goalId);
   final weekData = data['data'];
   if (weekData == null) return null;
   return TrainingWeek.fromJson(weekData as Map<String, dynamic>);

@@ -38,7 +38,7 @@ sealed class ActiveRaceSummary with _$ActiveRaceSummary {
     required int id,
     required String name,
     required String distance,
-    @JsonKey(name: 'race_date') required String raceDate,
+    @JsonKey(name: 'target_date') required String targetDate,
     @JsonKey(name: 'weeks_until_race', fromJson: toInt) required int weeksUntilRace,
   }) = _ActiveRaceSummary;
 

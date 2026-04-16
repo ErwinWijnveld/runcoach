@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$TrainingWeek {
 
- int get id;@JsonKey(name: 'race_id') int get raceId;@JsonKey(name: 'week_number') int get weekNumber;@JsonKey(name: 'starts_at') String get startsAt;@JsonKey(name: 'total_km', fromJson: toDouble) double get totalKm; String get focus;@JsonKey(name: 'coach_notes') String? get coachNotes;@JsonKey(name: 'training_days') List<TrainingDay>? get trainingDays;
+ int get id;@JsonKey(name: 'goal_id') int get goalId;@JsonKey(name: 'week_number') int get weekNumber;@JsonKey(name: 'starts_at') String get startsAt;@JsonKey(name: 'total_km', fromJson: toDouble) double get totalKm; String get focus;@JsonKey(name: 'coach_notes') String? get coachNotes;@JsonKey(name: 'training_days') List<TrainingDay>? get trainingDays;
 /// Create a copy of TrainingWeek
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $TrainingWeekCopyWith<TrainingWeek> get copyWith => _$TrainingWeekCopyWithImpl<T
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TrainingWeek&&(identical(other.id, id) || other.id == id)&&(identical(other.raceId, raceId) || other.raceId == raceId)&&(identical(other.weekNumber, weekNumber) || other.weekNumber == weekNumber)&&(identical(other.startsAt, startsAt) || other.startsAt == startsAt)&&(identical(other.totalKm, totalKm) || other.totalKm == totalKm)&&(identical(other.focus, focus) || other.focus == focus)&&(identical(other.coachNotes, coachNotes) || other.coachNotes == coachNotes)&&const DeepCollectionEquality().equals(other.trainingDays, trainingDays));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TrainingWeek&&(identical(other.id, id) || other.id == id)&&(identical(other.goalId, goalId) || other.goalId == goalId)&&(identical(other.weekNumber, weekNumber) || other.weekNumber == weekNumber)&&(identical(other.startsAt, startsAt) || other.startsAt == startsAt)&&(identical(other.totalKm, totalKm) || other.totalKm == totalKm)&&(identical(other.focus, focus) || other.focus == focus)&&(identical(other.coachNotes, coachNotes) || other.coachNotes == coachNotes)&&const DeepCollectionEquality().equals(other.trainingDays, trainingDays));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,raceId,weekNumber,startsAt,totalKm,focus,coachNotes,const DeepCollectionEquality().hash(trainingDays));
+int get hashCode => Object.hash(runtimeType,id,goalId,weekNumber,startsAt,totalKm,focus,coachNotes,const DeepCollectionEquality().hash(trainingDays));
 
 @override
 String toString() {
-  return 'TrainingWeek(id: $id, raceId: $raceId, weekNumber: $weekNumber, startsAt: $startsAt, totalKm: $totalKm, focus: $focus, coachNotes: $coachNotes, trainingDays: $trainingDays)';
+  return 'TrainingWeek(id: $id, goalId: $goalId, weekNumber: $weekNumber, startsAt: $startsAt, totalKm: $totalKm, focus: $focus, coachNotes: $coachNotes, trainingDays: $trainingDays)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $TrainingWeekCopyWith<$Res>  {
   factory $TrainingWeekCopyWith(TrainingWeek value, $Res Function(TrainingWeek) _then) = _$TrainingWeekCopyWithImpl;
 @useResult
 $Res call({
- int id,@JsonKey(name: 'race_id') int raceId,@JsonKey(name: 'week_number') int weekNumber,@JsonKey(name: 'starts_at') String startsAt,@JsonKey(name: 'total_km', fromJson: toDouble) double totalKm, String focus,@JsonKey(name: 'coach_notes') String? coachNotes,@JsonKey(name: 'training_days') List<TrainingDay>? trainingDays
+ int id,@JsonKey(name: 'goal_id') int goalId,@JsonKey(name: 'week_number') int weekNumber,@JsonKey(name: 'starts_at') String startsAt,@JsonKey(name: 'total_km', fromJson: toDouble) double totalKm, String focus,@JsonKey(name: 'coach_notes') String? coachNotes,@JsonKey(name: 'training_days') List<TrainingDay>? trainingDays
 });
 
 
@@ -65,10 +65,10 @@ class _$TrainingWeekCopyWithImpl<$Res>
 
 /// Create a copy of TrainingWeek
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? raceId = null,Object? weekNumber = null,Object? startsAt = null,Object? totalKm = null,Object? focus = null,Object? coachNotes = freezed,Object? trainingDays = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? goalId = null,Object? weekNumber = null,Object? startsAt = null,Object? totalKm = null,Object? focus = null,Object? coachNotes = freezed,Object? trainingDays = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as int,raceId: null == raceId ? _self.raceId : raceId // ignore: cast_nullable_to_non_nullable
+as int,goalId: null == goalId ? _self.goalId : goalId // ignore: cast_nullable_to_non_nullable
 as int,weekNumber: null == weekNumber ? _self.weekNumber : weekNumber // ignore: cast_nullable_to_non_nullable
 as int,startsAt: null == startsAt ? _self.startsAt : startsAt // ignore: cast_nullable_to_non_nullable
 as String,totalKm: null == totalKm ? _self.totalKm : totalKm // ignore: cast_nullable_to_non_nullable
@@ -157,10 +157,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'race_id')  int raceId, @JsonKey(name: 'week_number')  int weekNumber, @JsonKey(name: 'starts_at')  String startsAt, @JsonKey(name: 'total_km', fromJson: toDouble)  double totalKm,  String focus, @JsonKey(name: 'coach_notes')  String? coachNotes, @JsonKey(name: 'training_days')  List<TrainingDay>? trainingDays)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'goal_id')  int goalId, @JsonKey(name: 'week_number')  int weekNumber, @JsonKey(name: 'starts_at')  String startsAt, @JsonKey(name: 'total_km', fromJson: toDouble)  double totalKm,  String focus, @JsonKey(name: 'coach_notes')  String? coachNotes, @JsonKey(name: 'training_days')  List<TrainingDay>? trainingDays)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TrainingWeek() when $default != null:
-return $default(_that.id,_that.raceId,_that.weekNumber,_that.startsAt,_that.totalKm,_that.focus,_that.coachNotes,_that.trainingDays);case _:
+return $default(_that.id,_that.goalId,_that.weekNumber,_that.startsAt,_that.totalKm,_that.focus,_that.coachNotes,_that.trainingDays);case _:
   return orElse();
 
 }
@@ -178,10 +178,10 @@ return $default(_that.id,_that.raceId,_that.weekNumber,_that.startsAt,_that.tota
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'race_id')  int raceId, @JsonKey(name: 'week_number')  int weekNumber, @JsonKey(name: 'starts_at')  String startsAt, @JsonKey(name: 'total_km', fromJson: toDouble)  double totalKm,  String focus, @JsonKey(name: 'coach_notes')  String? coachNotes, @JsonKey(name: 'training_days')  List<TrainingDay>? trainingDays)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id, @JsonKey(name: 'goal_id')  int goalId, @JsonKey(name: 'week_number')  int weekNumber, @JsonKey(name: 'starts_at')  String startsAt, @JsonKey(name: 'total_km', fromJson: toDouble)  double totalKm,  String focus, @JsonKey(name: 'coach_notes')  String? coachNotes, @JsonKey(name: 'training_days')  List<TrainingDay>? trainingDays)  $default,) {final _that = this;
 switch (_that) {
 case _TrainingWeek():
-return $default(_that.id,_that.raceId,_that.weekNumber,_that.startsAt,_that.totalKm,_that.focus,_that.coachNotes,_that.trainingDays);}
+return $default(_that.id,_that.goalId,_that.weekNumber,_that.startsAt,_that.totalKm,_that.focus,_that.coachNotes,_that.trainingDays);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -195,10 +195,10 @@ return $default(_that.id,_that.raceId,_that.weekNumber,_that.startsAt,_that.tota
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id, @JsonKey(name: 'race_id')  int raceId, @JsonKey(name: 'week_number')  int weekNumber, @JsonKey(name: 'starts_at')  String startsAt, @JsonKey(name: 'total_km', fromJson: toDouble)  double totalKm,  String focus, @JsonKey(name: 'coach_notes')  String? coachNotes, @JsonKey(name: 'training_days')  List<TrainingDay>? trainingDays)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id, @JsonKey(name: 'goal_id')  int goalId, @JsonKey(name: 'week_number')  int weekNumber, @JsonKey(name: 'starts_at')  String startsAt, @JsonKey(name: 'total_km', fromJson: toDouble)  double totalKm,  String focus, @JsonKey(name: 'coach_notes')  String? coachNotes, @JsonKey(name: 'training_days')  List<TrainingDay>? trainingDays)?  $default,) {final _that = this;
 switch (_that) {
 case _TrainingWeek() when $default != null:
-return $default(_that.id,_that.raceId,_that.weekNumber,_that.startsAt,_that.totalKm,_that.focus,_that.coachNotes,_that.trainingDays);case _:
+return $default(_that.id,_that.goalId,_that.weekNumber,_that.startsAt,_that.totalKm,_that.focus,_that.coachNotes,_that.trainingDays);case _:
   return null;
 
 }
@@ -210,11 +210,11 @@ return $default(_that.id,_that.raceId,_that.weekNumber,_that.startsAt,_that.tota
 @JsonSerializable()
 
 class _TrainingWeek implements TrainingWeek {
-  const _TrainingWeek({required this.id, @JsonKey(name: 'race_id') required this.raceId, @JsonKey(name: 'week_number') required this.weekNumber, @JsonKey(name: 'starts_at') required this.startsAt, @JsonKey(name: 'total_km', fromJson: toDouble) required this.totalKm, required this.focus, @JsonKey(name: 'coach_notes') this.coachNotes, @JsonKey(name: 'training_days') final  List<TrainingDay>? trainingDays}): _trainingDays = trainingDays;
+  const _TrainingWeek({required this.id, @JsonKey(name: 'goal_id') required this.goalId, @JsonKey(name: 'week_number') required this.weekNumber, @JsonKey(name: 'starts_at') required this.startsAt, @JsonKey(name: 'total_km', fromJson: toDouble) required this.totalKm, required this.focus, @JsonKey(name: 'coach_notes') this.coachNotes, @JsonKey(name: 'training_days') final  List<TrainingDay>? trainingDays}): _trainingDays = trainingDays;
   factory _TrainingWeek.fromJson(Map<String, dynamic> json) => _$TrainingWeekFromJson(json);
 
 @override final  int id;
-@override@JsonKey(name: 'race_id') final  int raceId;
+@override@JsonKey(name: 'goal_id') final  int goalId;
 @override@JsonKey(name: 'week_number') final  int weekNumber;
 @override@JsonKey(name: 'starts_at') final  String startsAt;
 @override@JsonKey(name: 'total_km', fromJson: toDouble) final  double totalKm;
@@ -243,16 +243,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TrainingWeek&&(identical(other.id, id) || other.id == id)&&(identical(other.raceId, raceId) || other.raceId == raceId)&&(identical(other.weekNumber, weekNumber) || other.weekNumber == weekNumber)&&(identical(other.startsAt, startsAt) || other.startsAt == startsAt)&&(identical(other.totalKm, totalKm) || other.totalKm == totalKm)&&(identical(other.focus, focus) || other.focus == focus)&&(identical(other.coachNotes, coachNotes) || other.coachNotes == coachNotes)&&const DeepCollectionEquality().equals(other._trainingDays, _trainingDays));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TrainingWeek&&(identical(other.id, id) || other.id == id)&&(identical(other.goalId, goalId) || other.goalId == goalId)&&(identical(other.weekNumber, weekNumber) || other.weekNumber == weekNumber)&&(identical(other.startsAt, startsAt) || other.startsAt == startsAt)&&(identical(other.totalKm, totalKm) || other.totalKm == totalKm)&&(identical(other.focus, focus) || other.focus == focus)&&(identical(other.coachNotes, coachNotes) || other.coachNotes == coachNotes)&&const DeepCollectionEquality().equals(other._trainingDays, _trainingDays));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,raceId,weekNumber,startsAt,totalKm,focus,coachNotes,const DeepCollectionEquality().hash(_trainingDays));
+int get hashCode => Object.hash(runtimeType,id,goalId,weekNumber,startsAt,totalKm,focus,coachNotes,const DeepCollectionEquality().hash(_trainingDays));
 
 @override
 String toString() {
-  return 'TrainingWeek(id: $id, raceId: $raceId, weekNumber: $weekNumber, startsAt: $startsAt, totalKm: $totalKm, focus: $focus, coachNotes: $coachNotes, trainingDays: $trainingDays)';
+  return 'TrainingWeek(id: $id, goalId: $goalId, weekNumber: $weekNumber, startsAt: $startsAt, totalKm: $totalKm, focus: $focus, coachNotes: $coachNotes, trainingDays: $trainingDays)';
 }
 
 
@@ -263,7 +263,7 @@ abstract mixin class _$TrainingWeekCopyWith<$Res> implements $TrainingWeekCopyWi
   factory _$TrainingWeekCopyWith(_TrainingWeek value, $Res Function(_TrainingWeek) _then) = __$TrainingWeekCopyWithImpl;
 @override @useResult
 $Res call({
- int id,@JsonKey(name: 'race_id') int raceId,@JsonKey(name: 'week_number') int weekNumber,@JsonKey(name: 'starts_at') String startsAt,@JsonKey(name: 'total_km', fromJson: toDouble) double totalKm, String focus,@JsonKey(name: 'coach_notes') String? coachNotes,@JsonKey(name: 'training_days') List<TrainingDay>? trainingDays
+ int id,@JsonKey(name: 'goal_id') int goalId,@JsonKey(name: 'week_number') int weekNumber,@JsonKey(name: 'starts_at') String startsAt,@JsonKey(name: 'total_km', fromJson: toDouble) double totalKm, String focus,@JsonKey(name: 'coach_notes') String? coachNotes,@JsonKey(name: 'training_days') List<TrainingDay>? trainingDays
 });
 
 
@@ -280,10 +280,10 @@ class __$TrainingWeekCopyWithImpl<$Res>
 
 /// Create a copy of TrainingWeek
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? raceId = null,Object? weekNumber = null,Object? startsAt = null,Object? totalKm = null,Object? focus = null,Object? coachNotes = freezed,Object? trainingDays = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? goalId = null,Object? weekNumber = null,Object? startsAt = null,Object? totalKm = null,Object? focus = null,Object? coachNotes = freezed,Object? trainingDays = freezed,}) {
   return _then(_TrainingWeek(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as int,raceId: null == raceId ? _self.raceId : raceId // ignore: cast_nullable_to_non_nullable
+as int,goalId: null == goalId ? _self.goalId : goalId // ignore: cast_nullable_to_non_nullable
 as int,weekNumber: null == weekNumber ? _self.weekNumber : weekNumber // ignore: cast_nullable_to_non_nullable
 as int,startsAt: null == startsAt ? _self.startsAt : startsAt // ignore: cast_nullable_to_non_nullable
 as String,totalKm: null == totalKm ? _self.totalKm : totalKm // ignore: cast_nullable_to_non_nullable

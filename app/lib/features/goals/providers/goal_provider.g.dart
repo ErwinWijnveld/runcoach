@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'race_provider.dart';
+part of 'goal_provider.dart';
 
 // **************************************************************************
 // RiverpodGenerator
@@ -9,85 +9,85 @@ part of 'race_provider.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
-@ProviderFor(races)
-final racesProvider = RacesProvider._();
+@ProviderFor(goals)
+final goalsProvider = GoalsProvider._();
 
-final class RacesProvider
+final class GoalsProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<Race>>,
-          List<Race>,
-          FutureOr<List<Race>>
+          AsyncValue<List<Goal>>,
+          List<Goal>,
+          FutureOr<List<Goal>>
         >
-    with $FutureModifier<List<Race>>, $FutureProvider<List<Race>> {
-  RacesProvider._()
+    with $FutureModifier<List<Goal>>, $FutureProvider<List<Goal>> {
+  GoalsProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'racesProvider',
+        name: r'goalsProvider',
         isAutoDispose: true,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$racesHash();
+  String debugGetCreateSourceHash() => _$goalsHash();
 
   @$internal
   @override
-  $FutureProviderElement<List<Race>> $createElement($ProviderPointer pointer) =>
+  $FutureProviderElement<List<Goal>> $createElement($ProviderPointer pointer) =>
       $FutureProviderElement(pointer);
 
   @override
-  FutureOr<List<Race>> create(Ref ref) {
-    return races(ref);
+  FutureOr<List<Goal>> create(Ref ref) {
+    return goals(ref);
   }
 }
 
-String _$racesHash() => r'30be36a17cc47b98300c62e8417810c68479b384';
+String _$goalsHash() => r'e1bfabdc3a96a9b9147fe4cdd193219fc39d17a3';
 
-@ProviderFor(raceDetail)
-final raceDetailProvider = RaceDetailFamily._();
+@ProviderFor(goalDetail)
+final goalDetailProvider = GoalDetailFamily._();
 
-final class RaceDetailProvider
-    extends $FunctionalProvider<AsyncValue<Race>, Race, FutureOr<Race>>
-    with $FutureModifier<Race>, $FutureProvider<Race> {
-  RaceDetailProvider._({
-    required RaceDetailFamily super.from,
+final class GoalDetailProvider
+    extends $FunctionalProvider<AsyncValue<Goal>, Goal, FutureOr<Goal>>
+    with $FutureModifier<Goal>, $FutureProvider<Goal> {
+  GoalDetailProvider._({
+    required GoalDetailFamily super.from,
     required int super.argument,
   }) : super(
          retry: null,
-         name: r'raceDetailProvider',
+         name: r'goalDetailProvider',
          isAutoDispose: true,
          dependencies: null,
          $allTransitiveDependencies: null,
        );
 
   @override
-  String debugGetCreateSourceHash() => _$raceDetailHash();
+  String debugGetCreateSourceHash() => _$goalDetailHash();
 
   @override
   String toString() {
-    return r'raceDetailProvider'
+    return r'goalDetailProvider'
         ''
         '($argument)';
   }
 
   @$internal
   @override
-  $FutureProviderElement<Race> $createElement($ProviderPointer pointer) =>
+  $FutureProviderElement<Goal> $createElement($ProviderPointer pointer) =>
       $FutureProviderElement(pointer);
 
   @override
-  FutureOr<Race> create(Ref ref) {
+  FutureOr<Goal> create(Ref ref) {
     final argument = this.argument as int;
-    return raceDetail(ref, argument);
+    return goalDetail(ref, argument);
   }
 
   @override
   bool operator ==(Object other) {
-    return other is RaceDetailProvider && other.argument == argument;
+    return other is GoalDetailProvider && other.argument == argument;
   }
 
   @override
@@ -96,48 +96,48 @@ final class RaceDetailProvider
   }
 }
 
-String _$raceDetailHash() => r'1614c4638cd097ceb1c6e8208e0c10e32c791825';
+String _$goalDetailHash() => r'0adb6ae582fa752a097262e4d6fa41fb8e02e1ba';
 
-final class RaceDetailFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<Race>, int> {
-  RaceDetailFamily._()
+final class GoalDetailFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<Goal>, int> {
+  GoalDetailFamily._()
     : super(
         retry: null,
-        name: r'raceDetailProvider',
+        name: r'goalDetailProvider',
         dependencies: null,
         $allTransitiveDependencies: null,
         isAutoDispose: true,
       );
 
-  RaceDetailProvider call(int id) =>
-      RaceDetailProvider._(argument: id, from: this);
+  GoalDetailProvider call(int id) =>
+      GoalDetailProvider._(argument: id, from: this);
 
   @override
-  String toString() => r'raceDetailProvider';
+  String toString() => r'goalDetailProvider';
 }
 
-@ProviderFor(RaceActions)
-final raceActionsProvider = RaceActionsProvider._();
+@ProviderFor(GoalActions)
+final goalActionsProvider = GoalActionsProvider._();
 
-final class RaceActionsProvider
-    extends $NotifierProvider<RaceActions, AsyncValue<void>> {
-  RaceActionsProvider._()
+final class GoalActionsProvider
+    extends $NotifierProvider<GoalActions, AsyncValue<void>> {
+  GoalActionsProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'raceActionsProvider',
+        name: r'goalActionsProvider',
         isAutoDispose: true,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$raceActionsHash();
+  String debugGetCreateSourceHash() => _$goalActionsHash();
 
   @$internal
   @override
-  RaceActions create() => RaceActions();
+  GoalActions create() => GoalActions();
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(AsyncValue<void> value) {
@@ -148,9 +148,9 @@ final class RaceActionsProvider
   }
 }
 
-String _$raceActionsHash() => r'5c7ad53d7deb14eba7d90ef7712f3f1532e2ddde';
+String _$goalActionsHash() => r'883248ecc9f7748b60d28426693eaa3e2e5891d9';
 
-abstract class _$RaceActions extends $Notifier<AsyncValue<void>> {
+abstract class _$GoalActions extends $Notifier<AsyncValue<void>> {
   AsyncValue<void> build();
   @$mustCallSuper
   @override

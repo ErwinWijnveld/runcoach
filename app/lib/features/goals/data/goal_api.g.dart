@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'race_api.dart';
+part of 'goal_api.dart';
 
 // dart format off
 
@@ -10,8 +10,8 @@ part of 'race_api.dart';
 
 // ignore_for_file: unnecessary_brace_in_string_interps,no_leading_underscores_for_local_identifiers,unused_element,unnecessary_string_interpolations,unused_element_parameter,avoid_unused_constructor_parameters,unreachable_from_main
 
-class _RaceApi implements RaceApi {
-  _RaceApi(this._dio, {this.baseUrl, this.errorLogger});
+class _GoalApi implements GoalApi {
+  _GoalApi(this._dio, {this.baseUrl, this.errorLogger});
 
   final Dio _dio;
 
@@ -20,7 +20,7 @@ class _RaceApi implements RaceApi {
   final ParseErrorLogger? errorLogger;
 
   @override
-  Future<dynamic> getRaces() async {
+  Future<dynamic> getGoals() async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
@@ -29,7 +29,7 @@ class _RaceApi implements RaceApi {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/races',
+            '/goals',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -41,7 +41,7 @@ class _RaceApi implements RaceApi {
   }
 
   @override
-  Future<dynamic> createRace(Map<String, dynamic> body) async {
+  Future<dynamic> createGoal(Map<String, dynamic> body) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
@@ -51,7 +51,7 @@ class _RaceApi implements RaceApi {
       Options(method: 'POST', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/races',
+            '/goals',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -63,7 +63,7 @@ class _RaceApi implements RaceApi {
   }
 
   @override
-  Future<dynamic> getRace(int id) async {
+  Future<dynamic> getGoal(int id) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
@@ -72,7 +72,7 @@ class _RaceApi implements RaceApi {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/races/${id}',
+            '/goals/${id}',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -84,7 +84,7 @@ class _RaceApi implements RaceApi {
   }
 
   @override
-  Future<dynamic> updateRace(int id, Map<String, dynamic> body) async {
+  Future<dynamic> updateGoal(int id, Map<String, dynamic> body) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
@@ -94,7 +94,7 @@ class _RaceApi implements RaceApi {
       Options(method: 'PUT', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/races/${id}',
+            '/goals/${id}',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -106,7 +106,7 @@ class _RaceApi implements RaceApi {
   }
 
   @override
-  Future<void> deleteRace(int id) async {
+  Future<void> deleteGoal(int id) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
@@ -115,7 +115,7 @@ class _RaceApi implements RaceApi {
       Options(method: 'DELETE', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/races/${id}',
+            '/goals/${id}',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -161,43 +161,43 @@ class _RaceApi implements RaceApi {
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
-@ProviderFor(raceApi)
-final raceApiProvider = RaceApiProvider._();
+@ProviderFor(goalApi)
+final goalApiProvider = GoalApiProvider._();
 
-final class RaceApiProvider
-    extends $FunctionalProvider<RaceApi, RaceApi, RaceApi>
-    with $Provider<RaceApi> {
-  RaceApiProvider._()
+final class GoalApiProvider
+    extends $FunctionalProvider<GoalApi, GoalApi, GoalApi>
+    with $Provider<GoalApi> {
+  GoalApiProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'raceApiProvider',
+        name: r'goalApiProvider',
         isAutoDispose: true,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$raceApiHash();
+  String debugGetCreateSourceHash() => _$goalApiHash();
 
   @$internal
   @override
-  $ProviderElement<RaceApi> $createElement($ProviderPointer pointer) =>
+  $ProviderElement<GoalApi> $createElement($ProviderPointer pointer) =>
       $ProviderElement(pointer);
 
   @override
-  RaceApi create(Ref ref) {
-    return raceApi(ref);
+  GoalApi create(Ref ref) {
+    return goalApi(ref);
   }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(RaceApi value) {
+  Override overrideWithValue(GoalApi value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<RaceApi>(value),
+      providerOverride: $SyncValueProvider<GoalApi>(value),
     );
   }
 }
 
-String _$raceApiHash() => r'8cdb31fc5429215d68d2476051daeb439c69ff45';
+String _$goalApiHash() => r'c7764f67d1b242a03dd2cff127d49074f4d9473f';

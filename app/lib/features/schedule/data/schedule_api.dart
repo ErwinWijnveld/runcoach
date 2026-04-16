@@ -9,11 +9,11 @@ part 'schedule_api.g.dart';
 abstract class ScheduleApi {
   factory ScheduleApi(Dio dio) = _ScheduleApi;
 
-  @GET('/races/{raceId}/schedule')
-  Future<dynamic> getSchedule(@Path() int raceId);
+  @GET('/goals/{goalId}/schedule')
+  Future<dynamic> getSchedule(@Path() int goalId);
 
-  @GET('/races/{raceId}/schedule/current')
-  Future<dynamic> getCurrentWeek(@Path() int raceId);
+  @GET('/goals/{goalId}/schedule/current')
+  Future<dynamic> getCurrentWeek(@Path() int goalId);
 
   @GET('/training-days/{dayId}')
   Future<dynamic> getTrainingDay(@Path() int dayId);

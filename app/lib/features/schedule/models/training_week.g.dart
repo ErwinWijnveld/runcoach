@@ -9,7 +9,7 @@ part of 'training_week.dart';
 _TrainingWeek _$TrainingWeekFromJson(Map<String, dynamic> json) =>
     _TrainingWeek(
       id: (json['id'] as num).toInt(),
-      raceId: (json['race_id'] as num).toInt(),
+      goalId: (json['goal_id'] as num).toInt(),
       weekNumber: (json['week_number'] as num).toInt(),
       startsAt: json['starts_at'] as String,
       totalKm: toDouble(json['total_km']),
@@ -23,7 +23,7 @@ _TrainingWeek _$TrainingWeekFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$TrainingWeekToJson(_TrainingWeek instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'race_id': instance.raceId,
+      'goal_id': instance.goalId,
       'week_number': instance.weekNumber,
       'starts_at': instance.startsAt,
       'total_km': instance.totalKm,

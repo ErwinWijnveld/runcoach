@@ -9,7 +9,7 @@ sealed class Conversation with _$Conversation {
   const factory Conversation({
     required String id,
     required String title,
-    @JsonKey(name: 'race_id') int? raceId,
+    @JsonKey(name: 'goal_id') int? goalId,
     @JsonKey(name: 'created_at') required String createdAt,
     List<CoachMessage>? messages,
   }) = _Conversation;

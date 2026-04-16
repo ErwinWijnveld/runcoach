@@ -56,7 +56,7 @@ class DashboardScreen extends StatelessWidget {
                             asset: 'assets/images/goals_bg.png',
                             title: 'Goals',
                             alignment: const Alignment(0.0, 0.0),
-                            onTap: () => context.go('/races'),
+                            onTap: () => context.go('/goals'),
                           ),
                         ),
                       ],

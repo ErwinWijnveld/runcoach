@@ -20,7 +20,7 @@ class _ScheduleApi implements ScheduleApi {
   final ParseErrorLogger? errorLogger;
 
   @override
-  Future<dynamic> getSchedule(int raceId) async {
+  Future<dynamic> getSchedule(int goalId) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
@@ -29,7 +29,7 @@ class _ScheduleApi implements ScheduleApi {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/races/${raceId}/schedule',
+            '/goals/${goalId}/schedule',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -41,7 +41,7 @@ class _ScheduleApi implements ScheduleApi {
   }
 
   @override
-  Future<dynamic> getCurrentWeek(int raceId) async {
+  Future<dynamic> getCurrentWeek(int goalId) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
@@ -50,7 +50,7 @@ class _ScheduleApi implements ScheduleApi {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/races/${raceId}/schedule/current',
+            '/goals/${goalId}/schedule/current',
             queryParameters: queryParameters,
             data: _data,
           )

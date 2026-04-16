@@ -3,19 +3,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
-import 'package:app/features/races/providers/race_provider.dart';
+import 'package:app/features/goals/providers/goal_provider.dart';
 
-class RaceCreateScreen extends ConsumerStatefulWidget {
-  const RaceCreateScreen({super.key});
+class GoalCreateScreen extends ConsumerStatefulWidget {
+  const GoalCreateScreen({super.key});
 
   @override
-  ConsumerState<RaceCreateScreen> createState() => _RaceCreateScreenState();
+  ConsumerState<GoalCreateScreen> createState() => _GoalCreateScreenState();
 }
 
-class _RaceCreateScreenState extends ConsumerState<RaceCreateScreen> {
+class _GoalCreateScreenState extends ConsumerState<GoalCreateScreen> {
   final _nameController = TextEditingController();
+  // ignore: prefer_final_fields — type selection will be added in Task 21
+  String _type = 'race';
   String _distance = '10K';
-  DateTime? _raceDate;
+  DateTime? _targetDate;
   int _goalHours = 0;
   int _goalMinutes = 0;
   String? _error;
@@ -50,7 +52,8 @@ class _RaceCreateScreenState extends ConsumerState<RaceCreateScreen> {
   }
 
   Future<void> _pickDate() async {
-    DateTime temp = _raceDate ?? DateTime.now().add(const Duration(days: 60));
+    DateTime temp =
+        _targetDate ?? DateTime.now().add(const Duration(days: 60));
     await showCupertinoModalPopup<void>(
       context: context,
       builder: (ctx) => Container(
@@ -86,7 +89,7 @@ class _RaceCreateScreenState extends ConsumerState<RaceCreateScreen> {
         ),
       ),
     );
-    setState(() => _raceDate = temp);
+    setState(() => _targetDate = temp);
   }
 
   Future<void> _pickDistance() async {
@@ -97,7 +100,8 @@ class _RaceCreateScreenState extends ConsumerState<RaceCreateScreen> {
       initialItem: current,
       itemBuilder: (index) =>
           _distanceLabels[_distanceOptions[index]] ?? _distanceOptions[index],
-      onSelected: (index) => setState(() => _distance = _distanceOptions[index]),
+      onSelected: (index) =>
+          setState(() => _distance = _distanceOptions[index]),
     );
   }
 
@@ -175,30 +179,32 @@ class _RaceCreateScreenState extends ConsumerState<RaceCreateScreen> {
   Future<void> _submit() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      setState(() => _error = 'Enter a race name');
+      setState(() => _error = 'Enter a goal name');
       return;
     }
-    if (_raceDate == null) {
-      setState(() => _error = 'Please select a race date');
+    if (_type == 'race' && _targetDate == null) {
+      setState(() => _error = 'Please select a target date');
       return;
     }
     setState(() => _error = null);
 
-    final dateStr =
-        '${_raceDate!.year}-${_raceDate!.month.toString().padLeft(2, '0')}-${_raceDate!.day.toString().padLeft(2, '0')}';
+    final dateStr = _targetDate != null
+        ? '${_targetDate!.year}-${_targetDate!.month.toString().padLeft(2, '0')}-${_targetDate!.day.toString().padLeft(2, '0')}'
+        : null;
 
-    await ref.read(raceActionsProvider.notifier).createRace(
+    await ref.read(goalActionsProvider.notifier).createGoal(
           name: name,
-          distance: _distance,
-          raceDate: dateStr,
+          type: _type,
+          distance: _type == 'race' ? _distance : null,
+          targetDate: dateStr,
           goalTimeSeconds: _goalTimeSeconds(),
         );
 
-    if (mounted) context.go('/races');
+    if (mounted) context.go('/goals');
   }
 
   String _formatDate() {
-    final d = _raceDate;
+    final d = _targetDate;
     if (d == null) return 'Select date';
     return '${d.day}/${d.month}/${d.year}';
   }
@@ -210,7 +216,7 @@ class _RaceCreateScreenState extends ConsumerState<RaceCreateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final actionState = ref.watch(raceActionsProvider);
+    final actionState = ref.watch(goalActionsProvider);
     final isLoading = actionState.isLoading;
 
     return CupertinoPageScaffold(
@@ -220,13 +226,13 @@ class _RaceCreateScreenState extends ConsumerState<RaceCreateScreen> {
         border: null,
         leading: CupertinoButton(
           padding: EdgeInsets.zero,
-          onPressed: () => context.go('/races'),
+          onPressed: () => context.go('/goals'),
           child: const Icon(
             CupertinoIcons.back,
             color: AppColors.warmBrown,
           ),
         ),
-        middle: const Text('New Race'),
+        middle: const Text('New Goal'),
       ),
       child: SafeArea(
         child: SingleChildScrollView(
@@ -235,7 +241,7 @@ class _RaceCreateScreenState extends ConsumerState<RaceCreateScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Race Details',
+                'Goal Details',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
@@ -245,7 +251,7 @@ class _RaceCreateScreenState extends ConsumerState<RaceCreateScreen> {
               ),
               const SizedBox(height: 24),
 
-              const _FieldLabel('Race Name'),
+              const _FieldLabel('Goal Name'),
               const SizedBox(height: 8),
               CupertinoTextField(
                 controller: _nameController,
@@ -266,43 +272,46 @@ class _RaceCreateScreenState extends ConsumerState<RaceCreateScreen> {
               ),
               const SizedBox(height: 20),
 
-              const _FieldLabel('Distance'),
-              const SizedBox(height: 8),
-              _SelectorField(
-                value: _distanceLabels[_distance] ?? _distance,
-                onTap: _pickDistance,
-              ),
-              const SizedBox(height: 20),
+              if (_type == 'race') ...[
+                const _FieldLabel('Distance'),
+                const SizedBox(height: 8),
+                _SelectorField(
+                  value: _distanceLabels[_distance] ?? _distance,
+                  onTap: _pickDistance,
+                ),
+                const SizedBox(height: 20),
 
-              const _FieldLabel('Race Date'),
-              const SizedBox(height: 8),
-              _SelectorField(
-                value: _formatDate(),
-                trailingIcon: CupertinoIcons.calendar,
-                onTap: _pickDate,
-                placeholder: _raceDate == null,
-              ),
-              const SizedBox(height: 20),
+                const _FieldLabel('Target Date'),
+                const SizedBox(height: 8),
+                _SelectorField(
+                  value: _formatDate(),
+                  trailingIcon: CupertinoIcons.calendar,
+                  onTap: _pickDate,
+                  placeholder: _targetDate == null,
+                ),
+                const SizedBox(height: 20),
 
-              const _FieldLabel('Goal Time (optional)'),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: _SelectorField(
-                      value: '$_goalHours h',
-                      onTap: _pickHours,
+                const _FieldLabel('Goal Time (optional)'),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _SelectorField(
+                        value: '$_goalHours h',
+                        onTap: _pickHours,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _SelectorField(
-                      value: '$_goalMinutes min',
-                      onTap: _pickMinutes,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _SelectorField(
+                        value: '$_goalMinutes min',
+                        onTap: _pickMinutes,
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
+
               if (_error != null) ...[
                 const SizedBox(height: 16),
                 Text(
@@ -315,7 +324,7 @@ class _RaceCreateScreenState extends ConsumerState<RaceCreateScreen> {
               ],
               const SizedBox(height: 32),
               AppFilledButton(
-                label: 'Create Race',
+                label: 'Create Goal',
                 loading: isLoading,
                 onPressed: _submit,
               ),

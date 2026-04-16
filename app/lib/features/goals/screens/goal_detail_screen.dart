@@ -3,16 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
-import 'package:app/features/races/providers/race_provider.dart';
-import 'package:app/features/races/models/race.dart';
+import 'package:app/features/goals/providers/goal_provider.dart';
+import 'package:app/features/goals/models/goal.dart';
 
-class RaceDetailScreen extends ConsumerWidget {
-  final int raceId;
-  const RaceDetailScreen({super.key, required this.raceId});
+class GoalDetailScreen extends ConsumerWidget {
+  final int goalId;
+  const GoalDetailScreen({super.key, required this.goalId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final raceAsync = ref.watch(raceDetailProvider(raceId));
+    final goalAsync = ref.watch(goalDetailProvider(goalId));
 
     return CupertinoPageScaffold(
       backgroundColor: AppColors.cream,
@@ -21,38 +21,40 @@ class RaceDetailScreen extends ConsumerWidget {
         border: null,
         leading: CupertinoButton(
           padding: EdgeInsets.zero,
-          onPressed: () => context.go('/races'),
+          onPressed: () => context.go('/goals'),
           child: const Icon(
             CupertinoIcons.back,
             color: AppColors.warmBrown,
           ),
         ),
-        middle: const Text('Race Details'),
+        middle: const Text('Goal Details'),
       ),
       child: SafeArea(
-        child: raceAsync.when(
+        child: goalAsync.when(
           loading: () => const AppSpinner(),
           error: (_, _) => AppErrorState(
-            title: 'Could not load race details',
-            onRetry: () => ref.invalidate(raceDetailProvider(raceId)),
+            title: 'Could not load goal details',
+            onRetry: () => ref.invalidate(goalDetailProvider(goalId)),
           ),
-          data: (race) => _RaceDetailBody(race: race),
+          data: (goal) => _GoalDetailBody(goal: goal),
         ),
       ),
     );
   }
 }
 
-class _RaceDetailBody extends ConsumerWidget {
-  final Race race;
-  const _RaceDetailBody({required this.race});
+class _GoalDetailBody extends ConsumerWidget {
+  final Goal goal;
+  const _GoalDetailBody({required this.goal});
 
-  int? _daysUntilRace() {
+  int? _daysUntil() {
+    final td = goal.targetDate;
+    if (td == null) return null;
     try {
-      final raceDate = DateTime.parse(race.raceDate);
+      final date = DateTime.parse(td);
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
-      final target = DateTime(raceDate.year, raceDate.month, raceDate.day);
+      final target = DateTime(date.year, date.month, date.day);
       return target.difference(today).inDays;
     } catch (_) {
       return null;
@@ -60,7 +62,7 @@ class _RaceDetailBody extends ConsumerWidget {
   }
 
   String _formatGoalTime() {
-    final seconds = race.goalTimeSeconds;
+    final seconds = goal.goalTimeSeconds;
     if (seconds == null) return 'Not set';
     final h = seconds ~/ 3600;
     final m = (seconds % 3600) ~/ 60;
@@ -72,7 +74,7 @@ class _RaceDetailBody extends ConsumerWidget {
   }
 
   Color _statusColor() {
-    switch (race.status) {
+    switch (goal.status) {
       case 'active':
         return AppColors.success;
       case 'completed':
@@ -87,27 +89,27 @@ class _RaceDetailBody extends ConsumerWidget {
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
     final confirmed = await showAppConfirm(
       context,
-      title: 'Cancel Race',
-      message: 'Are you sure you want to delete "${race.name}"?',
+      title: 'Delete Goal',
+      message: 'Are you sure you want to delete "${goal.name}"?',
       confirmLabel: 'Delete',
       cancelLabel: 'No',
       destructive: true,
     );
 
     if (confirmed && context.mounted) {
-      await ref.read(raceActionsProvider.notifier).deleteRace(race.id);
-      if (context.mounted) context.go('/races');
+      await ref.read(goalActionsProvider.notifier).deleteGoal(goal.id);
+      if (context.mounted) context.go('/goals');
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final daysLeft = _daysUntilRace();
+    final daysLeft = _daysUntil();
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        if (race.status == 'active' && daysLeft != null && daysLeft >= 0)
+        if (goal.status == 'active' && daysLeft != null && daysLeft >= 0)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 24),
@@ -146,7 +148,7 @@ class _RaceDetailBody extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      race.name,
+                      goal.name,
                       style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
@@ -154,22 +156,26 @@ class _RaceDetailBody extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  AppStatusPill(label: race.status, color: _statusColor()),
+                  AppStatusPill(label: goal.status, color: _statusColor()),
                 ],
               ),
               const SizedBox(height: 20),
-              _DetailRow(
-                icon: CupertinoIcons.arrow_right_arrow_left,
-                label: 'Distance',
-                value: race.distance,
-              ),
-              const SizedBox(height: 12),
-              _DetailRow(
-                icon: CupertinoIcons.calendar,
-                label: 'Race Date',
-                value: race.raceDate,
-              ),
-              const SizedBox(height: 12),
+              if (goal.distance != null) ...[
+                _DetailRow(
+                  icon: CupertinoIcons.arrow_right_arrow_left,
+                  label: 'Distance',
+                  value: goal.distance!,
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (goal.targetDate != null) ...[
+                _DetailRow(
+                  icon: CupertinoIcons.calendar,
+                  label: 'Target Date',
+                  value: goal.targetDate!,
+                ),
+                const SizedBox(height: 12),
+              ],
               _DetailRow(
                 icon: CupertinoIcons.timer,
                 label: 'Goal Time',
@@ -179,7 +185,7 @@ class _RaceDetailBody extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
-        if (race.status == 'active')
+        if (goal.status == 'active')
           AppCard(
             padding: const EdgeInsets.all(16),
             onTap: () => context.go('/schedule'),
@@ -229,9 +235,9 @@ class _RaceDetailBody extends ConsumerWidget {
             ),
           ),
         const SizedBox(height: 24),
-        if (race.status == 'active')
+        if (goal.status == 'active')
           AppBorderedButton(
-            label: 'Delete Race',
+            label: 'Delete Goal',
             icon: CupertinoIcons.delete,
             color: AppColors.danger,
             onPressed: () => _confirmDelete(context, ref),

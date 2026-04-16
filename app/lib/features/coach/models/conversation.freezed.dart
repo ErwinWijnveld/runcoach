@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Conversation {
 
- String get id; String get title;@JsonKey(name: 'race_id') int? get raceId;@JsonKey(name: 'created_at') String get createdAt; List<CoachMessage>? get messages;
+ String get id; String get title;@JsonKey(name: 'goal_id') int? get goalId;@JsonKey(name: 'created_at') String get createdAt; List<CoachMessage>? get messages;
 /// Create a copy of Conversation
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $ConversationCopyWith<Conversation> get copyWith => _$ConversationCopyWithImpl<C
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Conversation&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.raceId, raceId) || other.raceId == raceId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&const DeepCollectionEquality().equals(other.messages, messages));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Conversation&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.goalId, goalId) || other.goalId == goalId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&const DeepCollectionEquality().equals(other.messages, messages));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,raceId,createdAt,const DeepCollectionEquality().hash(messages));
+int get hashCode => Object.hash(runtimeType,id,title,goalId,createdAt,const DeepCollectionEquality().hash(messages));
 
 @override
 String toString() {
-  return 'Conversation(id: $id, title: $title, raceId: $raceId, createdAt: $createdAt, messages: $messages)';
+  return 'Conversation(id: $id, title: $title, goalId: $goalId, createdAt: $createdAt, messages: $messages)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $ConversationCopyWith<$Res>  {
   factory $ConversationCopyWith(Conversation value, $Res Function(Conversation) _then) = _$ConversationCopyWithImpl;
 @useResult
 $Res call({
- String id, String title,@JsonKey(name: 'race_id') int? raceId,@JsonKey(name: 'created_at') String createdAt, List<CoachMessage>? messages
+ String id, String title,@JsonKey(name: 'goal_id') int? goalId,@JsonKey(name: 'created_at') String createdAt, List<CoachMessage>? messages
 });
 
 
@@ -65,11 +65,11 @@ class _$ConversationCopyWithImpl<$Res>
 
 /// Create a copy of Conversation
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? raceId = freezed,Object? createdAt = null,Object? messages = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = null,Object? goalId = freezed,Object? createdAt = null,Object? messages = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
-as String,raceId: freezed == raceId ? _self.raceId : raceId // ignore: cast_nullable_to_non_nullable
+as String,goalId: freezed == goalId ? _self.goalId : goalId // ignore: cast_nullable_to_non_nullable
 as int?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String,messages: freezed == messages ? _self.messages : messages // ignore: cast_nullable_to_non_nullable
 as List<CoachMessage>?,
@@ -154,10 +154,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title, @JsonKey(name: 'race_id')  int? raceId, @JsonKey(name: 'created_at')  String createdAt,  List<CoachMessage>? messages)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String title, @JsonKey(name: 'goal_id')  int? goalId, @JsonKey(name: 'created_at')  String createdAt,  List<CoachMessage>? messages)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Conversation() when $default != null:
-return $default(_that.id,_that.title,_that.raceId,_that.createdAt,_that.messages);case _:
+return $default(_that.id,_that.title,_that.goalId,_that.createdAt,_that.messages);case _:
   return orElse();
 
 }
@@ -175,10 +175,10 @@ return $default(_that.id,_that.title,_that.raceId,_that.createdAt,_that.messages
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title, @JsonKey(name: 'race_id')  int? raceId, @JsonKey(name: 'created_at')  String createdAt,  List<CoachMessage>? messages)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String title, @JsonKey(name: 'goal_id')  int? goalId, @JsonKey(name: 'created_at')  String createdAt,  List<CoachMessage>? messages)  $default,) {final _that = this;
 switch (_that) {
 case _Conversation():
-return $default(_that.id,_that.title,_that.raceId,_that.createdAt,_that.messages);}
+return $default(_that.id,_that.title,_that.goalId,_that.createdAt,_that.messages);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -192,10 +192,10 @@ return $default(_that.id,_that.title,_that.raceId,_that.createdAt,_that.messages
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title, @JsonKey(name: 'race_id')  int? raceId, @JsonKey(name: 'created_at')  String createdAt,  List<CoachMessage>? messages)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String title, @JsonKey(name: 'goal_id')  int? goalId, @JsonKey(name: 'created_at')  String createdAt,  List<CoachMessage>? messages)?  $default,) {final _that = this;
 switch (_that) {
 case _Conversation() when $default != null:
-return $default(_that.id,_that.title,_that.raceId,_that.createdAt,_that.messages);case _:
+return $default(_that.id,_that.title,_that.goalId,_that.createdAt,_that.messages);case _:
   return null;
 
 }
@@ -207,12 +207,12 @@ return $default(_that.id,_that.title,_that.raceId,_that.createdAt,_that.messages
 @JsonSerializable()
 
 class _Conversation implements Conversation {
-  const _Conversation({required this.id, required this.title, @JsonKey(name: 'race_id') this.raceId, @JsonKey(name: 'created_at') required this.createdAt, final  List<CoachMessage>? messages}): _messages = messages;
+  const _Conversation({required this.id, required this.title, @JsonKey(name: 'goal_id') this.goalId, @JsonKey(name: 'created_at') required this.createdAt, final  List<CoachMessage>? messages}): _messages = messages;
   factory _Conversation.fromJson(Map<String, dynamic> json) => _$ConversationFromJson(json);
 
 @override final  String id;
 @override final  String title;
-@override@JsonKey(name: 'race_id') final  int? raceId;
+@override@JsonKey(name: 'goal_id') final  int? goalId;
 @override@JsonKey(name: 'created_at') final  String createdAt;
  final  List<CoachMessage>? _messages;
 @override List<CoachMessage>? get messages {
@@ -237,16 +237,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Conversation&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.raceId, raceId) || other.raceId == raceId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&const DeepCollectionEquality().equals(other._messages, _messages));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Conversation&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.goalId, goalId) || other.goalId == goalId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&const DeepCollectionEquality().equals(other._messages, _messages));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,raceId,createdAt,const DeepCollectionEquality().hash(_messages));
+int get hashCode => Object.hash(runtimeType,id,title,goalId,createdAt,const DeepCollectionEquality().hash(_messages));
 
 @override
 String toString() {
-  return 'Conversation(id: $id, title: $title, raceId: $raceId, createdAt: $createdAt, messages: $messages)';
+  return 'Conversation(id: $id, title: $title, goalId: $goalId, createdAt: $createdAt, messages: $messages)';
 }
 
 
@@ -257,7 +257,7 @@ abstract mixin class _$ConversationCopyWith<$Res> implements $ConversationCopyWi
   factory _$ConversationCopyWith(_Conversation value, $Res Function(_Conversation) _then) = __$ConversationCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String title,@JsonKey(name: 'race_id') int? raceId,@JsonKey(name: 'created_at') String createdAt, List<CoachMessage>? messages
+ String id, String title,@JsonKey(name: 'goal_id') int? goalId,@JsonKey(name: 'created_at') String createdAt, List<CoachMessage>? messages
 });
 
 
@@ -274,11 +274,11 @@ class __$ConversationCopyWithImpl<$Res>
 
 /// Create a copy of Conversation
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? raceId = freezed,Object? createdAt = null,Object? messages = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = null,Object? goalId = freezed,Object? createdAt = null,Object? messages = freezed,}) {
   return _then(_Conversation(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: null == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
-as String,raceId: freezed == raceId ? _self.raceId : raceId // ignore: cast_nullable_to_non_nullable
+as String,goalId: freezed == goalId ? _self.goalId : goalId // ignore: cast_nullable_to_non_nullable
 as int?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String,messages: freezed == messages ? _self._messages : messages // ignore: cast_nullable_to_non_nullable
 as List<CoachMessage>?,

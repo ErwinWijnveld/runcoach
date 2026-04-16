@@ -66,7 +66,7 @@ final class ScheduleProvider
   }
 }
 
-String _$scheduleHash() => r'1b2318bc1dffaed9b8e14ad58915d289181acf27';
+String _$scheduleHash() => r'bcd6e658baed6db6f974acd06ba50a888ed58513';
 
 final class ScheduleFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<List<TrainingWeek>>, int> {
@@ -79,8 +79,8 @@ final class ScheduleFamily extends $Family
         isAutoDispose: true,
       );
 
-  ScheduleProvider call(int raceId) =>
-      ScheduleProvider._(argument: raceId, from: this);
+  ScheduleProvider call(int goalId) =>
+      ScheduleProvider._(argument: goalId, from: this);
 
   @override
   String toString() => r'scheduleProvider';
@@ -141,7 +141,7 @@ final class CurrentWeekProvider
   }
 }
 
-String _$currentWeekHash() => r'1c7714ff8b469ad430e410b7db6e1039fadd6bc5';
+String _$currentWeekHash() => r'94d43966786c3efb50d7494aff21ec070e74ae2f';
 
 final class CurrentWeekFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<TrainingWeek?>, int> {
@@ -154,8 +154,8 @@ final class CurrentWeekFamily extends $Family
         isAutoDispose: true,
       );
 
-  CurrentWeekProvider call(int raceId) =>
-      CurrentWeekProvider._(argument: raceId, from: this);
+  CurrentWeekProvider call(int goalId) =>
+      CurrentWeekProvider._(argument: goalId, from: this);
 
   @override
   String toString() => r'currentWeekProvider';

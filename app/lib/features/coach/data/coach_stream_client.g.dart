@@ -54,4 +54,4 @@ final class CoachStreamClientProvider
   }
 }
 
-String _$coachStreamClientHash() => r'dc172c4ef83532b87796dfa6fac2e58103278b52';
+String _$coachStreamClientHash() => r'f98aa0d3f828531e4ce667de47650130c09f831e';

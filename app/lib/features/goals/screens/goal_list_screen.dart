@@ -3,15 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
-import 'package:app/features/races/providers/race_provider.dart';
-import 'package:app/features/races/models/race.dart';
+import 'package:app/features/goals/providers/goal_provider.dart';
+import 'package:app/features/goals/models/goal.dart';
 
-class RaceListScreen extends ConsumerWidget {
-  const RaceListScreen({super.key});
+class GoalListScreen extends ConsumerWidget {
+  const GoalListScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final racesAsync = ref.watch(racesProvider);
+    final goalsAsync = ref.watch(goalsProvider);
 
     return CupertinoPageScaffold(
       backgroundColor: AppColors.cream,
@@ -23,10 +23,10 @@ class RaceListScreen extends ConsumerWidget {
           CupertinoSliverNavigationBar(
             backgroundColor: AppColors.cream.withValues(alpha: 0.92),
             border: null,
-            largeTitle: const Text('Races'),
+            largeTitle: const Text('Goals'),
             trailing: CupertinoButton(
               padding: EdgeInsets.zero,
-              onPressed: () => context.go('/races/new'),
+              onPressed: () => context.go('/goals/new'),
               child: const Icon(
                 CupertinoIcons.add_circled_solid,
                 color: AppColors.warmBrown,
@@ -34,18 +34,18 @@ class RaceListScreen extends ConsumerWidget {
             ),
           ),
           CupertinoSliverRefreshControl(
-            onRefresh: () async => ref.invalidate(racesProvider),
+            onRefresh: () async => ref.invalidate(goalsProvider),
           ),
-          racesAsync.when(
+          goalsAsync.when(
             loading: () => const SliverFillRemaining(child: AppSpinner()),
             error: (_, _) => SliverFillRemaining(
               child: AppErrorState(
-                title: 'Could not load races',
-                onRetry: () => ref.invalidate(racesProvider),
+                title: 'Could not load goals',
+                onRetry: () => ref.invalidate(goalsProvider),
               ),
             ),
-            data: (races) {
-              if (races.isEmpty) {
+            data: (goals) {
+              if (goals.isEmpty) {
                 return const SliverFillRemaining(
                   hasScrollBody: false,
                   child: Center(
@@ -59,7 +59,7 @@ class RaceListScreen extends ConsumerWidget {
                         ),
                         SizedBox(height: 16),
                         Text(
-                          'No races yet',
+                          'No goals yet',
                           style: TextStyle(
                             fontSize: 16,
                             color: AppColors.textSecondary,
@@ -67,7 +67,7 @@ class RaceListScreen extends ConsumerWidget {
                         ),
                         SizedBox(height: 8),
                         Text(
-                          'Add your first race to get a training plan',
+                          'Add your first goal to get a training plan',
                           style: TextStyle(
                             fontSize: 14,
                             color: AppColors.textSecondary,
@@ -79,8 +79,8 @@ class RaceListScreen extends ConsumerWidget {
                 );
               }
 
-              final active = races.where((r) => r.status == 'active').toList();
-              final past = races.where((r) => r.status != 'active').toList();
+              final active = goals.where((g) => g.status == 'active').toList();
+              final past = goals.where((g) => g.status != 'active').toList();
 
               return SliverPadding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -88,25 +88,25 @@ class RaceListScreen extends ConsumerWidget {
                   children: [
                     if (active.isNotEmpty) ...[
                       _SectionHeader(
-                        title: 'Active Races',
+                        title: 'Active Goals',
                         count: active.length,
                       ),
                       const SizedBox(height: 8),
                       ...active.map(
-                        (race) => Padding(
+                        (goal) => Padding(
                           padding: const EdgeInsets.only(bottom: 12),
-                          child: _RaceCard(race: race),
+                          child: _GoalCard(goal: goal),
                         ),
                       ),
                     ],
                     if (past.isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      _SectionHeader(title: 'Past Races', count: past.length),
+                      _SectionHeader(title: 'Past Goals', count: past.length),
                       const SizedBox(height: 8),
                       ...past.map(
-                        (race) => Padding(
+                        (goal) => Padding(
                           padding: const EdgeInsets.only(bottom: 12),
-                          child: _RaceCard(race: race),
+                          child: _GoalCard(goal: goal),
                         ),
                       ),
                     ],
@@ -159,12 +159,12 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _RaceCard extends StatelessWidget {
-  final Race race;
-  const _RaceCard({required this.race});
+class _GoalCard extends StatelessWidget {
+  final Goal goal;
+  const _GoalCard({required this.goal});
 
   Color _statusColor() {
-    switch (race.status) {
+    switch (goal.status) {
       case 'active':
         return AppColors.success;
       case 'completed':
@@ -177,7 +177,7 @@ class _RaceCard extends StatelessWidget {
   }
 
   String _formatGoalTime() {
-    final seconds = race.goalTimeSeconds;
+    final seconds = goal.goalTimeSeconds;
     if (seconds == null) return '--';
     final h = seconds ~/ 3600;
     final m = (seconds % 3600) ~/ 60;
@@ -187,12 +187,14 @@ class _RaceCard extends StatelessWidget {
     return '${m}m';
   }
 
-  int? _daysUntilRace() {
+  int? _daysUntil() {
+    final td = goal.targetDate;
+    if (td == null) return null;
     try {
-      final raceDate = DateTime.parse(race.raceDate);
+      final date = DateTime.parse(td);
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
-      final target = DateTime(raceDate.year, raceDate.month, raceDate.day);
+      final target = DateTime(date.year, date.month, date.day);
       return target.difference(today).inDays;
     } catch (_) {
       return null;
@@ -201,11 +203,11 @@ class _RaceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final daysLeft = _daysUntilRace();
+    final daysLeft = _daysUntil();
 
     return AppCard(
       padding: const EdgeInsets.all(16),
-      onTap: () => context.go('/races/${race.id}'),
+      onTap: () => context.go('/goals/${goal.id}'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -213,7 +215,7 @@ class _RaceCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  race.name,
+                  goal.name,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -221,7 +223,7 @@ class _RaceCard extends StatelessWidget {
                   ),
                 ),
               ),
-              AppStatusPill(label: race.status, color: _statusColor()),
+              AppStatusPill(label: goal.status, color: _statusColor()),
             ],
           ),
           const SizedBox(height: 12),
@@ -229,16 +231,18 @@ class _RaceCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              AppChip(
-                icon: CupertinoIcons.arrow_right_arrow_left,
-                label: race.distance,
-              ),
-              AppChip(icon: CupertinoIcons.calendar, label: race.raceDate),
-              if (race.goalTimeSeconds != null)
+              if (goal.distance != null)
+                AppChip(
+                  icon: CupertinoIcons.arrow_right_arrow_left,
+                  label: goal.distance!,
+                ),
+              if (goal.targetDate != null)
+                AppChip(icon: CupertinoIcons.calendar, label: goal.targetDate!),
+              if (goal.goalTimeSeconds != null)
                 AppChip(icon: CupertinoIcons.timer, label: _formatGoalTime()),
             ],
           ),
-          if (race.status == 'active' &&
+          if (goal.status == 'active' &&
               daysLeft != null &&
               daysLeft >= 0) ...[
             const SizedBox(height: 12),

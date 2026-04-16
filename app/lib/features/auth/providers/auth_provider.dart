@@ -37,7 +37,7 @@ class Auth extends _$Auth {
           name: 'Dev User',
           email: 'dev@local.test',
           coachStyle: 'balanced',
-          level: 'intermediate',
+          hasCompletedOnboarding: true,
         ),
       );
     }
@@ -105,5 +105,5 @@ class Auth extends _$Auth {
   }
 
   bool get isLoggedIn => state.value != null;
-  bool get needsOnboarding => state.value?.level == null;
+  bool get needsOnboarding => !(state.value?.hasCompletedOnboarding ?? false);
 }
