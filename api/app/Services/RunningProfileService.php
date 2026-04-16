@@ -6,7 +6,8 @@ use App\Models\User;
 use App\Models\UserRunningProfile;
 use App\Services\Strava\StravaClient;
 use Carbon\Carbon;
-use OpenAI\Client as OpenAIClient;
+use Illuminate\Support\Facades\Log;
+use OpenAI\Contracts\ClientContract as OpenAIClient;
 
 class RunningProfileService
 {
@@ -112,6 +113,35 @@ class RunningProfileService
 
     private function generateNarrative(array $metrics): string
     {
-        return "Here's your last 12 months.";
+        try {
+            $response = $this->openai->chat()->create([
+                'model' => config('services.openai.narrative_model', 'gpt-4o-mini'),
+                'temperature' => 0.4,
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'You are a running coach summarising 12 months of activity in ONE short paragraph (max 3 sentences). Mention consistency, pace feel, and progression. Do NOT invent numbers — only refer to what is in the metrics.',
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => 'Metrics: '.json_encode($metrics),
+                    ],
+                ],
+            ]);
+
+            $text = trim($response->choices[0]->message->content ?? '');
+
+            return $text !== '' ? $text : "Here's your last 12 months.";
+        } catch (\Throwable $e) {
+            Log::warning('Narrative generation failed', ['error' => $e->getMessage()]);
+
+            return "Here's your last 12 months.";
+        }
+    }
+
+    /** @internal — exposed for testing only */
+    public function generateNarrativePublic(array $metrics): string
+    {
+        return $this->generateNarrative($metrics);
     }
 }

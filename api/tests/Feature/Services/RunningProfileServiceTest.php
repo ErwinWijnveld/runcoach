@@ -9,6 +9,9 @@ use App\Services\Strava\StravaClient;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Mockery;
 use OpenAI\Client;
+use OpenAI\Contracts\ClientContract as OpenAIClientContract;
+use OpenAI\Contracts\Resources\ChatContract;
+use OpenAI\Responses\Chat\CreateResponse as ChatCreateResponse;
 use Tests\TestCase;
 
 class RunningProfileServiceTest extends TestCase
@@ -60,5 +63,46 @@ class RunningProfileServiceTest extends TestCase
         $this->assertEquals(0, $profile->metrics['total_runs_12mo']);
         $this->assertEquals(0.0, $profile->metrics['weekly_avg_km']);
         $this->assertEquals(0, $profile->metrics['consistency_score']);
+    }
+
+    public function test_generate_narrative_uses_openai_with_metrics_context(): void
+    {
+        $metrics = [
+            'weekly_avg_km' => 25.0,
+            'weekly_avg_runs' => 3,
+            'consistency_score' => 85,
+            'long_run_trend' => 'improving',
+            'pace_trend' => 'flat',
+        ];
+
+        $openai = Mockery::mock(OpenAIClientContract::class);
+        $chat = Mockery::mock(ChatContract::class);
+        $openai->shouldReceive('chat')->andReturn($chat);
+        $chat->shouldReceive('create')->once()->withArgs(function ($args) use ($metrics) {
+            $prompt = json_encode($args);
+
+            return str_contains($prompt, (string) $metrics['weekly_avg_km'])
+                && str_contains($prompt, 'improving');
+        })->andReturn(ChatCreateResponse::fake([
+            'choices' => [['message' => ['role' => 'assistant', 'content' => 'Strong consistent year.']]],
+        ]));
+
+        $service = new RunningProfileService(app(StravaClient::class), $openai);
+        $narrative = $service->generateNarrativePublic($metrics);
+
+        $this->assertEquals('Strong consistent year.', $narrative);
+    }
+
+    public function test_generate_narrative_falls_back_on_openai_failure(): void
+    {
+        $openai = Mockery::mock(OpenAIClientContract::class);
+        $chat = Mockery::mock(ChatContract::class);
+        $openai->shouldReceive('chat')->andReturn($chat);
+        $chat->shouldReceive('create')->andThrow(new \Exception('API down'));
+
+        $service = new RunningProfileService(app(StravaClient::class), $openai);
+        $narrative = $service->generateNarrativePublic(['weekly_avg_km' => 10]);
+
+        $this->assertEquals("Here's your last 12 months.", $narrative);
     }
 }
