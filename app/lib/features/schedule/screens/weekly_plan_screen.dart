@@ -34,7 +34,7 @@ class WeeklyPlanScreen extends ConsumerWidget {
                 loading: () => const AppSpinner(),
                 error: (err, _) => AppErrorState(title: 'Error: $err'),
                 data: (dashboard) {
-                  final race = dashboard.activeRace;
+                  final race = dashboard.activeGoal;
                   if (race == null) {
                     return _EmptyState(onCreate: () => context.go('/coach'));
                   }

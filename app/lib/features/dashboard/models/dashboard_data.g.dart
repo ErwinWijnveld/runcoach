@@ -15,9 +15,9 @@ _DashboardData _$DashboardDataFromJson(
   nextTraining: json['next_training'] == null
       ? null
       : TrainingDay.fromJson(json['next_training'] as Map<String, dynamic>),
-  activeRace: json['active_race'] == null
+  activeGoal: json['active_goal'] == null
       ? null
-      : ActiveRaceSummary.fromJson(json['active_race'] as Map<String, dynamic>),
+      : ActiveGoalSummary.fromJson(json['active_goal'] as Map<String, dynamic>),
   coachInsight: json['coach_insight'] as String?,
 );
 
@@ -25,7 +25,7 @@ Map<String, dynamic> _$DashboardDataToJson(_DashboardData instance) =>
     <String, dynamic>{
       'weekly_summary': instance.weeklySummary,
       'next_training': instance.nextTraining,
-      'active_race': instance.activeRace,
+      'active_goal': instance.activeGoal,
       'coach_insight': instance.coachInsight,
     };
 
@@ -47,20 +47,22 @@ Map<String, dynamic> _$WeeklySummaryToJson(_WeeklySummary instance) =>
       'compliance_avg': instance.complianceAvg,
     };
 
-_ActiveRaceSummary _$ActiveRaceSummaryFromJson(Map<String, dynamic> json) =>
-    _ActiveRaceSummary(
+_ActiveGoalSummary _$ActiveGoalSummaryFromJson(Map<String, dynamic> json) =>
+    _ActiveGoalSummary(
       id: (json['id'] as num).toInt(),
+      type: json['type'] as String,
       name: json['name'] as String,
-      distance: json['distance'] as String,
-      targetDate: json['target_date'] as String,
-      weeksUntilRace: toInt(json['weeks_until_race']),
+      distance: json['distance'] as String?,
+      targetDate: json['target_date'] as String?,
+      weeksUntilTargetDate: toIntOrNull(json['weeks_until_target_date']),
     );
 
-Map<String, dynamic> _$ActiveRaceSummaryToJson(_ActiveRaceSummary instance) =>
+Map<String, dynamic> _$ActiveGoalSummaryToJson(_ActiveGoalSummary instance) =>
     <String, dynamic>{
       'id': instance.id,
+      'type': instance.type,
       'name': instance.name,
       'distance': instance.distance,
       'target_date': instance.targetDate,
-      'weeks_until_race': instance.weeksUntilRace,
+      'weeks_until_target_date': instance.weeksUntilTargetDate,
     };

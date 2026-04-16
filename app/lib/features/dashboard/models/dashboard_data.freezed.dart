@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$DashboardData {
 
-@JsonKey(name: 'weekly_summary') WeeklySummary? get weeklySummary;@JsonKey(name: 'next_training') TrainingDay? get nextTraining;@JsonKey(name: 'active_race') ActiveRaceSummary? get activeRace;@JsonKey(name: 'coach_insight') String? get coachInsight;
+@JsonKey(name: 'weekly_summary') WeeklySummary? get weeklySummary;@JsonKey(name: 'next_training') TrainingDay? get nextTraining;@JsonKey(name: 'active_goal') ActiveGoalSummary? get activeGoal;@JsonKey(name: 'coach_insight') String? get coachInsight;
 /// Create a copy of DashboardData
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $DashboardDataCopyWith<DashboardData> get copyWith => _$DashboardDataCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DashboardData&&(identical(other.weeklySummary, weeklySummary) || other.weeklySummary == weeklySummary)&&(identical(other.nextTraining, nextTraining) || other.nextTraining == nextTraining)&&(identical(other.activeRace, activeRace) || other.activeRace == activeRace)&&(identical(other.coachInsight, coachInsight) || other.coachInsight == coachInsight));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DashboardData&&(identical(other.weeklySummary, weeklySummary) || other.weeklySummary == weeklySummary)&&(identical(other.nextTraining, nextTraining) || other.nextTraining == nextTraining)&&(identical(other.activeGoal, activeGoal) || other.activeGoal == activeGoal)&&(identical(other.coachInsight, coachInsight) || other.coachInsight == coachInsight));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,weeklySummary,nextTraining,activeRace,coachInsight);
+int get hashCode => Object.hash(runtimeType,weeklySummary,nextTraining,activeGoal,coachInsight);
 
 @override
 String toString() {
-  return 'DashboardData(weeklySummary: $weeklySummary, nextTraining: $nextTraining, activeRace: $activeRace, coachInsight: $coachInsight)';
+  return 'DashboardData(weeklySummary: $weeklySummary, nextTraining: $nextTraining, activeGoal: $activeGoal, coachInsight: $coachInsight)';
 }
 
 
@@ -48,11 +48,11 @@ abstract mixin class $DashboardDataCopyWith<$Res>  {
   factory $DashboardDataCopyWith(DashboardData value, $Res Function(DashboardData) _then) = _$DashboardDataCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'weekly_summary') WeeklySummary? weeklySummary,@JsonKey(name: 'next_training') TrainingDay? nextTraining,@JsonKey(name: 'active_race') ActiveRaceSummary? activeRace,@JsonKey(name: 'coach_insight') String? coachInsight
+@JsonKey(name: 'weekly_summary') WeeklySummary? weeklySummary,@JsonKey(name: 'next_training') TrainingDay? nextTraining,@JsonKey(name: 'active_goal') ActiveGoalSummary? activeGoal,@JsonKey(name: 'coach_insight') String? coachInsight
 });
 
 
-$WeeklySummaryCopyWith<$Res>? get weeklySummary;$TrainingDayCopyWith<$Res>? get nextTraining;$ActiveRaceSummaryCopyWith<$Res>? get activeRace;
+$WeeklySummaryCopyWith<$Res>? get weeklySummary;$TrainingDayCopyWith<$Res>? get nextTraining;$ActiveGoalSummaryCopyWith<$Res>? get activeGoal;
 
 }
 /// @nodoc
@@ -65,12 +65,12 @@ class _$DashboardDataCopyWithImpl<$Res>
 
 /// Create a copy of DashboardData
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? weeklySummary = freezed,Object? nextTraining = freezed,Object? activeRace = freezed,Object? coachInsight = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? weeklySummary = freezed,Object? nextTraining = freezed,Object? activeGoal = freezed,Object? coachInsight = freezed,}) {
   return _then(_self.copyWith(
 weeklySummary: freezed == weeklySummary ? _self.weeklySummary : weeklySummary // ignore: cast_nullable_to_non_nullable
 as WeeklySummary?,nextTraining: freezed == nextTraining ? _self.nextTraining : nextTraining // ignore: cast_nullable_to_non_nullable
-as TrainingDay?,activeRace: freezed == activeRace ? _self.activeRace : activeRace // ignore: cast_nullable_to_non_nullable
-as ActiveRaceSummary?,coachInsight: freezed == coachInsight ? _self.coachInsight : coachInsight // ignore: cast_nullable_to_non_nullable
+as TrainingDay?,activeGoal: freezed == activeGoal ? _self.activeGoal : activeGoal // ignore: cast_nullable_to_non_nullable
+as ActiveGoalSummary?,coachInsight: freezed == coachInsight ? _self.coachInsight : coachInsight // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -102,13 +102,13 @@ $TrainingDayCopyWith<$Res>? get nextTraining {
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$ActiveRaceSummaryCopyWith<$Res>? get activeRace {
-    if (_self.activeRace == null) {
+$ActiveGoalSummaryCopyWith<$Res>? get activeGoal {
+    if (_self.activeGoal == null) {
     return null;
   }
 
-  return $ActiveRaceSummaryCopyWith<$Res>(_self.activeRace!, (value) {
-    return _then(_self.copyWith(activeRace: value));
+  return $ActiveGoalSummaryCopyWith<$Res>(_self.activeGoal!, (value) {
+    return _then(_self.copyWith(activeGoal: value));
   });
 }
 }
@@ -189,10 +189,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'weekly_summary')  WeeklySummary? weeklySummary, @JsonKey(name: 'next_training')  TrainingDay? nextTraining, @JsonKey(name: 'active_race')  ActiveRaceSummary? activeRace, @JsonKey(name: 'coach_insight')  String? coachInsight)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'weekly_summary')  WeeklySummary? weeklySummary, @JsonKey(name: 'next_training')  TrainingDay? nextTraining, @JsonKey(name: 'active_goal')  ActiveGoalSummary? activeGoal, @JsonKey(name: 'coach_insight')  String? coachInsight)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DashboardData() when $default != null:
-return $default(_that.weeklySummary,_that.nextTraining,_that.activeRace,_that.coachInsight);case _:
+return $default(_that.weeklySummary,_that.nextTraining,_that.activeGoal,_that.coachInsight);case _:
   return orElse();
 
 }
@@ -210,10 +210,10 @@ return $default(_that.weeklySummary,_that.nextTraining,_that.activeRace,_that.co
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'weekly_summary')  WeeklySummary? weeklySummary, @JsonKey(name: 'next_training')  TrainingDay? nextTraining, @JsonKey(name: 'active_race')  ActiveRaceSummary? activeRace, @JsonKey(name: 'coach_insight')  String? coachInsight)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'weekly_summary')  WeeklySummary? weeklySummary, @JsonKey(name: 'next_training')  TrainingDay? nextTraining, @JsonKey(name: 'active_goal')  ActiveGoalSummary? activeGoal, @JsonKey(name: 'coach_insight')  String? coachInsight)  $default,) {final _that = this;
 switch (_that) {
 case _DashboardData():
-return $default(_that.weeklySummary,_that.nextTraining,_that.activeRace,_that.coachInsight);}
+return $default(_that.weeklySummary,_that.nextTraining,_that.activeGoal,_that.coachInsight);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -227,10 +227,10 @@ return $default(_that.weeklySummary,_that.nextTraining,_that.activeRace,_that.co
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'weekly_summary')  WeeklySummary? weeklySummary, @JsonKey(name: 'next_training')  TrainingDay? nextTraining, @JsonKey(name: 'active_race')  ActiveRaceSummary? activeRace, @JsonKey(name: 'coach_insight')  String? coachInsight)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'weekly_summary')  WeeklySummary? weeklySummary, @JsonKey(name: 'next_training')  TrainingDay? nextTraining, @JsonKey(name: 'active_goal')  ActiveGoalSummary? activeGoal, @JsonKey(name: 'coach_insight')  String? coachInsight)?  $default,) {final _that = this;
 switch (_that) {
 case _DashboardData() when $default != null:
-return $default(_that.weeklySummary,_that.nextTraining,_that.activeRace,_that.coachInsight);case _:
+return $default(_that.weeklySummary,_that.nextTraining,_that.activeGoal,_that.coachInsight);case _:
   return null;
 
 }
@@ -242,12 +242,12 @@ return $default(_that.weeklySummary,_that.nextTraining,_that.activeRace,_that.co
 @JsonSerializable()
 
 class _DashboardData implements DashboardData {
-  const _DashboardData({@JsonKey(name: 'weekly_summary') this.weeklySummary, @JsonKey(name: 'next_training') this.nextTraining, @JsonKey(name: 'active_race') this.activeRace, @JsonKey(name: 'coach_insight') this.coachInsight});
+  const _DashboardData({@JsonKey(name: 'weekly_summary') this.weeklySummary, @JsonKey(name: 'next_training') this.nextTraining, @JsonKey(name: 'active_goal') this.activeGoal, @JsonKey(name: 'coach_insight') this.coachInsight});
   factory _DashboardData.fromJson(Map<String, dynamic> json) => _$DashboardDataFromJson(json);
 
 @override@JsonKey(name: 'weekly_summary') final  WeeklySummary? weeklySummary;
 @override@JsonKey(name: 'next_training') final  TrainingDay? nextTraining;
-@override@JsonKey(name: 'active_race') final  ActiveRaceSummary? activeRace;
+@override@JsonKey(name: 'active_goal') final  ActiveGoalSummary? activeGoal;
 @override@JsonKey(name: 'coach_insight') final  String? coachInsight;
 
 /// Create a copy of DashboardData
@@ -263,16 +263,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DashboardData&&(identical(other.weeklySummary, weeklySummary) || other.weeklySummary == weeklySummary)&&(identical(other.nextTraining, nextTraining) || other.nextTraining == nextTraining)&&(identical(other.activeRace, activeRace) || other.activeRace == activeRace)&&(identical(other.coachInsight, coachInsight) || other.coachInsight == coachInsight));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DashboardData&&(identical(other.weeklySummary, weeklySummary) || other.weeklySummary == weeklySummary)&&(identical(other.nextTraining, nextTraining) || other.nextTraining == nextTraining)&&(identical(other.activeGoal, activeGoal) || other.activeGoal == activeGoal)&&(identical(other.coachInsight, coachInsight) || other.coachInsight == coachInsight));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,weeklySummary,nextTraining,activeRace,coachInsight);
+int get hashCode => Object.hash(runtimeType,weeklySummary,nextTraining,activeGoal,coachInsight);
 
 @override
 String toString() {
-  return 'DashboardData(weeklySummary: $weeklySummary, nextTraining: $nextTraining, activeRace: $activeRace, coachInsight: $coachInsight)';
+  return 'DashboardData(weeklySummary: $weeklySummary, nextTraining: $nextTraining, activeGoal: $activeGoal, coachInsight: $coachInsight)';
 }
 
 
@@ -283,11 +283,11 @@ abstract mixin class _$DashboardDataCopyWith<$Res> implements $DashboardDataCopy
   factory _$DashboardDataCopyWith(_DashboardData value, $Res Function(_DashboardData) _then) = __$DashboardDataCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'weekly_summary') WeeklySummary? weeklySummary,@JsonKey(name: 'next_training') TrainingDay? nextTraining,@JsonKey(name: 'active_race') ActiveRaceSummary? activeRace,@JsonKey(name: 'coach_insight') String? coachInsight
+@JsonKey(name: 'weekly_summary') WeeklySummary? weeklySummary,@JsonKey(name: 'next_training') TrainingDay? nextTraining,@JsonKey(name: 'active_goal') ActiveGoalSummary? activeGoal,@JsonKey(name: 'coach_insight') String? coachInsight
 });
 
 
-@override $WeeklySummaryCopyWith<$Res>? get weeklySummary;@override $TrainingDayCopyWith<$Res>? get nextTraining;@override $ActiveRaceSummaryCopyWith<$Res>? get activeRace;
+@override $WeeklySummaryCopyWith<$Res>? get weeklySummary;@override $TrainingDayCopyWith<$Res>? get nextTraining;@override $ActiveGoalSummaryCopyWith<$Res>? get activeGoal;
 
 }
 /// @nodoc
@@ -300,12 +300,12 @@ class __$DashboardDataCopyWithImpl<$Res>
 
 /// Create a copy of DashboardData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? weeklySummary = freezed,Object? nextTraining = freezed,Object? activeRace = freezed,Object? coachInsight = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? weeklySummary = freezed,Object? nextTraining = freezed,Object? activeGoal = freezed,Object? coachInsight = freezed,}) {
   return _then(_DashboardData(
 weeklySummary: freezed == weeklySummary ? _self.weeklySummary : weeklySummary // ignore: cast_nullable_to_non_nullable
 as WeeklySummary?,nextTraining: freezed == nextTraining ? _self.nextTraining : nextTraining // ignore: cast_nullable_to_non_nullable
-as TrainingDay?,activeRace: freezed == activeRace ? _self.activeRace : activeRace // ignore: cast_nullable_to_non_nullable
-as ActiveRaceSummary?,coachInsight: freezed == coachInsight ? _self.coachInsight : coachInsight // ignore: cast_nullable_to_non_nullable
+as TrainingDay?,activeGoal: freezed == activeGoal ? _self.activeGoal : activeGoal // ignore: cast_nullable_to_non_nullable
+as ActiveGoalSummary?,coachInsight: freezed == coachInsight ? _self.coachInsight : coachInsight // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -338,13 +338,13 @@ $TrainingDayCopyWith<$Res>? get nextTraining {
 /// with the given fields replaced by the non-null parameter values.
 @override
 @pragma('vm:prefer-inline')
-$ActiveRaceSummaryCopyWith<$Res>? get activeRace {
-    if (_self.activeRace == null) {
+$ActiveGoalSummaryCopyWith<$Res>? get activeGoal {
+    if (_self.activeGoal == null) {
     return null;
   }
 
-  return $ActiveRaceSummaryCopyWith<$Res>(_self.activeRace!, (value) {
-    return _then(_self.copyWith(activeRace: value));
+  return $ActiveGoalSummaryCopyWith<$Res>(_self.activeGoal!, (value) {
+    return _then(_self.copyWith(activeGoal: value));
   });
 }
 }
@@ -620,42 +620,42 @@ as double?,
 
 
 /// @nodoc
-mixin _$ActiveRaceSummary {
+mixin _$ActiveGoalSummary {
 
- int get id; String get name; String get distance;@JsonKey(name: 'target_date') String get targetDate;@JsonKey(name: 'weeks_until_race', fromJson: toInt) int get weeksUntilRace;
-/// Create a copy of ActiveRaceSummary
+ int get id; String get type; String get name; String? get distance;@JsonKey(name: 'target_date') String? get targetDate;@JsonKey(name: 'weeks_until_target_date', fromJson: toIntOrNull) int? get weeksUntilTargetDate;
+/// Create a copy of ActiveGoalSummary
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-$ActiveRaceSummaryCopyWith<ActiveRaceSummary> get copyWith => _$ActiveRaceSummaryCopyWithImpl<ActiveRaceSummary>(this as ActiveRaceSummary, _$identity);
+$ActiveGoalSummaryCopyWith<ActiveGoalSummary> get copyWith => _$ActiveGoalSummaryCopyWithImpl<ActiveGoalSummary>(this as ActiveGoalSummary, _$identity);
 
-  /// Serializes this ActiveRaceSummary to a JSON map.
+  /// Serializes this ActiveGoalSummary to a JSON map.
   Map<String, dynamic> toJson();
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ActiveRaceSummary&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.distance, distance) || other.distance == distance)&&(identical(other.targetDate, targetDate) || other.targetDate == targetDate)&&(identical(other.weeksUntilRace, weeksUntilRace) || other.weeksUntilRace == weeksUntilRace));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ActiveGoalSummary&&(identical(other.id, id) || other.id == id)&&(identical(other.type, type) || other.type == type)&&(identical(other.name, name) || other.name == name)&&(identical(other.distance, distance) || other.distance == distance)&&(identical(other.targetDate, targetDate) || other.targetDate == targetDate)&&(identical(other.weeksUntilTargetDate, weeksUntilTargetDate) || other.weeksUntilTargetDate == weeksUntilTargetDate));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,distance,targetDate,weeksUntilRace);
+int get hashCode => Object.hash(runtimeType,id,type,name,distance,targetDate,weeksUntilTargetDate);
 
 @override
 String toString() {
-  return 'ActiveRaceSummary(id: $id, name: $name, distance: $distance, targetDate: $targetDate, weeksUntilRace: $weeksUntilRace)';
+  return 'ActiveGoalSummary(id: $id, type: $type, name: $name, distance: $distance, targetDate: $targetDate, weeksUntilTargetDate: $weeksUntilTargetDate)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class $ActiveRaceSummaryCopyWith<$Res>  {
-  factory $ActiveRaceSummaryCopyWith(ActiveRaceSummary value, $Res Function(ActiveRaceSummary) _then) = _$ActiveRaceSummaryCopyWithImpl;
+abstract mixin class $ActiveGoalSummaryCopyWith<$Res>  {
+  factory $ActiveGoalSummaryCopyWith(ActiveGoalSummary value, $Res Function(ActiveGoalSummary) _then) = _$ActiveGoalSummaryCopyWithImpl;
 @useResult
 $Res call({
- int id, String name, String distance,@JsonKey(name: 'target_date') String targetDate,@JsonKey(name: 'weeks_until_race', fromJson: toInt) int weeksUntilRace
+ int id, String type, String name, String? distance,@JsonKey(name: 'target_date') String? targetDate,@JsonKey(name: 'weeks_until_target_date', fromJson: toIntOrNull) int? weeksUntilTargetDate
 });
 
 
@@ -663,31 +663,32 @@ $Res call({
 
 }
 /// @nodoc
-class _$ActiveRaceSummaryCopyWithImpl<$Res>
-    implements $ActiveRaceSummaryCopyWith<$Res> {
-  _$ActiveRaceSummaryCopyWithImpl(this._self, this._then);
+class _$ActiveGoalSummaryCopyWithImpl<$Res>
+    implements $ActiveGoalSummaryCopyWith<$Res> {
+  _$ActiveGoalSummaryCopyWithImpl(this._self, this._then);
 
-  final ActiveRaceSummary _self;
-  final $Res Function(ActiveRaceSummary) _then;
+  final ActiveGoalSummary _self;
+  final $Res Function(ActiveGoalSummary) _then;
 
-/// Create a copy of ActiveRaceSummary
+/// Create a copy of ActiveGoalSummary
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? distance = null,Object? targetDate = null,Object? weeksUntilRace = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? type = null,Object? name = null,Object? distance = freezed,Object? targetDate = freezed,Object? weeksUntilTargetDate = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,distance: null == distance ? _self.distance : distance // ignore: cast_nullable_to_non_nullable
-as String,targetDate: null == targetDate ? _self.targetDate : targetDate // ignore: cast_nullable_to_non_nullable
-as String,weeksUntilRace: null == weeksUntilRace ? _self.weeksUntilRace : weeksUntilRace // ignore: cast_nullable_to_non_nullable
-as int,
+as int,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,distance: freezed == distance ? _self.distance : distance // ignore: cast_nullable_to_non_nullable
+as String?,targetDate: freezed == targetDate ? _self.targetDate : targetDate // ignore: cast_nullable_to_non_nullable
+as String?,weeksUntilTargetDate: freezed == weeksUntilTargetDate ? _self.weeksUntilTargetDate : weeksUntilTargetDate // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 
 }
 
 
-/// Adds pattern-matching-related methods to [ActiveRaceSummary].
-extension ActiveRaceSummaryPatterns on ActiveRaceSummary {
+/// Adds pattern-matching-related methods to [ActiveGoalSummary].
+extension ActiveGoalSummaryPatterns on ActiveGoalSummary {
 /// A variant of `map` that fallback to returning `orElse`.
 ///
 /// It is equivalent to doing:
@@ -700,10 +701,10 @@ extension ActiveRaceSummaryPatterns on ActiveRaceSummary {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ActiveRaceSummary value)?  $default,{required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ActiveGoalSummary value)?  $default,{required TResult orElse(),}){
 final _that = this;
 switch (_that) {
-case _ActiveRaceSummary() when $default != null:
+case _ActiveGoalSummary() when $default != null:
 return $default(_that);case _:
   return orElse();
 
@@ -722,10 +723,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ActiveRaceSummary value)  $default,){
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ActiveGoalSummary value)  $default,){
 final _that = this;
 switch (_that) {
-case _ActiveRaceSummary():
+case _ActiveGoalSummary():
 return $default(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
@@ -740,10 +741,10 @@ return $default(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ActiveRaceSummary value)?  $default,){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ActiveGoalSummary value)?  $default,){
 final _that = this;
 switch (_that) {
-case _ActiveRaceSummary() when $default != null:
+case _ActiveGoalSummary() when $default != null:
 return $default(_that);case _:
   return null;
 
@@ -761,10 +762,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name,  String distance, @JsonKey(name: 'target_date')  String targetDate, @JsonKey(name: 'weeks_until_race', fromJson: toInt)  int weeksUntilRace)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String type,  String name,  String? distance, @JsonKey(name: 'target_date')  String? targetDate, @JsonKey(name: 'weeks_until_target_date', fromJson: toIntOrNull)  int? weeksUntilTargetDate)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
-case _ActiveRaceSummary() when $default != null:
-return $default(_that.id,_that.name,_that.distance,_that.targetDate,_that.weeksUntilRace);case _:
+case _ActiveGoalSummary() when $default != null:
+return $default(_that.id,_that.type,_that.name,_that.distance,_that.targetDate,_that.weeksUntilTargetDate);case _:
   return orElse();
 
 }
@@ -782,10 +783,10 @@ return $default(_that.id,_that.name,_that.distance,_that.targetDate,_that.weeksU
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name,  String distance, @JsonKey(name: 'target_date')  String targetDate, @JsonKey(name: 'weeks_until_race', fromJson: toInt)  int weeksUntilRace)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String type,  String name,  String? distance, @JsonKey(name: 'target_date')  String? targetDate, @JsonKey(name: 'weeks_until_target_date', fromJson: toIntOrNull)  int? weeksUntilTargetDate)  $default,) {final _that = this;
 switch (_that) {
-case _ActiveRaceSummary():
-return $default(_that.id,_that.name,_that.distance,_that.targetDate,_that.weeksUntilRace);}
+case _ActiveGoalSummary():
+return $default(_that.id,_that.type,_that.name,_that.distance,_that.targetDate,_that.weeksUntilTargetDate);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -799,10 +800,10 @@ return $default(_that.id,_that.name,_that.distance,_that.targetDate,_that.weeksU
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name,  String distance, @JsonKey(name: 'target_date')  String targetDate, @JsonKey(name: 'weeks_until_race', fromJson: toInt)  int weeksUntilRace)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String type,  String name,  String? distance, @JsonKey(name: 'target_date')  String? targetDate, @JsonKey(name: 'weeks_until_target_date', fromJson: toIntOrNull)  int? weeksUntilTargetDate)?  $default,) {final _that = this;
 switch (_that) {
-case _ActiveRaceSummary() when $default != null:
-return $default(_that.id,_that.name,_that.distance,_that.targetDate,_that.weeksUntilRace);case _:
+case _ActiveGoalSummary() when $default != null:
+return $default(_that.id,_that.type,_that.name,_that.distance,_that.targetDate,_that.weeksUntilTargetDate);case _:
   return null;
 
 }
@@ -813,50 +814,51 @@ return $default(_that.id,_that.name,_that.distance,_that.targetDate,_that.weeksU
 /// @nodoc
 @JsonSerializable()
 
-class _ActiveRaceSummary implements ActiveRaceSummary {
-  const _ActiveRaceSummary({required this.id, required this.name, required this.distance, @JsonKey(name: 'target_date') required this.targetDate, @JsonKey(name: 'weeks_until_race', fromJson: toInt) required this.weeksUntilRace});
-  factory _ActiveRaceSummary.fromJson(Map<String, dynamic> json) => _$ActiveRaceSummaryFromJson(json);
+class _ActiveGoalSummary implements ActiveGoalSummary {
+  const _ActiveGoalSummary({required this.id, required this.type, required this.name, this.distance, @JsonKey(name: 'target_date') this.targetDate, @JsonKey(name: 'weeks_until_target_date', fromJson: toIntOrNull) this.weeksUntilTargetDate});
+  factory _ActiveGoalSummary.fromJson(Map<String, dynamic> json) => _$ActiveGoalSummaryFromJson(json);
 
 @override final  int id;
+@override final  String type;
 @override final  String name;
-@override final  String distance;
-@override@JsonKey(name: 'target_date') final  String targetDate;
-@override@JsonKey(name: 'weeks_until_race', fromJson: toInt) final  int weeksUntilRace;
+@override final  String? distance;
+@override@JsonKey(name: 'target_date') final  String? targetDate;
+@override@JsonKey(name: 'weeks_until_target_date', fromJson: toIntOrNull) final  int? weeksUntilTargetDate;
 
-/// Create a copy of ActiveRaceSummary
+/// Create a copy of ActiveGoalSummary
 /// with the given fields replaced by the non-null parameter values.
 @override @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-_$ActiveRaceSummaryCopyWith<_ActiveRaceSummary> get copyWith => __$ActiveRaceSummaryCopyWithImpl<_ActiveRaceSummary>(this, _$identity);
+_$ActiveGoalSummaryCopyWith<_ActiveGoalSummary> get copyWith => __$ActiveGoalSummaryCopyWithImpl<_ActiveGoalSummary>(this, _$identity);
 
 @override
 Map<String, dynamic> toJson() {
-  return _$ActiveRaceSummaryToJson(this, );
+  return _$ActiveGoalSummaryToJson(this, );
 }
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ActiveRaceSummary&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.distance, distance) || other.distance == distance)&&(identical(other.targetDate, targetDate) || other.targetDate == targetDate)&&(identical(other.weeksUntilRace, weeksUntilRace) || other.weeksUntilRace == weeksUntilRace));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ActiveGoalSummary&&(identical(other.id, id) || other.id == id)&&(identical(other.type, type) || other.type == type)&&(identical(other.name, name) || other.name == name)&&(identical(other.distance, distance) || other.distance == distance)&&(identical(other.targetDate, targetDate) || other.targetDate == targetDate)&&(identical(other.weeksUntilTargetDate, weeksUntilTargetDate) || other.weeksUntilTargetDate == weeksUntilTargetDate));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,distance,targetDate,weeksUntilRace);
+int get hashCode => Object.hash(runtimeType,id,type,name,distance,targetDate,weeksUntilTargetDate);
 
 @override
 String toString() {
-  return 'ActiveRaceSummary(id: $id, name: $name, distance: $distance, targetDate: $targetDate, weeksUntilRace: $weeksUntilRace)';
+  return 'ActiveGoalSummary(id: $id, type: $type, name: $name, distance: $distance, targetDate: $targetDate, weeksUntilTargetDate: $weeksUntilTargetDate)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class _$ActiveRaceSummaryCopyWith<$Res> implements $ActiveRaceSummaryCopyWith<$Res> {
-  factory _$ActiveRaceSummaryCopyWith(_ActiveRaceSummary value, $Res Function(_ActiveRaceSummary) _then) = __$ActiveRaceSummaryCopyWithImpl;
+abstract mixin class _$ActiveGoalSummaryCopyWith<$Res> implements $ActiveGoalSummaryCopyWith<$Res> {
+  factory _$ActiveGoalSummaryCopyWith(_ActiveGoalSummary value, $Res Function(_ActiveGoalSummary) _then) = __$ActiveGoalSummaryCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String name, String distance,@JsonKey(name: 'target_date') String targetDate,@JsonKey(name: 'weeks_until_race', fromJson: toInt) int weeksUntilRace
+ int id, String type, String name, String? distance,@JsonKey(name: 'target_date') String? targetDate,@JsonKey(name: 'weeks_until_target_date', fromJson: toIntOrNull) int? weeksUntilTargetDate
 });
 
 
@@ -864,23 +866,24 @@ $Res call({
 
 }
 /// @nodoc
-class __$ActiveRaceSummaryCopyWithImpl<$Res>
-    implements _$ActiveRaceSummaryCopyWith<$Res> {
-  __$ActiveRaceSummaryCopyWithImpl(this._self, this._then);
+class __$ActiveGoalSummaryCopyWithImpl<$Res>
+    implements _$ActiveGoalSummaryCopyWith<$Res> {
+  __$ActiveGoalSummaryCopyWithImpl(this._self, this._then);
 
-  final _ActiveRaceSummary _self;
-  final $Res Function(_ActiveRaceSummary) _then;
+  final _ActiveGoalSummary _self;
+  final $Res Function(_ActiveGoalSummary) _then;
 
-/// Create a copy of ActiveRaceSummary
+/// Create a copy of ActiveGoalSummary
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? distance = null,Object? targetDate = null,Object? weeksUntilRace = null,}) {
-  return _then(_ActiveRaceSummary(
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? type = null,Object? name = null,Object? distance = freezed,Object? targetDate = freezed,Object? weeksUntilTargetDate = freezed,}) {
+  return _then(_ActiveGoalSummary(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
-as String,distance: null == distance ? _self.distance : distance // ignore: cast_nullable_to_non_nullable
-as String,targetDate: null == targetDate ? _self.targetDate : targetDate // ignore: cast_nullable_to_non_nullable
-as String,weeksUntilRace: null == weeksUntilRace ? _self.weeksUntilRace : weeksUntilRace // ignore: cast_nullable_to_non_nullable
-as int,
+as int,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,distance: freezed == distance ? _self.distance : distance // ignore: cast_nullable_to_non_nullable
+as String?,targetDate: freezed == targetDate ? _self.targetDate : targetDate // ignore: cast_nullable_to_non_nullable
+as String?,weeksUntilTargetDate: freezed == weeksUntilTargetDate ? _self.weeksUntilTargetDate : weeksUntilTargetDate // ignore: cast_nullable_to_non_nullable
+as int?,
   ));
 }
 
