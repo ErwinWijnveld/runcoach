@@ -8,6 +8,7 @@ use App\Ai\Tools\GetComplianceReport;
 use App\Ai\Tools\GetCurrentSchedule;
 use App\Ai\Tools\GetGoalInfo;
 use App\Ai\Tools\GetRecentRuns;
+use App\Ai\Tools\GetRunningProfile;
 use App\Ai\Tools\ModifySchedule;
 use App\Ai\Tools\SearchStravaActivities;
 use App\Models\User;
@@ -49,6 +50,12 @@ class RunCoachAgent implements Agent, Conversational, HasTools
 
         Pick the right Strava tool for the question — don't guess dates for simple cases.
 
+        **Running profile snapshot (get_running_profile):**
+        - Use for: "What's my running profile?", "How fit am I?", "What's my typical mileage?", initial fitness assessment before building a plan.
+        - Fast cached lookup — no Strava API call. Returns weekly averages, typical pace, consistency score, trends, and a narrative summary over the last 12 months.
+        - DO NOT use for date-range queries like "how was last April?" — use search_strava_activities for those.
+        - If no profile is cached, the response will tell you — fall back to search_strava_activities.
+
         **Recent runs (get_recent_runs):**
         - Use for: "last run", "my recent runs", "how was this morning?", "show me my last N runs".
         - Parameter: `limit` (null = 10 runs, max 50).
@@ -71,6 +78,12 @@ class RunCoachAgent implements Agent, Conversational, HasTools
         - Every listed run in those tools' responses includes an `id` field — use that.
         - Returns `splits_metric` (auto 1km splits with pace + HR + elevation per km), `laps` (if the athlete recorded them), and summary stats.
         - DO NOT call `get_activity_details` without a valid id — it needs a specific run to look up.
+
+        **Goal types:** Goals can have `type` of `race`, `general_fitness`, or `pr_attempt`.
+        - For `general_fitness`: `target_date` and `distance` may both be null (open-ended).
+        - For `pr_attempt`: `target_date` can be null, but `distance` is required.
+        - For `race`: both `target_date` and `distance` are typically set.
+        - Always set `goal_type` when calling create_schedule.
 
         **Training plans (create_schedule):**
         Before creating a plan, you MUST go through this process:
@@ -110,6 +123,7 @@ class RunCoachAgent implements Agent, Conversational, HasTools
     public function tools(): iterable
     {
         return [
+            new GetRunningProfile($this->user),
             new GetRecentRuns($this->user, app(StravaSyncService::class)),
             new SearchStravaActivities($this->user, app(StravaSyncService::class)),
             new GetActivityDetails($this->user, app(StravaSyncService::class)),

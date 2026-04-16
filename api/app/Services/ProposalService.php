@@ -77,6 +77,32 @@ class ProposalService
             'status' => ProposalStatus::Accepted,
             'applied_at' => now(),
         ]);
+
+        $this->maybeCompleteOnboarding($proposal, $user);
+    }
+
+    private function maybeCompleteOnboarding(CoachProposal $proposal, User $user): void
+    {
+        if ($user->has_completed_onboarding) {
+            return;
+        }
+
+        $conversationId = DB::table('agent_conversation_messages')
+            ->where('id', $proposal->agent_message_id)
+            ->value('conversation_id');
+
+        if (! $conversationId) {
+            return;
+        }
+
+        $context = DB::table('agent_conversations')
+            ->where('id', $conversationId)
+            ->value('context');
+
+        if ($context === 'onboarding') {
+            $user->has_completed_onboarding = true;
+            $user->save();
+        }
     }
 
     private function applyCreateSchedule(User $user, array $payload): void
