@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Jobs\AnalyzeRunningProfileJob;
 use App\Jobs\RunOnboardingPlanAgentJob;
 use App\Models\User;
+use App\Services\ChipClassifier;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -13,6 +14,10 @@ use Illuminate\Support\Str;
 
 class OnboardingController extends Controller
 {
+    public function __construct(
+        private readonly ChipClassifier $chipClassifier,
+    ) {}
+
     public function reply(Request $request, string $conversationId): JsonResponse
     {
         $validated = $request->validate([
@@ -78,6 +83,17 @@ class OnboardingController extends Controller
             $branch = $chipValue ?? $this->resolveChip($text, ['race', 'general_fitness', 'pr_attempt', 'skip']);
 
             if ($branch === null) {
+                $base = now();
+                $appended[] = $this->appendAssistant($conversationId, 'text', "I didn't quite catch that — which of these matches?", [], $base->copy());
+                $appended[] = $this->appendAssistant($conversationId, 'chip_suggestions', '', [
+                    'chips' => [
+                        ['label' => 'Race coming up!', 'value' => 'race'],
+                        ['label' => 'General fitness', 'value' => 'general_fitness'],
+                        ['label' => 'Get faster', 'value' => 'pr_attempt'],
+                        ['label' => 'Not sure yet', 'value' => 'skip'],
+                    ],
+                ], $base->copy()->addSecond());
+
                 return $appended;
             }
 
@@ -135,8 +151,21 @@ class OnboardingController extends Controller
         }
 
         if ($step === 'awaiting_fitness_days') {
-            $days = (int) ($chipValue ?? $this->resolveChip($text, ['2', '3', '4', '5', '6']));
+            $resolved = $chipValue ?? $this->resolveChip($text, ['2', '3', '4', '5', '6']);
+            $days = (int) $resolved;
             if ($days < 2 || $days > 6) {
+                $base = now();
+                $appended[] = $this->appendAssistant($conversationId, 'text', "I didn't quite catch that — how many days per week can you run?", [], $base->copy());
+                $appended[] = $this->appendAssistant($conversationId, 'chip_suggestions', '', [
+                    'chips' => [
+                        ['label' => '2 days', 'value' => '2'],
+                        ['label' => '3 days', 'value' => '3'],
+                        ['label' => '4 days', 'value' => '4'],
+                        ['label' => '5 days', 'value' => '5'],
+                        ['label' => '6 days', 'value' => '6'],
+                    ],
+                ], $base->copy()->addSecond());
+
                 return $appended;
             }
 
@@ -154,11 +183,20 @@ class OnboardingController extends Controller
         }
 
         if ($step === 'awaiting_faster_distance') {
-            // Note: resolveChip uses substring matching, so '5k'/'10k' work fine with chip_value.
-            // Text like 'half marathon' won't match 'half_marathon' by substring — the LLM classifier
-            // in a later task will handle fuzzy text. chip_value is always used in practice.
             $distance = $chipValue ?? $this->resolveChip($text, ['5k', '10k', 'half_marathon', 'marathon', 'custom']);
             if ($distance === null) {
+                $base = now();
+                $appended[] = $this->appendAssistant($conversationId, 'text', "I didn't quite catch that — what distance do you want to get faster at?", [], $base->copy());
+                $appended[] = $this->appendAssistant($conversationId, 'chip_suggestions', '', [
+                    'chips' => [
+                        ['label' => '5k', 'value' => '5k'],
+                        ['label' => '10k', 'value' => '10k'],
+                        ['label' => 'Half marathon', 'value' => 'half_marathon'],
+                        ['label' => 'Marathon', 'value' => 'marathon'],
+                        ['label' => 'Custom', 'value' => 'custom'],
+                    ],
+                ], $base->copy()->addSecond());
+
                 return $appended;
             }
 
@@ -185,8 +223,21 @@ class OnboardingController extends Controller
         }
 
         if ($step === 'awaiting_faster_days') {
-            $days = (int) ($chipValue ?? $this->resolveChip($text, ['2', '3', '4', '5', '6']));
+            $resolved = $chipValue ?? $this->resolveChip($text, ['2', '3', '4', '5', '6']);
+            $days = (int) $resolved;
             if ($days < 2 || $days > 6) {
+                $base = now();
+                $appended[] = $this->appendAssistant($conversationId, 'text', "I didn't quite catch that — how many days per week?", [], $base->copy());
+                $appended[] = $this->appendAssistant($conversationId, 'chip_suggestions', '', [
+                    'chips' => [
+                        ['label' => '2 days', 'value' => '2'],
+                        ['label' => '3 days', 'value' => '3'],
+                        ['label' => '4 days', 'value' => '4'],
+                        ['label' => '5 days', 'value' => '5'],
+                        ['label' => '6 days', 'value' => '6'],
+                    ],
+                ], $base->copy()->addSecond());
+
                 return $appended;
             }
 
@@ -206,6 +257,16 @@ class OnboardingController extends Controller
         if ($step === 'awaiting_coach_style') {
             $coachStyle = $chipValue ?? $this->resolveChip($text, ['strict', 'balanced', 'flexible']);
             if ($coachStyle === null) {
+                $base = now();
+                $appended[] = $this->appendAssistant($conversationId, 'text', "I didn't quite catch that — how do you want me to coach you?", [], $base->copy());
+                $appended[] = $this->appendAssistant($conversationId, 'chip_suggestions', '', [
+                    'chips' => [
+                        ['label' => 'Strict — hold me to it', 'value' => 'strict'],
+                        ['label' => 'Balanced', 'value' => 'balanced'],
+                        ['label' => 'Flexible — adapt to my life', 'value' => 'flexible'],
+                    ],
+                ], $base->copy()->addSecond());
+
                 return $appended;
             }
 
@@ -241,19 +302,19 @@ class OnboardingController extends Controller
             .'Send me something like: "City 10K, 12th of september 2025, goal 55:00, 4 days/week"';
     }
 
-    /**
-     * Stub: lowercase substring match. Full LLM classifier in later task.
-     */
-    private function resolveChip(string $text, array $expected): ?string
+    private function resolveChip(string $text, array $expectedValues): ?string
     {
         $normalized = strtolower(trim($text));
-        foreach ($expected as $value) {
-            if (str_contains($normalized, $value)) {
+
+        foreach ($expectedValues as $value) {
+            if ($normalized === strtolower($value) || str_contains($normalized, strtolower($value))) {
                 return $value;
             }
         }
 
-        return null;
+        $chips = array_map(fn ($v) => ['label' => $v, 'value' => $v], $expectedValues);
+
+        return $this->chipClassifier->classify($text, $chips);
     }
 
     private function appendAssistant(string $conversationId, string $type, string $content = '', array $payload = [], ?Carbon $at = null): \stdClass
