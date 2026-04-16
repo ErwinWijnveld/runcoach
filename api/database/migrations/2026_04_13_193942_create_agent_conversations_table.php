@@ -15,6 +15,7 @@ return new class extends AiMigration
             $table->string('id', 36)->primary();
             $table->foreignId('user_id')->nullable();
             $table->string('title');
+            $table->string('context')->nullable()->index();
             $table->timestamps();
 
             $table->index(['user_id', 'updated_at']);

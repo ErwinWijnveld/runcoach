@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Enums\RaceStatus;
+use App\Enums\GoalStatus;
 use App\Enums\TrainingType;
-use App\Models\Race;
+use App\Models\Goal;
 use App\Models\StravaActivity;
 use App\Models\TrainingDay;
 use App\Models\TrainingWeek;
@@ -28,12 +28,12 @@ class ComplianceScoringTest extends TestCase
     private function createUserWithPlan(array $dayOverrides = []): array
     {
         $user = User::factory()->create();
-        $race = Race::factory()->create([
+        $goal = Goal::factory()->create([
             'user_id' => $user->id,
-            'status' => RaceStatus::Active,
+            'status' => GoalStatus::Active,
         ]);
         $week = TrainingWeek::factory()->create([
-            'race_id' => $race->id,
+            'goal_id' => $goal->id,
             'starts_at' => now()->startOfWeek(),
         ]);
         $day = TrainingDay::factory()->create(array_merge([

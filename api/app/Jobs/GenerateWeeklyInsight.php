@@ -20,7 +20,7 @@ class GenerateWeeklyInsight implements ShouldQueue
 
     public function handle(): void
     {
-        $week = TrainingWeek::with('trainingDays.result', 'race')->find($this->trainingWeekId);
+        $week = TrainingWeek::with('trainingDays.result', 'goal')->find($this->trainingWeekId);
 
         if (! $week) {
             return;
@@ -37,7 +37,7 @@ class GenerateWeeklyInsight implements ShouldQueue
         $sessionsCompleted = $completedDays->count();
         $sessionsTotal = $week->trainingDays->count();
 
-        $context = "Week {$week->week_number} ({$week->focus}) for {$week->race->name}. "
+        $context = "Week {$week->week_number} ({$week->focus}) for {$week->goal->name}. "
             ."Completed {$sessionsCompleted}/{$sessionsTotal} sessions, {$totalKm}km total. "
             ."Average compliance: {$avgScore}/10. "
             ."Planned total: {$week->total_km}km.";

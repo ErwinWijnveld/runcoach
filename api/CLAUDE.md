@@ -200,7 +200,7 @@ The coach uses **Laravel AI SDK** (`laravel/ai`) — NOT a custom OpenAI wrapper
   - `SearchStravaActivities` — queries Strava API for a date range (NOT local DB), auto-paginates, returns aggregates + individual runs
   - `GetActivityDetails` — per-km splits, laps, HR summary for a single activity (requires `activity_id` from one of the listing tools)
   - `GetCurrentSchedule` — active training schedule with compliance
-  - `GetRaceInfo` — race details + readiness
+  - `GetGoalInfo` — goal details + readiness
   - `GetComplianceReport` — compliance breakdown + trends
   - `CreateSchedule` — proposes new training plan (requires approval)
   - `ModifySchedule` — proposes schedule changes (requires approval)
@@ -223,16 +223,16 @@ The coach uses **Laravel AI SDK** (`laravel/ai`) — NOT a custom OpenAI wrapper
 
 10 Eloquent models with factories, using Laravel 13 `#[Fillable]` attribute syntax (NOT `$fillable` property):
 - `User`, `StravaToken`, `StravaActivity`
-- `Race` → `TrainingWeek` → `TrainingDay` → `TrainingResult`
+- `Goal` → `TrainingWeek` → `TrainingDay` → `TrainingResult`
 - `CoachProposal` (with `agent_message_id` FK to SDK's messages table, `user_id` FK to users)
 
-All enums are in `app/Enums/` as PHP 8.1 backed enums: `CoachStyle`, `MessageRole`, `ProposalStatus`, `ProposalType`, `RaceDistance`, `RaceStatus`, `RunnerLevel`, `TrainingType`.
+All enums are in `app/Enums/` as PHP 8.1 backed enums: `CoachStyle`, `MessageRole`, `ProposalStatus`, `ProposalType`, `GoalDistance`, `GoalStatus`, `TrainingType`.
 
 ### API Structure
 
 All routes under `/api/v1/*` prefix in `routes/api.php`. Public routes: Strava OAuth + webhooks. Everything else requires `auth:sanctum`.
 
-Controllers live in `app/Http/Controllers/`: Auth, Profile, Race, TrainingSchedule, Strava, StravaWebhook, Coach, Dashboard.
+Controllers live in `app/Http/Controllers/`: Auth, Profile, Goal, TrainingSchedule, Strava, StravaWebhook, Coach, Dashboard.
 
 ## Project-specific conventions
 

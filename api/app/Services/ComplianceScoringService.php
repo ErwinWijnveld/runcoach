@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Enums\RaceStatus;
+use App\Enums\GoalStatus;
 use App\Enums\TrainingType;
 use App\Models\StravaActivity;
 use App\Models\TrainingDay;
@@ -52,9 +52,9 @@ class ComplianceScoringService
 
     private function findMatchingDay(User $user, StravaActivity $activity): ?TrainingDay
     {
-        $candidates = TrainingDay::whereHas('trainingWeek.race', function ($query) use ($user) {
+        $candidates = TrainingDay::whereHas('trainingWeek.goal', function ($query) use ($user) {
             $query->where('user_id', $user->id)
-                ->where('status', RaceStatus::Active);
+                ->where('status', GoalStatus::Active);
         })
             ->whereDoesntHave('result')
             ->whereBetween('date', [

@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
+use App\Enums\GoalStatus;
 use App\Enums\ProposalStatus;
 use App\Enums\ProposalType;
-use App\Enums\RaceStatus;
 use App\Models\CoachProposal;
 use App\Models\TrainingDay;
 use App\Models\User;
@@ -80,22 +80,21 @@ class ProposalService
 
     private function applyCreateSchedule(User $user, array $payload): void
     {
-        $race = $user->races()->create([
-            'name' => $payload['race_name'],
-            'distance' => $payload['distance'],
+        $goal = $user->goals()->create([
+            'type' => $payload['goal_type'] ?? 'race',
+            'name' => $payload['goal_name'],
+            'distance' => $payload['distance'] ?? null,
             'goal_time_seconds' => $payload['goal_time_seconds'] ?? null,
-            'race_date' => $payload['race_date'],
-            'status' => RaceStatus::Active,
+            'target_date' => $payload['target_date'] ?? null,
+            'status' => GoalStatus::Active,
         ]);
 
         $weeks = $payload['schedule']['weeks'] ?? [];
 
         foreach ($weeks as $weekData) {
-            $startsAt = Carbon::parse($payload['race_date'])
-                ->subWeeks(count($weeks) - $weekData['week_number'] + 1)
-                ->startOfWeek();
+            $startsAt = $this->resolveWeekStart($payload['target_date'] ?? null, count($weeks), $weekData['week_number']);
 
-            $week = $race->trainingWeeks()->create([
+            $week = $goal->trainingWeeks()->create([
                 'week_number' => $weekData['week_number'],
                 'starts_at' => $startsAt,
                 'total_km' => $weekData['total_km'],
@@ -117,10 +116,23 @@ class ProposalService
         }
     }
 
+    private function resolveWeekStart(?string $targetDate, int $totalWeeks, int $weekNumber): Carbon
+    {
+        if ($targetDate !== null) {
+            return Carbon::parse($targetDate)
+                ->subWeeks($totalWeeks - $weekNumber + 1)
+                ->startOfWeek();
+        }
+
+        return now()
+            ->addWeeks($weekNumber - 1)
+            ->startOfWeek();
+    }
+
     private function applyModifySchedule(User $user, array $payload): void
     {
         foreach ($payload['changes'] ?? [] as $change) {
-            $day = TrainingDay::whereHas('trainingWeek.race', fn ($q) => $q->where('user_id', $user->id))
+            $day = TrainingDay::whereHas('trainingWeek.goal', fn ($q) => $q->where('user_id', $user->id))
                 ->find($change['training_day_id']);
 
             if ($day) {
@@ -138,8 +150,8 @@ class ProposalService
 
     private function applyAlternativeWeek(User $user, array $payload): void
     {
-        $race = $user->races()->findOrFail($payload['race_id']);
-        $week = $race->trainingWeeks()->where('week_number', $payload['week_number'])->firstOrFail();
+        $goal = $user->goals()->findOrFail($payload['goal_id']);
+        $week = $goal->trainingWeeks()->where('week_number', $payload['week_number'])->firstOrFail();
 
         $week->trainingDays()->whereDoesntHave('result')->delete();
 

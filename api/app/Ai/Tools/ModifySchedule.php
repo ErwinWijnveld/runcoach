@@ -2,7 +2,7 @@
 
 namespace App\Ai\Tools;
 
-use App\Enums\RaceStatus;
+use App\Enums\GoalStatus;
 use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -26,13 +26,13 @@ class ModifySchedule implements Tool
 
     public function handle(Request $request): string
     {
-        $race = $this->user->races()->where('status', RaceStatus::Active)->latest()->first();
+        $goal = $this->user->goals()->where('status', GoalStatus::Active)->latest()->first();
 
         return json_encode([
             'requires_approval' => true,
             'proposal_type' => 'modify_schedule',
             'payload' => [
-                'race_id' => $race?->id,
+                'goal_id' => $goal?->id,
                 'changes' => json_decode($request['changes'], true) ?? [],
             ],
         ]);

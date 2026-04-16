@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Race;
+use App\Models\Goal;
 use App\Models\TrainingDay;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class TrainingScheduleController extends Controller
 {
-    public function schedule(Request $request, Race $race): JsonResponse
+    public function schedule(Request $request, Goal $goal): JsonResponse
     {
-        abort_unless($race->user_id === $request->user()->id, 403);
+        abort_unless($goal->user_id === $request->user()->id, 403);
 
-        $weeks = $race->trainingWeeks()
+        $weeks = $goal->trainingWeeks()
             ->with('trainingDays.result')
             ->orderBy('week_number')
             ->get();
@@ -21,11 +21,11 @@ class TrainingScheduleController extends Controller
         return response()->json(['data' => $weeks]);
     }
 
-    public function currentWeek(Request $request, Race $race): JsonResponse
+    public function currentWeek(Request $request, Goal $goal): JsonResponse
     {
-        abort_unless($race->user_id === $request->user()->id, 403);
+        abort_unless($goal->user_id === $request->user()->id, 403);
 
-        $week = $race->trainingWeeks()
+        $week = $goal->trainingWeeks()
             ->with('trainingDays.result')
             ->where('starts_at', '<=', now())
             ->orderByDesc('starts_at')
@@ -36,7 +36,7 @@ class TrainingScheduleController extends Controller
 
     public function showDay(Request $request, int $dayId): JsonResponse
     {
-        $day = TrainingDay::whereHas('trainingWeek.race', function ($query) use ($request) {
+        $day = TrainingDay::whereHas('trainingWeek.goal', function ($query) use ($request) {
             $query->where('user_id', $request->user()->id);
         })->with('trainingWeek', 'result')->findOrFail($dayId);
 
@@ -45,7 +45,7 @@ class TrainingScheduleController extends Controller
 
     public function dayResult(Request $request, int $dayId): JsonResponse
     {
-        $day = TrainingDay::whereHas('trainingWeek.race', function ($query) use ($request) {
+        $day = TrainingDay::whereHas('trainingWeek.goal', function ($query) use ($request) {
             $query->where('user_id', $request->user()->id);
         })->findOrFail($dayId);
 

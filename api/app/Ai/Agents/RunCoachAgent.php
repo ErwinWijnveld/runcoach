@@ -6,7 +6,7 @@ use App\Ai\Tools\CreateSchedule;
 use App\Ai\Tools\GetActivityDetails;
 use App\Ai\Tools\GetComplianceReport;
 use App\Ai\Tools\GetCurrentSchedule;
-use App\Ai\Tools\GetRaceInfo;
+use App\Ai\Tools\GetGoalInfo;
 use App\Ai\Tools\GetRecentRuns;
 use App\Ai\Tools\ModifySchedule;
 use App\Ai\Tools\SearchStravaActivities;
@@ -27,8 +27,6 @@ class RunCoachAgent implements Agent, Conversational, HasTools
     public function instructions(): string
     {
         $style = $this->user->coach_style?->value ?? 'balanced';
-        $level = $this->user->level?->value ?? 'not yet assessed';
-        $capacity = $this->user->weekly_km_capacity ?? 'not yet assessed';
         $today = now()->format('Y-m-d (l)');
 
         return <<<PROMPT
@@ -36,8 +34,7 @@ class RunCoachAgent implements Agent, Conversational, HasTools
 
         ## Your runner
         - Coach style preference: {$style}
-        - Level: {$level}
-        - Weekly capacity: {$capacity} km
+        - Fitness level and weekly volume: derive these from the runner's Strava history — call get_recent_runs or search_strava_activities before giving advice.
 
         ## Your coaching style
         Adapt your tone to "{$style}":
@@ -77,12 +74,12 @@ class RunCoachAgent implements Agent, Conversational, HasTools
 
         **Training plans (create_schedule):**
         Before creating a plan, you MUST go through this process:
-        1. **Ask about the race** — What race? What distance? When is it? Any goal time?
+        1. **Ask about the goal** — Is this training for a specific race, general fitness, or a personal-record attempt? If race: what race, what distance, when? Any target time? For general fitness: what are they trying to build (base, consistency, volume)?
         2. **Gather fitness data** — Call search_strava_activities for the last 8-12 weeks (after_date = today minus 84 days, before_date = today) to assess current fitness: weekly volume, avg pace, long run distance, consistency.
         3. **Assess readiness** — Based on the data, determine their current level, safe starting volume, and how much time they have.
         4. **Present your analysis** — Tell the runner what you found: "Based on your last 12 weeks, you're averaging X km/week at Y pace. Your longest run was Z km. For a half marathon in 10 weeks, I'd recommend..."
         5. **Get confirmation** — Ask if the approach sounds good before generating the full plan.
-        6. **Generate the plan** — Only then call create_schedule with the full week-by-week plan tailored to their data.
+        6. **Generate the plan** — Only then call create_schedule with the full week-by-week plan tailored to their data. Pass `goal_type` as `race`, `general_fitness`, or `pr_attempt`. `distance` and `target_date` can be null for open-ended general-fitness goals.
 
         The plan should be built on their actual fitness. If they average 20km/week, don't start them at 50km. If their easy pace is 6:30/km, don't set targets at 5:00/km. Use THEIR numbers.
 
@@ -117,7 +114,7 @@ class RunCoachAgent implements Agent, Conversational, HasTools
             new SearchStravaActivities($this->user, app(StravaSyncService::class)),
             new GetActivityDetails($this->user, app(StravaSyncService::class)),
             new GetCurrentSchedule($this->user),
-            new GetRaceInfo($this->user),
+            new GetGoalInfo($this->user),
             new GetComplianceReport($this->user),
             new CreateSchedule,
             new ModifySchedule($this->user),

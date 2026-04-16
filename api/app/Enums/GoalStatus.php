@@ -2,7 +2,7 @@
 
 namespace App\Enums;
 
-enum RaceStatus: string
+enum GoalStatus: string
 {
     case Planning = 'planning';
     case Active = 'active';

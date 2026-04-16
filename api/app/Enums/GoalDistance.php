@@ -2,7 +2,7 @@
 
 namespace App\Enums;
 
-enum RaceDistance: string
+enum GoalDistance: string
 {
     case FiveK = '5k';
     case TenK = '10k';

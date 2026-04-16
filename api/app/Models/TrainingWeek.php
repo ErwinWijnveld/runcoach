@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['race_id', 'week_number', 'starts_at', 'total_km', 'focus', 'coach_notes'])]
+#[Fillable(['goal_id', 'week_number', 'starts_at', 'total_km', 'focus', 'coach_notes'])]
 class TrainingWeek extends Model
 {
     /** @use HasFactory<TrainingWeekFactory> */
@@ -23,9 +23,9 @@ class TrainingWeek extends Model
         ];
     }
 
-    public function race(): BelongsTo
+    public function goal(): BelongsTo
     {
-        return $this->belongsTo(Race::class);
+        return $this->belongsTo(Goal::class);
     }
 
     public function trainingDays(): HasMany

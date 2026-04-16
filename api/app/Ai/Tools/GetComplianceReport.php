@@ -2,7 +2,7 @@
 
 namespace App\Ai\Tools;
 
-use App\Enums\RaceStatus;
+use App\Enums\GoalStatus;
 use App\Models\TrainingResult;
 use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -27,13 +27,13 @@ class GetComplianceReport implements Tool
 
     public function handle(Request $request): string
     {
-        $race = $this->user->races()->where('status', RaceStatus::Active)->latest()->first();
+        $goal = $this->user->goals()->where('status', GoalStatus::Active)->latest()->first();
 
-        if (! $race) {
-            return json_encode(['message' => 'No active race found.']);
+        if (! $goal) {
+            return json_encode(['message' => 'No active goal found.']);
         }
 
-        $query = TrainingResult::whereHas('trainingDay.trainingWeek', fn ($q) => $q->where('race_id', $race->id))
+        $query = TrainingResult::whereHas('trainingDay.trainingWeek', fn ($q) => $q->where('goal_id', $goal->id))
             ->with('trainingDay');
 
         $period = $request['period'] ?? 'all';

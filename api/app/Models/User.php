@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\CoachStyle;
-use App\Enums\RunnerLevel;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -14,7 +13,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'strava_athlete_id', 'level', 'coach_style', 'weekly_km_capacity'])]
+#[Fillable(['name', 'email', 'password', 'strava_athlete_id', 'coach_style', 'has_completed_onboarding'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -26,9 +25,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'level' => RunnerLevel::class,
             'coach_style' => CoachStyle::class,
-            'weekly_km_capacity' => 'decimal:1',
+            'has_completed_onboarding' => 'boolean',
         ];
     }
 
@@ -37,9 +35,9 @@ class User extends Authenticatable
         return $this->hasOne(StravaToken::class);
     }
 
-    public function races(): HasMany
+    public function goals(): HasMany
     {
-        return $this->hasMany(Race::class);
+        return $this->hasMany(Goal::class);
     }
 
     public function stravaActivities(): HasMany

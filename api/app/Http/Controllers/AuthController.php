@@ -34,7 +34,7 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user' => $user->only(['id', 'name', 'email', 'level', 'coach_style']),
+            'user' => $user->only(['id', 'name', 'email', 'coach_style', 'has_completed_onboarding']),
         ]);
     }
 
@@ -54,7 +54,7 @@ class AuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'user' => $user->only(['id', 'name', 'email', 'level', 'coach_style']),
+            'user' => $user->only(['id', 'name', 'email', 'coach_style', 'has_completed_onboarding']),
         ]);
     }
 }

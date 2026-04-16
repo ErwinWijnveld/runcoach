@@ -2,7 +2,7 @@
 
 namespace Database\Factories;
 
-use App\Models\Race;
+use App\Models\Goal;
 use App\Models\TrainingWeek;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -19,7 +19,7 @@ class TrainingWeekFactory extends Factory
     public function definition(): array
     {
         return [
-            'race_id' => Race::factory(),
+            'goal_id' => Goal::factory(),
             'week_number' => fake()->numberBetween(1, 16),
             'starts_at' => fake()->dateTimeBetween('+1 week', '+4 months'),
             'total_km' => fake()->randomFloat(1, 15, 80),

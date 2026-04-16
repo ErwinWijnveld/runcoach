@@ -41,9 +41,10 @@ class CoachChatTest extends TestCase
         $proposal = CoachProposal::factory()->create([
             'user_id' => $user->id,
             'payload' => [
-                'race_name' => 'Test Race',
+                'goal_type' => 'race',
+                'goal_name' => 'Test Goal',
                 'distance' => 'half_marathon',
-                'race_date' => now()->addMonths(3)->toDateString(),
+                'target_date' => now()->addMonths(3)->toDateString(),
                 'schedule' => ['weeks' => []],
             ],
         ]);

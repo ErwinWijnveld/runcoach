@@ -6,29 +6,24 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('races', function (Blueprint $table) {
+        Schema::create('goals', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->string('type')->default('race'); // race | general_fitness | pr_attempt
             $table->string('name');
-            $table->string('distance');
+            $table->string('distance')->nullable(); // 5k | 10k | half_marathon | marathon | custom
             $table->unsignedInteger('custom_distance_meters')->nullable();
             $table->unsignedInteger('goal_time_seconds')->nullable();
-            $table->date('race_date');
+            $table->date('target_date')->nullable();
             $table->string('status')->default('planning');
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('races');
+        Schema::dropIfExists('goals');
     }
 };

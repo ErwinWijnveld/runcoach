@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('training_weeks', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('race_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('goal_id')->constrained('goals')->cascadeOnDelete();
             $table->unsignedInteger('week_number');
             $table->date('starts_at');
             $table->decimal('total_km', 6, 1);

@@ -16,9 +16,8 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->bigInteger('strava_athlete_id')->unique()->nullable();
-            $table->string('level')->nullable();
             $table->string('coach_style')->default('balanced');
-            $table->decimal('weekly_km_capacity', 5, 1)->nullable();
+            $table->boolean('has_completed_onboarding')->default(false);
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable();
             $table->rememberToken();

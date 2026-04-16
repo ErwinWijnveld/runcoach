@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\OnboardingRequest;
 use App\Http\Requests\UpdateProfileRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -14,7 +13,7 @@ class ProfileController extends Controller
         return response()->json([
             'user' => $request->user()->only([
                 'id', 'name', 'email', 'strava_athlete_id',
-                'level', 'coach_style', 'weekly_km_capacity',
+                'coach_style', 'has_completed_onboarding',
             ]),
         ]);
     }
@@ -26,19 +25,7 @@ class ProfileController extends Controller
         return response()->json([
             'user' => $request->user()->fresh()->only([
                 'id', 'name', 'email', 'strava_athlete_id',
-                'level', 'coach_style', 'weekly_km_capacity',
-            ]),
-        ]);
-    }
-
-    public function onboarding(OnboardingRequest $request): JsonResponse
-    {
-        $request->user()->update($request->validated());
-
-        return response()->json([
-            'user' => $request->user()->fresh()->only([
-                'id', 'name', 'email', 'strava_athlete_id',
-                'level', 'coach_style', 'weekly_km_capacity',
+                'coach_style', 'has_completed_onboarding',
             ]),
         ]);
     }
