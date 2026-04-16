@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Jobs\AnalyzeRunningProfileJob;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -74,11 +75,32 @@ class OnboardingController extends Controller
         if ($step === 'awaiting_branch') {
             $branch = $chipValue ?? $this->resolveChip($text, ['race', 'general_fitness', 'pr_attempt', 'skip']);
 
+            if ($branch === null) {
+                return $appended;
+            }
+
+            $meta['path'] = $branch;
+
             if ($branch === 'race') {
                 $appended[] = $this->appendAssistant($conversationId, 'text', $this->racePromptCopy());
                 $this->setStep($conversationId, $meta, 'awaiting_race_details');
             }
             // Other branches handled in subsequent tasks
+        }
+
+        if ($step === 'awaiting_race_details') {
+            $meta['race_details_raw'] = $text;
+
+            $base = now();
+            $appended[] = $this->appendAssistant($conversationId, 'text', 'One last thing — how do you want me to coach you?', [], $base->copy());
+            $appended[] = $this->appendAssistant($conversationId, 'chip_suggestions', '', [
+                'chips' => [
+                    ['label' => 'Strict — hold me to it', 'value' => 'strict'],
+                    ['label' => 'Balanced', 'value' => 'balanced'],
+                    ['label' => 'Flexible — adapt to my life', 'value' => 'flexible'],
+                ],
+            ], $base->copy()->addSecond());
+            $this->setStep($conversationId, $meta, 'awaiting_coach_style');
         }
 
         return $appended;
@@ -113,10 +135,10 @@ class OnboardingController extends Controller
         return null;
     }
 
-    private function appendAssistant(string $conversationId, string $type, string $content = '', array $payload = []): \stdClass
+    private function appendAssistant(string $conversationId, string $type, string $content = '', array $payload = [], ?Carbon $at = null): \stdClass
     {
         $id = (string) Str::uuid();
-        $now = now();
+        $now = $at ?? now();
         $metaJson = json_encode([
             'message_type' => $type,
             'message_payload' => $payload,
