@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\GoalDistance;
+use App\Enums\GoalType;
 use App\Jobs\AnalyzeRunningProfileJob;
 use App\Jobs\RunOnboardingPlanAgentJob;
 use App\Models\User;
@@ -80,17 +82,16 @@ class OnboardingController extends Controller
         $appended = [];
 
         if ($step === 'awaiting_branch') {
-            $branch = $chipValue ?? $this->resolveChip($text, ['race', 'general_fitness', 'pr_attempt', 'skip']);
+            $branch = $chipValue ?? $this->resolveChip($text, GoalType::values());
 
             if ($branch === null) {
                 $base = now();
                 $appended[] = $this->appendAssistant($conversationId, 'text', "I didn't quite catch that — which of these matches?", [], $base->copy());
                 $appended[] = $this->appendAssistant($conversationId, 'chip_suggestions', '', [
                     'chips' => [
-                        ['label' => 'Race coming up!', 'value' => 'race'],
-                        ['label' => 'General fitness', 'value' => 'general_fitness'],
-                        ['label' => 'Get faster', 'value' => 'pr_attempt'],
-                        ['label' => 'Not sure yet', 'value' => 'skip'],
+                        ['label' => 'Race coming up!', 'value' => GoalType::Race->value],
+                        ['label' => 'General fitness', 'value' => GoalType::GeneralFitness->value],
+                        ['label' => 'Get faster', 'value' => GoalType::PrAttempt->value],
                     ],
                 ], $base->copy()->addSecond());
 
@@ -99,12 +100,12 @@ class OnboardingController extends Controller
 
             $meta['path'] = $branch;
 
-            if ($branch === 'race') {
+            if ($branch === GoalType::Race->value) {
                 $appended[] = $this->appendAssistant($conversationId, 'text', $this->racePromptCopy());
                 $this->setStep($conversationId, $meta, 'awaiting_race_details');
             }
 
-            if ($branch === 'general_fitness') {
+            if ($branch === GoalType::GeneralFitness->value) {
                 $base = now();
                 $appended[] = $this->appendAssistant($conversationId, 'text', "Nice — let's keep you moving. How many days per week can you run?", [], $base->copy());
                 $appended[] = $this->appendAssistant($conversationId, 'chip_suggestions', '', [
@@ -119,33 +120,15 @@ class OnboardingController extends Controller
                 $this->setStep($conversationId, $meta, 'awaiting_fitness_days');
             }
 
-            if ($branch === 'pr_attempt') {
+            if ($branch === GoalType::PrAttempt->value) {
                 $base = now();
                 $appended[] = $this->appendAssistant($conversationId, 'text', 'What distance do you want to get faster at?', [], $base->copy());
                 $appended[] = $this->appendAssistant($conversationId, 'chip_suggestions', '', [
-                    'chips' => [
-                        ['label' => '5k', 'value' => '5k'],
-                        ['label' => '10k', 'value' => '10k'],
-                        ['label' => 'Half marathon', 'value' => 'half_marathon'],
-                        ['label' => 'Marathon', 'value' => 'marathon'],
-                        ['label' => 'Custom', 'value' => 'custom'],
-                    ],
+                    'chips' => $this->distanceChips(),
                 ], $base->copy()->addSecond());
                 $this->setStep($conversationId, $meta, 'awaiting_faster_distance');
             }
 
-            if ($branch === 'skip') {
-                $userId = DB::table('agent_conversations')->where('id', $conversationId)->value('user_id');
-                $user = User::find($userId);
-                $user->has_completed_onboarding = true;
-                $user->save();
-
-                $appended[] = $this->appendAssistant($conversationId, 'text',
-                    "No stress. Your running history is in and I've got it from here. "
-                    .'Whenever you want to set a goal, just ask me — I\'ll be on the coach tab.'
-                );
-                $this->setStep($conversationId, $meta, 'abandoned');
-            }
         }
 
         if ($step === 'awaiting_race_details') {
@@ -196,18 +179,12 @@ class OnboardingController extends Controller
         }
 
         if ($step === 'awaiting_faster_distance') {
-            $distance = $chipValue ?? $this->resolveChip($text, ['5k', '10k', 'half_marathon', 'marathon', 'custom']);
+            $distance = $chipValue ?? $this->resolveChip($text, GoalDistance::values());
             if ($distance === null) {
                 $base = now();
                 $appended[] = $this->appendAssistant($conversationId, 'text', "I didn't quite catch that — what distance do you want to get faster at?", [], $base->copy());
                 $appended[] = $this->appendAssistant($conversationId, 'chip_suggestions', '', [
-                    'chips' => [
-                        ['label' => '5k', 'value' => '5k'],
-                        ['label' => '10k', 'value' => '10k'],
-                        ['label' => 'Half marathon', 'value' => 'half_marathon'],
-                        ['label' => 'Marathon', 'value' => 'marathon'],
-                        ['label' => 'Custom', 'value' => 'custom'],
-                    ],
+                    'chips' => $this->distanceChips(),
                 ], $base->copy()->addSecond());
 
                 return $appended;
@@ -298,6 +275,17 @@ class OnboardingController extends Controller
             RunOnboardingPlanAgentJob::dispatch($conversationId, $userId);
         }
 
+        if ($step === 'plan_failed' && ($chipValue === 'retry_plan' || str_contains(strtolower($text), 'retry'))) {
+            $userId = DB::table('agent_conversations')->where('id', $conversationId)->value('user_id');
+
+            $appended[] = $this->appendAssistant($conversationId, 'loading_card', '', [
+                'label' => 'Working on your plan',
+            ]);
+            $this->setStep($conversationId, $meta, 'plan_generating');
+
+            RunOnboardingPlanAgentJob::dispatch($conversationId, $userId);
+        }
+
         return $appended;
     }
 
@@ -313,6 +301,27 @@ class OnboardingController extends Controller
             ."  • How many days/week you want to run\n"
             ."  • Any injuries or days you can't train\n\n"
             .'Send me something like: "City 10K, 12th of september 2025, goal 55:00, 4 days/week"';
+    }
+
+    /**
+     * Chip options for GoalDistance — label text stays for display/i18n.
+     *
+     * @return list<array{label: string, value: string}>
+     */
+    private function distanceChips(): array
+    {
+        $labels = [
+            GoalDistance::FiveK->value => '5k',
+            GoalDistance::TenK->value => '10k',
+            GoalDistance::HalfMarathon->value => 'Half marathon',
+            GoalDistance::Marathon->value => 'Marathon',
+            GoalDistance::Custom->value => 'Custom',
+        ];
+
+        return array_map(
+            fn (GoalDistance $d) => ['label' => $labels[$d->value], 'value' => $d->value],
+            GoalDistance::cases()
+        );
     }
 
     private function resolveChip(string $text, array $expectedValues): ?string
@@ -370,6 +379,34 @@ class OnboardingController extends Controller
                 'meta' => json_encode($meta),
                 'updated_at' => now(),
             ]);
+    }
+
+    public function show(Request $request, string $conversationId): JsonResponse
+    {
+        $conversation = DB::table('agent_conversations')
+            ->where('id', $conversationId)
+            ->where('user_id', $request->user()->id)
+            ->where('context', 'onboarding')
+            ->first();
+
+        if (! $conversation) {
+            abort(404);
+        }
+
+        $messages = DB::table('agent_conversation_messages')
+            ->where('conversation_id', $conversationId)
+            ->orderBy('created_at')
+            ->get()
+            ->map(function ($msg) {
+                $msg->meta = json_decode($msg->meta, true) ?? [];
+
+                return $msg;
+            });
+
+        return response()->json([
+            'conversation_id' => $conversationId,
+            'messages' => $messages,
+        ]);
     }
 
     public function start(Request $request): JsonResponse

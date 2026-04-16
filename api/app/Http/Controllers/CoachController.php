@@ -23,6 +23,7 @@ class CoachController extends Controller
     {
         $conversations = DB::table('agent_conversations')
             ->where('user_id', $request->user()->id)
+            ->whereNull('context')
             ->orderByDesc('updated_at')
             ->get(['id', 'title', 'created_at', 'updated_at']);
 

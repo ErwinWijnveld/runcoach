@@ -53,7 +53,7 @@ class AnalyzeRunningProfileJobTest extends TestCase
             ->orderBy('created_at')
             ->get();
 
-        $this->assertCount(4, $messages);
+        $this->assertCount(4, $messages);  // text + stats_card + text + chip_suggestions
 
         $msg0Meta = json_decode($messages[0]->meta, true);
         $this->assertEquals('text', $msg0Meta['message_type']);
@@ -69,7 +69,7 @@ class AnalyzeRunningProfileJobTest extends TestCase
 
         $msg3Meta = json_decode($messages[3]->meta, true);
         $this->assertEquals('chip_suggestions', $msg3Meta['message_type']);
-        $this->assertCount(4, $msg3Meta['message_payload']['chips']);
+        $this->assertCount(3, $msg3Meta['message_payload']['chips']);
 
         $conversation = DB::table('agent_conversations')->where('id', $conversationId)->first();
         $conversationMeta = json_decode($conversation->meta, true);

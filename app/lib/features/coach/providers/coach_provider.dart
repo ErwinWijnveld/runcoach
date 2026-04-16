@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/coach/data/coach_api.dart';
 import 'package:app/features/coach/data/coach_stream_client.dart';
 import 'package:app/features/coach/models/coach_message.dart';
@@ -111,6 +112,7 @@ class CoachChat extends _$CoachChat {
   Future<void> acceptProposal(int proposalId) async {
     final api = ref.read(coachApiProvider);
     await api.acceptProposal(proposalId);
+    await ref.read(authProvider.notifier).loadProfile();
   }
 
   Future<void> rejectProposal(int proposalId) async {

@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/features/coach/providers/coach_provider.dart';
 import 'package:app/features/coach/widgets/coach_chat_view.dart';
 
 class CoachChatScreen extends ConsumerWidget {
@@ -41,7 +42,24 @@ class CoachChatScreen extends ConsumerWidget {
                 },
               ),
               Expanded(
-                child: CoachChatView(conversationId: conversationId),
+                child: CoachChatView(
+                  conversationId: conversationId,
+                  watchMessages: (ref) =>
+                      ref.watch(coachChatProvider(conversationId)),
+                  sendMessage: (ref, text, {chipValue}) => ref
+                      .read(coachChatProvider(conversationId).notifier)
+                      .sendMessage(text, chipValue: chipValue),
+                  onAccept: (ref, proposalId) async {
+                    await ref
+                        .read(coachChatProvider(conversationId).notifier)
+                        .acceptProposal(proposalId);
+                  },
+                  onReject: (ref, proposalId) async {
+                    await ref
+                        .read(coachChatProvider(conversationId).notifier)
+                        .rejectProposal(proposalId);
+                  },
+                ),
               ),
             ],
           ),

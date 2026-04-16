@@ -2,7 +2,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/runcore_logo.dart';
+import 'package:app/features/coach/providers/coach_provider.dart';
 import 'package:app/features/coach/widgets/coach_chat_view.dart';
+import 'package:app/features/onboarding/providers/onboarding_chat_provider.dart';
 import 'package:app/features/onboarding/providers/onboarding_provider.dart';
 
 class OnboardingShell extends ConsumerWidget {
@@ -36,8 +38,26 @@ class OnboardingShell extends ConsumerWidget {
               const _OnboardingTopBar(),
               Expanded(
                 child: idAsync.when(
-                  data: (id) => CoachChatView(conversationId: id),
-                  loading: () => const Center(child: CupertinoActivityIndicator()),
+                  data: (id) => CoachChatView(
+                    conversationId: id,
+                    watchMessages: (ref) =>
+                        ref.watch(onboardingChatProvider(id)),
+                    sendMessage: (ref, text, {chipValue}) => ref
+                        .read(onboardingChatProvider(id).notifier)
+                        .sendMessage(text, chipValue: chipValue),
+                    onAccept: (ref, proposalId) async {
+                      await ref
+                          .read(coachChatProvider(id).notifier)
+                          .acceptProposal(proposalId);
+                    },
+                    onReject: (ref, proposalId) async {
+                      await ref
+                          .read(coachChatProvider(id).notifier)
+                          .rejectProposal(proposalId);
+                    },
+                  ),
+                  loading: () =>
+                      const Center(child: CupertinoActivityIndicator()),
                   error: (e, _) =>
                       Center(child: Text("Couldn't start onboarding: $e")),
                 ),

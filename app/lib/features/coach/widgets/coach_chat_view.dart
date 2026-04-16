@@ -11,7 +11,19 @@ import 'package:app/features/coach/widgets/quick_action_card.dart';
 
 class CoachChatView extends ConsumerStatefulWidget {
   final String conversationId;
-  const CoachChatView({super.key, required this.conversationId});
+  final AsyncValue<List<CoachMessage>> Function(WidgetRef) watchMessages;
+  final Future<void> Function(WidgetRef, String text, {String? chipValue}) sendMessage;
+  final Future<void> Function(WidgetRef, int proposalId)? onAccept;
+  final Future<void> Function(WidgetRef, int proposalId)? onReject;
+
+  const CoachChatView({
+    super.key,
+    required this.conversationId,
+    required this.watchMessages,
+    required this.sendMessage,
+    this.onAccept,
+    this.onReject,
+  });
 
   @override
   ConsumerState<CoachChatView> createState() => _CoachChatViewState();
@@ -22,17 +34,14 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
   final _scrollController = ScrollController();
   bool _sending = false;
 
-  Future<void> _send([String? prefill]) async {
+  Future<void> _send([String? prefill, String? chipValue]) async {
     final content = prefill ?? _controller.text.trim();
     if (content.isEmpty) return;
 
     _controller.clear();
     setState(() => _sending = true);
 
-    final notifier = ref.read(
-      coachChatProvider(widget.conversationId).notifier,
-    );
-    await notifier.sendMessage(content);
+    await widget.sendMessage(ref, content, chipValue: chipValue);
 
     if (mounted) setState(() => _sending = false);
     _scrollToBottom();
@@ -65,7 +74,7 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
 
   @override
   Widget build(BuildContext context) {
-    final messagesAsync = ref.watch(coachChatProvider(widget.conversationId));
+    final messagesAsync = widget.watchMessages(ref);
 
     ref.listen<AsyncValue<List<CoachMessage>>>(
       coachChatProvider(widget.conversationId),
@@ -84,7 +93,7 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
             error: (err, _) => AppErrorState(title: 'Error: $err'),
             data: (messages) {
               if (messages.isEmpty) {
-                return _EmptyState(onQuickAction: _send);
+                return _EmptyState(onQuickAction: (text) => _send(text));
               }
               return ListView.separated(
                 controller: _scrollController,
@@ -106,29 +115,20 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
                                     .notifier)
                                 .retry(msg.id)
                             : null,
-                        onChipTap: (label, value) => ref
-                            .read(coachChatProvider(widget.conversationId)
-                                .notifier)
-                            .sendMessage(label, chipValue: value),
+                        onChipTap: (label, value) => _send(label, value),
                       ),
-                      if (msg.proposal != null) ...[
+                      if (msg.proposal != null && widget.onAccept != null) ...[
                         const SizedBox(height: 10),
                         ProposalCard(
                           proposal: msg.proposal!,
                           onAccept: () async {
-                            final notifier = ref.read(
-                              coachChatProvider(widget.conversationId).notifier,
-                            );
-                            await notifier.acceptProposal(msg.proposal!.id);
+                            await widget.onAccept!(ref, msg.proposal!.id);
                             ref.invalidate(
                               coachChatProvider(widget.conversationId),
                             );
                           },
                           onAdjust: () async {
-                            final notifier = ref.read(
-                              coachChatProvider(widget.conversationId).notifier,
-                            );
-                            await notifier.rejectProposal(msg.proposal!.id);
+                            await widget.onReject?.call(ref, msg.proposal!.id);
                             ref.invalidate(
                               coachChatProvider(widget.conversationId),
                             );

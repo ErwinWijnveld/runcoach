@@ -11,6 +11,12 @@ abstract class OnboardingApi {
 
   @POST('/onboarding/start')
   Future<dynamic> start();
+
+  @GET('/onboarding/conversations/{id}')
+  Future<dynamic> fetchConversation(@Path('id') String id);
+
+  @POST('/onboarding/conversations/{id}/messages')
+  Future<dynamic> reply(@Path('id') String id, @Body() Map<String, dynamic> body);
 }
 
 @riverpod

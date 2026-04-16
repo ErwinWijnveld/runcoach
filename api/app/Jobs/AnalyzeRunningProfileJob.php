@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Enums\GoalType;
 use App\Models\User;
 use App\Services\RunningProfileService;
 use Illuminate\Bus\Queueable;
@@ -43,10 +44,9 @@ class AnalyzeRunningProfileJob implements ShouldQueue
         $this->appendMessage($conversation->id, $conversation->user_id, 'text', "Anything you're training for, or want to work toward?");
         $this->appendMessage($conversation->id, $conversation->user_id, 'chip_suggestions', null, [
             'chips' => [
-                ['label' => 'Race coming up!', 'value' => 'race'],
-                ['label' => 'General fitness', 'value' => 'general_fitness'],
-                ['label' => 'Get faster', 'value' => 'pr_attempt'],
-                ['label' => 'Not sure yet', 'value' => 'skip'],
+                ['label' => 'Race coming up!', 'value' => GoalType::Race->value],
+                ['label' => 'General fitness', 'value' => GoalType::GeneralFitness->value],
+                ['label' => 'Get faster', 'value' => GoalType::PrAttempt->value],
             ],
         ]);
 
