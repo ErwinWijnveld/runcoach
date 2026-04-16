@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\GoalStatus;
+use App\Enums\GoalType;
 use App\Enums\ProposalStatus;
 use App\Enums\ProposalType;
 use App\Models\CoachProposal;
@@ -81,7 +82,7 @@ class ProposalService
     private function applyCreateSchedule(User $user, array $payload): void
     {
         $goal = $user->goals()->create([
-            'type' => $payload['goal_type'] ?? 'race',
+            'type' => GoalType::from($payload['goal_type'] ?? 'race'),
             'name' => $payload['goal_name'],
             'distance' => $payload['distance'] ?? null,
             'goal_time_seconds' => $payload['goal_time_seconds'] ?? null,

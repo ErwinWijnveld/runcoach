@@ -60,7 +60,7 @@ class DashboardTest extends TestCase
         $response->assertJsonStructure([
             'weekly_summary' => ['total_km_planned', 'total_km_completed', 'compliance_avg'],
             'next_training',
-            'active_goal',
+            'active_goal' => ['id', 'name', 'type', 'distance', 'target_date', 'weeks_until_target_date'],
         ]);
     }
 

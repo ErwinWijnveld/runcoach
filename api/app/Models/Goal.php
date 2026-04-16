@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\GoalDistance;
 use App\Enums\GoalStatus;
+use App\Enums\GoalType;
 use Database\Factories\GoalFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -20,6 +21,7 @@ class Goal extends Model
     protected function casts(): array
     {
         return [
+            'type' => GoalType::class,
             'distance' => GoalDistance::class,
             'target_date' => 'date',
             'goal_time_seconds' => 'integer',

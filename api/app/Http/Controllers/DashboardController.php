@@ -70,9 +70,9 @@ class DashboardController extends Controller
             'next_training' => $nextTraining,
             'active_goal' => [
                 'id' => $goal->id,
-                'type' => $goal->type,
+                'type' => $goal->type?->value,
                 'name' => $goal->name,
-                'distance' => $goal->distance,
+                'distance' => $goal->distance?->value,
                 'target_date' => $goal->target_date?->toDateString(),
                 'weeks_until_target_date' => $goal->weeksUntilTargetDate(),
             ],
