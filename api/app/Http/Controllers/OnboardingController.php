@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\AnalyzeRunningProfileJob;
+use App\Jobs\RunOnboardingPlanAgentJob;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -199,6 +201,27 @@ class OnboardingController extends Controller
                 ],
             ], $base->copy()->addSecond());
             $this->setStep($conversationId, $meta, 'awaiting_coach_style');
+        }
+
+        if ($step === 'awaiting_coach_style') {
+            $coachStyle = $chipValue ?? $this->resolveChip($text, ['strict', 'balanced', 'flexible']);
+            if ($coachStyle === null) {
+                return $appended;
+            }
+
+            $userId = DB::table('agent_conversations')->where('id', $conversationId)->value('user_id');
+            $user = User::find($userId);
+            $user->coach_style = $coachStyle;
+            $user->save();
+
+            $meta['coach_style'] = $coachStyle;
+
+            $appended[] = $this->appendAssistant($conversationId, 'loading_card', '', [
+                'label' => 'Working on your plan',
+            ]);
+            $this->setStep($conversationId, $meta, 'plan_generating');
+
+            RunOnboardingPlanAgentJob::dispatch($conversationId, $userId);
         }
 
         return $appended;
