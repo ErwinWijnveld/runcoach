@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:app/features/coach/data/coach_api.dart';
-import 'package:app/features/coach/models/conversation.dart';
+import 'package:app/features/coach/data/coach_stream_client.dart';
 import 'package:app/features/coach/models/coach_message.dart';
+import 'package:app/features/coach/models/conversation.dart';
+import 'package:app/features/coach/models/vercel_stream_event.dart';
 
 part 'coach_provider.g.dart';
 
@@ -26,7 +28,7 @@ class CoachChat extends _$CoachChat {
   }
 
   Future<void> sendMessage(String content) async {
-    final api = ref.read(coachApiProvider);
+    final stream = ref.read(coachStreamClientProvider);
     final before = state.value ?? [];
 
     final userMsg = CoachMessage(
@@ -35,23 +37,41 @@ class CoachChat extends _$CoachChat {
       content: content,
       createdAt: DateTime.now().toIso8601String(),
     );
-    state = AsyncData([...before, userMsg]);
+    var current = CoachMessage(
+      id: 'streaming-${DateTime.now().millisecondsSinceEpoch}',
+      role: 'assistant',
+      content: '',
+      createdAt: DateTime.now().toIso8601String(),
+      streaming: true,
+    );
+    state = AsyncData([...before, userMsg, current]);
 
     try {
-      final data = await api.sendMessage(conversationId, {'content': content});
-      final responseData = data['data'] as Map<String, dynamic>;
-      final msgData = responseData['message'] as Map<String, dynamic>?;
-      if (msgData != null) {
-        final assistantMsg = CoachMessage(
-          id: 'resp-${DateTime.now().millisecondsSinceEpoch}',
-          role: msgData['role'] as String? ?? 'assistant',
-          content: msgData['content'] as String? ?? '',
-          createdAt: DateTime.now().toIso8601String(),
-        );
-        state = AsyncData([...before, userMsg, assistantMsg]);
+      await for (final event in stream.streamMessage(conversationId, content)) {
+        current = switch (event) {
+          TextDeltaEvent(:final delta) => current.copyWith(
+              content: current.content + delta,
+              toolIndicator: null,
+            ),
+          ToolStartEvent(:final toolName) =>
+            current.copyWith(toolIndicator: toolName),
+          ToolEndEvent() => current,
+          ProposalEvent(:final proposal) => current.copyWith(proposal: proposal),
+          ErrorEvent(:final message) => current.copyWith(
+              errorDetail: message,
+              streaming: false,
+            ),
+          DoneEvent() =>
+            current.copyWith(streaming: false, toolIndicator: null),
+        };
+        state = AsyncData([...before, userMsg, current]);
       }
     } catch (e) {
-      state = AsyncData([...before, userMsg.copyWith(errorDetail: _humanize(e))]);
+      state = AsyncData([
+        ...before,
+        userMsg,
+        current.copyWith(streaming: false, errorDetail: _humanize(e)),
+      ]);
     }
   }
 

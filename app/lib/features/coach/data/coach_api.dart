@@ -18,12 +18,6 @@ abstract class CoachApi {
   @GET('/coach/conversations/{id}')
   Future<dynamic> getConversation(@Path() String id);
 
-  @POST('/coach/conversations/{id}/messages')
-  Future<dynamic> sendMessage(
-    @Path() String id,
-    @Body() Map<String, dynamic> body,
-  );
-
   @POST('/coach/proposals/{id}/accept')
   Future<void> acceptProposal(@Path() int id);
 
