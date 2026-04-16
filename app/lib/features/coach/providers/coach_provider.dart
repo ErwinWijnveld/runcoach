@@ -18,6 +18,8 @@ Future<List<Conversation>> conversations(Ref ref) async {
 
 @riverpod
 class CoachChat extends _$CoachChat {
+  bool _isStreaming = false;
+
   @override
   Future<List<CoachMessage>> build(String conversationId) async {
     final api = ref.read(coachApiProvider);
@@ -28,50 +30,57 @@ class CoachChat extends _$CoachChat {
   }
 
   Future<void> sendMessage(String content) async {
-    final stream = ref.read(coachStreamClientProvider);
-    final before = state.value ?? [];
-
-    final userMsg = CoachMessage(
-      id: 'temp-${DateTime.now().millisecondsSinceEpoch}',
-      role: 'user',
-      content: content,
-      createdAt: DateTime.now().toIso8601String(),
-    );
-    var current = CoachMessage(
-      id: 'streaming-${DateTime.now().millisecondsSinceEpoch}',
-      role: 'assistant',
-      content: '',
-      createdAt: DateTime.now().toIso8601String(),
-      streaming: true,
-    );
-    state = AsyncData([...before, userMsg, current]);
+    if (_isStreaming) return;
+    _isStreaming = true;
 
     try {
-      await for (final event in stream.streamMessage(conversationId, content)) {
-        current = switch (event) {
-          TextDeltaEvent(:final delta) => current.copyWith(
-              content: current.content + delta,
-              toolIndicator: null,
-            ),
-          ToolStartEvent(:final toolName) =>
-            current.copyWith(toolIndicator: toolName),
-          ToolEndEvent() => current,
-          ProposalEvent(:final proposal) => current.copyWith(proposal: proposal),
-          ErrorEvent(:final message) => current.copyWith(
-              errorDetail: message,
-              streaming: false,
-            ),
-          DoneEvent() =>
-            current.copyWith(streaming: false, toolIndicator: null),
-        };
-        state = AsyncData([...before, userMsg, current]);
+      final stream = ref.read(coachStreamClientProvider);
+      final before = state.value ?? [];
+
+      final userMsg = CoachMessage(
+        id: 'temp-${DateTime.now().millisecondsSinceEpoch}',
+        role: 'user',
+        content: content,
+        createdAt: DateTime.now().toIso8601String(),
+      );
+      var current = CoachMessage(
+        id: 'streaming-${DateTime.now().millisecondsSinceEpoch}',
+        role: 'assistant',
+        content: '',
+        createdAt: DateTime.now().toIso8601String(),
+        streaming: true,
+      );
+      state = AsyncData([...before, userMsg, current]);
+
+      try {
+        await for (final event in stream.streamMessage(conversationId, content)) {
+          current = switch (event) {
+            TextDeltaEvent(:final delta) => current.copyWith(
+                content: current.content + delta,
+                toolIndicator: null,
+              ),
+            ToolStartEvent(:final toolName) =>
+              current.copyWith(toolIndicator: toolName),
+            ToolEndEvent() => current,
+            ProposalEvent(:final proposal) => current.copyWith(proposal: proposal),
+            ErrorEvent(:final message) => current.copyWith(
+                errorDetail: message,
+                streaming: false,
+              ),
+            DoneEvent() =>
+              current.copyWith(streaming: false, toolIndicator: null),
+          };
+          state = AsyncData([...before, userMsg, current]);
+        }
+      } catch (e) {
+        state = AsyncData([
+          ...before,
+          userMsg,
+          current.copyWith(streaming: false, errorDetail: _humanize(e)),
+        ]);
       }
-    } catch (e) {
-      state = AsyncData([
-        ...before,
-        userMsg,
-        current.copyWith(streaming: false, errorDetail: _humanize(e)),
-      ]);
+    } finally {
+      _isStreaming = false;
     }
   }
 

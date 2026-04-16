@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
@@ -15,6 +17,15 @@ class _FakeStreamClient extends CoachStreamClient {
   Stream<VercelStreamEvent> streamMessage(String conversationId, String content) {
     return Stream.fromIterable(events);
   }
+}
+
+class _ControlledFakeStreamClient extends CoachStreamClient {
+  final Stream<VercelStreamEvent> events;
+  _ControlledFakeStreamClient(this.events) : super(Dio());
+
+  @override
+  Stream<VercelStreamEvent> streamMessage(String conversationId, String content) =>
+      events;
 }
 
 class _FakeCoachApi implements CoachApi {
@@ -132,5 +143,37 @@ void main() {
     expect(assistant.errorDetail, 'boom');
     expect(assistant.streaming, false);
     expect(assistant.content, 'partial');
+  });
+
+  test('second concurrent sendMessage is dropped while first is streaming',
+      () async {
+    final controller = StreamController<VercelStreamEvent>();
+
+    final container = ProviderContainer(overrides: [
+      coachStreamClientProvider.overrideWithValue(
+        _ControlledFakeStreamClient(controller.stream),
+      ),
+      coachApiProvider.overrideWithValue(_FakeCoachApi()),
+    ]);
+    addTearDown(container.dispose);
+
+    final notifier = container.read(coachChatProvider('conv-1').notifier);
+    await container.read(coachChatProvider('conv-1').future);
+
+    final first = notifier.sendMessage('first');
+    // Second call while stream is open — should be dropped silently.
+    final second = notifier.sendMessage('second');
+    await second; // returns immediately because of guard
+
+    // Only the first user msg + streaming placeholder should be present.
+    final messagesDuring = container.read(coachChatProvider('conv-1')).value!;
+    expect(messagesDuring.where((m) => m.role == 'user').length, 1);
+    expect(messagesDuring.first.content, 'first');
+
+    // Close the first stream and let it finish.
+    controller.add(const VercelStreamEvent.textDelta('done'));
+    controller.add(const VercelStreamEvent.done());
+    await controller.close();
+    await first;
   });
 }
