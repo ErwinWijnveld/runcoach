@@ -44,4 +44,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(StravaActivity::class);
     }
+
+    public function runningProfile(): HasOne
+    {
+        return $this->hasOne(UserRunningProfile::class);
+    }
 }
