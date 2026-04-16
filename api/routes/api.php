@@ -49,6 +49,7 @@ Route::prefix('v1')->group(function () {
         // Onboarding
         Route::prefix('onboarding')->group(function () {
             Route::post('/start', [OnboardingController::class, 'start']);
+            Route::post('/conversations/{conversationId}/messages', [OnboardingController::class, 'reply']);
         });
 
         // AI Coach
