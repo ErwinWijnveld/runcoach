@@ -10,6 +10,8 @@ sealed class CoachMessage with _$CoachMessage {
     required String id,
     required String role,
     required String content,
+    @JsonKey(name: 'message_type') @Default('text') String messageType,
+    @JsonKey(name: 'message_payload') Map<String, dynamic>? messagePayload,
     @JsonKey(name: 'created_at') required String createdAt,
     CoachProposal? proposal,
     @JsonKey(includeFromJson: false, includeToJson: false) String? errorDetail,

@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$CoachMessage {
 
- String get id; String get role; String get content;@JsonKey(name: 'created_at') String get createdAt; CoachProposal? get proposal;@JsonKey(includeFromJson: false, includeToJson: false) String? get errorDetail;@JsonKey(includeFromJson: false, includeToJson: false) bool get streaming;@JsonKey(includeFromJson: false, includeToJson: false) String? get toolIndicator;
+ String get id; String get role; String get content;@JsonKey(name: 'message_type') String get messageType;@JsonKey(name: 'message_payload') Map<String, dynamic>? get messagePayload;@JsonKey(name: 'created_at') String get createdAt; CoachProposal? get proposal;@JsonKey(includeFromJson: false, includeToJson: false) String? get errorDetail;@JsonKey(includeFromJson: false, includeToJson: false) bool get streaming;@JsonKey(includeFromJson: false, includeToJson: false) String? get toolIndicator;
 /// Create a copy of CoachMessage
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $CoachMessageCopyWith<CoachMessage> get copyWith => _$CoachMessageCopyWithImpl<C
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CoachMessage&&(identical(other.id, id) || other.id == id)&&(identical(other.role, role) || other.role == role)&&(identical(other.content, content) || other.content == content)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.proposal, proposal) || other.proposal == proposal)&&(identical(other.errorDetail, errorDetail) || other.errorDetail == errorDetail)&&(identical(other.streaming, streaming) || other.streaming == streaming)&&(identical(other.toolIndicator, toolIndicator) || other.toolIndicator == toolIndicator));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CoachMessage&&(identical(other.id, id) || other.id == id)&&(identical(other.role, role) || other.role == role)&&(identical(other.content, content) || other.content == content)&&(identical(other.messageType, messageType) || other.messageType == messageType)&&const DeepCollectionEquality().equals(other.messagePayload, messagePayload)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.proposal, proposal) || other.proposal == proposal)&&(identical(other.errorDetail, errorDetail) || other.errorDetail == errorDetail)&&(identical(other.streaming, streaming) || other.streaming == streaming)&&(identical(other.toolIndicator, toolIndicator) || other.toolIndicator == toolIndicator));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,role,content,createdAt,proposal,errorDetail,streaming,toolIndicator);
+int get hashCode => Object.hash(runtimeType,id,role,content,messageType,const DeepCollectionEquality().hash(messagePayload),createdAt,proposal,errorDetail,streaming,toolIndicator);
 
 @override
 String toString() {
-  return 'CoachMessage(id: $id, role: $role, content: $content, createdAt: $createdAt, proposal: $proposal, errorDetail: $errorDetail, streaming: $streaming, toolIndicator: $toolIndicator)';
+  return 'CoachMessage(id: $id, role: $role, content: $content, messageType: $messageType, messagePayload: $messagePayload, createdAt: $createdAt, proposal: $proposal, errorDetail: $errorDetail, streaming: $streaming, toolIndicator: $toolIndicator)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $CoachMessageCopyWith<$Res>  {
   factory $CoachMessageCopyWith(CoachMessage value, $Res Function(CoachMessage) _then) = _$CoachMessageCopyWithImpl;
 @useResult
 $Res call({
- String id, String role, String content,@JsonKey(name: 'created_at') String createdAt, CoachProposal? proposal,@JsonKey(includeFromJson: false, includeToJson: false) String? errorDetail,@JsonKey(includeFromJson: false, includeToJson: false) bool streaming,@JsonKey(includeFromJson: false, includeToJson: false) String? toolIndicator
+ String id, String role, String content,@JsonKey(name: 'message_type') String messageType,@JsonKey(name: 'message_payload') Map<String, dynamic>? messagePayload,@JsonKey(name: 'created_at') String createdAt, CoachProposal? proposal,@JsonKey(includeFromJson: false, includeToJson: false) String? errorDetail,@JsonKey(includeFromJson: false, includeToJson: false) bool streaming,@JsonKey(includeFromJson: false, includeToJson: false) String? toolIndicator
 });
 
 
@@ -65,12 +65,14 @@ class _$CoachMessageCopyWithImpl<$Res>
 
 /// Create a copy of CoachMessage
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? role = null,Object? content = null,Object? createdAt = null,Object? proposal = freezed,Object? errorDetail = freezed,Object? streaming = null,Object? toolIndicator = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? role = null,Object? content = null,Object? messageType = null,Object? messagePayload = freezed,Object? createdAt = null,Object? proposal = freezed,Object? errorDetail = freezed,Object? streaming = null,Object? toolIndicator = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
 as String,content: null == content ? _self.content : content // ignore: cast_nullable_to_non_nullable
-as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String,messageType: null == messageType ? _self.messageType : messageType // ignore: cast_nullable_to_non_nullable
+as String,messagePayload: freezed == messagePayload ? _self.messagePayload : messagePayload // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String,proposal: freezed == proposal ? _self.proposal : proposal // ignore: cast_nullable_to_non_nullable
 as CoachProposal?,errorDetail: freezed == errorDetail ? _self.errorDetail : errorDetail // ignore: cast_nullable_to_non_nullable
 as String?,streaming: null == streaming ? _self.streaming : streaming // ignore: cast_nullable_to_non_nullable
@@ -169,10 +171,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String role,  String content, @JsonKey(name: 'created_at')  String createdAt,  CoachProposal? proposal, @JsonKey(includeFromJson: false, includeToJson: false)  String? errorDetail, @JsonKey(includeFromJson: false, includeToJson: false)  bool streaming, @JsonKey(includeFromJson: false, includeToJson: false)  String? toolIndicator)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String role,  String content, @JsonKey(name: 'message_type')  String messageType, @JsonKey(name: 'message_payload')  Map<String, dynamic>? messagePayload, @JsonKey(name: 'created_at')  String createdAt,  CoachProposal? proposal, @JsonKey(includeFromJson: false, includeToJson: false)  String? errorDetail, @JsonKey(includeFromJson: false, includeToJson: false)  bool streaming, @JsonKey(includeFromJson: false, includeToJson: false)  String? toolIndicator)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CoachMessage() when $default != null:
-return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal,_that.errorDetail,_that.streaming,_that.toolIndicator);case _:
+return $default(_that.id,_that.role,_that.content,_that.messageType,_that.messagePayload,_that.createdAt,_that.proposal,_that.errorDetail,_that.streaming,_that.toolIndicator);case _:
   return orElse();
 
 }
@@ -190,10 +192,10 @@ return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String role,  String content, @JsonKey(name: 'created_at')  String createdAt,  CoachProposal? proposal, @JsonKey(includeFromJson: false, includeToJson: false)  String? errorDetail, @JsonKey(includeFromJson: false, includeToJson: false)  bool streaming, @JsonKey(includeFromJson: false, includeToJson: false)  String? toolIndicator)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String role,  String content, @JsonKey(name: 'message_type')  String messageType, @JsonKey(name: 'message_payload')  Map<String, dynamic>? messagePayload, @JsonKey(name: 'created_at')  String createdAt,  CoachProposal? proposal, @JsonKey(includeFromJson: false, includeToJson: false)  String? errorDetail, @JsonKey(includeFromJson: false, includeToJson: false)  bool streaming, @JsonKey(includeFromJson: false, includeToJson: false)  String? toolIndicator)  $default,) {final _that = this;
 switch (_that) {
 case _CoachMessage():
-return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal,_that.errorDetail,_that.streaming,_that.toolIndicator);}
+return $default(_that.id,_that.role,_that.content,_that.messageType,_that.messagePayload,_that.createdAt,_that.proposal,_that.errorDetail,_that.streaming,_that.toolIndicator);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -207,10 +209,10 @@ return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String role,  String content, @JsonKey(name: 'created_at')  String createdAt,  CoachProposal? proposal, @JsonKey(includeFromJson: false, includeToJson: false)  String? errorDetail, @JsonKey(includeFromJson: false, includeToJson: false)  bool streaming, @JsonKey(includeFromJson: false, includeToJson: false)  String? toolIndicator)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String role,  String content, @JsonKey(name: 'message_type')  String messageType, @JsonKey(name: 'message_payload')  Map<String, dynamic>? messagePayload, @JsonKey(name: 'created_at')  String createdAt,  CoachProposal? proposal, @JsonKey(includeFromJson: false, includeToJson: false)  String? errorDetail, @JsonKey(includeFromJson: false, includeToJson: false)  bool streaming, @JsonKey(includeFromJson: false, includeToJson: false)  String? toolIndicator)?  $default,) {final _that = this;
 switch (_that) {
 case _CoachMessage() when $default != null:
-return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal,_that.errorDetail,_that.streaming,_that.toolIndicator);case _:
+return $default(_that.id,_that.role,_that.content,_that.messageType,_that.messagePayload,_that.createdAt,_that.proposal,_that.errorDetail,_that.streaming,_that.toolIndicator);case _:
   return null;
 
 }
@@ -222,12 +224,22 @@ return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal
 @JsonSerializable()
 
 class _CoachMessage implements CoachMessage {
-  const _CoachMessage({required this.id, required this.role, required this.content, @JsonKey(name: 'created_at') required this.createdAt, this.proposal, @JsonKey(includeFromJson: false, includeToJson: false) this.errorDetail, @JsonKey(includeFromJson: false, includeToJson: false) this.streaming = false, @JsonKey(includeFromJson: false, includeToJson: false) this.toolIndicator});
+  const _CoachMessage({required this.id, required this.role, required this.content, @JsonKey(name: 'message_type') this.messageType = 'text', @JsonKey(name: 'message_payload') final  Map<String, dynamic>? messagePayload, @JsonKey(name: 'created_at') required this.createdAt, this.proposal, @JsonKey(includeFromJson: false, includeToJson: false) this.errorDetail, @JsonKey(includeFromJson: false, includeToJson: false) this.streaming = false, @JsonKey(includeFromJson: false, includeToJson: false) this.toolIndicator}): _messagePayload = messagePayload;
   factory _CoachMessage.fromJson(Map<String, dynamic> json) => _$CoachMessageFromJson(json);
 
 @override final  String id;
 @override final  String role;
 @override final  String content;
+@override@JsonKey(name: 'message_type') final  String messageType;
+ final  Map<String, dynamic>? _messagePayload;
+@override@JsonKey(name: 'message_payload') Map<String, dynamic>? get messagePayload {
+  final value = _messagePayload;
+  if (value == null) return null;
+  if (_messagePayload is EqualUnmodifiableMapView) return _messagePayload;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
 @override@JsonKey(name: 'created_at') final  String createdAt;
 @override final  CoachProposal? proposal;
 @override@JsonKey(includeFromJson: false, includeToJson: false) final  String? errorDetail;
@@ -247,16 +259,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CoachMessage&&(identical(other.id, id) || other.id == id)&&(identical(other.role, role) || other.role == role)&&(identical(other.content, content) || other.content == content)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.proposal, proposal) || other.proposal == proposal)&&(identical(other.errorDetail, errorDetail) || other.errorDetail == errorDetail)&&(identical(other.streaming, streaming) || other.streaming == streaming)&&(identical(other.toolIndicator, toolIndicator) || other.toolIndicator == toolIndicator));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CoachMessage&&(identical(other.id, id) || other.id == id)&&(identical(other.role, role) || other.role == role)&&(identical(other.content, content) || other.content == content)&&(identical(other.messageType, messageType) || other.messageType == messageType)&&const DeepCollectionEquality().equals(other._messagePayload, _messagePayload)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.proposal, proposal) || other.proposal == proposal)&&(identical(other.errorDetail, errorDetail) || other.errorDetail == errorDetail)&&(identical(other.streaming, streaming) || other.streaming == streaming)&&(identical(other.toolIndicator, toolIndicator) || other.toolIndicator == toolIndicator));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,role,content,createdAt,proposal,errorDetail,streaming,toolIndicator);
+int get hashCode => Object.hash(runtimeType,id,role,content,messageType,const DeepCollectionEquality().hash(_messagePayload),createdAt,proposal,errorDetail,streaming,toolIndicator);
 
 @override
 String toString() {
-  return 'CoachMessage(id: $id, role: $role, content: $content, createdAt: $createdAt, proposal: $proposal, errorDetail: $errorDetail, streaming: $streaming, toolIndicator: $toolIndicator)';
+  return 'CoachMessage(id: $id, role: $role, content: $content, messageType: $messageType, messagePayload: $messagePayload, createdAt: $createdAt, proposal: $proposal, errorDetail: $errorDetail, streaming: $streaming, toolIndicator: $toolIndicator)';
 }
 
 
@@ -267,7 +279,7 @@ abstract mixin class _$CoachMessageCopyWith<$Res> implements $CoachMessageCopyWi
   factory _$CoachMessageCopyWith(_CoachMessage value, $Res Function(_CoachMessage) _then) = __$CoachMessageCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String role, String content,@JsonKey(name: 'created_at') String createdAt, CoachProposal? proposal,@JsonKey(includeFromJson: false, includeToJson: false) String? errorDetail,@JsonKey(includeFromJson: false, includeToJson: false) bool streaming,@JsonKey(includeFromJson: false, includeToJson: false) String? toolIndicator
+ String id, String role, String content,@JsonKey(name: 'message_type') String messageType,@JsonKey(name: 'message_payload') Map<String, dynamic>? messagePayload,@JsonKey(name: 'created_at') String createdAt, CoachProposal? proposal,@JsonKey(includeFromJson: false, includeToJson: false) String? errorDetail,@JsonKey(includeFromJson: false, includeToJson: false) bool streaming,@JsonKey(includeFromJson: false, includeToJson: false) String? toolIndicator
 });
 
 
@@ -284,12 +296,14 @@ class __$CoachMessageCopyWithImpl<$Res>
 
 /// Create a copy of CoachMessage
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? role = null,Object? content = null,Object? createdAt = null,Object? proposal = freezed,Object? errorDetail = freezed,Object? streaming = null,Object? toolIndicator = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? role = null,Object? content = null,Object? messageType = null,Object? messagePayload = freezed,Object? createdAt = null,Object? proposal = freezed,Object? errorDetail = freezed,Object? streaming = null,Object? toolIndicator = freezed,}) {
   return _then(_CoachMessage(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
 as String,content: null == content ? _self.content : content // ignore: cast_nullable_to_non_nullable
-as String,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
+as String,messageType: null == messageType ? _self.messageType : messageType // ignore: cast_nullable_to_non_nullable
+as String,messagePayload: freezed == messagePayload ? _self._messagePayload : messagePayload // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>?,createdAt: null == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
 as String,proposal: freezed == proposal ? _self.proposal : proposal // ignore: cast_nullable_to_non_nullable
 as CoachProposal?,errorDetail: freezed == errorDetail ? _self.errorDetail : errorDetail // ignore: cast_nullable_to_non_nullable
 as String?,streaming: null == streaming ? _self.streaming : streaming // ignore: cast_nullable_to_non_nullable

@@ -11,6 +11,8 @@ _CoachMessage _$CoachMessageFromJson(Map<String, dynamic> json) =>
       id: json['id'] as String,
       role: json['role'] as String,
       content: json['content'] as String,
+      messageType: json['message_type'] as String? ?? 'text',
+      messagePayload: json['message_payload'] as Map<String, dynamic>?,
       createdAt: json['created_at'] as String,
       proposal: json['proposal'] == null
           ? null
@@ -22,6 +24,8 @@ Map<String, dynamic> _$CoachMessageToJson(_CoachMessage instance) =>
       'id': instance.id,
       'role': instance.role,
       'content': instance.content,
+      'message_type': instance.messageType,
+      'message_payload': instance.messagePayload,
       'created_at': instance.createdAt,
       'proposal': instance.proposal,
     };
