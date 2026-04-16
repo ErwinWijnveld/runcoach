@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
+import 'package:app/core/widgets/coach_prompt_bar.dart';
 import 'package:app/features/coach/models/coach_message.dart';
 import 'package:app/features/coach/providers/coach_provider.dart';
 import 'package:app/features/coach/widgets/message_bubble.dart';
@@ -76,80 +78,130 @@ class _CoachChatScreenState extends ConsumerState<CoachChatScreen> {
     );
 
     return CupertinoPageScaffold(
-      backgroundColor: AppColors.cream,
-      navigationBar: CupertinoNavigationBar(
-        backgroundColor: AppColors.cream.withValues(alpha: 0.92),
-        border: null,
-        middle: const Text('Coach'),
-      ),
-      child: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: messagesAsync.when(
-                loading: () => const AppSpinner(),
-                error: (err, _) => AppErrorState(title: 'Error: $err'),
-                data: (messages) {
-                  if (messages.isEmpty) {
-                    return _EmptyState(onQuickAction: _send);
-                  }
-                  return ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: messages.length,
-                    itemBuilder: (context, index) {
-                      final msg = messages[index];
-                      return Column(
-                        children: [
-                          MessageBubble(
-                            message: msg,
-                            onRetry: msg.errorDetail != null
-                                ? () => ref
-                                    .read(coachChatProvider(
-                                            widget.conversationId)
-                                        .notifier)
-                                    .retry(msg.id)
-                                : null,
-                          ),
-                          if (msg.proposal != null)
-                            ProposalCard(
-                              proposal: msg.proposal!,
-                              onAccept: () async {
-                                final notifier = ref.read(
-                                  coachChatProvider(widget.conversationId)
-                                      .notifier,
-                                );
-                                await notifier
-                                    .acceptProposal(msg.proposal!.id);
-                                ref.invalidate(
-                                  coachChatProvider(widget.conversationId),
-                                );
-                              },
-                              onReject: () async {
-                                final notifier = ref.read(
-                                  coachChatProvider(widget.conversationId)
-                                      .notifier,
-                                );
-                                await notifier
-                                    .rejectProposal(msg.proposal!.id);
-                                ref.invalidate(
-                                  coachChatProvider(widget.conversationId),
-                                );
-                              },
+      backgroundColor: AppColors.neutral,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            stops: [0.0, 0.25, 0.5, 0.75, 1.0],
+            colors: [
+              AppColors.neutral,
+              Color(0xFFFAF1D9),
+              AppColors.neutral,
+              Color(0xFFFAF1D9),
+              AppColors.neutral,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              _TopBar(onBack: () => context.go('/coach')),
+              Expanded(
+                child: messagesAsync.when(
+                  loading: () => const AppSpinner(),
+                  error: (err, _) => AppErrorState(title: 'Error: $err'),
+                  data: (messages) {
+                    if (messages.isEmpty) {
+                      return _EmptyState(onQuickAction: _send);
+                    }
+                    return ListView.separated(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      itemCount: messages.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final msg = messages[index];
+                        return Column(
+                          crossAxisAlignment: msg.role == 'user'
+                              ? CrossAxisAlignment.end
+                              : CrossAxisAlignment.start,
+                          children: [
+                            MessageBubble(
+                              message: msg,
+                              onRetry: msg.errorDetail != null
+                                  ? () => ref
+                                      .read(coachChatProvider(
+                                              widget.conversationId)
+                                          .notifier)
+                                      .retry(msg.id)
+                                  : null,
                             ),
-                        ],
-                      );
-                    },
-                  );
-                },
+                            if (msg.proposal != null) ...[
+                              const SizedBox(height: 10),
+                              ProposalCard(
+                                proposal: msg.proposal!,
+                                onAccept: () async {
+                                  final notifier = ref.read(
+                                    coachChatProvider(widget.conversationId)
+                                        .notifier,
+                                  );
+                                  await notifier
+                                      .acceptProposal(msg.proposal!.id);
+                                  ref.invalidate(
+                                    coachChatProvider(widget.conversationId),
+                                  );
+                                },
+                                onReject: () async {
+                                  final notifier = ref.read(
+                                    coachChatProvider(widget.conversationId)
+                                        .notifier,
+                                  );
+                                  await notifier
+                                      .rejectProposal(msg.proposal!.id);
+                                  ref.invalidate(
+                                    coachChatProvider(widget.conversationId),
+                                  );
+                                },
+                              ),
+                            ],
+                          ],
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                child: CoachPromptBar.input(
+                  controller: _controller,
+                  onSubmit: (_) => _send(),
+                  sending: _sending,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TopBar extends StatelessWidget {
+  final VoidCallback onBack;
+  const _TopBar({required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 44,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: CupertinoButton(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            minimumSize: Size.zero,
+            onPressed: onBack,
+            child: const Icon(
+              CupertinoIcons.chevron_left,
+              size: 22,
+              color: AppColors.primaryInk,
             ),
-            _ChatInput(
-              controller: _controller,
-              sending: _sending,
-              onSend: () => _send(),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -170,25 +222,18 @@ class _EmptyState extends StatelessWidget {
           const Icon(
             CupertinoIcons.sparkles,
             size: 48,
-            color: AppColors.warmBrown,
+            color: AppColors.secondary,
           ),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'What can I help you with?',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-              letterSpacing: -0.3,
-            ),
+            style: RunCoreText.serifTitle(size: 28, height: 32 / 28),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 4),
-          const Text(
+          const SizedBox(height: 8),
+          Text(
             'I know your training history and can manage your schedule',
-            style: TextStyle(
-              fontSize: 13,
-              color: AppColors.textSecondary,
-            ),
+            style: RunCoreText.statSuffix(),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -230,79 +275,6 @@ class _EmptyState extends StatelessWidget {
                 onTap: () {},
               ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ChatInput extends StatelessWidget {
-  final TextEditingController controller;
-  final bool sending;
-  final VoidCallback onSend;
-
-  const _ChatInput({
-    required this.controller,
-    required this.sending,
-    required this.onSend,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 8,
-        top: 8,
-        bottom: MediaQuery.of(context).padding.bottom + 8,
-      ),
-      decoration: const BoxDecoration(
-        color: CupertinoColors.white,
-        border: Border(
-          top: BorderSide(color: Color(0x14000000), width: 0.5),
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            child: CupertinoTextField(
-              controller: controller,
-              placeholder: 'Ask your coach...',
-              placeholderStyle: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 15,
-              ),
-              style: const TextStyle(
-                fontSize: 15,
-                color: AppColors.textPrimary,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.lightTan,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 10,
-              ),
-              maxLines: 5,
-              minLines: 1,
-              textInputAction: TextInputAction.send,
-              onSubmitted: (_) => onSend(),
-            ),
-          ),
-          const SizedBox(width: 4),
-          CupertinoButton(
-            padding: const EdgeInsets.all(6),
-            onPressed: sending ? null : onSend,
-            child: sending
-                ? const CupertinoActivityIndicator()
-                : const Icon(
-                    CupertinoIcons.arrow_up_circle_fill,
-                    color: AppColors.warmBrown,
-                    size: 32,
-                  ),
           ),
         ],
       ),

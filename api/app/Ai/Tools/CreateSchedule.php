@@ -32,7 +32,7 @@ class CreateSchedule implements Tool
             'distance' => $schema->string()->enum(['5k', '10k', 'half_marathon', 'marathon', 'custom'])->required(),
             'goal_time_seconds' => $schema->integer()->required()->nullable()->description('Target finish time in seconds (e.g. 5400 for 1:30:00), or null if no specific goal'),
             'race_date' => $schema->string()->required()->description('Race date in YYYY-MM-DD format'),
-            'schedule' => $schema->string()->required()->description('Complete training schedule as JSON: {"weeks": [{"week_number": 1, "focus": "base building", "total_km": 30.0, "days": [{"day_of_week": 1, "type": "easy|tempo|interval|long_run|recovery|rest|mobility", "title": "Easy Run", "description": "Keep conversational pace", "target_km": 5.0, "target_pace_seconds_per_km": 390, "target_heart_rate_zone": 2}]}]}. day_of_week: 1=Monday through 7=Sunday. Include all 7 days per week (rest days too with type "rest").'),
+            'schedule' => $schema->string()->required()->description('Complete training schedule as JSON: {"weeks": [{"week_number": 1, "focus": "base building", "total_km": 30.0, "days": [{"day_of_week": 1, "type": "easy|tempo|interval|long_run|recovery", "title": "Easy Run", "description": "Keep conversational pace", "target_km": 5.0, "target_pace_seconds_per_km": 390, "target_heart_rate_zone": 2}]}]}. day_of_week: 1=Monday through 7=Sunday. ONLY include days the runner actually runs — skip rest days entirely (do not emit entries with type "rest" or "mobility"). Most weeks should have 3-5 day entries.'),
         ];
     }
 

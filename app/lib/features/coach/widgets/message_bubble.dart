@@ -1,7 +1,10 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/coach/models/coach_message.dart';
+import 'package:app/features/coach/widgets/thinking_card.dart';
 
 class MessageBubble extends StatelessWidget {
   final CoachMessage message;
@@ -12,116 +15,122 @@ class MessageBubble extends StatelessWidget {
   bool get _isUser => message.role == 'user';
   bool get _failed => message.errorDetail != null;
 
+  bool get _isThinking =>
+      !_isUser && message.streaming && message.content.isEmpty;
+
   @override
   Widget build(BuildContext context) {
-    final textColor =
-        _isUser ? CupertinoColors.white : AppColors.textPrimary;
-
     return Column(
       crossAxisAlignment:
           _isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
-        Align(
-          alignment: _isUser ? Alignment.centerRight : Alignment.centerLeft,
-          child: Container(
-            margin: EdgeInsets.only(
-              left: _isUser ? 60 : 0,
-              right: _isUser ? 0 : 60,
-              bottom: _failed ? 4 : 8,
-            ),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: _isUser ? AppColors.warmBrown : AppColors.lightTan,
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(18),
-                topRight: const Radius.circular(18),
-                bottomLeft: Radius.circular(_isUser ? 18 : 4),
-                bottomRight: Radius.circular(_isUser ? 4 : 18),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (!_isUser)
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      'COACH',
-                      style: TextStyle(
-                        color: AppColors.warmBrown,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 10,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                if (_isUser)
-                  Text(
-                    message.content,
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: textColor,
-                      height: 1.35,
-                    ),
-                  )
-                else if (message.content.isNotEmpty)
-                  GptMarkdown(
-                    message.content,
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: textColor,
-                      height: 1.35,
-                    ),
-                  ),
-                if (message.streaming)
-                  Padding(
-                    padding: EdgeInsets.only(
-                      top: message.content.isEmpty ? 0 : 2,
-                    ),
-                    child: _BlinkingCaret(
-                      key: const Key('streaming-caret'),
-                      color: textColor,
-                    ),
-                  ),
-              ],
-            ),
+        _RoleLabel(isUser: _isUser),
+        const SizedBox(height: 8),
+        if (_isThinking)
+          ThinkingCard(label: _thinkingLabel(message.toolIndicator))
+        else
+          _Bubble(message: message),
+        if (_failed) ...[
+          const SizedBox(height: 4),
+          _ErrorStrip(detail: message.errorDetail!, onRetry: onRetry),
+        ],
+      ],
+    );
+  }
+}
+
+String _thinkingLabel(String? toolIndicator) {
+  final trimmed = toolIndicator?.trim();
+  if (trimmed == null || trimmed.isEmpty) return 'Working on your plan';
+  // VercelStreamParser already humanizes tool names (e.g. "Building your
+  // training plan…"). Strip trailing ellipsis so the card stays clean.
+  return trimmed.replaceFirst(RegExp(r'[…\.]+$'), '');
+}
+
+class _RoleLabel extends StatelessWidget {
+  final bool isUser;
+  const _RoleLabel({required this.isUser});
+
+  @override
+  Widget build(BuildContext context) {
+    final labelStyle = GoogleFonts.spaceGrotesk(
+      fontSize: 10,
+      fontWeight: FontWeight.w700,
+      color: AppColors.eyebrow,
+      height: 15 / 10,
+    );
+
+    if (isUser) {
+      return Text('You', style: labelStyle);
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SvgPicture.asset(
+          'assets/icons/coach_prompt_star.svg',
+          width: 11,
+          height: 11,
+        ),
+        const SizedBox(width: 8),
+        Text('RunCore AI Coach', style: labelStyle),
+      ],
+    );
+  }
+}
+
+class _Bubble extends StatelessWidget {
+  final CoachMessage message;
+  const _Bubble({required this.message});
+
+  bool get _isUser => message.role == 'user';
+
+  @override
+  Widget build(BuildContext context) {
+    final maxWidth = _isUser ? 278.0 : 296.0;
+    final textColor =
+        _isUser ? const Color(0xFF745F27) : AppColors.primaryInk;
+
+    final bodyStyle = GoogleFonts.publicSans(
+      fontSize: 14,
+      fontWeight: FontWeight.w400,
+      height: 1.4,
+      color: textColor,
+    );
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        decoration: BoxDecoration(
+          color: _isUser ? const Color(0xFFFDEBBB) : CupertinoColors.white,
+          border: _isUser ? null : Border.all(color: AppColors.border),
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(_isUser ? 24 : 0),
+            topRight: Radius.circular(_isUser ? 0 : 24),
+            bottomLeft: const Radius.circular(24),
+            bottomRight: const Radius.circular(24),
           ),
         ),
-        if (message.toolIndicator != null)
-          Padding(
-            key: const Key('tool-indicator-pill'),
-            padding: const EdgeInsets.only(bottom: 8, left: 4),
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-              decoration: BoxDecoration(
-                color: AppColors.lightTan,
-                borderRadius: BorderRadius.circular(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_isUser)
+              Text(message.content, style: bodyStyle)
+            else if (message.content.isNotEmpty)
+              GptMarkdown(message.content, style: bodyStyle),
+            if (message.streaming && message.content.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: _BlinkingCaret(
+                  key: const Key('streaming-caret'),
+                  color: textColor,
+                ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(
-                    width: 12,
-                    height: 12,
-                    child: CupertinoActivityIndicator(radius: 6),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    message.toolIndicator!,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.warmBrown,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        if (_failed)
-          _ErrorStrip(detail: message.errorDetail!, onRetry: onRetry),
-      ],
+          ],
+        ),
+      ),
     );
   }
 }
@@ -170,56 +179,53 @@ class _ErrorStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8, left: 60),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const Icon(
-            CupertinoIcons.exclamationmark_circle,
-            size: 14,
-            color: AppColors.danger,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const Icon(
+          CupertinoIcons.exclamationmark_circle,
+          size: 14,
+          color: AppColors.danger,
+        ),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            detail,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.danger,
+            ),
+            textAlign: TextAlign.end,
           ),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              detail,
-              style: const TextStyle(
-                fontSize: 12,
-                color: AppColors.danger,
-              ),
-              textAlign: TextAlign.end,
+        ),
+        if (onRetry != null) ...[
+          const SizedBox(width: 4),
+          CupertinoButton(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            minimumSize: Size.zero,
+            onPressed: onRetry,
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  CupertinoIcons.refresh,
+                  size: 14,
+                  color: AppColors.tertiary,
+                ),
+                SizedBox(width: 4),
+                Text(
+                  'Retry',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.tertiary,
+                  ),
+                ),
+              ],
             ),
           ),
-          if (onRetry != null) ...[
-            const SizedBox(width: 4),
-            CupertinoButton(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              minimumSize: Size.zero,
-              onPressed: onRetry,
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    CupertinoIcons.refresh,
-                    size: 14,
-                    color: AppColors.warmBrown,
-                  ),
-                  SizedBox(width: 4),
-                  Text(
-                    'Retry',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.warmBrown,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
-      ),
+      ],
     );
   }
 }

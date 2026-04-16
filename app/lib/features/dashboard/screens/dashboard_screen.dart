@@ -1,9 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Icons, Material, InkWell;
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app/core/theme/app_theme.dart';
-import 'package:app/core/widgets/runcore_logo.dart';
+import 'package:app/core/widgets/app_header.dart';
+import 'package:app/core/widgets/app_widgets.dart';
+import 'package:app/core/widgets/coach_prompt_bar.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -16,7 +17,7 @@ class DashboardScreen extends StatelessWidget {
         bottom: false,
         child: Column(
           children: [
-            const _Header(),
+            const AppHeader(),
             Expanded(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -28,7 +29,7 @@ class DashboardScreen extends StatelessWidget {
                       onTap: () => context.go('/schedule'),
                     ),
                     const SizedBox(height: 12),
-                    _CoachPromptBar(
+                    CoachPromptBar.navigate(
                       onTap: () => context.go('/coach'),
                     ),
                     const SizedBox(height: 12),
@@ -72,54 +73,6 @@ class DashboardScreen extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Header
-// ---------------------------------------------------------------------------
-
-class _Header extends StatelessWidget {
-  const _Header();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: SizedBox(
-        height: 56,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const RunCoreLogo(starSize: 19, textSize: 20, gap: 8),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.notifications,
-                  color: AppColors.secondary,
-                  size: 24,
-                ),
-                const SizedBox(width: 16),
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFECE8DC),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Image.asset(
-                    'assets/images/user_avatar.png',
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
 // Today card
 // ---------------------------------------------------------------------------
 
@@ -140,7 +93,7 @@ class _TodayCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const _GoldBadge(label: 'TODAY'),
+                    const GoldBadge(label: 'TODAY'),
                     const SizedBox(height: 8),
                     Text(
                       'Threshold Intervals',
@@ -170,23 +123,6 @@ class _TodayCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _GoldBadge extends StatelessWidget {
-  final String label;
-  const _GoldBadge({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-      decoration: BoxDecoration(
-        color: AppColors.secondary,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(label, style: RunCoreText.badge()),
     );
   }
 }
@@ -254,64 +190,6 @@ class _Stat extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Coach prompt bar
-// ---------------------------------------------------------------------------
-
-class _CoachPromptBar extends StatelessWidget {
-  final VoidCallback onTap;
-  const _CoachPromptBar({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: CupertinoColors.white,
-      borderRadius: BorderRadius.circular(24),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(24),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(24),
-            gradient: RadialGradient(
-              center: Alignment.centerRight,
-              radius: 0.9,
-              colors: [
-                AppColors.secondary.withValues(alpha: 0.15),
-                AppColors.secondary.withValues(alpha: 0.0),
-              ],
-            ),
-          ),
-          child: Row(
-            children: [
-              SvgPicture.asset(
-                'assets/icons/coach_prompt_star.svg',
-                width: 18,
-                height: 19,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Ask your coach...',
-                  style: RunCoreText.body(),
-                ),
-              ),
-              const SizedBox(width: 12),
-              SvgPicture.asset(
-                'assets/icons/coach_send.svg',
-                width: 28,
-                height: 28,
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

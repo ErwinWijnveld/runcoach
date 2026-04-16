@@ -36,6 +36,23 @@ class AppCard extends StatelessWidget {
   }
 }
 
+class GoldBadge extends StatelessWidget {
+  final String label;
+  const GoldBadge({super.key, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: AppColors.secondary,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(label, style: RunCoreText.badge()),
+    );
+  }
+}
+
 class AppChip extends StatelessWidget {
   final IconData icon;
   final String label;

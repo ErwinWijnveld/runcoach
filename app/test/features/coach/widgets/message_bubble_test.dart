@@ -18,7 +18,7 @@ CoachMessage _msg({
     );
 
 void main() {
-  testWidgets('renders streaming caret when streaming is true',
+  testWidgets('renders streaming caret when streaming with content',
       (tester) async {
     await tester.pumpWidget(
       CupertinoApp(
@@ -39,7 +39,20 @@ void main() {
     expect(find.byKey(const Key('streaming-caret')), findsNothing);
   });
 
-  testWidgets('renders tool indicator pill when toolIndicator is set',
+  testWidgets(
+    'renders thinking card with default label while streaming with empty content',
+    (tester) async {
+      await tester.pumpWidget(
+        CupertinoApp(
+          home: MessageBubble(message: _msg(content: '', streaming: true)),
+        ),
+      );
+
+      expect(find.text('Working on your plan'), findsOneWidget);
+    },
+  );
+
+  testWidgets('uses humanized tool indicator as thinking label',
       (tester) async {
     await tester.pumpWidget(
       CupertinoApp(
@@ -53,10 +66,11 @@ void main() {
       ),
     );
 
-    expect(find.text('Looking up your activities…'), findsOneWidget);
+    // trailing ellipsis stripped for the card
+    expect(find.text('Looking up your activities'), findsOneWidget);
   });
 
-  testWidgets('does not render pill when toolIndicator is null',
+  testWidgets('does not render thinking card when not streaming',
       (tester) async {
     await tester.pumpWidget(
       CupertinoApp(
@@ -66,6 +80,6 @@ void main() {
       ),
     );
 
-    expect(find.byKey(const Key('tool-indicator-pill')), findsNothing);
+    expect(find.text('Working on your plan'), findsNothing);
   });
 }
