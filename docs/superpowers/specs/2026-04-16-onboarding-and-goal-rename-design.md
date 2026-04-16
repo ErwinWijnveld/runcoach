@@ -285,7 +285,7 @@ Updated in `app/lib/router/app_router.dart`: check `!user.hasCompletedOnboarding
 `app/lib/features/coach/widgets/message_bubble.dart` becomes a switch on `messageType`:
 
 - `text` → existing `GptMarkdown` bubble (unchanged).
-- `loading_card` → new `LoadingCardBubble` — radial-gradient card matching Figma (gold radial + white base), EB Garamond headline, icon on left. Used for "Analysing Strava Data" and "Working on your plan".
+- `loading_card` → **reuses the existing `ThinkingCard`** widget (`app/lib/features/coach/widgets/thinking_card.dart`). It already matches the Figma design exactly — radial gold gradient + white base, EB Garamond headline, swooshing star icon, pulsing opacity, asymmetric corner radius. The `message_payload.label` is passed into its `label` parameter. Used for both "Analysing Strava Data" and "Working on your plan" — no new widget needed.
 - `stats_card` → new `StatsCardBubble` — wraps existing bot bubble; inside, a 2×2 grid of metric tiles (uppercase tracking label, serif number at 24px).
 - `chip_suggestions` → new `ChipSuggestionsRow` — right-aligned flex-wrap of white pills. Tap calls `sendMessage(conversationId, text: chip.label, chipValue: chip.value)`.
 - `proposal_card` → updated `ProposalCard` matching Figma: compact `Weekly km | Weekly runs` summary + `VIEW DETAILS` ghost + `ACCEPT PLAN` (yellow `#E9B638`) / `ADJUST` (black). Expand-to-details opens the full week-by-week view.
