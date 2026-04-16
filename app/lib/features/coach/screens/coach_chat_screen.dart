@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
+import 'package:app/features/coach/models/coach_message.dart';
 import 'package:app/features/coach/providers/coach_provider.dart';
 import 'package:app/features/coach/widgets/message_bubble.dart';
 import 'package:app/features/coach/widgets/proposal_card.dart';
@@ -36,6 +37,12 @@ class _CoachChatScreenState extends ConsumerState<CoachChatScreen> {
     _scrollToBottom();
   }
 
+  bool _isNearBottom() {
+    if (!_scrollController.hasClients) return true;
+    final position = _scrollController.position;
+    return (position.maxScrollExtent - position.pixels) < 80;
+  }
+
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -58,6 +65,15 @@ class _CoachChatScreenState extends ConsumerState<CoachChatScreen> {
   @override
   Widget build(BuildContext context) {
     final messagesAsync = ref.watch(coachChatProvider(widget.conversationId));
+
+    ref.listen<AsyncValue<List<CoachMessage>>>(
+      coachChatProvider(widget.conversationId),
+      (previous, next) {
+        if (next.value == null) return;
+        if (!_isNearBottom()) return;
+        _scrollToBottom();
+      },
+    );
 
     return CupertinoPageScaffold(
       backgroundColor: AppColors.cream,
