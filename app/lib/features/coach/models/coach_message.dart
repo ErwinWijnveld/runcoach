@@ -13,6 +13,9 @@ sealed class CoachMessage with _$CoachMessage {
     @JsonKey(name: 'created_at') required String createdAt,
     CoachProposal? proposal,
     @JsonKey(includeFromJson: false, includeToJson: false) String? errorDetail,
+    @JsonKey(includeFromJson: false, includeToJson: false)
+    @Default(false) bool streaming,
+    @JsonKey(includeFromJson: false, includeToJson: false) String? toolIndicator,
   }) = _CoachMessage;
 
   factory CoachMessage.fromJson(Map<String, dynamic> json) =>
