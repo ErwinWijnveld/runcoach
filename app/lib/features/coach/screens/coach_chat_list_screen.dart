@@ -17,7 +17,7 @@ class CoachChatListScreen extends ConsumerWidget {
     final response = await api.createConversation({'title': 'New Chat'});
     final id = response['data']['id'];
     ref.invalidate(conversationsProvider);
-    if (context.mounted) context.go('/coach/chat/$id');
+    if (context.mounted) context.push('/coach/chat/$id');
   }
 
   @override
@@ -93,7 +93,7 @@ class CoachChatListScreen extends ConsumerWidget {
                   itemBuilder: (context, index) {
                     final conv = conversations[index];
                     return AppCard(
-                      onTap: () => context.go('/coach/chat/${conv.id}'),
+                      onTap: () => context.push('/coach/chat/${conv.id}'),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 14,

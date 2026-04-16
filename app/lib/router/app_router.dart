@@ -95,6 +95,7 @@ GoRouter appRouter(Ref ref) {
             routes: [
               GoRoute(
                 path: 'chat/:conversationId',
+                parentNavigatorKey: _rootNavigatorKey,
                 builder: (context, state) => CoachChatScreen(
                   conversationId: state.pathParameters['conversationId']!,
                 ),

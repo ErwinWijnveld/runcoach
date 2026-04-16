@@ -98,7 +98,15 @@ class _CoachChatScreenState extends ConsumerState<CoachChatScreen> {
           bottom: false,
           child: Column(
             children: [
-              _TopBar(onBack: () => context.go('/coach')),
+              _TopBar(
+                onBack: () {
+                  if (context.canPop()) {
+                    context.pop();
+                  } else {
+                    context.go('/coach');
+                  }
+                },
+              ),
               Expanded(
                 child: messagesAsync.when(
                   loading: () => const AppSpinner(),
