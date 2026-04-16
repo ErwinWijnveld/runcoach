@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Icons, IconData, InkWell, Material, Scaffold;
+import 'package:flutter/material.dart' show Icons, IconData, InkWell, Material;
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -17,6 +17,7 @@ import 'package:app/features/coach/screens/coach_chat_screen.dart';
 import 'package:app/features/goals/screens/goal_list_screen.dart';
 import 'package:app/features/goals/screens/goal_create_screen.dart';
 import 'package:app/features/goals/screens/goal_detail_screen.dart';
+import 'package:app/features/onboarding/screens/onboarding_shell.dart';
 
 part 'app_router.g.dart';
 
@@ -59,7 +60,7 @@ GoRouter appRouter(Ref ref) {
       ),
       GoRoute(
         path: '/onboarding',
-        builder: (context, state) => const Scaffold(body: Center(child: Text('Onboarding — WIP'))),
+        builder: (context, state) => const OnboardingShell(),
       ),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
