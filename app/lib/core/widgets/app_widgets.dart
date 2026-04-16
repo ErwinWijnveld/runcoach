@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show IconData, InkWell, Material;
 import 'package:app/core/theme/app_theme.dart';
 
 class AppCard extends StatelessWidget {
@@ -32,6 +33,46 @@ class AppCard extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: content,
+    );
+  }
+}
+
+/// Solid circular icon button — used for primary actions like
+/// "new chat" (+) or "open" (→). Defaults to the dark ink / cream palette.
+class CircleIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final double size;
+  final double iconSize;
+  final Color backgroundColor;
+  final Color foregroundColor;
+
+  const CircleIconButton({
+    super.key,
+    required this.icon,
+    required this.onTap,
+    this.size = 44,
+    this.iconSize = 22,
+    this.backgroundColor = AppColors.primaryInk,
+    this.foregroundColor = AppColors.neutral,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: backgroundColor,
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: Center(
+            child: Icon(icon, color: foregroundColor, size: iconSize),
+          ),
+        ),
+      ),
     );
   }
 }

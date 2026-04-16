@@ -106,7 +106,12 @@ class _TodayCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              _CircleArrowButton(onTap: onTap),
+              CircleIconButton(
+                icon: Icons.arrow_forward,
+                size: 52,
+                iconSize: 24,
+                onTap: onTap,
+              ),
             ],
           ),
           const SizedBox(height: 32),
@@ -122,34 +127,6 @@ class _TodayCard extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _CircleArrowButton extends StatelessWidget {
-  final VoidCallback onTap;
-  const _CircleArrowButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.primaryInk,
-      shape: const CircleBorder(),
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: const SizedBox(
-          width: 52,
-          height: 52,
-          child: Center(
-            child: Icon(
-              Icons.arrow_forward,
-              color: AppColors.neutral,
-              size: 24,
-            ),
-          ),
-        ),
       ),
     );
   }
