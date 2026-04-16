@@ -16,7 +16,7 @@ class VercelStreamParser {
   Stream<VercelStreamEvent> parse(Stream<List<int>> bytes) async* {
     final buffer = StringBuffer();
 
-    await for (final chunk in bytes.transform(utf8.decoder)) {
+    await for (final chunk in bytes.cast<List<int>>().transform(utf8.decoder)) {
       buffer.write(chunk);
       final text = buffer.toString();
       final boundary = text.lastIndexOf('\n\n');
