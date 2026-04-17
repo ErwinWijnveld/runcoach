@@ -63,19 +63,32 @@ class GenerateActivityFeedback implements ShouldQueue
             return null;
         }
 
-        $splits = $splitsService->compute($token, $activity->strava_id, $activity->distance_meters);
-        if (empty($splits)) {
+        $segments = $splitsService->compute($token, $activity->strava_id, $activity->distance_meters);
+        if (empty($segments)) {
             return null;
         }
 
-        $bucketSize = $activity->distance_meters < 10000 ? 50 : 100;
-        $samples = collect($splits)
-            ->map(fn ($s) => $s['average_heart_rate'] !== null
-                ? "{$this->pace($s['pace_seconds_per_km'])}@{$s['average_heart_rate']}"
-                : $this->pace($s['pace_seconds_per_km']))
-            ->implode(', ');
+        $rendered = collect($segments)->map(function (array $s) {
+            $duration = $this->duration($s['duration_seconds']);
+            $pace = $this->pace($s['pace_seconds_per_km']);
+            $hr = $s['average_heart_rate'] !== null ? " HR {$s['average_heart_rate']}" : '';
 
-        return "Splits per {$bucketSize}m (pace/km @ avg HR): {$samples}.";
+            return "{$duration} @ {$pace}/km{$hr}";
+        })->implode('; ');
+
+        return "Splits: {$rendered}.";
+    }
+
+    private function duration(int $seconds): string
+    {
+        if ($seconds <= 0) {
+            return '0s';
+        }
+
+        $mm = intdiv($seconds, 60);
+        $ss = $seconds % 60;
+
+        return $mm > 0 ? sprintf('%dm%02ds', $mm, $ss) : sprintf('%ds', $ss);
     }
 
     private function recentRuns(TrainingResult $result): ?string

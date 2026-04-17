@@ -43,11 +43,12 @@ class GetActivityDetailsTest extends TestCase
         $user = User::factory()->create();
         StravaToken::factory()->create(['user_id' => $user->id]);
 
+        // Streams: 30s steady @ 5:33/km, then 30s faster @ 3:20/km — two segments.
         Http::fake([
             'strava.com/api/v3/activities/99999/streams*' => Http::response([
-                'time' => ['data' => [0, 5, 10, 15, 20, 25, 30, 35, 40]],
-                'distance' => ['data' => [0.0, 15.0, 30.0, 45.0, 60.0, 75.0, 90.0, 105.0, 120.0]],
-                'heartrate' => ['data' => [140, 142, 145, 148, 150, 152, 155, 157, 158]],
+                'time' => ['data' => [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]],
+                'distance' => ['data' => [0.0, 15.0, 30.0, 45.0, 60.0, 75.0, 90.0, 115.0, 140.0, 165.0, 190.0, 215.0, 240.0]],
+                'heartrate' => ['data' => [140, 142, 145, 148, 150, 152, 155, 165, 170, 172, 172, 172, 172]],
             ], 200),
             'strava.com/api/v3/activities/99999' => Http::response([
                 'id' => 99999,
@@ -71,11 +72,17 @@ class GetActivityDetailsTest extends TestCase
         $this->assertSame('Morning Run', $result['summary']['name']);
         $this->assertSame(148, $result['summary']['avg_heart_rate']);
 
-        // Fine-grained splits — 3 × 50m buckets from the streams above.
-        $this->assertGreaterThanOrEqual(2, count($result['splits']));
+        // Two pace segments (steady → fast).
+        $this->assertCount(2, $result['splits']);
+        $this->assertArrayHasKey('duration_seconds', $result['splits'][0]);
         $this->assertArrayHasKey('distance_m', $result['splits'][0]);
         $this->assertArrayHasKey('pace_seconds_per_km', $result['splits'][0]);
         $this->assertArrayHasKey('average_heart_rate', $result['splits'][0]);
+        // Second segment has a faster pace (smaller seconds/km).
+        $this->assertLessThan(
+            $result['splits'][0]['pace_seconds_per_km'],
+            $result['splits'][1]['pace_seconds_per_km'],
+        );
     }
 
     public function test_formats_laps_when_present(): void

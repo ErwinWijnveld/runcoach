@@ -75,7 +75,7 @@ class GenerateActivityFeedbackTest extends TestCase
         ActivityFeedbackAgent::assertPrompted(
             fn ($prompt) => $prompt->contains('Easy 5k')
                 && $prompt->contains('Actual: 5.1km')              // decimal:1 cast rounds 5.05
-                && $prompt->contains('Splits per 50m')             // fine-grained label
+                && $prompt->contains('Splits:')                    // pace segments label
                 && $prompt->contains('Recent runs')
                 && ! $prompt->contains('Current run')              // current activity excluded
         );

@@ -20,7 +20,7 @@ class GetActivityDetails implements Tool
     public function description(): string
     {
         return <<<'DESC'
-        Fetch detailed data for a single run — fine-grained per-50m/100m splits (50m if under 10km, else 100m), laps, average/max heart rate, and elevation profile summary. Fine splits reveal interval patterns and pace variation that coarse 1km splits hide.
+        Fetch detailed data for a single run — natural pace segments (run-length-encoded sequences of similar pace), laps, average/max heart rate, and elevation profile summary. Segments reveal interval patterns and pace variation that coarse 1 km splits hide.
 
         USE THIS for queries like:
         - "Show me the pace progression of my last run"
@@ -31,7 +31,7 @@ class GetActivityDetails implements Tool
 
         WORKFLOW: First call get_recent_runs or search_strava_activities to find the run's `id`. Then pass that id here.
 
-        Returns `splits` (fine-grained pace + avg HR per 50m/100m bucket with `distance_m`, `pace_seconds_per_km`, `average_heart_rate`), `laps` (if the athlete recorded them), and summary stats.
+        Returns `splits` — an array of pace segments (each with `duration_seconds`, `distance_m`, `pace_seconds_per_km`, `average_heart_rate`) — plus `laps` (if recorded) and summary stats.
         DESC;
     }
 
