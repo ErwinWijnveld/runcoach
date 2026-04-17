@@ -25,12 +25,6 @@ done
 # Copy the Laravel app contents (including dotfiles) to the repo root.
 cp -Rf "$TMP_DIR/api/." .
 
-echo "==> Raising PHP memory_limit to 512M"
-# Laravel Cloud allocates PHP memory dynamically; override early in the
-# request/console lifecycle so the AI SDK and Strava sync jobs have headroom.
-sed -i "s/<?php/<?php\nini_set('memory_limit', '512M');/" public/index.php
-sed -i "s/<?php/<?php\nini_set('memory_limit', '512M');/" artisan
-
 echo "==> Installing PHP dependencies"
 composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
 

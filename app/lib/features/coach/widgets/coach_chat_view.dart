@@ -37,7 +37,6 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
   bool _sending = false;
-  int _lastMessageCount = 0;
 
   Future<void> _send([String? prefill, String? chipValue]) async {
     final content = prefill ?? _controller.text.trim();
@@ -46,28 +45,27 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
     _controller.clear();
     setState(() => _sending = true);
 
-    await widget.sendMessage(ref, content, chipValue: chipValue);
+    // sendMessage() appends the optimistic user + streaming messages to state
+    // synchronously before awaiting. Schedule a post-frame scroll so the user
+    // sees their just-sent message even if they had scrolled up earlier.
+    final future = widget.sendMessage(ref, content, chipValue: chipValue);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToLatest());
 
-    if (mounted) setState(() => _sending = false);
-    _scrollToBottom();
+    try {
+      await future;
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
   }
 
-  bool _isNearBottom() {
-    if (!_scrollController.hasClients) return true;
-    final position = _scrollController.position;
-    return (position.maxScrollExtent - position.pixels) < 80;
-  }
-
-  void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
+  // In a reversed ListView, pixels=0 is the visual bottom (newest message).
+  void _scrollToLatest() {
+    if (!_scrollController.hasClients) return;
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+    );
   }
 
   @override
@@ -81,15 +79,6 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
   Widget build(BuildContext context) {
     final messagesAsync = widget.watchMessages(ref);
 
-    // Auto-scroll when the message list grows (works for both coach + onboarding
-    // without binding to a specific provider — avoids activating coachChatProvider
-    // from inside an onboarding session).
-    final messageCount = messagesAsync.value?.length ?? 0;
-    if (messageCount != _lastMessageCount) {
-      _lastMessageCount = messageCount;
-      if (_isNearBottom()) _scrollToBottom();
-    }
-
     return Column(
       children: [
         Expanded(
@@ -100,13 +89,19 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
               if (messages.isEmpty) {
                 return _EmptyState(onQuickAction: (text) => _send(text));
               }
+              // Reversed ListView: index 0 is the newest message, rendered at
+              // the visual bottom. Streaming text growing in the bottom bubble
+              // stays anchored to the bottom automatically; when the keyboard
+              // opens and the viewport shrinks, the newest messages remain
+              // visible above the input without any manual scroll management.
               return ListView.separated(
                 controller: _scrollController,
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                reverse: true,
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 itemCount: messages.length,
                 separatorBuilder: (_, _) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
-                  final msg = messages[index];
+                  final msg = messages[messages.length - 1 - index];
                   return Column(
                     crossAxisAlignment: msg.role == 'user'
                         ? CrossAxisAlignment.end
@@ -152,12 +147,15 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
             },
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-          child: CoachPromptBar.input(
-            controller: _controller,
-            onSubmit: (_) => _send(),
-            sending: _sending,
+        SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+            child: CoachPromptBar.input(
+              controller: _controller,
+              onSubmit: (_) => _send(),
+              sending: _sending,
+            ),
           ),
         ),
       ],

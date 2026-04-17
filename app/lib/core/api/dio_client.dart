@@ -7,7 +7,7 @@ part 'dio_client.g.dart';
 
 // For iOS physical device: Mac's local IP (find with `ipconfig getifaddr en0`).
 // For simulator/web: use localhost.
-const String baseUrl = 'http://192.168.2.104:8000/api/v1';
+const String baseUrl = 'http://192.168.178.31:8000/api/v1';
 // const String baseUrl = 'http://localhost:8000/api/v1';
 
 @Riverpod(keepAlive: true)
