@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Laravel\Ai\Contracts\ConversationStore;
+use Laravel\Ai\Streaming\Events\ToolResult as ToolResultEvent;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CoachController extends Controller
@@ -106,6 +107,32 @@ class CoachController extends Controller
                     echo 'data: '.json_encode($payload)."\n\n";
                     ob_flush();
                     flush();
+                }
+
+                if ($event instanceof ToolResultEvent) {
+                    $result = is_string($event->toolResult->result)
+                        ? json_decode($event->toolResult->result, true)
+                        : $event->toolResult->result;
+
+                    if (is_array($result)) {
+                        $display = $result['display'] ?? null;
+                        if ($display === 'stats_card') {
+                            echo 'data: '.json_encode([
+                                'type' => 'data-stats',
+                                'data' => ['metrics' => $result['metrics']],
+                            ])."\n\n";
+                            ob_flush();
+                            flush();
+                        }
+                        if ($display === 'chip_suggestions') {
+                            echo 'data: '.json_encode([
+                                'type' => 'data-chips',
+                                'data' => ['chips' => $result['chips']],
+                            ])."\n\n";
+                            ob_flush();
+                            flush();
+                        }
+                    }
                 }
             }
 
