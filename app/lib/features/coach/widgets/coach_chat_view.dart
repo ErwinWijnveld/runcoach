@@ -4,7 +4,6 @@ import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/coach_prompt_bar.dart';
 import 'package:app/features/coach/models/coach_message.dart';
-import 'package:app/features/coach/providers/coach_provider.dart';
 import 'package:app/features/coach/widgets/message_bubble.dart';
 import 'package:app/features/coach/widgets/proposal_card.dart';
 import 'package:app/features/coach/widgets/quick_action_card.dart';
@@ -13,6 +12,8 @@ class CoachChatView extends ConsumerStatefulWidget {
   final String conversationId;
   final AsyncValue<List<CoachMessage>> Function(WidgetRef) watchMessages;
   final Future<void> Function(WidgetRef, String text, {String? chipValue}) sendMessage;
+  final Future<void> Function(WidgetRef, String messageId)? onRetry;
+  final void Function(WidgetRef)? onInvalidate;
   final Future<void> Function(WidgetRef, int proposalId)? onAccept;
   final Future<void> Function(WidgetRef, int proposalId)? onReject;
 
@@ -21,6 +22,8 @@ class CoachChatView extends ConsumerStatefulWidget {
     required this.conversationId,
     required this.watchMessages,
     required this.sendMessage,
+    this.onRetry,
+    this.onInvalidate,
     this.onAccept,
     this.onReject,
   });
@@ -33,6 +36,7 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
   bool _sending = false;
+  int _lastMessageCount = 0;
 
   Future<void> _send([String? prefill, String? chipValue]) async {
     final content = prefill ?? _controller.text.trim();
@@ -76,14 +80,14 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
   Widget build(BuildContext context) {
     final messagesAsync = widget.watchMessages(ref);
 
-    ref.listen<AsyncValue<List<CoachMessage>>>(
-      coachChatProvider(widget.conversationId),
-      (previous, next) {
-        if (next.value == null) return;
-        if (!_isNearBottom()) return;
-        _scrollToBottom();
-      },
-    );
+    // Auto-scroll when the message list grows (works for both coach + onboarding
+    // without binding to a specific provider — avoids activating coachChatProvider
+    // from inside an onboarding session).
+    final messageCount = messagesAsync.value?.length ?? 0;
+    if (messageCount != _lastMessageCount) {
+      _lastMessageCount = messageCount;
+      if (_isNearBottom()) _scrollToBottom();
+    }
 
     return Column(
       children: [
@@ -109,11 +113,8 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
                     children: [
                       MessageBubble(
                         message: msg,
-                        onRetry: msg.errorDetail != null
-                            ? () => ref
-                                .read(coachChatProvider(widget.conversationId)
-                                    .notifier)
-                                .retry(msg.id)
+                        onRetry: (msg.errorDetail != null && widget.onRetry != null)
+                            ? () => widget.onRetry!(ref, msg.id)
                             : null,
                         onChipTap: (label, value) => _send(label, value),
                       ),
@@ -123,15 +124,11 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
                           proposal: msg.proposal!,
                           onAccept: () async {
                             await widget.onAccept!(ref, msg.proposal!.id);
-                            ref.invalidate(
-                              coachChatProvider(widget.conversationId),
-                            );
+                            widget.onInvalidate?.call(ref);
                           },
                           onAdjust: () async {
                             await widget.onReject?.call(ref, msg.proposal!.id);
-                            ref.invalidate(
-                              coachChatProvider(widget.conversationId),
-                            );
+                            widget.onInvalidate?.call(ref);
                           },
                         ),
                       ],

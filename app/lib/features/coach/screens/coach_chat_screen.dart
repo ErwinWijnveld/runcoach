@@ -49,6 +49,11 @@ class CoachChatScreen extends ConsumerWidget {
                   sendMessage: (ref, text, {chipValue}) => ref
                       .read(coachChatProvider(conversationId).notifier)
                       .sendMessage(text, chipValue: chipValue),
+                  onRetry: (ref, messageId) => ref
+                      .read(coachChatProvider(conversationId).notifier)
+                      .retry(messageId),
+                  onInvalidate: (ref) =>
+                      ref.invalidate(coachChatProvider(conversationId)),
                   onAccept: (ref, proposalId) async {
                     await ref
                         .read(coachChatProvider(conversationId).notifier)

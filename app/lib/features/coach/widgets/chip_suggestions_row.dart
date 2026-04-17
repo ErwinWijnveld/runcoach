@@ -22,8 +22,8 @@ class ChipSuggestionsRow extends StatelessWidget {
         children: chips.map((c) {
           final label = (c['label'] as String?) ?? '';
           final value = (c['value'] as String?) ?? label;
-          return InkWell(
-            borderRadius: BorderRadius.circular(20),
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
             onTap: () => onTap(label, value),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
