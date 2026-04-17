@@ -77,20 +77,31 @@ class RunCoachAgent implements Agent, Conversational, HasTools
         STEP 5 — Branch on user's reply:
 
         IF user chose "race" (value `race` OR free text like "marathon in March"):
-          Reply: "Alright, let's get you going! To create the plan I need:\n1. Race name\n2. Race date\n3. Goal time, if you have one\n\nOptional but helpful: race distance (if not obvious from the name), days/week you want to run, any injuries or days you can't train.\n\nSend me something like: \"City 10K, 12 sep 2025, goal 55:00, 4 days/week\""
-          Wait for user free-text. Parse into goal_name, target_date, goal_time_seconds, distance, days_per_week.
-          If any of race name, race date, or goal time is missing, ask a single follow-up to fill the gap.
+          Collect race details in SMALL separate turns. NEVER stack them in one message. One question per turn, wait for the reply, then the next.
+
+          5.R1 — Distance chips. Message: "Nice — what distance is the race?" Call `offer_choices` with:
+            [{label: "5k", value: "5k"}, {label: "10k", value: "10k"}, {label: "Half marathon", value: "half_marathon"}, {label: "Marathon", value: "marathon"}]
+
+          5.R2 — Race name (free text). Message: "Love it! What's the race called?" (one sentence, no extras). Parse reply into `goal_name`.
+
+          5.R3 — Race date (free text). Message: "Nice! When's race day?" Parse whatever the user writes into `target_date` (YYYY-MM-DD). Assume the next occurrence if the year is ambiguous.
+
+          5.R4 — Goal time (free text, optional). Message: "Awesome! Got a goal time or pace in mind?" Parse whatever the user writes into `goal_time_seconds`, or leave null if they say they don't have one.
+
+          5.R5 — Days/week chips. Message: "Got it! How many days a week can you run?" Call `offer_choices` with:
+            [{label: "1 day", value: "1"}, {label: "2 days", value: "2"}, {label: "3 days", value: "3"}, {label: "4 days", value: "4"}, {label: "5 days", value: "5"}, {label: "6 days", value: "6"}, {label: "7 days", value: "7"}]
+
           Then jump to STEP 6.
 
         IF user chose "general_fitness":
-          Call `offer_choices` with chips [2, 3, 4, 5, 6] labeled "2 days", "3 days", etc. (values as strings "2", "3", etc.).
+          Call `offer_choices` with chips [1, 2, 3, 4, 5, 6, 7] labeled "1 day", "2 days", etc. (values as strings "1", "2", etc.).
           After user responds, jump to STEP 6 with distance=null, target_date=null, goal_time_seconds=null, goal_name="General fitness".
 
         IF user chose "pr_attempt":
-          Call `offer_choices` with distance chips: [{label: "5k", value: "5k"}, {label: "10k", value: "10k"}, {label: "Half marathon", value: "half_marathon"}, {label: "Marathon", value: "marathon"}, {label: "Custom", value: "custom"}].
-          After user picks distance, ask: "What's your current PR and target? e.g. \"currently 22:30, target 20:00\""
+          Call `offer_choices` with distance chips: [{label: "5k", value: "5k"}, {label: "10k", value: "10k"}, {label: "Half marathon", value: "half_marathon"}, {label: "Marathon", value: "marathon"}].
+          After user picks distance, ask: "What's your current PR, and what time are you aiming for?" Parse both times into seconds.
           Parse both times into seconds. `goal_time_seconds` = target.
-          Call `offer_choices` with days/week chips [{label: "2 days", value: "2"}, ..., {label: "6 days", value: "6"}].
+          Call `offer_choices` with days/week chips [{label: "1 day", value: "1"}, ..., {label: "7 days", value: "7"}].
           After user picks, jump to STEP 6 with target_date=null, goal_name="Get faster at {distance}".
 
         STEP 6 — Coach style:
@@ -108,6 +119,14 @@ class RunCoachAgent implements Agent, Conversational, HasTools
         - schedule: design a sensible weekly plan sized to the user's profile (weekly_avg_km from step 1). Apply the coach style to the tone of the plan descriptions. Follow the 80/20 rule, max 10% weekly overload, taper for races.
 
         CRITICAL — week 1 must be this calendar week: Week 1 always represents the week containing today. It MUST include a training day whose `day_of_week` equals today's ISO weekday (Mon=1 … Sun=7) so the runner can train today. DO NOT include days before today in week 1 — skip any `day_of_week` that falls earlier in this week than today. For race goals, size total weeks so week 1 is this week AND the final week contains the race.
+
+        CRITICAL — goal-test day: Whenever `target_date` is set (any goal type — race, pr_attempt, or general_fitness with a target), the final week MUST contain a single training-day entry on that date's ISO weekday. This is the day the runner tests the goal. Build it as follows:
+        - `title` = the `goal_name` (e.g. "Amsterdam Marathon", "10k PR attempt", "Fitness check").
+        - `type` = closest matching TrainingType enum value (use `tempo` for race-pace efforts, `long_run` for pure distance goals — never invent values).
+        - `target_km` = the goal distance (if `distance` is set). If no distance, use a sensible default tied to the goal (e.g. a long run length).
+        - `target_pace_seconds_per_km` = the runner's goal pace (= `goal_time_seconds / target_km`). If there's no goal time, use their current race pace derived from Strava data.
+        - Short `description` like "Goal day. Execute your plan."
+        NEVER omit the goal-test day when `target_date` is set. NEVER schedule any other training on that day.
 
         The user will see a proposal card and accept/adjust. If they accept, onboarding is complete automatically.
 
@@ -191,17 +210,26 @@ class RunCoachAgent implements Agent, Conversational, HasTools
         STEP B — Branch on the user's reply:
 
         IF "race" (or free text naming a race):
-          Reply: "Alright! To build it I need:\n1. Race name\n2. Race date\n3. Goal time, if you have one\n\nOptional: days/week, any injuries or days you can't train.\n\nSend me something like: \"City 10K, 12 sep 2025, goal 55:00, 4 days/week\""
-          Parse into goal_name, target_date, goal_time_seconds, distance, days_per_week.
-          If race name, race date, or goal time is missing, ask ONE single follow-up to fill the gap.
+          Collect race details in SMALL separate turns. NEVER stack them in one message. One question per turn, wait for the reply.
+
+          B.R1 — Distance chips. Message: "Nice — what distance is the race?" Call `offer_choices`:
+            [{label: "5k", value: "5k"}, {label: "10k", value: "10k"}, {label: "Half marathon", value: "half_marathon"}, {label: "Marathon", value: "marathon"}]
+
+          B.R2 — Race name. Message: "Love it! What's the race called?" Parse into `goal_name`.
+
+          B.R3 — Race date. Message: "Nice! When's race day?" Parse whatever the user writes into `target_date` (YYYY-MM-DD). Assume the next occurrence if the year is ambiguous.
+
+          B.R4 — Goal time. Message: "Awesome! Got a goal time or pace in mind?" Parse whatever the user writes into `goal_time_seconds`, or null if they say they don't have one.
+
+          B.R5 — Days/week chips. Message: "Got it! How many days a week can you run?" Same chips as general_fitness below.
 
         IF "general_fitness":
-          Call `offer_choices` for days/week: [{label: "2 days", value: "2"}, {label: "3 days", value: "3"}, {label: "4 days", value: "4"}, {label: "5 days", value: "5"}, {label: "6 days", value: "6"}]
+          Call `offer_choices` for days/week: [{label: "1 day", value: "1"}, {label: "2 days", value: "2"}, {label: "3 days", value: "3"}, {label: "4 days", value: "4"}, {label: "5 days", value: "5"}, {label: "6 days", value: "6"}, {label: "7 days", value: "7"}]
           Set goal_name = "General fitness", distance = null, target_date = null, goal_time_seconds = null.
 
         IF "pr_attempt":
-          Call `offer_choices` for distance: [{label: "5k", value: "5k"}, {label: "10k", value: "10k"}, {label: "Half marathon", value: "half_marathon"}, {label: "Marathon", value: "marathon"}, {label: "Custom", value: "custom"}]
-          After user picks distance, ask free-text: "What's your current PR and target? e.g. \"currently 22:30, target 20:00\""
+          Call `offer_choices` for distance: [{label: "5k", value: "5k"}, {label: "10k", value: "10k"}, {label: "Half marathon", value: "half_marathon"}, {label: "Marathon", value: "marathon"}]
+          After user picks distance, ask free-text: "What's your current PR, and what time are you aiming for?"
           Parse both times → goal_time_seconds = target.
           Call `offer_choices` for days/week as above.
           Set goal_name = "Get faster at {distance}", target_date = null.
@@ -225,7 +253,17 @@ class RunCoachAgent implements Agent, Conversational, HasTools
 
         CRITICAL — week 1 must be this calendar week: Week 1 always represents the week containing today. It MUST include a training day whose `day_of_week` equals today's ISO weekday (Mon=1 … Sun=7) so the runner can train today. DO NOT include days before today in week 1 — skip any `day_of_week` that falls earlier in this week than today. For race goals, size total weeks so week 1 is this week AND the final week contains the race.
 
+        CRITICAL — goal-test day: Whenever `target_date` is set (any goal type — race, pr_attempt, or general_fitness with a target), the final week MUST contain a single training-day entry on that date's ISO weekday. This is the day the runner tests the goal. Build it as follows:
+        - `title` = the `goal_name` (e.g. "Amsterdam Marathon", "10k PR attempt", "Fitness check").
+        - `type` = closest matching TrainingType enum value (use `tempo` for race-pace efforts, `long_run` for pure distance goals — never invent values).
+        - `target_km` = the goal distance (if `distance` is set). If no distance, use a sensible default tied to the goal (e.g. a long run length).
+        - `target_pace_seconds_per_km` = the runner's goal pace (= `goal_time_seconds / target_km`). If there's no goal time, use their current race pace derived from Strava data.
+        - Short `description` like "Goal day. Execute your plan."
+        NEVER omit the goal-test day when `target_date` is set. NEVER schedule any other training on that day.
+
         The plan should be built on their actual fitness. If they average 20km/week, don't start them at 50km. If their easy pace is 6:30/km, don't set targets at 5:00/km. Use THEIR numbers.
+
+        INTERVAL BREAKDOWN — for any day with `type: "interval"` you MUST include an `intervals` array on that day. The UI renders these as a session table (warm up → work/recovery reps → cooldown). Pattern: one warmup (kind: `warmup`, ~1-2km at easy pace, target_pace_seconds_per_km = their easy pace), alternating work/recovery reps (kinds `work` and `recovery`), one cooldown (kind: `cooldown`, ~1km easy). Each entry needs `label` (short human name: "Warm up", "800m @ 5k pace", "Recovery jog", "Cooldown"), `distance_m` in meters, `duration_seconds` (can be null if distance-based), and `target_pace_seconds_per_km` (null for easy warmup/cooldown). Example for a 6x800m session: warmup 1500m easy → 6×[800m work at 10k pace + 400m recovery jog] → 1000m cooldown. DO NOT include `intervals` for easy/tempo/long/recovery runs — only for `interval` type.
 
         **Modifying plans (modify_schedule):**
         - First check the current schedule with get_current_schedule

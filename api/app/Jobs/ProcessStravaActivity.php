@@ -32,7 +32,7 @@ class ProcessStravaActivity implements ShouldQueue
 
         $activityData = $stravaSyncService->fetchActivity($token, $this->stravaActivityId);
 
-        if ($activityData['type'] !== 'Run') {
+        if (! in_array($activityData['type'] ?? null, StravaActivity::RUN_TYPES, true)) {
             return;
         }
 

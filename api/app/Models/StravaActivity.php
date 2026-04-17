@@ -4,16 +4,26 @@ namespace App\Models;
 
 use Database\Factories\StravaActivityFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable(['user_id', 'strava_id', 'type', 'name', 'distance_meters', 'moving_time_seconds', 'elapsed_time_seconds', 'average_heartrate', 'average_speed', 'start_date', 'summary_polyline', 'raw_data', 'synced_at'])]
+// Raw Strava JSON blob is ~5-10KB per row and the client never needs it over
+// the wire — it's kept in the DB for future field access without refetching.
+#[Hidden(['raw_data'])]
 class StravaActivity extends Model
 {
     /** @use HasFactory<StravaActivityFactory> */
     use HasFactory;
+
+    /**
+     * Strava activity types we treat as a runner's "run" for matching to a
+     * training day. Covers road, trail, and treadmill / virtual runs.
+     */
+    public const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
 
     protected function casts(): array
     {

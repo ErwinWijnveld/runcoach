@@ -1,13 +1,13 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/coach/models/coach_proposal.dart';
-import 'package:app/features/coach/providers/plan_explanation_provider.dart';
-import 'package:app/features/coach/widgets/swooshing_star.dart';
 
-class PlanDetailsSheet extends ConsumerWidget {
+/// Full week-by-week plan overview, rendered directly from the proposal
+/// payload (the agent already included a structured `schedule.weeks[]`
+/// tree in the CreateSchedule call). Zero AI round-trip — just a compact
+/// scrollable summary per week.
+class PlanDetailsSheet extends StatelessWidget {
   final CoachProposal proposal;
   final VoidCallback? onAccept;
   final VoidCallback? onAdjust;
@@ -41,10 +41,10 @@ class PlanDetailsSheet extends ConsumerWidget {
   bool get _isPending => proposal.status == 'pending';
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(planExplanationProvider(proposal.id));
-    final weeklyKm = _computeWeeklyKm(proposal.payload);
-    final weeklyRuns = _computeWeeklyRuns(proposal.payload);
+  Widget build(BuildContext context) {
+    final weeks = _weeks(proposal.payload);
+    final avgKm = _averageWeeklyKm(weeks);
+    final runsRange = _weeklyRunsRange(weeks);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.9,
@@ -71,33 +71,39 @@ class PlanDetailsSheet extends ConsumerWidget {
               Expanded(
                 child: SingleChildScrollView(
                   controller: scrollController,
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _header(async),
-                      const SizedBox(height: 12),
-                      _body(async),
-                      const SizedBox(height: 32),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _statItem(
-                              'WEEKLY KM',
-                              '${weeklyKm.toStringAsFixed(1)} km',
-                            ),
-                          ),
-                          const SizedBox(width: 32),
-                          Expanded(child: _statItem('WEEKLY RUNS', weeklyRuns)),
-                        ],
+                      _Header(goalName: _goalName()),
+                      const SizedBox(height: 16),
+                      _TopStats(
+                        totalWeeks: weeks.length,
+                        avgWeeklyKm: avgKm,
+                        weeklyRuns: runsRange,
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
+                      Text(
+                        'WEEKLY BREAKDOWN',
+                        style: GoogleFonts.spaceGrotesk(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.8,
+                          color: AppColors.inkMuted,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      for (final w in weeks) ...[
+                        _WeekCard(week: w),
+                        const SizedBox(height: 8),
+                      ],
+                      const SizedBox(height: 16),
                       if (_isPending) ...[
                         Row(
                           children: [
                             Expanded(
-                              child: _primaryButton(
-                                'ACCEPT PLAN',
+                              child: _PrimaryButton(
+                                label: 'ACCEPT PLAN',
                                 background: AppColors.secondary,
                                 foreground: AppColors.primary,
                                 onPressed: onAccept == null
@@ -110,8 +116,8 @@ class PlanDetailsSheet extends ConsumerWidget {
                             ),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: _primaryButton(
-                                'ADJUST',
+                              child: _PrimaryButton(
+                                label: 'ADJUST',
                                 background: AppColors.primary,
                                 foreground: AppColors.neutral,
                                 onPressed: onAdjust == null
@@ -126,7 +132,7 @@ class PlanDetailsSheet extends ConsumerWidget {
                         ),
                         const SizedBox(height: 12),
                       ],
-                      _closeButton(context),
+                      _CloseButton(onTap: () => Navigator.of(context).pop()),
                     ],
                   ),
                 ),
@@ -138,7 +144,50 @@ class PlanDetailsSheet extends ConsumerWidget {
     );
   }
 
-  Widget _header(AsyncValue<PlanExplanation> async) {
+  String _goalName() {
+    final name = proposal.payload['goal_name'];
+    if (name is String && name.trim().isNotEmpty) return name;
+    return 'Your training plan';
+  }
+
+  List<Map<String, dynamic>> _weeks(Map<String, dynamic> payload) {
+    final schedule = payload['schedule'];
+    if (schedule is! Map) return const [];
+    final weeks = schedule['weeks'];
+    if (weeks is! List) return const [];
+    return weeks
+        .whereType<Map>()
+        .map((w) => Map<String, dynamic>.from(w))
+        .toList(growable: false);
+  }
+
+  double _averageWeeklyKm(List<Map<String, dynamic>> weeks) {
+    if (weeks.isEmpty) return 0.0;
+    final totals =
+        weeks.map((w) => w['total_km']).whereType<num>().toList();
+    if (totals.isEmpty) return 0.0;
+    return totals.fold<double>(0, (a, b) => a + b.toDouble()) / totals.length;
+  }
+
+  String _weeklyRunsRange(List<Map<String, dynamic>> weeks) {
+    if (weeks.isEmpty) return '0';
+    final counts = weeks.map((w) {
+      final days = w['days'];
+      if (days is! List) return 0;
+      return days.whereType<Map>().where((d) => d['type'] != 'rest').length;
+    }).toList();
+    final min = counts.reduce((a, b) => a < b ? a : b);
+    final max = counts.reduce((a, b) => a > b ? a : b);
+    return min == max ? '$min' : '$min–$max';
+  }
+}
+
+class _Header extends StatelessWidget {
+  final String goalName;
+  const _Header({required this.goalName});
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -147,40 +196,22 @@ class PlanDetailsSheet extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Recommended Plan',
+                'RECOMMENDED PLAN',
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
                   color: const Color(0xFF785A00),
                 ),
               ),
               const SizedBox(height: 4),
-              async.when(
-                data: (e) => Text(
-                  e.name,
-                  style: GoogleFonts.ebGaramond(
-                    fontSize: 30,
-                    fontWeight: FontWeight.w400,
-                    height: 34 / 30,
-                    color: AppColors.primaryInk,
-                  ),
-                ),
-                loading: () => Container(
-                  height: 30,
-                  width: 200,
-                  decoration: BoxDecoration(
-                    color: AppColors.neutralHighlight,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                ),
-                error: (_, _) => Text(
-                  'Your training plan',
-                  style: GoogleFonts.ebGaramond(
-                    fontSize: 30,
-                    fontWeight: FontWeight.w400,
-                    height: 34 / 30,
-                    color: AppColors.primaryInk,
-                  ),
+              Text(
+                goalName,
+                style: GoogleFonts.ebGaramond(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w400,
+                  height: 32 / 28,
+                  color: AppColors.primaryInk,
                 ),
               ),
             ],
@@ -188,64 +219,273 @@ class PlanDetailsSheet extends ConsumerWidget {
         ),
         const Icon(
           Icons.directions_run,
-          size: 30,
+          size: 28,
           color: AppColors.eyebrow,
         ),
       ],
     );
   }
+}
 
-  Widget _body(AsyncValue<PlanExplanation> async) {
-    return async.when(
-      data: (e) => Text(
-        e.explanation,
-        style: GoogleFonts.publicSans(
-          fontSize: 14,
-          fontWeight: FontWeight.w400,
-          height: 1.4,
-          color: AppColors.primaryInk,
+class _TopStats extends StatelessWidget {
+  final int totalWeeks;
+  final double avgWeeklyKm;
+  final String weeklyRuns;
+
+  const _TopStats({
+    required this.totalWeeks,
+    required this.avgWeeklyKm,
+    required this.weeklyRuns,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: _StatItem(
+            label: 'WEEKS',
+            value: '$totalWeeks',
+          ),
         ),
-      ),
-      loading: () => const _PlanExplanationLoading(),
-      error: (err, _) => Row(
-        children: [
-          const Icon(
-            CupertinoIcons.exclamationmark_circle,
-            size: 16,
-            color: AppColors.danger,
+        Expanded(
+          child: _StatItem(
+            label: 'AVG KM / WEEK',
+            value: avgWeeklyKm.toStringAsFixed(1),
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              "Couldn't load the explanation.",
-              style: GoogleFonts.publicSans(
-                fontSize: 14,
-                color: AppColors.danger,
-              ),
-            ),
+        ),
+        Expanded(
+          child: _StatItem(
+            label: 'RUNS / WEEK',
+            value: weeklyRuns,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
+}
 
-  Widget _statItem(String label, String value) {
+class _StatItem extends StatelessWidget {
+  final String label;
+  final String value;
+  const _StatItem({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label, style: RunCoreText.statLabel()),
         const SizedBox(height: 4),
-        Text(value, style: RunCoreText.statValue()),
+        Text(
+          value,
+          style: GoogleFonts.inter(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: AppColors.primaryInk,
+          ),
+        ),
       ],
     );
   }
+}
 
-  Widget _primaryButton(
-    String label, {
-    required Color background,
-    required Color foreground,
-    VoidCallback? onPressed,
-  }) {
+class _WeekCard extends StatelessWidget {
+  final Map<String, dynamic> week;
+  const _WeekCard({required this.week});
+
+  static const _dayNames = [
+    'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final weekNumber = week['week_number'] is num
+        ? (week['week_number'] as num).toInt()
+        : null;
+    final focus = (week['focus'] as String?)?.trim();
+    final totalKm = week['total_km'] is num
+        ? (week['total_km'] as num).toDouble()
+        : null;
+    final daysRaw = week['days'];
+    final days = daysRaw is List
+        ? daysRaw.whereType<Map>().map(Map<String, dynamic>.from).toList()
+        : <Map<String, dynamic>>[];
+    days.sort((a, b) {
+      final aDow = a['day_of_week'];
+      final bDow = b['day_of_week'];
+      return ((aDow is num ? aDow.toInt() : 99) -
+          (bDow is num ? bDow.toInt() : 99));
+    });
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: AppColors.neutralHighlight,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      weekNumber != null ? 'Week $weekNumber' : 'Week',
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.5,
+                        color: AppColors.primaryInk,
+                      ),
+                    ),
+                    if (focus != null && focus.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        focus,
+                        style: GoogleFonts.publicSans(
+                          fontSize: 12,
+                          color: AppColors.tertiary,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (totalKm != null) ...[
+                const SizedBox(width: 10),
+                Text(
+                  '${totalKm.toStringAsFixed(totalKm.truncateToDouble() == totalKm ? 0 : 1)} km',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primaryInk,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          if (days.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            for (var i = 0; i < days.length; i++) ...[
+              if (i > 0)
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: AppColors.border,
+                ),
+              _DayRow(day: days[i]),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _DayRow extends StatelessWidget {
+  final Map<String, dynamic> day;
+  const _DayRow({required this.day});
+
+  @override
+  Widget build(BuildContext context) {
+    final dow = day['day_of_week'] is num
+        ? (day['day_of_week'] as num).toInt()
+        : null;
+    final dayLabel = (dow != null && dow >= 1 && dow <= 7)
+        ? _WeekCard._dayNames[dow - 1]
+        : '—';
+    final title = (day['title'] as String?)?.trim().isNotEmpty == true
+        ? day['title'] as String
+        : _prettifyType(day['type'] as String?);
+    final km = day['target_km'];
+    final pace = day['target_pace_seconds_per_km'];
+
+    final metricParts = <String>[];
+    if (km is num && km > 0) {
+      metricParts.add('${km % 1 == 0 ? km.toInt() : km.toStringAsFixed(1)} km');
+    }
+    if (pace is num && pace > 0) {
+      final secs = pace.toInt();
+      metricParts.add('${secs ~/ 60}:${(secs % 60).toString().padLeft(2, '0')} /km');
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 34,
+            child: Text(
+              dayLabel,
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppColors.tertiary,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              title,
+              style: GoogleFonts.publicSans(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: AppColors.primaryInk,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (metricParts.isNotEmpty) ...[
+            const SizedBox(width: 8),
+            Text(
+              metricParts.join(' · '),
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: AppColors.tertiary,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _prettifyType(String? type) {
+    if (type == null || type.isEmpty) return 'Run';
+    return type
+        .replaceAll('_', ' ')
+        .split(' ')
+        .map((p) => p.isEmpty
+            ? p
+            : p[0].toUpperCase() + p.substring(1).toLowerCase())
+        .join(' ');
+  }
+}
+
+class _PrimaryButton extends StatelessWidget {
+  final String label;
+  final Color background;
+  final Color foreground;
+  final VoidCallback? onPressed;
+
+  const _PrimaryButton({
+    required this.label,
+    required this.background,
+    required this.foreground,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
@@ -267,10 +507,16 @@ class PlanDetailsSheet extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Widget _closeButton(BuildContext context) {
+class _CloseButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _CloseButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
     return OutlinedButton(
-      onPressed: () => Navigator.of(context).pop(),
+      onPressed: onTap,
       style: OutlinedButton.styleFrom(
         backgroundColor: AppColors.neutralHighlight,
         padding: const EdgeInsets.symmetric(vertical: 10),
@@ -286,80 +532,6 @@ class PlanDetailsSheet extends ConsumerWidget {
           fontWeight: FontWeight.w700,
           color: AppColors.primary,
         ),
-      ),
-    );
-  }
-
-  double _computeWeeklyKm(Map<String, dynamic> payload) {
-    final schedule = payload['schedule'] as Map<String, dynamic>?;
-    final weeks = schedule?['weeks'] as List?;
-    if (weeks == null || weeks.isEmpty) return 0.0;
-    final totals = weeks
-        .map((w) => (w as Map)['total_km'])
-        .whereType<num>()
-        .toList();
-    if (totals.isEmpty) return 0.0;
-    return totals.reduce((a, b) => a + b) / totals.length;
-  }
-
-  String _computeWeeklyRuns(Map<String, dynamic> payload) {
-    final schedule = payload['schedule'] as Map<String, dynamic>?;
-    final weeks = schedule?['weeks'] as List?;
-    if (weeks == null || weeks.isEmpty) return '0';
-    final counts = weeks.map((w) {
-      final days = ((w as Map)['days'] as List?)
-              ?.where((d) => (d as Map)['type'] != 'rest')
-              .length ??
-          0;
-      return days;
-    }).toList();
-    final min = counts.reduce((a, b) => a < b ? a : b);
-    final max = counts.reduce((a, b) => a > b ? a : b);
-    return min == max ? '$min' : '$min to $max';
-  }
-}
-
-class _PlanExplanationLoading extends StatelessWidget {
-  const _PlanExplanationLoading();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-      decoration: BoxDecoration(
-        color: AppColors.neutralHighlight,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const SwooshingStar(size: 28),
-          const SizedBox(height: 16),
-          Text(
-            'Writing your plan summary',
-            style: GoogleFonts.ebGaramond(
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-              fontStyle: FontStyle.italic,
-              color: AppColors.primaryInk,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'This takes a few seconds — your coach is reviewing the weekly structure.',
-            style: GoogleFonts.publicSans(
-              fontSize: 13,
-              fontWeight: FontWeight.w400,
-              height: 1.4,
-              color: AppColors.tertiary,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
       ),
     );
   }

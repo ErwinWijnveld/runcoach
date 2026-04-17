@@ -1,230 +1,208 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Colors, InkWell, Material;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
+import 'package:app/core/widgets/coach_prompt_bar.dart';
+import 'package:app/features/schedule/data/training_day_coach_suggestions.dart';
+import 'package:app/features/schedule/models/training_day.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
+import 'package:app/features/schedule/widgets/select_strava_run_sheet.dart';
+import 'package:app/features/schedule/widgets/strava_summary_card.dart';
+import 'package:app/features/schedule/widgets/training_day_action_buttons.dart';
+import 'package:app/features/schedule/widgets/training_day_hero_card.dart';
+import 'package:app/features/schedule/widgets/training_day_stat_tiles.dart';
+import 'package:app/features/schedule/widgets/training_day_status.dart';
+import 'package:app/features/schedule/widgets/training_intervals_table.dart';
 
 class TrainingDayDetailScreen extends ConsumerWidget {
   final int dayId;
   const TrainingDayDetailScreen({super.key, required this.dayId});
 
-  String _formatPace(int secondsPerKm) {
-    final minutes = secondsPerKm ~/ 60;
-    final seconds = secondsPerKm % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')} /km';
-  }
-
-  String _hrZoneLabel(int zone) {
-    const labels = {
-      1: 'Zone 1 - Recovery',
-      2: 'Zone 2 - Easy',
-      3: 'Zone 3 - Tempo',
-      4: 'Zone 4 - Threshold',
-      5: 'Zone 5 - Max',
-    };
-    return labels[zone] ?? 'Zone $zone';
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dayAsync = ref.watch(trainingDayDetailProvider(dayId));
 
-    return dayAsync.when(
-      loading: () => const CupertinoPageScaffold(
-        backgroundColor: AppColors.cream,
-        child: SafeArea(child: AppSpinner()),
+    return CupertinoPageScaffold(
+      backgroundColor: AppColors.neutral,
+      child: dayAsync.when(
+        loading: () => const SafeArea(child: AppSpinner()),
+        error: (err, _) => SafeArea(child: AppErrorState(title: 'Error: $err')),
+        data: (day) => _Loaded(day: day, ref: ref),
       ),
-      error: (err, _) => CupertinoPageScaffold(
-        backgroundColor: AppColors.cream,
-        navigationBar: CupertinoNavigationBar(
-          backgroundColor: AppColors.cream.withValues(alpha: 0.92),
-          border: null,
-          leading: CupertinoButton(
-            padding: EdgeInsets.zero,
-            onPressed: () => context.go('/schedule'),
-            child: const Icon(
-              CupertinoIcons.back,
-              color: AppColors.warmBrown,
-            ),
-          ),
-        ),
-        child: SafeArea(
-          child: AppErrorState(title: 'Error: $err'),
-        ),
-      ),
-      data: (day) {
-        final hasResult = day.result != null;
-
-        return CupertinoPageScaffold(
-          backgroundColor: AppColors.cream,
-          navigationBar: CupertinoNavigationBar(
-            backgroundColor: AppColors.cream.withValues(alpha: 0.92),
-            border: null,
-            leading: CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () => context.go('/schedule'),
-              child: const Icon(
-                CupertinoIcons.back,
-                color: AppColors.warmBrown,
-              ),
-            ),
-            middle: Text(day.title),
-          ),
-          child: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.warmBrown.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          day.type.toUpperCase(),
-                          style: const TextStyle(
-                            color: AppColors.warmBrown,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        day.date,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  if (day.description != null) ...[
-                    Text(
-                      day.description!,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        height: 1.5,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                  ],
-                  const AppSectionLabel('TARGETS'),
-                  const SizedBox(height: 12),
-                  _MetricsGrid(
-                    children: [
-                      if (day.targetKm != null)
-                        _MetricCard(
-                          icon: CupertinoIcons.arrow_right_arrow_left,
-                          label: 'Distance',
-                          value: '${day.targetKm} km',
-                        ),
-                      if (day.targetPaceSecondsPerKm != null)
-                        _MetricCard(
-                          icon: CupertinoIcons.speedometer,
-                          label: 'Pace',
-                          value: _formatPace(day.targetPaceSecondsPerKm!),
-                        ),
-                      if (day.targetHeartRateZone != null)
-                        _MetricCard(
-                          icon: CupertinoIcons.heart_fill,
-                          label: 'HR Zone',
-                          value: _hrZoneLabel(day.targetHeartRateZone!),
-                        ),
-                    ],
-                  ),
-                  if (day.intervalsJson != null &&
-                      day.intervalsJson!.isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    const AppSectionLabel('INTERVALS'),
-                    const SizedBox(height: 12),
-                    _IntervalsCard(intervals: day.intervalsJson!),
-                  ],
-                  const SizedBox(height: 32),
-                  if (hasResult)
-                    AppFilledButton(
-                      label: 'View Result',
-                      icon: CupertinoIcons.check_mark_circled,
-                      color: AppColors.success,
-                      onPressed: () =>
-                          context.go('/schedule/day/$dayId/result'),
-                    )
-                  else
-                    const AppBorderedButton(
-                      label: 'Awaiting Strava sync',
-                      icon: CupertinoIcons.hourglass,
-                      color: AppColors.textSecondary,
-                    ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }
 
-class _MetricsGrid extends StatelessWidget {
-  final List<Widget> children;
-  const _MetricsGrid({required this.children});
+class _Loaded extends StatelessWidget {
+  final TrainingDay day;
+  final WidgetRef ref;
+
+  const _Loaded({required this.day, required this.ref});
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(spacing: 12, runSpacing: 12, children: children);
-  }
-}
+    final status = TrainingDayStatus.from(day);
 
-class _MetricCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  const _MetricCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: (MediaQuery.of(context).size.width - 52) / 2,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.cardBg,
-        borderRadius: BorderRadius.circular(AppRadius.button),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: AppColors.warmBrown, size: 20),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 11,
-              color: AppColors.textSecondary,
+    return Stack(
+      children: [
+        SingleChildScrollView(
+          padding: const EdgeInsets.only(bottom: 120),
+          child: SafeArea(
+            bottom: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _BackButton(),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                  child: TrainingDayHeroCard(
+                    title: day.title,
+                    status: status,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: TrainingDayStatTiles(
+                    distance: _formatDistance(day),
+                    pace: _formatPace(day),
+                    hrZone: _formatHrZone(day),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: TrainingDayActionButtons(
+                    status: status,
+                    onSendToWatch: () => _showWatchPlaceholder(context),
+                    onSelectStravaRun: () => SelectStravaRunSheet.show(
+                      context,
+                      dayId: day.id,
+                      onMatched: () {
+                        // Day detail needs the new result nested in.
+                        ref.invalidate(trainingDayDetailProvider(day.id));
+                        ref.invalidate(trainingDayResultProvider(day.id));
+                        // Weekly schedule list / current-week list render
+                        // "completed" badges from TrainingResult too.
+                        // Invalidating the family refetches all keyed
+                        // instances.
+                        ref.invalidate(scheduleProvider);
+                        ref.invalidate(currentWeekProvider);
+                      },
+                    ),
+                  ),
+                ),
+                if (day.intervals != null && day.intervals!.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  const _SectionTitle('Intervals'),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: TrainingIntervalsTable(intervals: day.intervals!),
+                  ),
+                ],
+                if (day.description != null &&
+                    day.description!.trim().isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const _SectionTitle('Notes'),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: CupertinoColors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: const [
+                          BoxShadow(color: Color(0x08000000), blurRadius: 16),
+                        ],
+                      ),
+                      child: Text(
+                        day.description!,
+                        style: GoogleFonts.publicSans(
+                          fontSize: 14,
+                          height: 1.5,
+                          color: AppColors.primaryInk,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                if (status == TrainingDayStatus.completed &&
+                    day.result?.stravaActivity != null) ...[
+                  const SizedBox(height: 16),
+                  const _SectionTitle('Synced Strava run'),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: StravaSummaryCard(
+                      activity: day.result!.stravaActivity!,
+                      onOpenDetails: () =>
+                          context.push('/schedule/day/${day.id}/result'),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 32),
+              ],
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+        ),
+        // Coach prompt bar docked at bottom, like Figma.
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: CoachPromptBar.navigateAnimated(
+                onTap: () => context.go('/coach'),
+                animatedSuggestions: trainingDayCoachSuggestions,
+              ),
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String? _formatDistance(TrainingDay d) {
+    final actualKm = d.result?.actualKm;
+    final km = actualKm ?? d.targetKm;
+    if (km == null) return null;
+    return km.toStringAsFixed(km.truncateToDouble() == km ? 0 : 1);
+  }
+
+  String? _formatPace(TrainingDay d) {
+    final actual = d.result?.actualPaceSecondsPerKm;
+    final secs = actual ?? d.targetPaceSecondsPerKm;
+    if (secs == null) return null;
+    final mm = secs ~/ 60;
+    final ss = secs % 60;
+    return '$mm:${ss.toString().padLeft(2, '0')}';
+  }
+
+  String? _formatHrZone(TrainingDay d) {
+    final zone = d.targetHeartRateZone;
+    if (zone == null) return null;
+    return '$zone';
+  }
+
+  Future<void> _showWatchPlaceholder(BuildContext context) {
+    return showCupertinoDialog<void>(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: const Text('Coming soon'),
+        content: const Text(
+            "'Send to watch' will push this session to your Garmin / Apple Watch once we wire the integration."),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -232,42 +210,59 @@ class _MetricCard extends StatelessWidget {
   }
 }
 
-class _IntervalsCard extends StatelessWidget {
-  final Map<String, dynamic> intervals;
-  const _IntervalsCard({required this.intervals});
+class _SectionTitle extends StatelessWidget {
+  final String label;
+  const _SectionTitle(this.label);
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: intervals.entries.map((entry) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  entry.key,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                Text(
-                  '${entry.value}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 0, 22, 0),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.spaceGrotesk(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: AppColors.primary,
             ),
-          );
-        }).toList(),
+          ),
+          const SizedBox(width: 8),
+          const Icon(
+            CupertinoIcons.chevron_right,
+            size: 10,
+            color: AppColors.primary,
+          ),
+        ],
       ),
     );
   }
 }
+
+class _BackButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(22),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(22),
+          onTap: () =>
+              context.canPop() ? context.pop() : context.go('/schedule'),
+          child: const Padding(
+            padding: EdgeInsets.all(10),
+            child: Icon(
+              CupertinoIcons.back,
+              color: AppColors.primaryInk,
+              size: 22,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+

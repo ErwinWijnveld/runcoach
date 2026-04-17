@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Listeners;
 
-use App\Ai\Agents\PlanExplanationAgent;
+use App\Ai\Agents\ActivityFeedbackAgent;
 use App\Ai\Agents\RunCoachAgent;
 use App\Listeners\RecordAgentTokenUsage;
 use App\Models\TokenUsage;
@@ -52,9 +52,9 @@ class RecordAgentTokenUsageTest extends TestCase
         $this->assertSame(150, $row->total_tokens);
     }
 
-    public function test_records_plan_explanation_agent_as_plan_explanation_context_without_user(): void
+    public function test_records_one_shot_agent_with_snake_case_context_and_no_user(): void
     {
-        $agent = new PlanExplanationAgent;
+        $agent = new ActivityFeedbackAgent;
         $event = $this->makeEvent($agent, promptTokens: 200, completionTokens: 80);
 
         (new RecordAgentTokenUsage)->handle($event);
@@ -62,13 +62,13 @@ class RecordAgentTokenUsageTest extends TestCase
         $row = TokenUsage::firstOrFail();
         $this->assertNull($row->user_id);
         $this->assertNull($row->conversation_id);
-        $this->assertSame('plan_explanation', $row->context);
+        $this->assertSame('activity_feedback', $row->context);
         $this->assertSame(280, $row->total_tokens);
     }
 
     public function test_skips_when_no_usage_or_zero_tokens(): void
     {
-        $agent = new PlanExplanationAgent;
+        $agent = new ActivityFeedbackAgent;
         $event = $this->makeEvent($agent, promptTokens: 0, completionTokens: 0);
 
         (new RecordAgentTokenUsage)->handle($event);

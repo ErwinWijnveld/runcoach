@@ -225,15 +225,19 @@ The coach uses **Laravel AI SDK** (`laravel/ai` v0.5.1). Default provider is **A
 
 ### Anthropic integration (SDK patches)
 
+> **Hard rule: never edit files under `vendor/`.** No exceptions. They get silently wiped by `composer install/update`, they create dependency-inversion (vendor → app references), and they hide the real fix from future sessions. If you think you need a vendor patch, either (a) work around it in app code, or (b) open an upstream PR. If the fix really must live in a vendor file, use `cweagans/composer-patches` with a committed `.patch` file — discussed with the user first.
+
 Two HTTP middlewares live in `app/Ai/Support/` and are registered in `AppServiceProvider::boot()` via `Http::globalRequestMiddleware`:
 - **`AnthropicToolInputSanitizer`** — fixes `tool_use.input: []` → `{}` for tools with empty params. Without this the SDK's DB round-trip of `arguments` collapses `{}` to `[]` (PHP assoc-array ambiguity) and Anthropic returns `400 "Input should be a valid dictionary"` on any `continue()`+prompt against a stored conversation that previously invoked a no-arg tool (e.g. `GetRunningProfile`). Also clears `Content-Length` after body rewrite (Guzzle doesn't recompute it for streaming requests → truncated JSON → 400).
 - **`AnthropicPromptCaching`** — attaches `cache_control: ephemeral` to the last tool in every outgoing Anthropic request. This caches `system` + all `tools` (~7k tokens for RunCoachAgent). Onboarding turns 2+ hit the cache and pay ~10% of the normal input price. Cache hits show up in `token_usages.cache_read_input_tokens`. Also clears `Content-Length` (same reason as above).
 
-#### Vendor patch — `vendor/laravel/ai/.../HandlesTextStreaming.php`
+#### Tool-spinner UX (app-side, no vendor patches)
 
-The Anthropic streaming handler in `laravel/ai` v0.5.1 only yields `ToolCall` at `content_block_stop`, which for large tool inputs (e.g. `create_schedule`, 20-30s to stream) means the UI sees no tool-start event until the tool is fully prepared. We patch `HandlesTextStreaming.php` to **also yield a `ToolCall` event at `content_block_start` (empty arguments)** so the Flutter spinner shows the tool name immediately. The second yield at `content_block_stop` still fires with the full arguments — the Flutter side treats both as `tool-input-available` and just updates the indicator label idempotently.
+The SDK's Anthropic streaming handler only yields the `ToolCall` event at `content_block_stop` — i.e. after the full tool input JSON has streamed in. For large tool inputs (`create_schedule` generates 2-3k tokens of JSON, takes 20-30s) this means the UI would sit silent between the text ending and the tool firing.
 
-Look for the comment `// RunCoach patch: yield an early ToolCall event...` in that file. If a `composer update` wipes it, re-apply.
+Workaround lives entirely in the Flutter coach provider (`app/lib/features/coach/providers/coach_provider.dart`): on the `text-end` Vercel-protocol event we set a generic `toolIndicator: 'Thinking'` so the spinner shows up immediately. As soon as the SDK emits the actual `tool-input-available` event (which carries `toolName`), it overwrites with the specific humanised label ("Building your training plan…"). On the next text delta the indicator clears.
+
+An earlier attempt patched the SDK to yield a second ToolCall event at `content_block_start` — that polluted `$response->toolCalls` with duplicate ids and caused `messages.N.content.M: tool_use ids must be unique` on the next turn. We removed the vendor patch; DO NOT bring it back.
 
 ### Token usage tracking
 

@@ -100,4 +100,109 @@ class ComplianceScoringTest extends TestCase
         $this->assertNull($result->heart_rate_score);
         $this->assertGreaterThan(0, (float) $result->compliance_score);
     }
+
+    public function test_hr_inside_user_zone_scores_full(): void
+    {
+        $user = User::factory()->create([
+            'heart_rate_zones' => [
+                ['min' => 0, 'max' => 120],
+                ['min' => 120, 'max' => 145], // Zone 2 — we'll target this
+                ['min' => 145, 'max' => 165],
+                ['min' => 165, 'max' => 180],
+                ['min' => 180, 'max' => -1],
+            ],
+        ]);
+
+        [, $day] = $this->createUserWithPlanForUser($user, [
+            'target_heart_rate_zone' => 2,
+        ]);
+
+        // 140 bpm — squarely within user's Z2 [120, 145]
+        $activity = StravaActivity::factory()->create([
+            'user_id' => $user->id,
+            'distance_meters' => 8000,
+            'moving_time_seconds' => 2280,
+            'average_heartrate' => 140,
+            'start_date' => now(),
+        ]);
+
+        $this->service->matchAndScore($user, $activity);
+
+        $result = $day->fresh()->result;
+        $this->assertNotNull($result);
+        $this->assertEqualsWithDelta(10.0, (float) $result->heart_rate_score, 0.01);
+    }
+
+    public function test_hr_outside_zone_is_penalised(): void
+    {
+        $user = User::factory()->create([
+            'heart_rate_zones' => [
+                ['min' => 0, 'max' => 120],
+                ['min' => 120, 'max' => 145],
+                ['min' => 145, 'max' => 165],
+                ['min' => 165, 'max' => 180],
+                ['min' => 180, 'max' => -1],
+            ],
+        ]);
+
+        [, $day] = $this->createUserWithPlanForUser($user, [
+            'target_heart_rate_zone' => 2, // [120, 145]
+        ]);
+
+        // 160 bpm — 15 bpm above zone max → 10 - 15/5 = 7.0
+        $activity = StravaActivity::factory()->create([
+            'user_id' => $user->id,
+            'distance_meters' => 8000,
+            'moving_time_seconds' => 2280,
+            'average_heartrate' => 160,
+            'start_date' => now(),
+        ]);
+
+        $this->service->matchAndScore($user, $activity);
+
+        $result = $day->fresh()->result;
+        $this->assertEqualsWithDelta(7.0, (float) $result->heart_rate_score, 0.1);
+    }
+
+    public function test_falls_back_to_default_zones_when_user_has_none(): void
+    {
+        $user = User::factory()->create(['heart_rate_zones' => null]);
+
+        [, $day] = $this->createUserWithPlanForUser($user, [
+            'target_heart_rate_zone' => 2, // default Z2: [115, 152]
+        ]);
+
+        $activity = StravaActivity::factory()->create([
+            'user_id' => $user->id,
+            'distance_meters' => 8000,
+            'moving_time_seconds' => 2280,
+            'average_heartrate' => 140, // inside default Z2
+            'start_date' => now(),
+        ]);
+
+        $this->service->matchAndScore($user, $activity);
+
+        $this->assertEqualsWithDelta(10.0, (float) $day->fresh()->result->heart_rate_score, 0.01);
+    }
+
+    private function createUserWithPlanForUser(User $user, array $dayOverrides = []): array
+    {
+        $goal = Goal::factory()->create([
+            'user_id' => $user->id,
+            'status' => GoalStatus::Active,
+        ]);
+        $week = TrainingWeek::factory()->create([
+            'goal_id' => $goal->id,
+            'starts_at' => now()->startOfWeek(),
+        ]);
+        $day = TrainingDay::factory()->create(array_merge([
+            'training_week_id' => $week->id,
+            'date' => now()->toDateString(),
+            'type' => TrainingType::Tempo,
+            'target_km' => 8.0,
+            'target_pace_seconds_per_km' => 285,
+        ], $dayOverrides));
+
+        return [$user, $day];
+    }
 }

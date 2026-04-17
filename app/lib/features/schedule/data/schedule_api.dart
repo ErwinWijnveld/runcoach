@@ -20,6 +20,18 @@ abstract class ScheduleApi {
 
   @GET('/training-days/{dayId}/result')
   Future<dynamic> getTrainingResult(@Path() int dayId);
+
+  @GET('/training-days/{dayId}/available-activities')
+  Future<dynamic> getAvailableStravaActivities(@Path() int dayId);
+
+  @POST('/training-days/{dayId}/match-activity')
+  Future<dynamic> matchStravaActivity(
+    @Path() int dayId,
+    @Body() Map<String, dynamic> body,
+  );
+
+  @DELETE('/training-days/{dayId}/match-activity')
+  Future<void> unlinkStravaActivity(@Path() int dayId);
 }
 
 @riverpod

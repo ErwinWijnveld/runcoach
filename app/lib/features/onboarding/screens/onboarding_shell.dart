@@ -1,9 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:app/core/api/dio_client.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/runcore_logo.dart';
+import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/coach/providers/coach_provider.dart'
     show coachChatProvider, proposalActionsProvider;
 import 'package:app/features/coach/widgets/coach_chat_view.dart';
@@ -23,6 +25,18 @@ class OnboardingShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final idAsync = ref.watch(_onboardingConversationIdProvider);
+
+    // When the user accepts the proposal, ProposalActions.accept()
+    // refreshes the auth profile → has_completed_onboarding flips to true.
+    // Route straight to the schedule so the runner lands on their plan.
+    ref.listen<AsyncValue<dynamic>>(authProvider, (prev, next) {
+      final user = next.value;
+      if (user != null && user.hasCompletedOnboarding == true) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted) context.go('/schedule');
+        });
+      }
+    });
 
     return CupertinoPageScaffold(
       backgroundColor: AppColors.neutral,

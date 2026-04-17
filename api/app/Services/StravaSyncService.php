@@ -47,7 +47,7 @@ class StravaSyncService
             ]
         );
 
-        $user->stravaToken()->updateOrCreate(
+        $token = $user->stravaToken()->updateOrCreate(
             ['user_id' => $user->id],
             [
                 'access_token' => $stravaData['access_token'],
@@ -56,6 +56,13 @@ class StravaSyncService
                 'athlete_scope' => 'read,activity:read_all',
             ]
         );
+
+        // Best-effort zone fetch. Null on failure — compliance scoring falls
+        // back to the standard default zones.
+        $zones = $this->fetchAthleteZones($token);
+        if ($zones !== null) {
+            $user->forceFill(['heart_rate_zones' => $zones])->save();
+        }
 
         return $user;
     }
@@ -115,5 +122,42 @@ class StravaSyncService
         $response->throw();
 
         return $response->json();
+    }
+
+    /**
+     * Fetch the athlete's heart-rate zones. Returns the raw zone array
+     * (5 entries, ordered Z1..Z5, each `{min, max}`; Z5 max is -1) or
+     * null on failure / missing profile data. Strava's endpoint requires
+     * the `profile:read_all` scope — returns empty otherwise.
+     *
+     * @return array<int, array{min:int, max:int}>|null
+     */
+    public function fetchAthleteZones(StravaToken $token): ?array
+    {
+        try {
+            $token = $this->refreshTokenIfNeeded($token);
+
+            $response = Http::withToken($token->access_token)
+                ->get('https://www.strava.com/api/v3/athlete/zones');
+
+            if (! $response->successful()) {
+                return null;
+            }
+
+            $zones = $response->json('heart_rate.zones');
+            if (! is_array($zones) || count($zones) < 5) {
+                return null;
+            }
+
+            // Normalise to plain {min, max} shape, ignoring any extra fields.
+            return array_values(array_map(fn ($z) => [
+                'min' => (int) ($z['min'] ?? 0),
+                'max' => (int) ($z['max'] ?? -1),
+            ], $zones));
+        } catch (\Throwable $e) {
+            report($e);
+
+            return null;
+        }
     }
 }

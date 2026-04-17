@@ -16,7 +16,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'strava_athlete_id', 'coach_style', 'has_completed_onboarding'])]
+#[Fillable(['name', 'email', 'password', 'strava_athlete_id', 'coach_style', 'has_completed_onboarding', 'heart_rate_zones'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
@@ -30,6 +30,7 @@ class User extends Authenticatable implements FilamentUser
             'password' => 'hashed',
             'coach_style' => CoachStyle::class,
             'has_completed_onboarding' => 'boolean',
+            'heart_rate_zones' => 'array',
         ];
     }
 

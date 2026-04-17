@@ -24,8 +24,6 @@ abstract class CoachApi {
   @POST('/coach/proposals/{id}/reject')
   Future<void> rejectProposal(@Path() int id);
 
-  @GET('/coach/proposals/{id}/explanation')
-  Future<dynamic> getProposalExplanation(@Path() int id);
 }
 
 @riverpod

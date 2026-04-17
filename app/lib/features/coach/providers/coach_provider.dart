@@ -81,7 +81,15 @@ class CoachChat extends _$CoachChat {
                 content: current.content + delta,
                 toolIndicator: null,
               ),
-            TextEndEvent() => current,
+            // After a text block ends, Anthropic often streams a long
+            // `tool_use` block (20-30s for big inputs like create_schedule)
+            // before the SDK emits a ToolStart event — the UI would be
+            // silent in the meantime. Show a generic spinner now; the real
+            // tool name overrides it via ToolStartEvent as soon as the SDK
+            // yields it, or clears if more text streams in.
+            TextEndEvent() => current.toolIndicator == null
+                ? current.copyWith(toolIndicator: 'Thinking')
+                : current,
             ToolStartEvent(:final toolName) =>
               current.copyWith(toolIndicator: toolName),
             ToolEndEvent() => current,

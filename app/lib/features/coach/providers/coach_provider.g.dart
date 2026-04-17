@@ -153,7 +153,7 @@ final class CoachChatProvider
   }
 }
 
-String _$coachChatHash() => r'8597facbadd67bfd227e52af5ed22d5b1bfc2ce0';
+String _$coachChatHash() => r'8c1ebd1840b5d5fcb08047d8f0fc920f0a63db04';
 
 final class CoachChatFamily extends $Family
     with

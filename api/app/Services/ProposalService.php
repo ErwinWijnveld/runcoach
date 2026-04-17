@@ -144,6 +144,7 @@ class ProposalService
                     'target_km' => $dayData['target_km'] ?? null,
                     'target_pace_seconds_per_km' => $dayData['target_pace_seconds_per_km'] ?? null,
                     'target_heart_rate_zone' => $dayData['target_heart_rate_zone'] ?? null,
+                    'intervals_json' => $this->normalizeIntervals($dayData['intervals'] ?? null),
                     'order' => $dayData['day_of_week'],
                 ]);
             }
@@ -153,6 +154,59 @@ class ProposalService
     private function resolveWeekStart(int $weekNumber): Carbon
     {
         return now()->startOfWeek()->addWeeks($weekNumber - 1);
+    }
+
+    /**
+     * Normalise the optional `intervals` array on a training day payload.
+     * Returns null if missing/empty so the DB column stays clean for
+     * non-interval runs.
+     *
+     * @param  mixed  $intervals
+     * @return array<int, array<string, mixed>>|null
+     */
+    private function normalizeIntervals($intervals): ?array
+    {
+        if (! is_array($intervals) || $intervals === []) {
+            return null;
+        }
+
+        $allowedKinds = ['warmup', 'work', 'recovery', 'cooldown'];
+        $out = [];
+        foreach ($intervals as $segment) {
+            if (! is_array($segment)) {
+                continue;
+            }
+
+            $kind = $segment['kind'] ?? 'work';
+            if (! in_array($kind, $allowedKinds, true)) {
+                $kind = 'work';
+            }
+
+            $distance = isset($segment['distance_m']) ? (int) $segment['distance_m'] : null;
+            if ($distance !== null && $distance <= 0) {
+                $distance = null;
+            }
+
+            $duration = isset($segment['duration_seconds']) ? (int) $segment['duration_seconds'] : null;
+            if ($duration !== null && $duration <= 0) {
+                $duration = null;
+            }
+
+            $pace = isset($segment['target_pace_seconds_per_km']) ? (int) $segment['target_pace_seconds_per_km'] : null;
+            if ($pace !== null && $pace <= 0) {
+                $pace = null;
+            }
+
+            $out[] = [
+                'kind' => $kind,
+                'label' => (string) ($segment['label'] ?? 'Segment'),
+                'distance_m' => $distance,
+                'duration_seconds' => $duration,
+                'target_pace_seconds_per_km' => $pace,
+            ];
+        }
+
+        return $out === [] ? null : $out;
     }
 
     private function applyModifySchedule(User $user, array $payload): void

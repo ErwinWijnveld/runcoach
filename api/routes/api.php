@@ -37,6 +37,9 @@ Route::prefix('v1')->group(function () {
         Route::get('goals/{goal}/schedule/current', [TrainingScheduleController::class, 'currentWeek']);
         Route::get('training-days/{day}', [TrainingScheduleController::class, 'showDay']);
         Route::get('training-days/{day}/result', [TrainingScheduleController::class, 'dayResult']);
+        Route::get('training-days/{day}/available-activities', [TrainingScheduleController::class, 'availableActivitiesForDay']);
+        Route::post('training-days/{day}/match-activity', [TrainingScheduleController::class, 'matchActivityToDay']);
+        Route::delete('training-days/{day}/match-activity', [TrainingScheduleController::class, 'unlinkActivityFromDay']);
 
         // Strava
         Route::post('strava/sync', [StravaController::class, 'sync']);
@@ -58,6 +61,5 @@ Route::prefix('v1')->group(function () {
         Route::post('coach/conversations/{conversation}/messages', [CoachController::class, 'sendMessage']);
         Route::post('coach/proposals/{proposal}/accept', [CoachController::class, 'acceptProposal']);
         Route::post('coach/proposals/{proposal}/reject', [CoachController::class, 'rejectProposal']);
-        Route::get('coach/proposals/{proposal}/explanation', [CoachController::class, 'explainProposal']);
     });
 });

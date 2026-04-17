@@ -3,7 +3,6 @@
 namespace App\Listeners;
 
 use App\Ai\Agents\ActivityFeedbackAgent;
-use App\Ai\Agents\PlanExplanationAgent;
 use App\Ai\Agents\RunCoachAgent;
 use App\Ai\Agents\RunningNarrativeAgent;
 use App\Ai\Agents\WeeklyInsightAgent;
@@ -100,7 +99,6 @@ class RecordAgentTokenUsage
         }
 
         return match (true) {
-            $agent instanceof PlanExplanationAgent => 'plan_explanation',
             $agent instanceof ActivityFeedbackAgent => 'activity_feedback',
             $agent instanceof WeeklyInsightAgent => 'weekly_insight',
             $agent instanceof RunningNarrativeAgent => 'running_narrative',

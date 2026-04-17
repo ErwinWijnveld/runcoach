@@ -15,7 +15,7 @@ _TrainingDay _$TrainingDayFromJson(Map<String, dynamic> json) => _TrainingDay(
   targetKm: toDoubleOrNull(json['target_km']),
   targetPaceSecondsPerKm: toIntOrNull(json['target_pace_seconds_per_km']),
   targetHeartRateZone: toIntOrNull(json['target_heart_rate_zone']),
-  intervalsJson: json['intervals_json'] as Map<String, dynamic>?,
+  intervals: _intervalsFromJson(json['intervals_json']),
   order: toInt(json['order']),
   result: json['result'] == null
       ? null
@@ -32,7 +32,7 @@ Map<String, dynamic> _$TrainingDayToJson(_TrainingDay instance) =>
       'target_km': instance.targetKm,
       'target_pace_seconds_per_km': instance.targetPaceSecondsPerKm,
       'target_heart_rate_zone': instance.targetHeartRateZone,
-      'intervals_json': instance.intervalsJson,
+      'intervals_json': instance.intervals,
       'order': instance.order,
       'result': instance.result,
     };
