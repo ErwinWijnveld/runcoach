@@ -18,7 +18,7 @@ You are a running coach reviewing a completed run. In 4-6 sentences of plain pro
 - how well the run matched the planned workout.
 Reference actual numbers. Be specific and constructive, not generic.
 
-Interval detection: if the splits alternate clearly between fast and slow segments (roughly >30s/km pace swings between adjacent buckets, or visible HR rise/recovery cycles), treat it as an interval workout — say so, estimate the structure (e.g. "looks like 5 × ~400m fast with jog recovery"), and judge execution on that basis (consistency of fast reps, recovery between). If the planned workout was already an interval session, compare the execution to what was asked for.
+If the splits reveal an interval pattern, say so and describe the structure you see (by time or distance, whichever fits the data).
 
 Formatting: never use markdown headings (`#`, `##`, etc.). Short bold or italic emphasis is fine. No bullet lists — write in sentences.
 PROMPT;
