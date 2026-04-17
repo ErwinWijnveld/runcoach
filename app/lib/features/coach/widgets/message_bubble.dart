@@ -25,65 +25,72 @@ class MessageBubble extends StatelessWidget {
   bool get _failed => message.errorDetail != null;
 
   bool get _isThinking =>
-      !_isUser && message.streaming && message.content.isEmpty;
+      !_isUser &&
+      message.streaming &&
+      message.content.isEmpty &&
+      message.statsCard == null &&
+      message.chips == null;
 
   @override
   Widget build(BuildContext context) {
-    final type = message.messageType;
-    final payload = message.messagePayload ?? const <String, dynamic>{};
+    final children = <Widget>[];
 
-    if (type == 'loading_card') {
-      return _assistantWrapper(
-        ThinkingCard(label: (payload['label'] as String?) ?? 'Thinking…'),
-      );
+    // Role label
+    children.add(_RoleLabel(isUser: _isUser));
+    children.add(const SizedBox(height: 8));
+
+    if (_isThinking) {
+      children.add(ThinkingCard(label: _thinkingLabel(message.toolIndicator)));
+    } else if (message.content.isNotEmpty || message.streaming) {
+      children.add(_Bubble(message: message));
     }
 
-    if (type == 'stats_card') {
-      return _assistantWrapper(
-        _StatsCardInBubble(
-          metrics: (payload['metrics'] as Map?)?.cast<String, dynamic>() ??
-              const {},
+    if (message.statsCard != null) {
+      children.add(const SizedBox(height: 8));
+      children.add(
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 296),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.zero,
+                topRight: Radius.circular(24),
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
+              ),
+            ),
+            child: StatsCardBubble(metrics: message.statsCard!.metrics),
+          ),
         ),
       );
     }
 
-    if (type == 'chip_suggestions') {
-      final rawChips = (payload['chips'] as List?) ?? const [];
-      final chips =
-          rawChips.map((c) => (c as Map).cast<String, dynamic>()).toList();
-      return ChipSuggestionsRow(
-        chips: chips,
-        onTap: onChipTap ?? (label, value) {},
-      );
+    if (message.chips != null && message.chips!.isNotEmpty) {
+      children.add(const SizedBox(height: 8));
+      children.add(ChipSuggestionsRow(
+        chips: message.chips!
+            .map((c) => <String, dynamic>{'label': c.label, 'value': c.value})
+            .toList(),
+        onTap: onChipTap ?? (_, _) {},
+      ));
     }
 
-    // Default text-rendering path (messageType == 'text')
+    if (_failed) {
+      children.add(const SizedBox(height: 4));
+      children.add(_ErrorStrip(detail: message.errorDetail!, onRetry: onRetry));
+    }
+
+    if (children.length <= 2) {
+      // Only role label and spacer, nothing to show
+      return const SizedBox.shrink();
+    }
+
     return Column(
       crossAxisAlignment:
           _isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-      children: [
-        _RoleLabel(isUser: _isUser),
-        const SizedBox(height: 8),
-        if (_isThinking)
-          ThinkingCard(label: _thinkingLabel(message.toolIndicator))
-        else
-          _Bubble(message: message),
-        if (_failed) ...[
-          const SizedBox(height: 4),
-          _ErrorStrip(detail: message.errorDetail!, onRetry: onRetry),
-        ],
-      ],
-    );
-  }
-
-  Widget _assistantWrapper(Widget child) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _RoleLabel(isUser: false),
-        const SizedBox(height: 8),
-        child,
-      ],
+      children: children,
     );
   }
 }
@@ -91,8 +98,6 @@ class MessageBubble extends StatelessWidget {
 String _thinkingLabel(String? toolIndicator) {
   final trimmed = toolIndicator?.trim();
   if (trimmed == null || trimmed.isEmpty) return 'Working on your plan';
-  // VercelStreamParser already humanizes tool names (e.g. "Building your
-  // training plan…"). Strip trailing ellipsis so the card stays clean.
   return trimmed.replaceFirst(RegExp(r'[…\.]+$'), '');
 }
 
@@ -215,31 +220,9 @@ class _BlinkingCaretState extends State<_BlinkingCaret>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _controller,
-      child: Text('▍', style: TextStyle(fontSize: 14, color: widget.color)),
-    );
-  }
-}
-
-class _StatsCardInBubble extends StatelessWidget {
-  final Map<String, dynamic> metrics;
-  const _StatsCardInBubble({required this.metrics});
-
-  @override
-  Widget build(BuildContext context) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 296),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.zero,
-            topRight: Radius.circular(24),
-            bottomLeft: Radius.circular(24),
-            bottomRight: Radius.circular(24),
-          ),
-        ),
-        child: StatsCardBubble(metrics: metrics),
+      child: Text(
+        '\u{2589}',
+        style: TextStyle(fontSize: 14, color: widget.color),
       ),
     );
   }

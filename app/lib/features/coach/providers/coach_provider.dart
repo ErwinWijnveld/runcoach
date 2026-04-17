@@ -17,6 +17,25 @@ Future<List<Conversation>> conversations(Ref ref) async {
   return list.map((e) => Conversation.fromJson(e as Map<String, dynamic>)).toList();
 }
 
+/// Standalone accept/reject helpers so onboarding can use them without
+/// activating [CoachChat] (which would load messages from the wrong endpoint).
+@riverpod
+class ProposalActions extends _$ProposalActions {
+  @override
+  void build() {}
+
+  Future<void> accept(int proposalId) async {
+    final api = ref.read(coachApiProvider);
+    await api.acceptProposal(proposalId);
+    await ref.read(authProvider.notifier).loadProfile();
+  }
+
+  Future<void> reject(int proposalId) async {
+    final api = ref.read(coachApiProvider);
+    await api.rejectProposal(proposalId);
+  }
+}
+
 @riverpod
 class CoachChat extends _$CoachChat {
   bool _isStreaming = false;
@@ -27,7 +46,7 @@ class CoachChat extends _$CoachChat {
     final data = await api.getConversation(conversationId);
     final convData = data['data'] as Map<String, dynamic>;
     final messagesList = convData['messages'] as List? ?? [];
-    return messagesList.map((e) => CoachMessage.fromJson(e as Map<String, dynamic>)).toList();
+    return messagesList.map((e) => CoachMessage.fromShowJson(e as Map<String, dynamic>)).toList();
   }
 
   Future<void> sendMessage(String content, {String? chipValue}) async {
