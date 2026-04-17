@@ -2,13 +2,13 @@
 
 namespace App\Jobs;
 
+use App\Ai\Agents\ActivityFeedbackAgent;
 use App\Models\TrainingResult;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use OpenAI\Laravel\Facades\OpenAI;
 
 class GenerateActivityFeedback implements ShouldQueue
 {
@@ -37,16 +37,8 @@ class GenerateActivityFeedback implements ShouldQueue
             $context .= " Avg HR: {$result->actual_avg_heart_rate}.";
         }
 
-        $response = OpenAI::chat()->create([
-            'model' => config('openai.model', 'gpt-4o'),
-            'messages' => [
-                ['role' => 'system', 'content' => 'You are a running coach giving brief post-run feedback. Be specific, constructive, and concise (2-3 sentences max). Reference the actual numbers.'],
-                ['role' => 'user', 'content' => $context],
-            ],
-        ]);
+        $response = ActivityFeedbackAgent::make()->prompt($context);
 
-        $result->update([
-            'ai_feedback' => $response->choices[0]->message->content,
-        ]);
+        $result->update(['ai_feedback' => $response->text]);
     }
 }

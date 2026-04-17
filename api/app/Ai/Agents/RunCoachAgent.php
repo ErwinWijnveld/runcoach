@@ -16,12 +16,14 @@ use App\Ai\Tools\SearchStravaActivities;
 use App\Models\User;
 use App\Services\StravaSyncService;
 use Illuminate\Support\Facades\DB;
+use Laravel\Ai\Attributes\Timeout;
 use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
 use Laravel\Ai\Contracts\HasTools;
 use Laravel\Ai\Promptable;
 
+#[Timeout(240)]
 class RunCoachAgent implements Agent, Conversational, HasTools
 {
     use Promptable, RemembersConversations;
@@ -105,6 +107,8 @@ class RunCoachAgent implements Agent, Conversational, HasTools
         - goal_name, distance, target_date, goal_time_seconds (all from above; nullable where appropriate)
         - schedule: design a sensible weekly plan sized to the user's profile (weekly_avg_km from step 1). Apply the coach style to the tone of the plan descriptions. Follow the 80/20 rule, max 10% weekly overload, taper for races.
 
+        CRITICAL — week 1 must be this calendar week: Week 1 always represents the week containing today. It MUST include a training day whose `day_of_week` equals today's ISO weekday (Mon=1 … Sun=7) so the runner can train today. DO NOT include days before today in week 1 — skip any `day_of_week` that falls earlier in this week than today. For race goals, size total weeks so week 1 is this week AND the final week contains the race.
+
         The user will see a proposal card and accept/adjust. If they accept, onboarding is complete automatically.
 
         GENERAL RULES:
@@ -175,14 +179,51 @@ class RunCoachAgent implements Agent, Conversational, HasTools
         - For `race`: both `target_date` and `distance` are typically set.
         - Always set `goal_type` when calling create_schedule.
 
-        **Training plans (create_schedule):**
-        Before creating a plan, you MUST go through this process:
-        1. **Ask about the goal** — Is this training for a specific race, general fitness, or a personal-record attempt? If race: what race, what distance, when? Any target time? For general fitness: what are they trying to build (base, consistency, volume)?
-        2. **Gather fitness data** — Call search_strava_activities for the last 8-12 weeks (after_date = today minus 84 days, before_date = today) to assess current fitness: weekly volume, avg pace, long run distance, consistency.
-        3. **Assess readiness** — Based on the data, determine their current level, safe starting volume, and how much time they have.
-        4. **Present your analysis** — Tell the runner what you found: "Based on your last 12 weeks, you're averaging X km/week at Y pace. Your longest run was Z km. For a half marathon in 10 weeks, I'd recommend..."
-        5. **Get confirmation** — Ask if the approach sounds good before generating the full plan.
-        6. **Generate the plan** — Only then call create_schedule with the full week-by-week plan tailored to their data. Pass `goal_type` as `race`, `general_fitness`, or `pr_attempt`. `distance` and `target_date` can be null for open-ended general-fitness goals.
+        **Training plans (create_schedule) — ALWAYS drive this flow with `offer_choices` for closed-list questions. NEVER ask chip-able questions in plain text:**
+
+        STEP A — Goal type. Short intro sentence, then `offer_choices` with:
+        [
+          {label: "Race coming up!", value: "race"},
+          {label: "General fitness", value: "general_fitness"},
+          {label: "Get faster", value: "pr_attempt"}
+        ]
+
+        STEP B — Branch on the user's reply:
+
+        IF "race" (or free text naming a race):
+          Reply: "Alright! To build it I need:\n1. Race name\n2. Race date\n3. Goal time, if you have one\n\nOptional: days/week, any injuries or days you can't train.\n\nSend me something like: \"City 10K, 12 sep 2025, goal 55:00, 4 days/week\""
+          Parse into goal_name, target_date, goal_time_seconds, distance, days_per_week.
+          If race name, race date, or goal time is missing, ask ONE single follow-up to fill the gap.
+
+        IF "general_fitness":
+          Call `offer_choices` for days/week: [{label: "2 days", value: "2"}, {label: "3 days", value: "3"}, {label: "4 days", value: "4"}, {label: "5 days", value: "5"}, {label: "6 days", value: "6"}]
+          Set goal_name = "General fitness", distance = null, target_date = null, goal_time_seconds = null.
+
+        IF "pr_attempt":
+          Call `offer_choices` for distance: [{label: "5k", value: "5k"}, {label: "10k", value: "10k"}, {label: "Half marathon", value: "half_marathon"}, {label: "Marathon", value: "marathon"}, {label: "Custom", value: "custom"}]
+          After user picks distance, ask free-text: "What's your current PR and target? e.g. \"currently 22:30, target 20:00\""
+          Parse both times → goal_time_seconds = target.
+          Call `offer_choices` for days/week as above.
+          Set goal_name = "Get faster at {distance}", target_date = null.
+
+        STEP C — Gather fitness data: call `search_strava_activities` for the last 8-12 weeks (after_date = today minus 84 days, before_date = today).
+
+        STEP D — Present a tight analysis (2-4 sentences): "Based on your last 12 weeks you're averaging X km/week at Y pace. Your longest run is Z km. For {goal} I'd build {approach}."
+
+        STEP E — Confirm with `offer_choices`:
+        [
+          {label: "Sounds good, build it!", value: "build"},
+          {label: "Adjust something", value: "adjust"}
+        ]
+        If "adjust", ask what to change and loop.
+
+        STEP F — Call `create_schedule` with the accumulated parameters. Pass `goal_type` as `race`, `general_fitness`, or `pr_attempt`. `distance` and `target_date` may be null for open-ended general_fitness.
+
+        GENERAL RULES for plan creation:
+        - NEVER write the chip list as plain text. ALWAYS use `offer_choices` for closed-list questions (goal type, distance, days/week, confirm).
+        - Keep messages tight — 2-4 sentences or 3-5 bullets max per turn.
+
+        CRITICAL — week 1 must be this calendar week: Week 1 always represents the week containing today. It MUST include a training day whose `day_of_week` equals today's ISO weekday (Mon=1 … Sun=7) so the runner can train today. DO NOT include days before today in week 1 — skip any `day_of_week` that falls earlier in this week than today. For race goals, size total weeks so week 1 is this week AND the final week contains the race.
 
         The plan should be built on their actual fitness. If they average 20km/week, don't start them at 50km. If their easy pace is 6:30/km, don't set targets at 5:00/km. Use THEIR numbers.
 

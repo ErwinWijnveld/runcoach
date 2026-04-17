@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:app/features/coach/models/coach_chip.dart';
 import 'package:app/features/coach/models/coach_proposal.dart';
@@ -31,14 +33,31 @@ sealed class CoachMessage with _$CoachMessage {
 
   /// Hydrate stats card + chips from tool_results when loading historic
   /// messages from the show endpoint.
+  ///
+  /// The Laravel AI SDK stores tool_results as either a list or a map keyed
+  /// by step index (the Anthropic provider uses the latter), and each result
+  /// may be a JSON-encoded string — normalise both.
   factory CoachMessage.fromShowJson(Map<String, dynamic> json) {
     final base = CoachMessage.fromJson(json);
-    final toolResults = (json['tool_results'] as List?) ?? const [];
+    final rawToolResults = json['tool_results'];
+    final Iterable toolResults = switch (rawToolResults) {
+      List l => l,
+      Map m => m.values,
+      _ => const [],
+    };
 
     CoachStatsCard? stats;
     List<CoachChip>? chips;
     for (final tr in toolResults) {
-      final result = (tr as Map)['result'];
+      if (tr is! Map) continue;
+      var result = tr['result'];
+      if (result is String) {
+        try {
+          result = jsonDecode(result);
+        } catch (_) {
+          continue;
+        }
+      }
       if (result is! Map) continue;
       if (result['display'] == 'stats_card') {
         stats = CoachStatsCard.fromJson(

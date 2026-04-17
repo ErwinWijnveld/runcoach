@@ -19,7 +19,7 @@ Future<List<Conversation>> conversations(Ref ref) async {
 
 /// Standalone accept/reject helpers so onboarding can use them without
 /// activating [CoachChat] (which would load messages from the wrong endpoint).
-@riverpod
+@Riverpod(keepAlive: true)
 class ProposalActions extends _$ProposalActions {
   @override
   void build() {}
@@ -27,6 +27,7 @@ class ProposalActions extends _$ProposalActions {
   Future<void> accept(int proposalId) async {
     final api = ref.read(coachApiProvider);
     await api.acceptProposal(proposalId);
+    if (!ref.mounted) return;
     await ref.read(authProvider.notifier).loadProfile();
   }
 
@@ -80,6 +81,7 @@ class CoachChat extends _$CoachChat {
                 content: current.content + delta,
                 toolIndicator: null,
               ),
+            TextEndEvent() => current,
             ToolStartEvent(:final toolName) =>
               current.copyWith(toolIndicator: toolName),
             ToolEndEvent() => current,

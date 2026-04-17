@@ -117,9 +117,10 @@ class ProposalService
         ]);
 
         $weeks = $payload['schedule']['weeks'] ?? [];
+        $today = now()->startOfDay();
 
         foreach ($weeks as $weekData) {
-            $startsAt = $this->resolveWeekStart($payload['target_date'] ?? null, count($weeks), $weekData['week_number']);
+            $startsAt = $this->resolveWeekStart($weekData['week_number']);
 
             $week = $goal->trainingWeeks()->create([
                 'week_number' => $weekData['week_number'],
@@ -129,8 +130,14 @@ class ProposalService
             ]);
 
             foreach ($weekData['days'] ?? [] as $dayData) {
+                $date = $startsAt->copy()->addDays($dayData['day_of_week'] - 1);
+
+                if ($date->lt($today)) {
+                    continue;
+                }
+
                 $week->trainingDays()->create([
-                    'date' => $startsAt->copy()->addDays($dayData['day_of_week'] - 1),
+                    'date' => $date,
                     'type' => $dayData['type'],
                     'title' => $dayData['title'],
                     'description' => $dayData['description'] ?? null,
@@ -143,17 +150,9 @@ class ProposalService
         }
     }
 
-    private function resolveWeekStart(?string $targetDate, int $totalWeeks, int $weekNumber): Carbon
+    private function resolveWeekStart(int $weekNumber): Carbon
     {
-        if ($targetDate !== null) {
-            return Carbon::parse($targetDate)
-                ->subWeeks($totalWeeks - $weekNumber + 1)
-                ->startOfWeek();
-        }
-
-        return now()
-            ->addWeeks($weekNumber - 1)
-            ->startOfWeek();
+        return now()->startOfWeek()->addWeeks($weekNumber - 1);
     }
 
     private function applyModifySchedule(User $user, array $payload): void
@@ -179,12 +178,19 @@ class ProposalService
     {
         $goal = $user->goals()->findOrFail($payload['goal_id']);
         $week = $goal->trainingWeeks()->where('week_number', $payload['week_number'])->firstOrFail();
+        $today = now()->startOfDay();
 
         $week->trainingDays()->whereDoesntHave('result')->delete();
 
         foreach ($payload['alternative_days'] ?? [] as $dayData) {
+            $date = $week->starts_at->copy()->addDays($dayData['day_of_week'] - 1);
+
+            if ($date->lt($today)) {
+                continue;
+            }
+
             $week->trainingDays()->create([
-                'date' => $week->starts_at->copy()->addDays($dayData['day_of_week'] - 1),
+                'date' => $date,
                 'type' => $dayData['type'],
                 'title' => $dayData['title'],
                 'description' => $dayData['description'] ?? null,

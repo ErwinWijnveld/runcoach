@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Ai\Agents\PlanExplanationAgent;
 use App\Ai\Agents\RunCoachAgent;
 use App\Enums\ProposalStatus;
 use App\Http\Requests\SendMessageRequest;
@@ -9,6 +10,7 @@ use App\Models\CoachProposal;
 use App\Services\ProposalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Laravel\Ai\Contracts\ConversationStore;
 use Laravel\Ai\Streaming\Events\ToolResult as ToolResultEvent;
@@ -178,5 +180,31 @@ class CoachController extends Controller
         $proposal->update(['status' => ProposalStatus::Rejected]);
 
         return response()->json(['message' => 'Proposal rejected']);
+    }
+
+    public function explainProposal(Request $request, int $proposalId): JsonResponse
+    {
+        set_time_limit(120);
+
+        $proposal = CoachProposal::where('user_id', $request->user()->id)
+            ->findOrFail($proposalId);
+
+        $cacheKey = "proposal:{$proposal->id}:explanation";
+
+        $data = Cache::remember($cacheKey, now()->addDays(7), function () use ($proposal) {
+            $payload = json_encode($proposal->payload, JSON_UNESCAPED_UNICODE);
+
+            $response = (new PlanExplanationAgent)->prompt(
+                "Explain this proposed training plan to the runner:\n\n{$payload}",
+                timeout: 120,
+            );
+
+            return [
+                'name' => $response['name'],
+                'explanation' => $response['explanation'],
+            ];
+        });
+
+        return response()->json(['data' => $data]);
     }
 }

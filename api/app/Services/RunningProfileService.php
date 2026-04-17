@@ -2,18 +2,17 @@
 
 namespace App\Services;
 
+use App\Ai\Agents\RunningNarrativeAgent;
 use App\Models\User;
 use App\Models\UserRunningProfile;
 use App\Services\Strava\StravaClient;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
-use OpenAI\Contracts\ClientContract as OpenAIClient;
 
 class RunningProfileService
 {
     public function __construct(
         private readonly StravaClient $strava,
-        private readonly OpenAIClient $openai,
     ) {}
 
     public function analyze(User $user): UserRunningProfile
@@ -114,22 +113,9 @@ class RunningProfileService
     private function generateNarrative(array $metrics): string
     {
         try {
-            $response = $this->openai->chat()->create([
-                'model' => config('services.openai.narrative_model', 'gpt-4o-mini'),
-                'temperature' => 0.4,
-                'messages' => [
-                    [
-                        'role' => 'system',
-                        'content' => 'You are a running coach summarising 12 months of activity in ONE short paragraph (max 3 sentences). Mention consistency, pace feel, and progression. Do NOT invent numbers — only refer to what is in the metrics.',
-                    ],
-                    [
-                        'role' => 'user',
-                        'content' => 'Metrics: '.json_encode($metrics),
-                    ],
-                ],
-            ]);
+            $response = RunningNarrativeAgent::make()->prompt('Metrics: '.json_encode($metrics));
 
-            $text = trim($response->choices[0]->message->content ?? '');
+            $text = trim($response->text);
 
             return $text !== '' ? $text : "Here's your last 12 months.";
         } catch (\Throwable $e) {

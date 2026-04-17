@@ -34,11 +34,11 @@ runcoach/
 ┌──────────────────────┐        ┌────────────────────────────┐        ┌─────────┐
 │   Flutter Mobile App │ HTTPS  │   Laravel 13 API           │  HTTPS │ Strava  │
 │   (iOS + Android)    │────────│                            │────────│ API     │
-│                      │        │  • Sanctum token auth      │        └─────────┘
+│  (CupertinoApp)      │        │  • Sanctum token auth      │        └─────────┘
 │  • Riverpod          │        │  • Laravel AI SDK Agent    │
-│  • Freezed models    │        │  • MySQL                   │        ┌─────────┐
-│  • Retrofit + Dio    │        │  • Queue (database driver) │────────│ OpenAI  │
-│  • GoRouter          │        │                            │        │ API     │
+│  • Freezed models    │        │  • MySQL + Filament admin  │        ┌─────────┐
+│  • Retrofit + Dio    │        │  • Queue (database driver) │────────│Anthropic│
+│  • GoRouter          │        │                            │        │  API    │
 └──────────────────────┘        └────────────────────────────┘        └─────────┘
 ```
 
@@ -53,11 +53,11 @@ runcoach/
 | Layer | Technology |
 |---|---|
 | Mobile | Flutter, Riverpod (code gen), Freezed, Dio + Retrofit, GoRouter, flutter_secure_storage |
-| Backend | Laravel 13, Sanctum, laravel/ai (agent SDK), openai-php/laravel |
+| Backend | Laravel 13, Sanctum, laravel/ai (agent SDK), Filament 4 admin |
 | Database | MySQL |
 | Queue | Laravel queues (database driver) |
-| AI | OpenAI (swappable via Laravel AI SDK providers) |
-| Dev tools | Laravel Boost (MCP + skills), Pint, PHPUnit |
+| AI | Anthropic `claude-sonnet-4-6` by default (swappable via Laravel AI SDK `AI_PROVIDER`/`AI_MODEL`) |
+| Dev tools | Laravel Boost (MCP + skills), Pint, PHPUnit, Filament admin |
 
 ## Key Architectural Decisions
 
@@ -77,8 +77,13 @@ Schedule creation and modification return proposals that require user approval b
 ### 4. UUIDs for conversation IDs
 Conversation IDs are UUIDs (36-char strings) because the Laravel AI SDK uses them. Do NOT use `int` for conversation IDs anywhere in the codebase — not in the Flutter models, route params, or API clients.
 
-### 5. OpenAI strict mode compliance
-All Tool schemas must declare `->required()` on every parameter. For optional params, use `->required()->nullable()` — this satisfies OpenAI strict mode while allowing null values.
+### 5. Tool schemas — required-on-every-param
+All Tool schemas must declare `->required()` on every parameter. For optional params, use `->required()->nullable()`. This was originally for OpenAI strict mode but we keep it for provider portability; Anthropic is fine with it.
+
+### 5b. Anthropic integration quirks (Laravel AI SDK v0.5.1)
+Two HTTP middlewares live in `api/app/Ai/Support/` and patch every outgoing Anthropic request via `Http::globalRequestMiddleware` (registered in `AppServiceProvider`):
+- **`AnthropicToolInputSanitizer`** — fixes a SDK round-trip bug where `tool_use.input` is serialized as `[]` instead of `{}` for tools with no arguments (PHP can't distinguish empty JSON object vs array after `json_decode(assoc=true)`). Anthropic rejects the `[]` form with a 400.
+- **`AnthropicPromptCaching`** — adds `cache_control: ephemeral` to the last tool definition, which caches `system` + all `tools` on the Anthropic side. For multi-turn conversations (onboarding, coach) this cuts input token cost ~10× from turn 2 onward. Cache hits appear in the `token_usages` table as `cache_read_input_tokens`.
 
 ### 5a. Agent tool design benchmark
 When adding or refactoring AI tools, consult **[r-huijts/strava-mcp](https://github.com/r-huijts/strava-mcp)** ([tools folder](https://github.com/r-huijts/strava-mcp/tree/main/src/tools)) as a reference for tool shape. Key takeaways — elaborated in `api/CLAUDE.md` under "Tool design guidelines":
@@ -113,7 +118,11 @@ flutter run          # iOS simulator / connected device
 ### Required env vars (api/.env)
 - `STRAVA_CLIENT_ID` / `STRAVA_CLIENT_SECRET` — from [strava.com/settings/api](https://www.strava.com/settings/api), set Authorization Callback Domain to `localhost`
 - `STRAVA_WEBHOOK_VERIFY_TOKEN` — any random string
-- `OPENAI_API_KEY` — for the AI coach
+- `ANTHROPIC_API_KEY` — for the AI coach
+- `AI_MODEL` — defaults to `claude-sonnet-4-6`
+- `AI_PROVIDER` — defaults to `anthropic`
+- `ADMIN_EMAILS` — optional comma-separated list of emails allowed into Filament admin at `/admin` (empty + local env = any logged-in user)
+- `ADMIN_SEED_EMAIL` / `ADMIN_SEED_PASSWORD` — defaults `admin@runcoach.local` / `admin`, used by `AdminUserSeeder`
 
 ## Workflow conventions
 
@@ -125,16 +134,27 @@ flutter run          # iOS simulator / connected device
 
 ## Testing
 
-- **Backend**: `cd api && php artisan test --compact` — 45 tests, all using `LazilyRefreshDatabase`
+- **Backend**: `cd api && php artisan test --compact` — 91 tests, all using `LazilyRefreshDatabase`
 - **Flutter**: `cd app && flutter analyze && flutter test`
 - Full test suite must pass before commits
+
+## Filament admin
+
+- Panel mounted at `/admin` (see `api/app/Providers/Filament/AdminPanelProvider.php`)
+- Log in with seeded admin (`php artisan db:seed --class=AdminUserSeeder` → `admin@runcoach.local` / `admin`)
+- Access gated via `User::canAccessPanel()` — `local` env allows any user, others require email in `ADMIN_EMAILS`
+- Resources:
+  - **Token Usage** (`/admin/token-usages`) — tracks per-call token spend for every agent. Filter by context (`coach`, `onboarding`, `activity_feedback`, `weekly_insight`, `plan_explanation`, `running_narrative`), user, model. Dashboard widgets show totals this week, tokens by context, and top users. Rows are written by `App\Listeners\RecordAgentTokenUsage` which is auto-discovered from its `handle(AgentPrompted|AgentStreamed $event)` signature — DO NOT also register it manually via `Event::listen` or every call gets logged twice.
 
 ## Current state
 
 Fully functional MVP:
 - Strava OAuth + webhook sync working
-- AI coach with 8 tools: GetRecentRuns, SearchStravaActivities, GetActivityDetails, GetCurrentSchedule, GetRaceInfo, GetComplianceReport, CreateSchedule, ModifySchedule
-- Agentic plan creation flow (ask clarifying questions → fetch Strava data → analyze → propose → generate)
+- AI coach with 11 tools: GetRunningProfile, PresentRunningStats, OfferChoices, GetRecentRuns, SearchStravaActivities, GetActivityDetails, GetCurrentSchedule, GetGoalInfo, GetComplianceReport, CreateSchedule, ModifySchedule
+- Agentic onboarding flow (RunCoachAgent with `agent_conversations.context = 'onboarding'` branches the system prompt through `RunCoachAgent::onboardingInstructions()`)
+- Plan proposal with AI-generated explanation modal (`PlanExplanationAgent` + `/coach/proposals/{id}/explanation`, cached 7 days per proposal)
+- Past-dated training days in week 1 are dropped in `ProposalService::applyCreateSchedule` (safety rail)
+- Filament admin with token-usage dashboard
 - Flutter app: Dashboard, Schedule, AI Coach, Races tabs
 
-**Not yet implemented:** Filament admin panel, push notifications, Dutch i18n, Reverb WebSocket streaming, provider tests for Flutter.
+**Not yet implemented:** weekly credit quotas, push notifications, Dutch i18n, Reverb WebSocket streaming, provider tests for Flutter.

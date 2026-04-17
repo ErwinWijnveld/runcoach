@@ -10,10 +10,12 @@ The Laravel Boost guidelines are specifically curated by Laravel maintainers for
 This application is a Laravel application and its main Laravel ecosystems package & versions are below. You are an expert with them all. Ensure you abide by these specific packages & versions.
 
 - php - 8.5
+- filament/filament (FILAMENT) - v4
 - laravel/ai (AI) - v0
 - laravel/framework (LARAVEL) - v13
 - laravel/prompts (PROMPTS) - v0
 - laravel/sanctum (SANCTUM) - v4
+- livewire/livewire (LIVEWIRE) - v3
 - laravel/boost (BOOST) - v2
 - laravel/mcp (MCP) - v0
 - laravel/pail (PAIL) - v1
@@ -192,23 +194,54 @@ This is the Laravel backend for **RunCoach**, a personal AI running coach app. S
 
 ### AI Coach (the main agentic feature)
 
-The coach uses **Laravel AI SDK** (`laravel/ai`) — NOT a custom OpenAI wrapper. Key files:
+The coach uses **Laravel AI SDK** (`laravel/ai` v0.5.1). Default provider is **Anthropic** (`claude-sonnet-4-6`) via `config/ai.php`. Key files:
 
-- `app/Ai/Agents/RunCoachAgent.php` — the Agent class. Implements `Agent`, `Conversational`, `HasTools`. Uses `Promptable` + `RemembersConversations` traits. Takes a `User` in constructor.
-- `app/Ai/Tools/*.php` — 8 tools the agent can call:
-  - `GetRecentRuns` — fetches the N most recent runs (no date input). Use for "last run", "recent runs"
-  - `SearchStravaActivities` — queries Strava API for a date range (NOT local DB), auto-paginates, returns aggregates + individual runs
-  - `GetActivityDetails` — per-km splits, laps, HR summary for a single activity (requires `activity_id` from one of the listing tools)
-  - `GetCurrentSchedule` — active training schedule with compliance
-  - `GetGoalInfo` — goal details + readiness
-  - `GetComplianceReport` — compliance breakdown + trends
-  - `CreateSchedule` — proposes new training plan (requires approval)
-  - `ModifySchedule` — proposes schedule changes (requires approval)
-- `app/Services/ProposalService.php` — detects proposals from `agent_conversation_messages.tool_results` and applies accepted ones
+- `app/Ai/Agents/RunCoachAgent.php` — main agent. Implements `Agent`, `Conversational`, `HasTools`. Uses `Promptable` + `RemembersConversations` traits. Takes a `User` in constructor. Branches the system prompt on `agent_conversations.context`: `'onboarding'` → `onboardingInstructions()` (scripted flow), otherwise → `coachInstructions()`.
+- Other agents (one-shot `prompt()`, no tools):
+  - `PlanExplanationAgent` — `HasStructuredOutput`, returns `{name, explanation}` for the plan details modal
+  - `ActivityFeedbackAgent` — post-run feedback for completed activities
+  - `WeeklyInsightAgent` — weekly coach notes
+  - `RunningNarrativeAgent` — narrative paragraph for `UserRunningProfile`
+- `app/Ai/Tools/*.php` — 11 tools the coach agent can call:
+  - **Onboarding-only UI tools** (return display payloads the stream controller forwards to Flutter as `data-stats` / `data-chips` events):
+    - `GetRunningProfile` — (no args) returns cached `UserRunningProfile`, or triggers fresh analysis inline
+    - `PresentRunningStats` — renders a stats card in the chat (4 metrics)
+    - `OfferChoices` — renders tappable chip row (label/value pairs)
+  - **Strava query tools**:
+    - `GetRecentRuns` — N most recent runs, no date input
+    - `SearchStravaActivities` — Strava API date-range query (NOT local DB), auto-paginates, returns aggregates + runs
+    - `GetActivityDetails` — per-km splits, laps, HR for a single activity id
+  - **Schedule + compliance**:
+    - `GetCurrentSchedule` — active schedule with compliance
+    - `GetGoalInfo` — goal details + readiness
+    - `GetComplianceReport` — compliance breakdown + trends
+    - `CreateSchedule` — proposes a new training plan (requires approval)
+    - `ModifySchedule` — proposes schedule changes (requires approval)
+- `app/Services/ProposalService.php` — detects proposals from `agent_conversation_messages.tool_results` and applies accepted ones. `applyCreateSchedule()` drops any training day whose date is before today (hard guarantee against past-dated week 1 days).
 
-**How proposals work:** When the agent calls `CreateSchedule` or `ModifySchedule`, the tool returns JSON with `requires_approval: true`. The SDK stores that in `tool_results`. After `$agent->prompt()` returns, `ProposalService::detectProposalFromConversation()` queries that column, finds the proposal, and stores a `CoachProposal` record. The user accepts/rejects via `/coach/proposals/{id}/accept` or `/reject`.
+**How proposals work:** When the agent calls `CreateSchedule` or `ModifySchedule`, the tool returns JSON with `requires_approval: true`. The SDK stores that in `tool_results`. After `$agent->prompt()` returns, `ProposalService::detectProposalFromConversation()` queries that column, finds the proposal, and stores a `CoachProposal` record. The user accepts/rejects via `/coach/proposals/{id}/accept` or `/reject`. Before acceptance they can open a details modal fed by `GET /coach/proposals/{id}/explanation` (cached 7 days per proposal via `Cache::remember`).
 
 **The SDK manages conversations automatically** via `agent_conversations` and `agent_conversation_messages` tables (created by SDK migrations). Do NOT use `CoachConversation` or `CoachMessage` models — they no longer exist. Conversation IDs are UUIDs (36-char strings), not integers.
+
+### Anthropic integration (SDK patches)
+
+Two HTTP middlewares live in `app/Ai/Support/` and are registered in `AppServiceProvider::boot()` via `Http::globalRequestMiddleware`:
+- **`AnthropicToolInputSanitizer`** — fixes `tool_use.input: []` → `{}` for tools with empty params. Without this the SDK's DB round-trip of `arguments` collapses `{}` to `[]` (PHP assoc-array ambiguity) and Anthropic returns `400 "Input should be a valid dictionary"` on any `continue()`+prompt against a stored conversation that previously invoked a no-arg tool (e.g. `GetRunningProfile`). Also clears `Content-Length` after body rewrite (Guzzle doesn't recompute it for streaming requests → truncated JSON → 400).
+- **`AnthropicPromptCaching`** — attaches `cache_control: ephemeral` to the last tool in every outgoing Anthropic request. This caches `system` + all `tools` (~7k tokens for RunCoachAgent). Onboarding turns 2+ hit the cache and pay ~10% of the normal input price. Cache hits show up in `token_usages.cache_read_input_tokens`. Also clears `Content-Length` (same reason as above).
+
+#### Vendor patch — `vendor/laravel/ai/.../HandlesTextStreaming.php`
+
+The Anthropic streaming handler in `laravel/ai` v0.5.1 only yields `ToolCall` at `content_block_stop`, which for large tool inputs (e.g. `create_schedule`, 20-30s to stream) means the UI sees no tool-start event until the tool is fully prepared. We patch `HandlesTextStreaming.php` to **also yield a `ToolCall` event at `content_block_start` (empty arguments)** so the Flutter spinner shows the tool name immediately. The second yield at `content_block_stop` still fires with the full arguments — the Flutter side treats both as `tool-input-available` and just updates the indicator label idempotently.
+
+Look for the comment `// RunCoach patch: yield an early ToolCall event...` in that file. If a `composer update` wipes it, re-apply.
+
+### Token usage tracking
+
+- `token_usages` table (migration, `App\Models\TokenUsage`) records one row per Anthropic call with user_id, conversation_id, agent_class, context, provider, model, and all five token counters (`prompt`, `completion`, `cache_read_input`, `cache_write_input`, `reasoning`) plus `total_tokens`.
+- Written by `App\Listeners\RecordAgentTokenUsage` which handles `AgentPrompted|AgentStreamed` via **Laravel 13 auto-discovery** (listeners in `app/Listeners/` are registered from their `handle()` type hint). DO NOT also `Event::listen` it in AppServiceProvider — that produces duplicate rows.
+- Context resolution: RunCoachAgent + conversation context `'onboarding'` → `'onboarding'`, else `'coach'`; named agents → their snake-case labels (`plan_explanation`, `activity_feedback`, `weekly_insight`, `running_narrative`); fallback is `Str::snake(class_basename($agent))`.
+- **SDK caveat**: `StreamableAgentResponse::$usage` only reflects the *final* tool-loop iteration's usage (the one that yields `StreamEnd`). Intermediate iterations that returned `stop_reason: tool_use` are not tallied. Reported totals undercount streaming agent runs by roughly 30–50%.
+- Browse the data in Filament at `/admin/token-usages` (see monorepo CLAUDE.md for access).
 
 ### Strava integration
 
@@ -241,8 +274,9 @@ Controllers live in `app/Http/Controllers/`: Auth, Profile, Goal, TrainingSchedu
 - Every tool implements `Laravel\Ai\Contracts\Tool` with `description()`, `schema(JsonSchema $schema)`, `handle(Request $request)`.
 - `handle()` must return a **string** (use `json_encode()`).
 - Access request params with **array access**: `$request['key']` — NOT `$request->get()` or `$request->input()`.
-- **OpenAI strict mode**: every schema param MUST have `->required()`. For truly optional params, use `->required()->nullable()` — this satisfies strict mode while allowing null values. Do NOT use `->default()`.
+- **Required-on-every-param**: every schema param MUST have `->required()`. For truly optional params, use `->required()->nullable()` — this satisfies OpenAI strict mode and is fine with Anthropic. Do NOT use `->default()`.
 - Tools that need user data take `User $user` in constructor, injected from the agent.
+- **UI-only tools** (`PresentRunningStats`, `OfferChoices`) return `json_encode(['display' => 'stats_card'|'chip_suggestions', ...])`. `CoachController::sendMessage` inspects `ToolResultEvent` payloads for `display` and forwards matching `data-stats` / `data-chips` SSE events to Flutter.
 
 ### Tool design guidelines
 
@@ -282,13 +316,21 @@ Mutation tools (`CreateSchedule`, `ModifySchedule`) NEVER write to the database.
 
 ### Testing
 
-- 45 feature tests in `tests/Feature/`. Use `LazilyRefreshDatabase` trait (NOT `RefreshDatabase`).
+- 91 feature tests in `tests/Feature/`. Use `LazilyRefreshDatabase` trait (NOT `RefreshDatabase`).
 - Coach tests use `RunCoachAgent::fake(['response text'])` to mock agent responses.
+- Middleware/listener tests construct events directly with `Mockery::mock(TextProvider::class)` — see `tests/Feature/Listeners/RecordAgentTokenUsageTest.php`.
 - Run: `php artisan test --compact`
 
 ### Pint formatting
 
 Always run `vendor/bin/pint --dirty --format agent` after modifying PHP files.
+
+### Debugging patterns we use
+
+- **Capture outgoing Anthropic request bodies** — in a tinker session, `Illuminate\Support\Facades\Http::globalRequestMiddleware(fn($req) => tap($req, fn() => Log::info('[anthropic] '.substr((string)$req->getBody(), 0, 20000))));` then tail `storage/logs/laravel.log`.
+- **Inspect raw tool calls stored by the SDK** — `DB::table('agent_conversation_messages')->where('conversation_id', …)->get(['role','content','tool_calls','tool_results'])`.
+- **Agent tool logging** — `AppServiceProvider::logAgentToolInvocations()` is active in local env and logs every tool in/out with duration to `laravel.log` (`[agent:tool] → Foo input=…` / `← Foo (XXXms) output=…`). Useful for tracing agent behavior.
+- **Admin token dashboard** — `/admin/token-usages` is the fastest way to spot cost regressions, duplicate-logging, or broken cache hits.
 
 ## Specs and plans
 

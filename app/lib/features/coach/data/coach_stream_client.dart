@@ -47,6 +47,11 @@ class CoachStreamClient {
       data: body,
       options: Options(
         responseType: ResponseType.stream,
+        // Generating a full training plan via the agent loop can produce long
+        // silences between SSE chunks. Disable the per-chunk receive timeout
+        // for the coach stream; connect timeout still enforces reachability.
+        receiveTimeout: Duration.zero,
+        sendTimeout: Duration.zero,
         headers: {'Accept': 'text/event-stream'},
       ),
     );

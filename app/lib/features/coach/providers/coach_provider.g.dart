@@ -68,7 +68,7 @@ final class ProposalActionsProvider
         argument: null,
         retry: null,
         name: r'proposalActionsProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -89,7 +89,7 @@ final class ProposalActionsProvider
   }
 }
 
-String _$proposalActionsHash() => r'e03805e1cde2e0937628f606e96ace9a14a772ac';
+String _$proposalActionsHash() => r'd2d0d57549851c597546c682d031fd767a5e4ea5';
 
 /// Standalone accept/reject helpers so onboarding can use them without
 /// activating [CoachChat] (which would load messages from the wrong endpoint).
@@ -153,7 +153,7 @@ final class CoachChatProvider
   }
 }
 
-String _$coachChatHash() => r'8ac88ca2cd2d917558217cf9e6ab5bedf7abc44f';
+String _$coachChatHash() => r'8597facbadd67bfd227e52af5ed22d5b1bfc2ce0';
 
 final class CoachChatFamily extends $Family
     with

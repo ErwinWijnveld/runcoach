@@ -5,6 +5,7 @@ import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/coach_prompt_bar.dart';
 import 'package:app/features/coach/models/coach_message.dart';
 import 'package:app/features/coach/widgets/message_bubble.dart';
+import 'package:app/features/coach/widgets/plan_details_sheet.dart';
 import 'package:app/features/coach/widgets/proposal_card.dart';
 import 'package:app/features/coach/widgets/quick_action_card.dart';
 
@@ -130,6 +131,18 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
                             await widget.onReject?.call(ref, msg.proposal!.id);
                             widget.onInvalidate?.call(ref);
                           },
+                          onViewDetails: () => PlanDetailsSheet.show(
+                            context,
+                            proposal: msg.proposal!,
+                            onAccept: () async {
+                              await widget.onAccept!(ref, msg.proposal!.id);
+                              widget.onInvalidate?.call(ref);
+                            },
+                            onAdjust: () async {
+                              await widget.onReject?.call(ref, msg.proposal!.id);
+                              widget.onInvalidate?.call(ref);
+                            },
+                          ),
                         ),
                       ],
                     ],

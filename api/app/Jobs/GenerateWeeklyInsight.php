@@ -2,13 +2,13 @@
 
 namespace App\Jobs;
 
+use App\Ai\Agents\WeeklyInsightAgent;
 use App\Models\TrainingWeek;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use OpenAI\Laravel\Facades\OpenAI;
 
 class GenerateWeeklyInsight implements ShouldQueue
 {
@@ -42,16 +42,8 @@ class GenerateWeeklyInsight implements ShouldQueue
             ."Average compliance: {$avgScore}/10. "
             ."Planned total: {$week->total_km}km.";
 
-        $response = OpenAI::chat()->create([
-            'model' => config('openai.model', 'gpt-4o'),
-            'messages' => [
-                ['role' => 'system', 'content' => 'You are a running coach giving a brief weekly insight. Be encouraging, specific, and concise (2-3 sentences max). Reference the runner\'s actual numbers and give one forward-looking tip.'],
-                ['role' => 'user', 'content' => $context],
-            ],
-        ]);
+        $response = WeeklyInsightAgent::make()->prompt($context);
 
-        $week->update([
-            'coach_notes' => $response->choices[0]->message->content,
-        ]);
+        $week->update(['coach_notes' => $response->text]);
     }
 }

@@ -55,11 +55,12 @@ extension VercelStreamEventPatterns on VercelStreamEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( TextDeltaEvent value)?  textDelta,TResult Function( ToolStartEvent value)?  toolStart,TResult Function( ToolEndEvent value)?  toolEnd,TResult Function( ProposalEvent value)?  proposal,TResult Function( StatsEvent value)?  stats,TResult Function( ChipsEvent value)?  chips,TResult Function( ErrorEvent value)?  error,TResult Function( DoneEvent value)?  done,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( TextDeltaEvent value)?  textDelta,TResult Function( TextEndEvent value)?  textEnd,TResult Function( ToolStartEvent value)?  toolStart,TResult Function( ToolEndEvent value)?  toolEnd,TResult Function( ProposalEvent value)?  proposal,TResult Function( StatsEvent value)?  stats,TResult Function( ChipsEvent value)?  chips,TResult Function( ErrorEvent value)?  error,TResult Function( DoneEvent value)?  done,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case TextDeltaEvent() when textDelta != null:
-return textDelta(_that);case ToolStartEvent() when toolStart != null:
+return textDelta(_that);case TextEndEvent() when textEnd != null:
+return textEnd(_that);case ToolStartEvent() when toolStart != null:
 return toolStart(_that);case ToolEndEvent() when toolEnd != null:
 return toolEnd(_that);case ProposalEvent() when proposal != null:
 return proposal(_that);case StatsEvent() when stats != null:
@@ -84,11 +85,12 @@ return done(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( TextDeltaEvent value)  textDelta,required TResult Function( ToolStartEvent value)  toolStart,required TResult Function( ToolEndEvent value)  toolEnd,required TResult Function( ProposalEvent value)  proposal,required TResult Function( StatsEvent value)  stats,required TResult Function( ChipsEvent value)  chips,required TResult Function( ErrorEvent value)  error,required TResult Function( DoneEvent value)  done,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( TextDeltaEvent value)  textDelta,required TResult Function( TextEndEvent value)  textEnd,required TResult Function( ToolStartEvent value)  toolStart,required TResult Function( ToolEndEvent value)  toolEnd,required TResult Function( ProposalEvent value)  proposal,required TResult Function( StatsEvent value)  stats,required TResult Function( ChipsEvent value)  chips,required TResult Function( ErrorEvent value)  error,required TResult Function( DoneEvent value)  done,}){
 final _that = this;
 switch (_that) {
 case TextDeltaEvent():
-return textDelta(_that);case ToolStartEvent():
+return textDelta(_that);case TextEndEvent():
+return textEnd(_that);case ToolStartEvent():
 return toolStart(_that);case ToolEndEvent():
 return toolEnd(_that);case ProposalEvent():
 return proposal(_that);case StatsEvent():
@@ -109,11 +111,12 @@ return done(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( TextDeltaEvent value)?  textDelta,TResult? Function( ToolStartEvent value)?  toolStart,TResult? Function( ToolEndEvent value)?  toolEnd,TResult? Function( ProposalEvent value)?  proposal,TResult? Function( StatsEvent value)?  stats,TResult? Function( ChipsEvent value)?  chips,TResult? Function( ErrorEvent value)?  error,TResult? Function( DoneEvent value)?  done,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( TextDeltaEvent value)?  textDelta,TResult? Function( TextEndEvent value)?  textEnd,TResult? Function( ToolStartEvent value)?  toolStart,TResult? Function( ToolEndEvent value)?  toolEnd,TResult? Function( ProposalEvent value)?  proposal,TResult? Function( StatsEvent value)?  stats,TResult? Function( ChipsEvent value)?  chips,TResult? Function( ErrorEvent value)?  error,TResult? Function( DoneEvent value)?  done,}){
 final _that = this;
 switch (_that) {
 case TextDeltaEvent() when textDelta != null:
-return textDelta(_that);case ToolStartEvent() when toolStart != null:
+return textDelta(_that);case TextEndEvent() when textEnd != null:
+return textEnd(_that);case ToolStartEvent() when toolStart != null:
 return toolStart(_that);case ToolEndEvent() when toolEnd != null:
 return toolEnd(_that);case ProposalEvent() when proposal != null:
 return proposal(_that);case StatsEvent() when stats != null:
@@ -137,10 +140,11 @@ return done(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String delta)?  textDelta,TResult Function( String toolName)?  toolStart,TResult Function()?  toolEnd,TResult Function( CoachProposal proposal)?  proposal,TResult Function( CoachStatsCard stats)?  stats,TResult Function( List<CoachChip> chips)?  chips,TResult Function( String message)?  error,TResult Function()?  done,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String delta)?  textDelta,TResult Function()?  textEnd,TResult Function( String toolName)?  toolStart,TResult Function()?  toolEnd,TResult Function( CoachProposal proposal)?  proposal,TResult Function( CoachStatsCard stats)?  stats,TResult Function( List<CoachChip> chips)?  chips,TResult Function( String message)?  error,TResult Function()?  done,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case TextDeltaEvent() when textDelta != null:
-return textDelta(_that.delta);case ToolStartEvent() when toolStart != null:
+return textDelta(_that.delta);case TextEndEvent() when textEnd != null:
+return textEnd();case ToolStartEvent() when toolStart != null:
 return toolStart(_that.toolName);case ToolEndEvent() when toolEnd != null:
 return toolEnd();case ProposalEvent() when proposal != null:
 return proposal(_that.proposal);case StatsEvent() when stats != null:
@@ -165,10 +169,11 @@ return done();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String delta)  textDelta,required TResult Function( String toolName)  toolStart,required TResult Function()  toolEnd,required TResult Function( CoachProposal proposal)  proposal,required TResult Function( CoachStatsCard stats)  stats,required TResult Function( List<CoachChip> chips)  chips,required TResult Function( String message)  error,required TResult Function()  done,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String delta)  textDelta,required TResult Function()  textEnd,required TResult Function( String toolName)  toolStart,required TResult Function()  toolEnd,required TResult Function( CoachProposal proposal)  proposal,required TResult Function( CoachStatsCard stats)  stats,required TResult Function( List<CoachChip> chips)  chips,required TResult Function( String message)  error,required TResult Function()  done,}) {final _that = this;
 switch (_that) {
 case TextDeltaEvent():
-return textDelta(_that.delta);case ToolStartEvent():
+return textDelta(_that.delta);case TextEndEvent():
+return textEnd();case ToolStartEvent():
 return toolStart(_that.toolName);case ToolEndEvent():
 return toolEnd();case ProposalEvent():
 return proposal(_that.proposal);case StatsEvent():
@@ -189,10 +194,11 @@ return done();}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String delta)?  textDelta,TResult? Function( String toolName)?  toolStart,TResult? Function()?  toolEnd,TResult? Function( CoachProposal proposal)?  proposal,TResult? Function( CoachStatsCard stats)?  stats,TResult? Function( List<CoachChip> chips)?  chips,TResult? Function( String message)?  error,TResult? Function()?  done,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String delta)?  textDelta,TResult? Function()?  textEnd,TResult? Function( String toolName)?  toolStart,TResult? Function()?  toolEnd,TResult? Function( CoachProposal proposal)?  proposal,TResult? Function( CoachStatsCard stats)?  stats,TResult? Function( List<CoachChip> chips)?  chips,TResult? Function( String message)?  error,TResult? Function()?  done,}) {final _that = this;
 switch (_that) {
 case TextDeltaEvent() when textDelta != null:
-return textDelta(_that.delta);case ToolStartEvent() when toolStart != null:
+return textDelta(_that.delta);case TextEndEvent() when textEnd != null:
+return textEnd();case ToolStartEvent() when toolStart != null:
 return toolStart(_that.toolName);case ToolEndEvent() when toolEnd != null:
 return toolEnd();case ProposalEvent() when proposal != null:
 return proposal(_that.proposal);case StatsEvent() when stats != null:
@@ -272,6 +278,38 @@ as String,
 
 
 }
+
+/// @nodoc
+
+
+class TextEndEvent implements VercelStreamEvent {
+  const TextEndEvent();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TextEndEvent);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'VercelStreamEvent.textEnd()';
+}
+
+
+}
+
+
+
 
 /// @nodoc
 

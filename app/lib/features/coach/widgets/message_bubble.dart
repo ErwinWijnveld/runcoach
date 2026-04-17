@@ -31,6 +31,9 @@ class MessageBubble extends StatelessWidget {
       message.statsCard == null &&
       message.chips == null;
 
+  bool get _isToolRunning =>
+      !_isUser && message.streaming && message.toolIndicator != null;
+
   @override
   Widget build(BuildContext context) {
     final children = <Widget>[];
@@ -43,6 +46,12 @@ class MessageBubble extends StatelessWidget {
       children.add(ThinkingCard(label: _thinkingLabel(message.toolIndicator)));
     } else if (message.content.isNotEmpty || message.streaming) {
       children.add(_Bubble(message: message));
+      if (_isToolRunning) {
+        children.add(const SizedBox(height: 8));
+        children.add(
+          ThinkingCard(label: _thinkingLabel(message.toolIndicator)),
+        );
+      }
     }
 
     if (message.statsCard != null) {
@@ -68,6 +77,11 @@ class MessageBubble extends StatelessWidget {
     }
 
     if (message.chips != null && message.chips!.isNotEmpty) {
+      children.add(const SizedBox(height: 16));
+      children.add(const Align(
+        alignment: Alignment.centerRight,
+        child: _RoleLabel(isUser: true),
+      ));
       children.add(const SizedBox(height: 8));
       children.add(ChipSuggestionsRow(
         chips: message.chips!
@@ -97,7 +111,7 @@ class MessageBubble extends StatelessWidget {
 
 String _thinkingLabel(String? toolIndicator) {
   final trimmed = toolIndicator?.trim();
-  if (trimmed == null || trimmed.isEmpty) return 'Working on your plan';
+  if (trimmed == null || trimmed.isEmpty) return 'Thinking';
   return trimmed.replaceFirst(RegExp(r'[…\.]+$'), '');
 }
 

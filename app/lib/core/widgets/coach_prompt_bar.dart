@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Material, InkWell;
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/animated_typing_text.dart';
 
 /// The warm pill that reads "Ask your coach...". Used both as the dashboard
 /// entry point (tap to navigate) and as the chat screen's actual input.
@@ -9,6 +10,17 @@ class CoachPromptBar extends StatelessWidget {
   const CoachPromptBar.navigate({
     super.key,
     required VoidCallback this.onTap,
+  })  : controller = null,
+        focusNode = null,
+        onSubmit = null,
+        sending = false,
+        autofocus = false,
+        animatedSuggestions = null;
+
+  const CoachPromptBar.navigateAnimated({
+    super.key,
+    required VoidCallback this.onTap,
+    required List<String> this.animatedSuggestions,
   })  : controller = null,
         focusNode = null,
         onSubmit = null,
@@ -22,7 +34,8 @@ class CoachPromptBar extends StatelessWidget {
     this.focusNode,
     this.sending = false,
     this.autofocus = false,
-  }) : onTap = null;
+  })  : onTap = null,
+        animatedSuggestions = null;
 
   final VoidCallback? onTap;
   final TextEditingController? controller;
@@ -30,6 +43,7 @@ class CoachPromptBar extends StatelessWidget {
   final ValueChanged<String>? onSubmit;
   final bool sending;
   final bool autofocus;
+  final List<String>? animatedSuggestions;
 
   bool get _isInput => controller != null;
 
@@ -44,16 +58,28 @@ class CoachPromptBar extends StatelessWidget {
         autofocus: autofocus,
       );
     }
-    return _NavigateBar(onTap: onTap!);
+    return _NavigateBar(
+      onTap: onTap!,
+      animatedSuggestions: animatedSuggestions,
+    );
   }
 }
 
 class _NavigateBar extends StatelessWidget {
   final VoidCallback onTap;
-  const _NavigateBar({required this.onTap});
+  final List<String>? animatedSuggestions;
+
+  const _NavigateBar({required this.onTap, this.animatedSuggestions});
 
   @override
   Widget build(BuildContext context) {
+    final placeholder = animatedSuggestions != null && animatedSuggestions!.isNotEmpty
+        ? AnimatedTypingText(
+            suggestions: animatedSuggestions!,
+            style: RunCoreText.body(),
+          )
+        : Text('Ask your coach...', style: RunCoreText.body());
+
     return Material(
       color: CupertinoColors.white,
       borderRadius: BorderRadius.circular(24),
@@ -67,12 +93,7 @@ class _NavigateBar extends StatelessWidget {
             children: [
               const _StarIcon(),
               const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Ask your coach...',
-                  style: RunCoreText.body(),
-                ),
-              ),
+              Expanded(child: placeholder),
               const SizedBox(width: 12),
               const _SendIcon(),
             ],

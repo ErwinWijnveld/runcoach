@@ -72,6 +72,7 @@ class VercelStreamParser {
 
       return switch (type) {
         'text-delta' => VercelStreamEvent.textDelta(json['delta'] as String),
+        'text-end' => const VercelStreamEvent.textEnd(),
         'tool-input-available' => VercelStreamEvent.toolStart(
             _humanize(json['toolName'] as String? ?? ''),
           ),

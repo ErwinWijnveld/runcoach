@@ -58,5 +58,6 @@ Route::prefix('v1')->group(function () {
         Route::post('coach/conversations/{conversation}/messages', [CoachController::class, 'sendMessage']);
         Route::post('coach/proposals/{proposal}/accept', [CoachController::class, 'acceptProposal']);
         Route::post('coach/proposals/{proposal}/reject', [CoachController::class, 'rejectProposal']);
+        Route::get('coach/proposals/{proposal}/explanation', [CoachController::class, 'explainProposal']);
     });
 });
