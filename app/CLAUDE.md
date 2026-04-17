@@ -21,7 +21,7 @@ Mobile app for **RunCoach** — personal AI running coach with Strava integratio
 ```
 app/lib/
 ├── main.dart                      — App entry, ProviderScope
-├── app.dart                       — MaterialApp.router setup
+├── app.dart                       — CupertinoApp.router setup (see note below about localization delegates)
 ├── core/
 │   ├── api/
 │   │   ├── dio_client.dart        — Dio singleton with baseUrl + interceptor
@@ -115,6 +115,22 @@ The AI coach conversation IDs come from the Laravel AI SDK and are UUIDs (36-cha
 - Route params: `state.pathParameters['conversationId']!` (no `int.parse`)
 - API client: `@Path() String id` for conversation endpoints
 
+### 5b. CupertinoApp + Material widgets
+
+`app.dart` is a `CupertinoApp.router`, but we reuse Material widgets (`ElevatedButton`, `showModalBottomSheet`, etc.) throughout the coach UI. For these to work, `localizationsDelegates` in `app.dart` MUST include `DefaultMaterialLocalizations.delegate` alongside the Cupertino + Widgets delegates. Without it, `showModalBottomSheet` silently no-ops (no error visible to the user).
+
+### 5c. Coach stream parsing (Vercel AI protocol)
+
+`features/coach/data/vercel_stream_parser.dart` reads Server-Sent-Events from `/coach/conversations/{id}/messages` and yields Freezed `VercelStreamEvent` variants:
+- `text-delta` → appended to `CoachMessage.content`
+- `tool-input-available` → `toolStart(toolName)` → maps to a humanized label (`_humanizedTools`) and sets `CoachMessage.toolIndicator` (shown as `ThinkingCard` below the bubble while the tool runs)
+- `tool-output-available` → `toolEnd()`
+- `data-stats` → backend forwards `PresentRunningStats` output, rendered as `StatsCardBubble`
+- `data-chips` → backend forwards `OfferChoices` output, rendered as `ChipSuggestionsRow` (now always appends a disabled "or type your own" chip)
+- `data-proposal` → `ProposalCard` under the assistant bubble; its "View details" button opens `PlanDetailsSheet` which fetches `GET /coach/proposals/{id}/explanation` (AI-generated name + prose, cached server-side)
+
+`CoachMessage.fromShowJson` normalizes historic `tool_results`: it accepts BOTH the list shape (older/OpenAI) and the map-keyed-by-step-index shape (Anthropic), and decodes `result` when it arrives as a JSON-encoded string.
+
 ### 6. Auth flow
 
 1. User taps "Connect with Strava" on `WelcomeScreen`
@@ -194,5 +210,7 @@ iOS bundle ID is `com.erwinwijnveld.runcoach` in `ios/Runner.xcodeproj/project.p
 
 - **"int.parse on UUID"** error in go_router → conversation IDs must be `String`, check you're not casting them to int
 - **"type 'String' is not a subtype of type 'num'"** → a MySQL decimal field needs `fromJson: toDouble` converter
-- **"Invalid schema for function"** from OpenAI → the backend tool schema is missing `->required()` on some param (fix in api/)
+- **"Invalid schema for function"** from the AI provider → the backend tool schema is missing `->required()` on some param (fix in api/)
+- **"View Details" / modal button does nothing** → `showModalBottomSheet` requires `DefaultMaterialLocalizations.delegate` in `app.dart`. Missing delegate = silent no-op.
+- **"`_Map<String, dynamic>` is not a subtype of `List<dynamic>?`"** when opening an old conversation → Anthropic stores `tool_results` keyed by step index (JSON object), not as an array. Use/update `CoachMessage.fromShowJson`-style normalization.
 - **Code gen not working** → run `dart run build_runner build --delete-conflicting-outputs` (the `--delete-conflicting-outputs` part matters)

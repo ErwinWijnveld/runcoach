@@ -9,7 +9,7 @@ part 'training_week.g.dart';
 sealed class TrainingWeek with _$TrainingWeek {
   const factory TrainingWeek({
     required int id,
-    @JsonKey(name: 'race_id') required int raceId,
+    @JsonKey(name: 'goal_id') required int goalId,
     @JsonKey(name: 'week_number') required int weekNumber,
     @JsonKey(name: 'starts_at') required String startsAt,
     @JsonKey(name: 'total_km', fromJson: toDouble) required double totalKm,

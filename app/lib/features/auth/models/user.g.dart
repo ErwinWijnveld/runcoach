@@ -11,9 +11,8 @@ _User _$UserFromJson(Map<String, dynamic> json) => _User(
   name: json['name'] as String,
   email: json['email'] as String,
   stravaAthleteId: (json['strava_athlete_id'] as num?)?.toInt(),
-  level: json['level'] as String?,
   coachStyle: json['coach_style'] as String?,
-  weeklyKmCapacity: (json['weekly_km_capacity'] as num?)?.toDouble(),
+  hasCompletedOnboarding: json['has_completed_onboarding'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$UserToJson(_User instance) => <String, dynamic>{
@@ -21,7 +20,6 @@ Map<String, dynamic> _$UserToJson(_User instance) => <String, dynamic>{
   'name': instance.name,
   'email': instance.email,
   'strava_athlete_id': instance.stravaAthleteId,
-  'level': instance.level,
   'coach_style': instance.coachStyle,
-  'weekly_km_capacity': instance.weeklyKmCapacity,
+  'has_completed_onboarding': instance.hasCompletedOnboarding,
 };

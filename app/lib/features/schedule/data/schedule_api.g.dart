@@ -20,7 +20,7 @@ class _ScheduleApi implements ScheduleApi {
   final ParseErrorLogger? errorLogger;
 
   @override
-  Future<dynamic> getSchedule(int raceId) async {
+  Future<dynamic> getSchedule(int goalId) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
@@ -29,7 +29,7 @@ class _ScheduleApi implements ScheduleApi {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/races/${raceId}/schedule',
+            '/goals/${goalId}/schedule',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -41,7 +41,7 @@ class _ScheduleApi implements ScheduleApi {
   }
 
   @override
-  Future<dynamic> getCurrentWeek(int raceId) async {
+  Future<dynamic> getCurrentWeek(int goalId) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
@@ -50,7 +50,7 @@ class _ScheduleApi implements ScheduleApi {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/races/${raceId}/schedule/current',
+            '/goals/${goalId}/schedule/current',
             queryParameters: queryParameters,
             data: _data,
           )
@@ -101,6 +101,71 @@ class _ScheduleApi implements ScheduleApi {
     final _result = await _dio.fetch(_options);
     final _value = _result.data;
     return _value;
+  }
+
+  @override
+  Future<dynamic> getAvailableStravaActivities(int dayId) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<dynamic>(
+      Options(method: 'GET', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/training-days/${dayId}/available-activities',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
+  Future<dynamic> matchStravaActivity(
+    int dayId,
+    Map<String, dynamic> body,
+  ) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    final _data = <String, dynamic>{};
+    _data.addAll(body);
+    final _options = _setStreamType<dynamic>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/training-days/${dayId}/match-activity',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
+  @override
+  Future<void> unlinkStravaActivity(int dayId) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    const Map<String, dynamic>? _data = null;
+    final _options = _setStreamType<void>(
+      Options(method: 'DELETE', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/training-days/${dayId}/match-activity',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    await _dio.fetch<void>(_options);
   }
 
   RequestOptions _setStreamType<T>(RequestOptions requestOptions) {

@@ -10,7 +10,7 @@ sealed class DashboardData with _$DashboardData {
   const factory DashboardData({
     @JsonKey(name: 'weekly_summary') WeeklySummary? weeklySummary,
     @JsonKey(name: 'next_training') TrainingDay? nextTraining,
-    @JsonKey(name: 'active_race') ActiveRaceSummary? activeRace,
+    @JsonKey(name: 'active_goal') ActiveGoalSummary? activeGoal,
     @JsonKey(name: 'coach_insight') String? coachInsight,
   }) = _DashboardData;
 
@@ -33,15 +33,16 @@ sealed class WeeklySummary with _$WeeklySummary {
 }
 
 @freezed
-sealed class ActiveRaceSummary with _$ActiveRaceSummary {
-  const factory ActiveRaceSummary({
+sealed class ActiveGoalSummary with _$ActiveGoalSummary {
+  const factory ActiveGoalSummary({
     required int id,
+    required String type,
     required String name,
-    required String distance,
-    @JsonKey(name: 'race_date') required String raceDate,
-    @JsonKey(name: 'weeks_until_race', fromJson: toInt) required int weeksUntilRace,
-  }) = _ActiveRaceSummary;
+    String? distance,
+    @JsonKey(name: 'target_date') String? targetDate,
+    @JsonKey(name: 'weeks_until_target_date', fromJson: toIntOrNull) int? weeksUntilTargetDate,
+  }) = _ActiveGoalSummary;
 
-  factory ActiveRaceSummary.fromJson(Map<String, dynamic> json) =>
-      _$ActiveRaceSummaryFromJson(json);
+  factory ActiveGoalSummary.fromJson(Map<String, dynamic> json) =>
+      _$ActiveGoalSummaryFromJson(json);
 }

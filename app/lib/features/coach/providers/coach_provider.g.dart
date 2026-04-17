@@ -50,6 +50,68 @@ final class ConversationsProvider
 
 String _$conversationsHash() => r'2e10a6a3adfefcacaa630ffa97b1cca79ad7854c';
 
+/// Standalone accept/reject helpers so onboarding can use them without
+/// activating [CoachChat] (which would load messages from the wrong endpoint).
+
+@ProviderFor(ProposalActions)
+final proposalActionsProvider = ProposalActionsProvider._();
+
+/// Standalone accept/reject helpers so onboarding can use them without
+/// activating [CoachChat] (which would load messages from the wrong endpoint).
+final class ProposalActionsProvider
+    extends $NotifierProvider<ProposalActions, void> {
+  /// Standalone accept/reject helpers so onboarding can use them without
+  /// activating [CoachChat] (which would load messages from the wrong endpoint).
+  ProposalActionsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'proposalActionsProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$proposalActionsHash();
+
+  @$internal
+  @override
+  ProposalActions create() => ProposalActions();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(void value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<void>(value),
+    );
+  }
+}
+
+String _$proposalActionsHash() => r'd2d0d57549851c597546c682d031fd767a5e4ea5';
+
+/// Standalone accept/reject helpers so onboarding can use them without
+/// activating [CoachChat] (which would load messages from the wrong endpoint).
+
+abstract class _$ProposalActions extends $Notifier<void> {
+  void build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<void, void>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<void, void>,
+              void,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
 @ProviderFor(CoachChat)
 final coachChatProvider = CoachChatFamily._();
 
@@ -91,7 +153,7 @@ final class CoachChatProvider
   }
 }
 
-String _$coachChatHash() => r'e5e382149768aa994bc7403c94dfd86293f01f07';
+String _$coachChatHash() => r'8c1ebd1840b5d5fcb08047d8f0fc920f0a63db04';
 
 final class CoachChatFamily extends $Family
     with

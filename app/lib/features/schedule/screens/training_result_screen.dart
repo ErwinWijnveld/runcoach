@@ -1,26 +1,23 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart'
+    show
+        AlwaysStoppedAnimation,
+        Colors,
+        Divider,
+        InkWell,
+        LinearProgressIndicator,
+        Material;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
-import 'package:app/features/schedule/providers/schedule_provider.dart';
 import 'package:app/features/schedule/models/training_result.dart';
+import 'package:app/features/schedule/providers/schedule_provider.dart';
 
 class TrainingResultScreen extends ConsumerWidget {
   final int dayId;
   const TrainingResultScreen({super.key, required this.dayId});
-
-  String _formatPace(int secondsPerKm) {
-    final minutes = secondsPerKm ~/ 60;
-    final seconds = secondsPerKm % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')} /km';
-  }
-
-  Color _scoreColor(double score) {
-    if (score >= 0.8) return AppColors.success;
-    if (score >= 0.5) return AppColors.gold;
-    return AppColors.danger;
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -28,126 +25,64 @@ class TrainingResultScreen extends ConsumerWidget {
     final dayAsync = ref.watch(trainingDayDetailProvider(dayId));
 
     return CupertinoPageScaffold(
-      backgroundColor: AppColors.cream,
-      navigationBar: CupertinoNavigationBar(
-        backgroundColor: AppColors.cream.withValues(alpha: 0.92),
-        border: null,
-        leading: CupertinoButton(
-          padding: EdgeInsets.zero,
-          onPressed: () => context.go('/schedule/day/$dayId'),
-          child: const Icon(
-            CupertinoIcons.back,
-            color: AppColors.warmBrown,
-          ),
-        ),
-        middle: const Text('Training Result'),
-      ),
+      backgroundColor: AppColors.neutral,
       child: SafeArea(
         child: resultAsync.when(
           loading: () => const AppSpinner(),
           error: (err, _) => AppErrorState(title: 'Error: $err'),
           data: (result) {
             if (result == null) {
-              return const Center(
+              return Center(
                 child: Text(
-                  'No result recorded yet',
-                  style: TextStyle(color: AppColors.textSecondary),
+                  'No result recorded yet.',
+                  style: GoogleFonts.publicSans(color: AppColors.tertiary),
                 ),
               );
             }
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.only(bottom: 32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _ComplianceHeader(result: result),
-                  const SizedBox(height: 24),
-                  const AppSectionLabel('ACTUAL PERFORMANCE'),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _ResultMetricCard(
-                          label: 'Distance',
-                          value: '${result.actualKm} km',
-                          icon: CupertinoIcons.arrow_right_arrow_left,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _ResultMetricCard(
-                          label: 'Pace',
-                          value: _formatPace(result.actualPaceSecondsPerKm),
-                          icon: CupertinoIcons.speedometer,
-                        ),
-                      ),
-                    ],
+                  const _Header(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                    child: _ComplianceHeader(result: result),
                   ),
-                  if (result.actualAvgHeartRate != null) ...[
-                    const SizedBox(height: 12),
-                    _ResultMetricCard(
-                      label: 'Avg Heart Rate',
-                      value: '${result.actualAvgHeartRate!.round()} bpm',
-                      icon: CupertinoIcons.heart_fill,
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  const AppSectionLabel('SCORE BREAKDOWN'),
-                  const SizedBox(height: 12),
-                  _ScoreBar(
-                    label: 'Distance',
-                    score: result.distanceScore,
-                    color: _scoreColor(result.distanceScore),
+                  const SizedBox(height: 16),
+                  const _SectionTitle('Score breakdown'),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: _ScoreBreakdown(result: result),
                   ),
-                  const SizedBox(height: 8),
-                  _ScoreBar(
-                    label: 'Pace',
-                    score: result.paceScore,
-                    color: _scoreColor(result.paceScore),
-                  ),
-                  if (result.heartRateScore != null) ...[
-                    const SizedBox(height: 8),
-                    _ScoreBar(
-                      label: 'Heart Rate',
-                      score: result.heartRateScore!,
-                      color: _scoreColor(result.heartRateScore!),
-                    ),
-                  ],
                   dayAsync.whenOrNull(
                         data: (day) {
                           if (day.targetKm == null &&
-                              day.targetPaceSecondsPerKm == null) {
+                              day.targetPaceSecondsPerKm == null &&
+                              day.targetHeartRateZone == null) {
                             return const SizedBox.shrink();
                           }
                           return Padding(
-                            padding: const EdgeInsets.only(top: 24),
+                            padding: const EdgeInsets.only(top: 16),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const AppSectionLabel('VS TARGET'),
-                                const SizedBox(height: 12),
-                                AppCard(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Column(
-                                    children: [
-                                      if (day.targetKm != null)
-                                        _ComparisonRow(
-                                          label: 'Distance',
-                                          target: '${day.targetKm} km',
-                                          actual: '${result.actualKm} km',
-                                        ),
-                                      if (day.targetPaceSecondsPerKm != null)
-                                        _ComparisonRow(
-                                          label: 'Pace',
-                                          target: _formatPace(
-                                            day.targetPaceSecondsPerKm!,
-                                          ),
-                                          actual: _formatPace(
-                                            result.actualPaceSecondsPerKm,
-                                          ),
-                                        ),
-                                    ],
+                                const _SectionTitle('Target vs actual'),
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                                  child: _VsTargetCard(
+                                    targetKm: day.targetKm,
+                                    actualKm: result.actualKm,
+                                    targetPaceSecondsPerKm:
+                                        day.targetPaceSecondsPerKm,
+                                    actualPaceSecondsPerKm:
+                                        result.actualPaceSecondsPerKm,
+                                    targetHeartRateZone:
+                                        day.targetHeartRateZone,
+                                    actualAvgHeartRate:
+                                        result.actualAvgHeartRate,
                                   ),
                                 ),
                               ],
@@ -156,56 +91,88 @@ class TrainingResultScreen extends ConsumerWidget {
                         },
                       ) ??
                       const SizedBox.shrink(),
-                  if (result.aiFeedback != null) ...[
-                    const SizedBox(height: 24),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: AppColors.darkBrown,
-                        borderRadius: BorderRadius.circular(AppRadius.card),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Row(
-                            children: [
-                              Icon(
-                                CupertinoIcons.sparkles,
-                                color: AppColors.gold,
-                                size: 16,
-                              ),
-                              SizedBox(width: 8),
-                              Text(
-                                'COACH FEEDBACK',
-                                style: TextStyle(
-                                  color: AppColors.gold,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            result.aiFeedback!,
-                            style: TextStyle(
-                              color:
-                                  CupertinoColors.white.withValues(alpha: 0.9),
-                              fontSize: 14,
-                              height: 1.5,
-                            ),
-                          ),
-                        ],
-                      ),
+                  if (result.aiFeedback != null &&
+                      result.aiFeedback!.trim().isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    const _SectionTitle('Coach feedback'),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                      child: _CoachFeedbackCard(feedback: result.aiFeedback!),
                     ),
                   ],
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _UnlinkStravaButton(dayId: dayId),
+                  ),
                 ],
               ),
             );
           },
+        ),
+      ),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 4, 16, 8),
+      child: Row(
+        children: [
+          Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(22),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(22),
+              onTap: () => context.canPop()
+                  ? context.pop()
+                  : context.go('/schedule'),
+              child: const Padding(
+                padding: EdgeInsets.all(10),
+                child: Icon(
+                  CupertinoIcons.back,
+                  color: AppColors.primaryInk,
+                  size: 22,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            'Training result',
+            style: GoogleFonts.ebGaramond(
+              fontSize: 22,
+              fontWeight: FontWeight.w500,
+              fontStyle: FontStyle.italic,
+              color: AppColors.primaryInk,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  final String label;
+  const _SectionTitle(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 0, 22, 0),
+      child: Text(
+        label.toUpperCase(),
+        style: GoogleFonts.spaceGrotesk(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.96,
+          color: AppColors.inkMuted,
         ),
       ),
     );
@@ -218,39 +185,47 @@ class _ComplianceHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pct = (result.complianceScore * 100).round();
-    final color = result.complianceScore >= 0.8
-        ? AppColors.success
-        : result.complianceScore >= 0.5
-            ? AppColors.gold
-            : AppColors.danger;
+    // Scores are stored on a 0-10 scale by ComplianceScoringService; clamp
+    // and map into 0-1 for the progress bar and 0-100 for the percentage.
+    final score01 = (result.complianceScore / 10).clamp(0.0, 1.0);
+    final pct = (score01 * 100).round();
+    final color = _scoreColor(score01);
 
-    return AppCard(
+    return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: CupertinoColors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 16)],
+      ),
       child: Column(
         children: [
           Text(
             '$pct%',
-            style: TextStyle(
+            style: GoogleFonts.ebGaramond(
               fontSize: 44,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w500,
               color: color,
-              letterSpacing: -1,
             ),
           ),
-          const SizedBox(height: 4),
-          const Text(
-            'Overall Compliance',
-            style: TextStyle(
+          const SizedBox(height: 2),
+          Text(
+            'Overall compliance',
+            style: GoogleFonts.publicSans(
               fontSize: 14,
-              color: AppColors.textSecondary,
+              color: AppColors.tertiary,
             ),
           ),
-          const SizedBox(height: 12),
-          AppLinearBar(
-            value: result.complianceScore,
-            color: color,
-            height: 8,
+          const SizedBox(height: 14),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: score01,
+              minHeight: 8,
+              backgroundColor: AppColors.neutralHighlight,
+              valueColor: AlwaysStoppedAnimation(color),
+            ),
           ),
         ],
       ),
@@ -258,46 +233,28 @@ class _ComplianceHeader extends StatelessWidget {
   }
 }
 
-class _ResultMetricCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  const _ResultMetricCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-  });
+class _ScoreBreakdown extends StatelessWidget {
+  final TrainingResult result;
+  const _ScoreBreakdown({required this.result});
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
+    return Container(
       padding: const EdgeInsets.all(16),
-      child: Row(
+      decoration: BoxDecoration(
+        color: CupertinoColors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 16)],
+      ),
+      child: Column(
         children: [
-          Icon(icon, color: AppColors.warmBrown, size: 20),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _ScoreBar(label: 'Distance', score: result.distanceScore),
+          const SizedBox(height: 12),
+          _ScoreBar(label: 'Pace', score: result.paceScore),
+          if (result.heartRateScore != null) ...[
+            const SizedBox(height: 12),
+            _ScoreBar(label: 'Heart rate', score: result.heartRateScore!),
+          ],
         ],
       ),
     );
@@ -306,44 +263,157 @@ class _ResultMetricCard extends StatelessWidget {
 
 class _ScoreBar extends StatelessWidget {
   final String label;
-  final double score;
-  final Color color;
-  const _ScoreBar({
-    required this.label,
-    required this.score,
-    required this.color,
-  });
+  final double score; // 0-10
+  const _ScoreBar({required this.label, required this.score});
 
   @override
   Widget build(BuildContext context) {
-    final pct = (score * 100).round();
+    // Scores are on a 0-10 scale; clamp then map to 0-1 for the bar.
+    final score01 = (score / 10).clamp(0.0, 1.0);
+    final pct = (score01 * 100).round();
+    final color = _scoreColor(score01);
+
     return Row(
       children: [
         SizedBox(
-          width: 80,
+          width: 88,
           child: Text(
             label,
-            style: const TextStyle(
+            style: GoogleFonts.publicSans(
               fontSize: 13,
-              color: AppColors.textSecondary,
+              color: AppColors.tertiary,
             ),
           ),
         ),
         Expanded(
-          child: AppLinearBar(value: score, color: color, height: 8),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: score01,
+              minHeight: 8,
+              backgroundColor: AppColors.neutralHighlight,
+              valueColor: AlwaysStoppedAnimation(color),
+            ),
+          ),
         ),
         const SizedBox(width: 12),
         SizedBox(
-          width: 40,
+          width: 44,
           child: Text(
             '$pct%',
-            style: TextStyle(
+            textAlign: TextAlign.end,
+            style: GoogleFonts.spaceGrotesk(
               fontSize: 13,
               fontWeight: FontWeight.w700,
               color: color,
             ),
-            textAlign: TextAlign.end,
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _VsTargetCard extends StatelessWidget {
+  final double? targetKm;
+  final double actualKm;
+  final int? targetPaceSecondsPerKm;
+  final int actualPaceSecondsPerKm;
+  final int? targetHeartRateZone;
+  final double? actualAvgHeartRate;
+
+  const _VsTargetCard({
+    required this.targetKm,
+    required this.actualKm,
+    required this.targetPaceSecondsPerKm,
+    required this.actualPaceSecondsPerKm,
+    required this.targetHeartRateZone,
+    required this.actualAvgHeartRate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = <Widget>[];
+    if (targetKm != null) {
+      rows.add(_ComparisonRow(
+        label: 'Distance',
+        target: '${targetKm!.toStringAsFixed(1)} km',
+        actual: '${actualKm.toStringAsFixed(1)} km',
+      ));
+    }
+    if (targetPaceSecondsPerKm != null) {
+      rows.add(_ComparisonRow(
+        label: 'Pace',
+        target: _formatPace(targetPaceSecondsPerKm!),
+        actual: _formatPace(actualPaceSecondsPerKm),
+      ));
+    }
+    if (targetHeartRateZone != null || actualAvgHeartRate != null) {
+      rows.add(_ComparisonRow(
+        label: 'Heart rate',
+        target: targetHeartRateZone != null ? 'Zone $targetHeartRateZone' : '—',
+        actual: actualAvgHeartRate != null
+            ? '${actualAvgHeartRate!.round()} bpm'
+            : '—',
+      ));
+    }
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      decoration: BoxDecoration(
+        color: CupertinoColors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 16)],
+      ),
+      child: Column(
+        children: [
+          const _ComparisonHeader(),
+          const SizedBox(height: 4),
+          const Divider(
+            height: 12,
+            thickness: 1,
+            color: AppColors.border,
+          ),
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0) const SizedBox(height: 10),
+            rows[i],
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _formatPace(int s) {
+    if (s <= 0) return '—';
+    final mm = s ~/ 60;
+    final ss = s % 60;
+    return '$mm:${ss.toString().padLeft(2, '0')} /km';
+  }
+
+}
+
+class _ComparisonHeader extends StatelessWidget {
+  const _ComparisonHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    final style = GoogleFonts.spaceGrotesk(
+      fontSize: 10,
+      fontWeight: FontWeight.w700,
+      letterSpacing: 0.8,
+      color: AppColors.inkMuted,
+    );
+
+    return Row(
+      children: [
+        const Expanded(flex: 2, child: SizedBox()),
+        Expanded(
+          flex: 3,
+          child: Text('TARGET', textAlign: TextAlign.center, style: style),
+        ),
+        Expanded(
+          flex: 3,
+          child: Text('ACTUAL', textAlign: TextAlign.end, style: style),
         ),
       ],
     );
@@ -362,44 +432,210 @@ class _ComparisonRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
+    return Row(
+      children: [
+        Expanded(
+          flex: 2,
+          child: Text(
+            label,
+            style: GoogleFonts.publicSans(
+              fontSize: 13,
+              color: AppColors.tertiary,
+            ),
+          ),
+        ),
+        Expanded(
+          flex: 3,
+          child: Text(
+            target,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.publicSans(
+              fontSize: 14,
+              color: AppColors.tertiary,
+            ),
+          ),
+        ),
+        Expanded(
+          flex: 3,
+          child: Text(
+            actual,
+            textAlign: TextAlign.end,
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.primaryInk,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CoachFeedbackCard extends StatelessWidget {
+  final String feedback;
+  const _CoachFeedbackCard({required this.feedback});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.textSecondary,
+          Row(
+            children: [
+              const Icon(
+                CupertinoIcons.sparkles,
+                color: AppColors.secondary,
+                size: 14,
               ),
-            ),
+              const SizedBox(width: 6),
+              Text(
+                'COACH FEEDBACK',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  color: AppColors.secondary,
+                ),
+              ),
+            ],
           ),
-          Expanded(
-            flex: 3,
-            child: Text(
-              target,
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Text(
-              actual,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
-              textAlign: TextAlign.center,
+          const SizedBox(height: 12),
+          Text(
+            feedback,
+            style: GoogleFonts.publicSans(
+              fontSize: 14,
+              height: 1.5,
+              color: CupertinoColors.white.withValues(alpha: 0.92),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+Color _scoreColor(double score01) {
+  if (score01 >= 0.8) return const Color(0xFF34C759);
+  if (score01 >= 0.5) return AppColors.secondary;
+  return AppColors.danger;
+}
+
+/// Danger-style button that unlinks the Strava run from this training day.
+/// On success pops the result screen (since there's no longer a result to
+/// show) and invalidates the schedule providers so the detail screen and
+/// weekly list refresh to their unmatched state.
+class _UnlinkStravaButton extends ConsumerStatefulWidget {
+  final int dayId;
+  const _UnlinkStravaButton({required this.dayId});
+
+  @override
+  ConsumerState<_UnlinkStravaButton> createState() =>
+      _UnlinkStravaButtonState();
+}
+
+class _UnlinkStravaButtonState extends ConsumerState<_UnlinkStravaButton> {
+  bool _busy = false;
+
+  Future<void> _confirmAndUnlink() async {
+    if (_busy) return;
+
+    final confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: const Text('Unlink Strava run?'),
+        content: const Text(
+            'The run stays in your Strava history; it just stops being matched to this training day.'),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Unlink'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _busy = true);
+    try {
+      await ref
+          .read(manualMatchStravaActivityProvider.notifier)
+          .unlink(dayId: widget.dayId);
+
+      if (!mounted) return;
+      ref.invalidate(trainingDayDetailProvider(widget.dayId));
+      ref.invalidate(trainingDayResultProvider(widget.dayId));
+      ref.invalidate(scheduleProvider);
+      ref.invalidate(currentWeekProvider);
+      ref.invalidate(availableStravaActivitiesProvider(widget.dayId));
+
+      // The result screen has nothing to show anymore — pop back to the day
+      // detail. Fallback to the schedule tab if we're the root.
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/schedule');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      await showCupertinoDialog<void>(
+        context: context,
+        builder: (_) => CupertinoAlertDialog(
+          title: const Text("Couldn't unlink"),
+          content: Text('$e'),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: _busy ? null : _confirmAndUnlink,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            color: AppColors.neutralHighlight,
+            border: Border.all(color: AppColors.border),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          alignment: Alignment.center,
+          child: _busy
+              ? const CupertinoActivityIndicator(radius: 10)
+              : Text(
+                  'UNLINK STRAVA RUN',
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.danger,
+                  ),
+                ),
+        ),
       ),
     );
   }

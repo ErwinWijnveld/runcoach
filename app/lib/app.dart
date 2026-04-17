@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/router/app_router.dart';
@@ -16,6 +17,7 @@ class RunCoachApp extends ConsumerWidget {
       routerConfig: router,
       debugShowCheckedModeBanner: false,
       localizationsDelegates: const [
+        DefaultMaterialLocalizations.delegate,
         DefaultCupertinoLocalizations.delegate,
         DefaultWidgetsLocalizations.delegate,
       ],

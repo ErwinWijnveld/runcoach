@@ -2,6 +2,9 @@
 
 namespace App\Ai\Tools;
 
+use App\Enums\GoalDistance;
+use App\Enums\GoalType;
+use App\Enums\TrainingType;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -11,10 +14,15 @@ class CreateSchedule implements Tool
     public function description(): string
     {
         return <<<'DESC'
-        Create a complete training schedule for a race. Returns a proposal the runner must approve.
+        Create a complete training goal and schedule for the runner. Returns a proposal the runner must approve.
+
+        Goal types:
+        - `race`: training for a specific race event (distance + target_date required)
+        - `general_fitness`: improving overall fitness, no fixed race (distance and target_date may be null)
+        - `pr_attempt`: attempting a personal record at a given distance (distance required, target_date optional)
 
         IMPORTANT: Before calling this tool, you should have already:
-        1. Asked the runner about their race (distance, date, goal)
+        1. Asked the runner about their goal (type, distance, date, target time where applicable)
         2. Fetched their recent Strava data with search_strava_activities
         3. Analyzed their fitness level and discussed your approach
         4. Gotten confirmation from the runner
@@ -27,12 +35,15 @@ class CreateSchedule implements Tool
 
     public function schema(JsonSchema $schema): array
     {
+        $trainingTypes = TrainingType::valuesAsPipe();
+
         return [
-            'race_name' => $schema->string()->required()->description('Name of the race (e.g. "Amsterdam Marathon 2026")'),
-            'distance' => $schema->string()->enum(['5k', '10k', 'half_marathon', 'marathon', 'custom'])->required(),
+            'goal_type' => $schema->string()->enum(GoalType::values())->required()->description('Type of goal the runner is working toward.'),
+            'goal_name' => $schema->string()->required()->description('Name of the goal (e.g. "Amsterdam Marathon 2026" or "Build base fitness")'),
+            'distance' => $schema->string()->enum(GoalDistance::values())->required()->nullable()->description('Target distance, or null for general fitness goals without a specific distance.'),
             'goal_time_seconds' => $schema->integer()->required()->nullable()->description('Target finish time in seconds (e.g. 5400 for 1:30:00), or null if no specific goal'),
-            'race_date' => $schema->string()->required()->description('Race date in YYYY-MM-DD format'),
-            'schedule' => $schema->string()->required()->description('Complete training schedule as JSON: {"weeks": [{"week_number": 1, "focus": "base building", "total_km": 30.0, "days": [{"day_of_week": 1, "type": "easy|tempo|interval|long_run|recovery", "title": "Easy Run", "description": "Keep conversational pace", "target_km": 5.0, "target_pace_seconds_per_km": 390, "target_heart_rate_zone": 2}]}]}. day_of_week: 1=Monday through 7=Sunday. ONLY include days the runner actually runs — skip rest days entirely (do not emit entries with type "rest" or "mobility"). Most weeks should have 3-5 day entries.'),
+            'target_date' => $schema->string()->required()->nullable()->description('Goal date in YYYY-MM-DD format, or null for open-ended goals.'),
+            'schedule' => $schema->string()->required()->description('Complete training schedule as JSON: {"weeks":[{"week_number":1,"focus":"base building","total_km":30.0,"days":[{"day_of_week":1,"type":"'.$trainingTypes.'","title":"Easy Run","description":"Keep conversational pace","target_km":5.0,"target_pace_seconds_per_km":390,"target_heart_rate_zone":2,"intervals":[{"kind":"warmup|work|recovery|cooldown","label":"Warm up","distance_m":1000,"duration_seconds":360,"target_pace_seconds_per_km":360}]}]}]}. day_of_week: 1=Monday through 7=Sunday. All entries are running sessions — the runner\'s rest days are simply the days of the week that have no entry. Most weeks should have 3-5 day entries. `intervals` is REQUIRED for `type: intervals` days (give warm-up, alternating work/recovery reps, cooldown). For other types `intervals` can be omitted. For each interval: kind (enum), label (short human name), distance_m (integer meters), duration_seconds (integer, may be null if distance-based), target_pace_seconds_per_km (integer, may be null for easy warm-up/cooldown).'),
         ];
     }
 
@@ -48,10 +59,11 @@ class CreateSchedule implements Tool
             'requires_approval' => true,
             'proposal_type' => 'create_schedule',
             'payload' => [
-                'race_name' => $request['race_name'],
+                'goal_type' => $request['goal_type'],
+                'goal_name' => $request['goal_name'],
                 'distance' => $request['distance'],
                 'goal_time_seconds' => $request['goal_time_seconds'],
-                'race_date' => $request['race_date'],
+                'target_date' => $request['target_date'],
                 'schedule' => $schedule,
             ],
         ]);

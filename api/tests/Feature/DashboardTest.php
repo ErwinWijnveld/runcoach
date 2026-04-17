@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Enums\RaceStatus;
+use App\Enums\GoalStatus;
 use App\Enums\TrainingType;
-use App\Models\Race;
+use App\Models\Goal;
 use App\Models\TrainingDay;
 use App\Models\TrainingResult;
 use App\Models\TrainingWeek;
@@ -27,12 +27,12 @@ class DashboardTest extends TestCase
     public function test_dashboard_returns_weekly_summary(): void
     {
         [$user, $headers] = $this->authUser();
-        $race = Race::factory()->create([
+        $goal = Goal::factory()->create([
             'user_id' => $user->id,
-            'status' => RaceStatus::Active,
+            'status' => GoalStatus::Active,
         ]);
         $week = TrainingWeek::factory()->create([
-            'race_id' => $race->id,
+            'goal_id' => $goal->id,
             'starts_at' => now()->startOfWeek(),
             'total_km' => 42.5,
         ]);
@@ -60,17 +60,17 @@ class DashboardTest extends TestCase
         $response->assertJsonStructure([
             'weekly_summary' => ['total_km_planned', 'total_km_completed', 'compliance_avg'],
             'next_training',
-            'active_race',
+            'active_goal' => ['id', 'name', 'type', 'distance', 'target_date', 'weeks_until_target_date'],
         ]);
     }
 
-    public function test_dashboard_with_no_active_race(): void
+    public function test_dashboard_with_no_active_goal(): void
     {
         [$user, $headers] = $this->authUser();
 
         $response = $this->getJson('/api/v1/dashboard', $headers);
 
         $response->assertOk();
-        $this->assertNull($response->json('active_race'));
+        $this->assertNull($response->json('active_goal'));
     }
 }

@@ -15,7 +15,9 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$TrainingDay {
 
- int get id; String get date; String get type; String get title; String? get description;@JsonKey(name: 'target_km', fromJson: toDoubleOrNull) double? get targetKm;@JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull) int? get targetPaceSecondsPerKm;@JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull) int? get targetHeartRateZone;@JsonKey(name: 'intervals_json') Map<String, dynamic>? get intervalsJson;@JsonKey(fromJson: toInt) int get order; TrainingResult? get result;
+ int get id; String get date; String get type; String get title; String? get description;@JsonKey(name: 'target_km', fromJson: toDoubleOrNull) double? get targetKm;@JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull) int? get targetPaceSecondsPerKm;@JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull) int? get targetHeartRateZone;/// Structured interval session — present for `type == 'interval'` days.
+/// Null for easy/tempo/long/recovery runs.
+@JsonKey(name: 'intervals_json', fromJson: _intervalsFromJson) List<TrainingInterval>? get intervals;@JsonKey(fromJson: toInt) int get order; TrainingResult? get result;
 /// Create a copy of TrainingDay
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +30,16 @@ $TrainingDayCopyWith<TrainingDay> get copyWith => _$TrainingDayCopyWithImpl<Trai
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TrainingDay&&(identical(other.id, id) || other.id == id)&&(identical(other.date, date) || other.date == date)&&(identical(other.type, type) || other.type == type)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.targetKm, targetKm) || other.targetKm == targetKm)&&(identical(other.targetPaceSecondsPerKm, targetPaceSecondsPerKm) || other.targetPaceSecondsPerKm == targetPaceSecondsPerKm)&&(identical(other.targetHeartRateZone, targetHeartRateZone) || other.targetHeartRateZone == targetHeartRateZone)&&const DeepCollectionEquality().equals(other.intervalsJson, intervalsJson)&&(identical(other.order, order) || other.order == order)&&(identical(other.result, result) || other.result == result));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TrainingDay&&(identical(other.id, id) || other.id == id)&&(identical(other.date, date) || other.date == date)&&(identical(other.type, type) || other.type == type)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.targetKm, targetKm) || other.targetKm == targetKm)&&(identical(other.targetPaceSecondsPerKm, targetPaceSecondsPerKm) || other.targetPaceSecondsPerKm == targetPaceSecondsPerKm)&&(identical(other.targetHeartRateZone, targetHeartRateZone) || other.targetHeartRateZone == targetHeartRateZone)&&const DeepCollectionEquality().equals(other.intervals, intervals)&&(identical(other.order, order) || other.order == order)&&(identical(other.result, result) || other.result == result));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,date,type,title,description,targetKm,targetPaceSecondsPerKm,targetHeartRateZone,const DeepCollectionEquality().hash(intervalsJson),order,result);
+int get hashCode => Object.hash(runtimeType,id,date,type,title,description,targetKm,targetPaceSecondsPerKm,targetHeartRateZone,const DeepCollectionEquality().hash(intervals),order,result);
 
 @override
 String toString() {
-  return 'TrainingDay(id: $id, date: $date, type: $type, title: $title, description: $description, targetKm: $targetKm, targetPaceSecondsPerKm: $targetPaceSecondsPerKm, targetHeartRateZone: $targetHeartRateZone, intervalsJson: $intervalsJson, order: $order, result: $result)';
+  return 'TrainingDay(id: $id, date: $date, type: $type, title: $title, description: $description, targetKm: $targetKm, targetPaceSecondsPerKm: $targetPaceSecondsPerKm, targetHeartRateZone: $targetHeartRateZone, intervals: $intervals, order: $order, result: $result)';
 }
 
 
@@ -48,7 +50,7 @@ abstract mixin class $TrainingDayCopyWith<$Res>  {
   factory $TrainingDayCopyWith(TrainingDay value, $Res Function(TrainingDay) _then) = _$TrainingDayCopyWithImpl;
 @useResult
 $Res call({
- int id, String date, String type, String title, String? description,@JsonKey(name: 'target_km', fromJson: toDoubleOrNull) double? targetKm,@JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull) int? targetPaceSecondsPerKm,@JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull) int? targetHeartRateZone,@JsonKey(name: 'intervals_json') Map<String, dynamic>? intervalsJson,@JsonKey(fromJson: toInt) int order, TrainingResult? result
+ int id, String date, String type, String title, String? description,@JsonKey(name: 'target_km', fromJson: toDoubleOrNull) double? targetKm,@JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull) int? targetPaceSecondsPerKm,@JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull) int? targetHeartRateZone,@JsonKey(name: 'intervals_json', fromJson: _intervalsFromJson) List<TrainingInterval>? intervals,@JsonKey(fromJson: toInt) int order, TrainingResult? result
 });
 
 
@@ -65,7 +67,7 @@ class _$TrainingDayCopyWithImpl<$Res>
 
 /// Create a copy of TrainingDay
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? date = null,Object? type = null,Object? title = null,Object? description = freezed,Object? targetKm = freezed,Object? targetPaceSecondsPerKm = freezed,Object? targetHeartRateZone = freezed,Object? intervalsJson = freezed,Object? order = null,Object? result = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? date = null,Object? type = null,Object? title = null,Object? description = freezed,Object? targetKm = freezed,Object? targetPaceSecondsPerKm = freezed,Object? targetHeartRateZone = freezed,Object? intervals = freezed,Object? order = null,Object? result = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
@@ -75,8 +77,8 @@ as String,description: freezed == description ? _self.description : description 
 as String?,targetKm: freezed == targetKm ? _self.targetKm : targetKm // ignore: cast_nullable_to_non_nullable
 as double?,targetPaceSecondsPerKm: freezed == targetPaceSecondsPerKm ? _self.targetPaceSecondsPerKm : targetPaceSecondsPerKm // ignore: cast_nullable_to_non_nullable
 as int?,targetHeartRateZone: freezed == targetHeartRateZone ? _self.targetHeartRateZone : targetHeartRateZone // ignore: cast_nullable_to_non_nullable
-as int?,intervalsJson: freezed == intervalsJson ? _self.intervalsJson : intervalsJson // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>?,order: null == order ? _self.order : order // ignore: cast_nullable_to_non_nullable
+as int?,intervals: freezed == intervals ? _self.intervals : intervals // ignore: cast_nullable_to_non_nullable
+as List<TrainingInterval>?,order: null == order ? _self.order : order // ignore: cast_nullable_to_non_nullable
 as int,result: freezed == result ? _self.result : result // ignore: cast_nullable_to_non_nullable
 as TrainingResult?,
   ));
@@ -172,10 +174,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String date,  String type,  String title,  String? description, @JsonKey(name: 'target_km', fromJson: toDoubleOrNull)  double? targetKm, @JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull)  int? targetPaceSecondsPerKm, @JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull)  int? targetHeartRateZone, @JsonKey(name: 'intervals_json')  Map<String, dynamic>? intervalsJson, @JsonKey(fromJson: toInt)  int order,  TrainingResult? result)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String date,  String type,  String title,  String? description, @JsonKey(name: 'target_km', fromJson: toDoubleOrNull)  double? targetKm, @JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull)  int? targetPaceSecondsPerKm, @JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull)  int? targetHeartRateZone, @JsonKey(name: 'intervals_json', fromJson: _intervalsFromJson)  List<TrainingInterval>? intervals, @JsonKey(fromJson: toInt)  int order,  TrainingResult? result)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TrainingDay() when $default != null:
-return $default(_that.id,_that.date,_that.type,_that.title,_that.description,_that.targetKm,_that.targetPaceSecondsPerKm,_that.targetHeartRateZone,_that.intervalsJson,_that.order,_that.result);case _:
+return $default(_that.id,_that.date,_that.type,_that.title,_that.description,_that.targetKm,_that.targetPaceSecondsPerKm,_that.targetHeartRateZone,_that.intervals,_that.order,_that.result);case _:
   return orElse();
 
 }
@@ -193,10 +195,10 @@ return $default(_that.id,_that.date,_that.type,_that.title,_that.description,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String date,  String type,  String title,  String? description, @JsonKey(name: 'target_km', fromJson: toDoubleOrNull)  double? targetKm, @JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull)  int? targetPaceSecondsPerKm, @JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull)  int? targetHeartRateZone, @JsonKey(name: 'intervals_json')  Map<String, dynamic>? intervalsJson, @JsonKey(fromJson: toInt)  int order,  TrainingResult? result)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String date,  String type,  String title,  String? description, @JsonKey(name: 'target_km', fromJson: toDoubleOrNull)  double? targetKm, @JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull)  int? targetPaceSecondsPerKm, @JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull)  int? targetHeartRateZone, @JsonKey(name: 'intervals_json', fromJson: _intervalsFromJson)  List<TrainingInterval>? intervals, @JsonKey(fromJson: toInt)  int order,  TrainingResult? result)  $default,) {final _that = this;
 switch (_that) {
 case _TrainingDay():
-return $default(_that.id,_that.date,_that.type,_that.title,_that.description,_that.targetKm,_that.targetPaceSecondsPerKm,_that.targetHeartRateZone,_that.intervalsJson,_that.order,_that.result);}
+return $default(_that.id,_that.date,_that.type,_that.title,_that.description,_that.targetKm,_that.targetPaceSecondsPerKm,_that.targetHeartRateZone,_that.intervals,_that.order,_that.result);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -210,10 +212,10 @@ return $default(_that.id,_that.date,_that.type,_that.title,_that.description,_th
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String date,  String type,  String title,  String? description, @JsonKey(name: 'target_km', fromJson: toDoubleOrNull)  double? targetKm, @JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull)  int? targetPaceSecondsPerKm, @JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull)  int? targetHeartRateZone, @JsonKey(name: 'intervals_json')  Map<String, dynamic>? intervalsJson, @JsonKey(fromJson: toInt)  int order,  TrainingResult? result)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String date,  String type,  String title,  String? description, @JsonKey(name: 'target_km', fromJson: toDoubleOrNull)  double? targetKm, @JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull)  int? targetPaceSecondsPerKm, @JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull)  int? targetHeartRateZone, @JsonKey(name: 'intervals_json', fromJson: _intervalsFromJson)  List<TrainingInterval>? intervals, @JsonKey(fromJson: toInt)  int order,  TrainingResult? result)?  $default,) {final _that = this;
 switch (_that) {
 case _TrainingDay() when $default != null:
-return $default(_that.id,_that.date,_that.type,_that.title,_that.description,_that.targetKm,_that.targetPaceSecondsPerKm,_that.targetHeartRateZone,_that.intervalsJson,_that.order,_that.result);case _:
+return $default(_that.id,_that.date,_that.type,_that.title,_that.description,_that.targetKm,_that.targetPaceSecondsPerKm,_that.targetHeartRateZone,_that.intervals,_that.order,_that.result);case _:
   return null;
 
 }
@@ -225,7 +227,7 @@ return $default(_that.id,_that.date,_that.type,_that.title,_that.description,_th
 @JsonSerializable()
 
 class _TrainingDay implements TrainingDay {
-  const _TrainingDay({required this.id, required this.date, required this.type, required this.title, this.description, @JsonKey(name: 'target_km', fromJson: toDoubleOrNull) this.targetKm, @JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull) this.targetPaceSecondsPerKm, @JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull) this.targetHeartRateZone, @JsonKey(name: 'intervals_json') final  Map<String, dynamic>? intervalsJson, @JsonKey(fromJson: toInt) required this.order, this.result}): _intervalsJson = intervalsJson;
+  const _TrainingDay({required this.id, required this.date, required this.type, required this.title, this.description, @JsonKey(name: 'target_km', fromJson: toDoubleOrNull) this.targetKm, @JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull) this.targetPaceSecondsPerKm, @JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull) this.targetHeartRateZone, @JsonKey(name: 'intervals_json', fromJson: _intervalsFromJson) final  List<TrainingInterval>? intervals, @JsonKey(fromJson: toInt) required this.order, this.result}): _intervals = intervals;
   factory _TrainingDay.fromJson(Map<String, dynamic> json) => _$TrainingDayFromJson(json);
 
 @override final  int id;
@@ -236,13 +238,17 @@ class _TrainingDay implements TrainingDay {
 @override@JsonKey(name: 'target_km', fromJson: toDoubleOrNull) final  double? targetKm;
 @override@JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull) final  int? targetPaceSecondsPerKm;
 @override@JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull) final  int? targetHeartRateZone;
- final  Map<String, dynamic>? _intervalsJson;
-@override@JsonKey(name: 'intervals_json') Map<String, dynamic>? get intervalsJson {
-  final value = _intervalsJson;
+/// Structured interval session — present for `type == 'interval'` days.
+/// Null for easy/tempo/long/recovery runs.
+ final  List<TrainingInterval>? _intervals;
+/// Structured interval session — present for `type == 'interval'` days.
+/// Null for easy/tempo/long/recovery runs.
+@override@JsonKey(name: 'intervals_json', fromJson: _intervalsFromJson) List<TrainingInterval>? get intervals {
+  final value = _intervals;
   if (value == null) return null;
-  if (_intervalsJson is EqualUnmodifiableMapView) return _intervalsJson;
+  if (_intervals is EqualUnmodifiableListView) return _intervals;
   // ignore: implicit_dynamic_type
-  return EqualUnmodifiableMapView(value);
+  return EqualUnmodifiableListView(value);
 }
 
 @override@JsonKey(fromJson: toInt) final  int order;
@@ -261,16 +267,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TrainingDay&&(identical(other.id, id) || other.id == id)&&(identical(other.date, date) || other.date == date)&&(identical(other.type, type) || other.type == type)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.targetKm, targetKm) || other.targetKm == targetKm)&&(identical(other.targetPaceSecondsPerKm, targetPaceSecondsPerKm) || other.targetPaceSecondsPerKm == targetPaceSecondsPerKm)&&(identical(other.targetHeartRateZone, targetHeartRateZone) || other.targetHeartRateZone == targetHeartRateZone)&&const DeepCollectionEquality().equals(other._intervalsJson, _intervalsJson)&&(identical(other.order, order) || other.order == order)&&(identical(other.result, result) || other.result == result));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TrainingDay&&(identical(other.id, id) || other.id == id)&&(identical(other.date, date) || other.date == date)&&(identical(other.type, type) || other.type == type)&&(identical(other.title, title) || other.title == title)&&(identical(other.description, description) || other.description == description)&&(identical(other.targetKm, targetKm) || other.targetKm == targetKm)&&(identical(other.targetPaceSecondsPerKm, targetPaceSecondsPerKm) || other.targetPaceSecondsPerKm == targetPaceSecondsPerKm)&&(identical(other.targetHeartRateZone, targetHeartRateZone) || other.targetHeartRateZone == targetHeartRateZone)&&const DeepCollectionEquality().equals(other._intervals, _intervals)&&(identical(other.order, order) || other.order == order)&&(identical(other.result, result) || other.result == result));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,date,type,title,description,targetKm,targetPaceSecondsPerKm,targetHeartRateZone,const DeepCollectionEquality().hash(_intervalsJson),order,result);
+int get hashCode => Object.hash(runtimeType,id,date,type,title,description,targetKm,targetPaceSecondsPerKm,targetHeartRateZone,const DeepCollectionEquality().hash(_intervals),order,result);
 
 @override
 String toString() {
-  return 'TrainingDay(id: $id, date: $date, type: $type, title: $title, description: $description, targetKm: $targetKm, targetPaceSecondsPerKm: $targetPaceSecondsPerKm, targetHeartRateZone: $targetHeartRateZone, intervalsJson: $intervalsJson, order: $order, result: $result)';
+  return 'TrainingDay(id: $id, date: $date, type: $type, title: $title, description: $description, targetKm: $targetKm, targetPaceSecondsPerKm: $targetPaceSecondsPerKm, targetHeartRateZone: $targetHeartRateZone, intervals: $intervals, order: $order, result: $result)';
 }
 
 
@@ -281,7 +287,7 @@ abstract mixin class _$TrainingDayCopyWith<$Res> implements $TrainingDayCopyWith
   factory _$TrainingDayCopyWith(_TrainingDay value, $Res Function(_TrainingDay) _then) = __$TrainingDayCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String date, String type, String title, String? description,@JsonKey(name: 'target_km', fromJson: toDoubleOrNull) double? targetKm,@JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull) int? targetPaceSecondsPerKm,@JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull) int? targetHeartRateZone,@JsonKey(name: 'intervals_json') Map<String, dynamic>? intervalsJson,@JsonKey(fromJson: toInt) int order, TrainingResult? result
+ int id, String date, String type, String title, String? description,@JsonKey(name: 'target_km', fromJson: toDoubleOrNull) double? targetKm,@JsonKey(name: 'target_pace_seconds_per_km', fromJson: toIntOrNull) int? targetPaceSecondsPerKm,@JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull) int? targetHeartRateZone,@JsonKey(name: 'intervals_json', fromJson: _intervalsFromJson) List<TrainingInterval>? intervals,@JsonKey(fromJson: toInt) int order, TrainingResult? result
 });
 
 
@@ -298,7 +304,7 @@ class __$TrainingDayCopyWithImpl<$Res>
 
 /// Create a copy of TrainingDay
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? date = null,Object? type = null,Object? title = null,Object? description = freezed,Object? targetKm = freezed,Object? targetPaceSecondsPerKm = freezed,Object? targetHeartRateZone = freezed,Object? intervalsJson = freezed,Object? order = null,Object? result = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? date = null,Object? type = null,Object? title = null,Object? description = freezed,Object? targetKm = freezed,Object? targetPaceSecondsPerKm = freezed,Object? targetHeartRateZone = freezed,Object? intervals = freezed,Object? order = null,Object? result = freezed,}) {
   return _then(_TrainingDay(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,date: null == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
@@ -308,8 +314,8 @@ as String,description: freezed == description ? _self.description : description 
 as String?,targetKm: freezed == targetKm ? _self.targetKm : targetKm // ignore: cast_nullable_to_non_nullable
 as double?,targetPaceSecondsPerKm: freezed == targetPaceSecondsPerKm ? _self.targetPaceSecondsPerKm : targetPaceSecondsPerKm // ignore: cast_nullable_to_non_nullable
 as int?,targetHeartRateZone: freezed == targetHeartRateZone ? _self.targetHeartRateZone : targetHeartRateZone // ignore: cast_nullable_to_non_nullable
-as int?,intervalsJson: freezed == intervalsJson ? _self._intervalsJson : intervalsJson // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>?,order: null == order ? _self.order : order // ignore: cast_nullable_to_non_nullable
+as int?,intervals: freezed == intervals ? _self._intervals : intervals // ignore: cast_nullable_to_non_nullable
+as List<TrainingInterval>?,order: null == order ? _self.order : order // ignore: cast_nullable_to_non_nullable
 as int,result: freezed == result ? _self.result : result // ignore: cast_nullable_to_non_nullable
 as TrainingResult?,
   ));

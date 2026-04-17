@@ -1,6 +1,8 @@
 import 'dart:convert';
 
+import 'package:app/features/coach/models/coach_chip.dart';
 import 'package:app/features/coach/models/coach_proposal.dart';
+import 'package:app/features/coach/models/coach_stats_card.dart';
 import 'package:app/features/coach/models/vercel_stream_event.dart';
 
 class VercelStreamParser {
@@ -13,6 +15,9 @@ class VercelStreamParser {
     'GetComplianceReport': 'Reviewing compliance…',
     'CreateSchedule': 'Building your training plan…',
     'ModifySchedule': 'Adjusting your schedule…',
+    'GetRunningProfile': 'Analysing your running history…',
+    'PresentRunningStats': 'Preparing your stats…',
+    'OfferChoices': 'Preparing options…',
   };
 
   Stream<VercelStreamEvent> parse(Stream<List<int>> bytes) async* {
@@ -67,6 +72,7 @@ class VercelStreamParser {
 
       return switch (type) {
         'text-delta' => VercelStreamEvent.textDelta(json['delta'] as String),
+        'text-end' => const VercelStreamEvent.textEnd(),
         'tool-input-available' => VercelStreamEvent.toolStart(
             _humanize(json['toolName'] as String? ?? ''),
           ),
@@ -76,6 +82,20 @@ class VercelStreamParser {
           ),
         'data-proposal' => VercelStreamEvent.proposal(
             CoachProposal.fromJson(json['data'] as Map<String, dynamic>),
+          ),
+        'data-stats' => VercelStreamEvent.stats(
+            CoachStatsCard(
+              metrics:
+                  (json['data']['metrics'] as Map).cast<String, dynamic>(),
+            ),
+          ),
+        'data-chips' => VercelStreamEvent.chips(
+            (json['data']['chips'] as List)
+                .map(
+                  (c) =>
+                      CoachChip.fromJson(Map<String, dynamic>.from(c as Map)),
+                )
+                .toList(),
           ),
         _ => null,
       };

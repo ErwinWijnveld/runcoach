@@ -14,7 +14,11 @@ class _FakeStreamClient extends CoachStreamClient {
   _FakeStreamClient(this.events) : super(Dio());
 
   @override
-  Stream<VercelStreamEvent> streamMessage(String conversationId, String content) {
+  Stream<VercelStreamEvent> streamMessage(
+    String conversationId,
+    String content, {
+    String? chipValue,
+  }) {
     return Stream.fromIterable(events);
   }
 }
@@ -24,7 +28,11 @@ class _ControlledFakeStreamClient extends CoachStreamClient {
   _ControlledFakeStreamClient(this.events) : super(Dio());
 
   @override
-  Stream<VercelStreamEvent> streamMessage(String conversationId, String content) =>
+  Stream<VercelStreamEvent> streamMessage(
+    String conversationId,
+    String content, {
+    String? chipValue,
+  }) =>
       events;
 }
 

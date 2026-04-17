@@ -15,6 +15,7 @@ return new class extends AiMigration
             $table->string('id', 36)->primary();
             $table->foreignId('user_id')->nullable();
             $table->string('title');
+            $table->string('context')->nullable()->index();
             $table->timestamps();
 
             $table->index(['user_id', 'updated_at']);
@@ -26,10 +27,14 @@ return new class extends AiMigration
             $table->foreignId('user_id')->nullable();
             $table->string('agent');
             $table->string('role', 25);
-            $table->text('content');
+            // Upgraded from TEXT (64KB) to LONGTEXT (4GB) — a single
+            // CreateSchedule call for a 24-week plan already emits ~25KB
+            // of tool_results, and after JSON escaping + multiple tool
+            // invocations in one turn we hit the TEXT limit.
+            $table->longText('content');
             $table->text('attachments');
-            $table->text('tool_calls');
-            $table->text('tool_results');
+            $table->longText('tool_calls');
+            $table->longText('tool_results');
             $table->text('usage');
             $table->text('meta');
             $table->timestamps();

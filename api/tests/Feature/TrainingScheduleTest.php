@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\Race;
+use App\Models\Goal;
 use App\Models\TrainingDay;
 use App\Models\TrainingResult;
 use App\Models\TrainingWeek;
@@ -25,11 +25,11 @@ class TrainingScheduleTest extends TestCase
     public function test_get_full_schedule(): void
     {
         [$user, $headers] = $this->authUser();
-        $race = Race::factory()->create(['user_id' => $user->id]);
-        $week = TrainingWeek::factory()->create(['race_id' => $race->id, 'week_number' => 1]);
+        $goal = Goal::factory()->create(['user_id' => $user->id]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id, 'week_number' => 1]);
         TrainingDay::factory()->count(7)->create(['training_week_id' => $week->id]);
 
-        $response = $this->getJson("/api/v1/races/{$race->id}/schedule", $headers);
+        $response = $this->getJson("/api/v1/goals/{$goal->id}/schedule", $headers);
 
         $response->assertOk();
         $this->assertCount(1, $response->json('data'));
@@ -39,16 +39,16 @@ class TrainingScheduleTest extends TestCase
     public function test_get_current_week(): void
     {
         [$user, $headers] = $this->authUser();
-        $race = Race::factory()->create(['user_id' => $user->id]);
+        $goal = Goal::factory()->create(['user_id' => $user->id]);
 
         TrainingWeek::factory()->create([
-            'race_id' => $race->id,
+            'goal_id' => $goal->id,
             'week_number' => 1,
             'starts_at' => now()->subWeeks(2)->startOfWeek(),
         ]);
 
         $currentWeek = TrainingWeek::factory()->create([
-            'race_id' => $race->id,
+            'goal_id' => $goal->id,
             'week_number' => 2,
             'starts_at' => now()->startOfWeek(),
         ]);
@@ -57,7 +57,7 @@ class TrainingScheduleTest extends TestCase
             'date' => now(),
         ]);
 
-        $response = $this->getJson("/api/v1/races/{$race->id}/schedule/current", $headers);
+        $response = $this->getJson("/api/v1/goals/{$goal->id}/schedule/current", $headers);
 
         $response->assertOk();
         $this->assertEquals($currentWeek->id, $response->json('data.id'));
@@ -66,8 +66,8 @@ class TrainingScheduleTest extends TestCase
     public function test_get_training_day_detail(): void
     {
         [$user, $headers] = $this->authUser();
-        $race = Race::factory()->create(['user_id' => $user->id]);
-        $week = TrainingWeek::factory()->create(['race_id' => $race->id]);
+        $goal = Goal::factory()->create(['user_id' => $user->id]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
         $day = TrainingDay::factory()->create(['training_week_id' => $week->id]);
 
         $response = $this->getJson("/api/v1/training-days/{$day->id}", $headers);
@@ -79,8 +79,8 @@ class TrainingScheduleTest extends TestCase
     public function test_get_training_result(): void
     {
         [$user, $headers] = $this->authUser();
-        $race = Race::factory()->create(['user_id' => $user->id]);
-        $week = TrainingWeek::factory()->create(['race_id' => $race->id]);
+        $goal = Goal::factory()->create(['user_id' => $user->id]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
         $day = TrainingDay::factory()->create(['training_week_id' => $week->id]);
         $result = TrainingResult::factory()->create(['training_day_id' => $day->id]);
 
@@ -93,8 +93,8 @@ class TrainingScheduleTest extends TestCase
     public function test_training_day_without_result_returns_null(): void
     {
         [$user, $headers] = $this->authUser();
-        $race = Race::factory()->create(['user_id' => $user->id]);
-        $week = TrainingWeek::factory()->create(['race_id' => $race->id]);
+        $goal = Goal::factory()->create(['user_id' => $user->id]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
         $day = TrainingDay::factory()->create(['training_week_id' => $week->id]);
 
         $response = $this->getJson("/api/v1/training-days/{$day->id}/result", $headers);

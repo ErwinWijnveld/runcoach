@@ -2,7 +2,8 @@
 
 namespace App\Ai\Tools;
 
-use App\Enums\RaceStatus;
+use App\Enums\GoalStatus;
+use App\Enums\TrainingType;
 use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -19,20 +20,22 @@ class ModifySchedule implements Tool
 
     public function schema(JsonSchema $schema): array
     {
+        $trainingTypes = TrainingType::valuesAsPipe();
+
         return [
-            'changes' => $schema->string()->required()->description('JSON array of changes: [{"training_day_id": 1, "type": "easy", "title": "Easy Run", "description": "...", "target_km": 5, "target_pace_seconds_per_km": 330, "target_heart_rate_zone": 2}]'),
+            'changes' => $schema->string()->required()->description('JSON array of changes: [{"training_day_id": 1, "type": "'.$trainingTypes.'", "title": "Easy Run", "description": "...", "target_km": 5, "target_pace_seconds_per_km": 330, "target_heart_rate_zone": 2}]'),
         ];
     }
 
     public function handle(Request $request): string
     {
-        $race = $this->user->races()->where('status', RaceStatus::Active)->latest()->first();
+        $goal = $this->user->goals()->where('status', GoalStatus::Active)->latest()->first();
 
         return json_encode([
             'requires_approval' => true,
             'proposal_type' => 'modify_schedule',
             'payload' => [
-                'race_id' => $race?->id,
+                'goal_id' => $goal?->id,
                 'changes' => json_decode($request['changes'], true) ?? [],
             ],
         ]);

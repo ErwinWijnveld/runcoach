@@ -1,16 +1,14 @@
-import 'dart:math' as math;
-
 import 'package:flutter/cupertino.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/features/coach/widgets/swooshing_star.dart';
 
 /// Coach loading card — shown while the agent is working before it emits
 /// its first streamed text.
 class ThinkingCard extends StatefulWidget {
   final String label;
 
-  const ThinkingCard({super.key, this.label = 'Working on your plan'});
+  const ThinkingCard({super.key, this.label = 'Thinking'});
 
   @override
   State<ThinkingCard> createState() => _ThinkingCardState();
@@ -81,7 +79,7 @@ class _ThinkingCardState extends State<ThinkingCard>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const _SwooshingStar(),
+                const SwooshingStar(),
                 const SizedBox(width: 12),
                 Flexible(
                   child: Text(
@@ -103,67 +101,3 @@ class _ThinkingCardState extends State<ThinkingCard>
   }
 }
 
-class _SwooshingStar extends StatefulWidget {
-  const _SwooshingStar();
-
-  @override
-  State<_SwooshingStar> createState() => _SwooshingStarState();
-}
-
-class _SwooshingStarState extends State<_SwooshingStar>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _spinController;
-  late final Animation<double> _rotation;
-
-  @override
-  void initState() {
-    super.initState();
-
-    // One full cycle = fast swoosh -> deceleration wind-down -> pause,
-    // then loop back into the next swoosh.
-    _spinController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 3200),
-    )..repeat();
-
-    _rotation = TweenSequence<double>([
-      // 70% of the cycle: spin one full turn with an aggressive ease-out so
-      // the first ~25% of time covers most of the rotation (the swoosh), then
-      // the remaining motion slows to a crawl (the wind-down).
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 0.0, end: 2 * math.pi)
-            .chain(CurveTween(curve: Curves.easeOutExpo)),
-        weight: 70,
-      ),
-      // 30% of the cycle: hold in place before the next swoosh kicks off.
-      TweenSequenceItem(
-        tween: ConstantTween<double>(2 * math.pi),
-        weight: 30,
-      ),
-    ]).animate(_spinController);
-  }
-
-  @override
-  void dispose() {
-    _spinController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _rotation,
-      child: SvgPicture.asset(
-        'assets/icons/coach_prompt_star.svg',
-        width: 16,
-        height: 17,
-      ),
-      builder: (context, child) {
-        return Transform.rotate(
-          angle: _rotation.value,
-          child: child,
-        );
-      },
-    );
-  }
-}

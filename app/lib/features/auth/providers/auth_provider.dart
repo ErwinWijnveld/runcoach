@@ -1,3 +1,4 @@
+// ignore: unused_import
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:app/core/storage/token_storage.dart';
@@ -19,28 +20,29 @@ class Auth extends _$Auth {
     final hasToken = await tokenStorage.hasToken();
     if (hasToken) {
       await loadProfile();
-      if (kDebugMode && state.hasError) {
-        await tokenStorage.clearToken();
-        await loginDev();
-      }
-    } else if (kDebugMode) {
-      await loginDev();
+      // TEMP: dev-mode re-login disabled for real-auth onboarding testing.
+      // if (kDebugMode && state.hasError) {
+      //   await tokenStorage.clearToken();
+      //   await loginDev();
+      // }
     }
+    // TEMP: auto dev-login disabled; go through the real Strava OAuth flow.
+    // else if (kDebugMode) {
+    //   await loginDev();
+    // }
 
-    // Last-resort fallback for design previews (web with no backend running):
-    // inject a mock user so the router lands on /dashboard instead of looping
-    // back to /auth/welcome. Debug-mode only — never ships to release builds.
-    if (kDebugMode && state.value == null) {
-      state = const AsyncValue.data(
-        User(
-          id: 1,
-          name: 'Dev User',
-          email: 'dev@local.test',
-          coachStyle: 'balanced',
-          level: 'intermediate',
-        ),
-      );
-    }
+    // TEMP: mock-user fallback disabled so the router sends us to /auth/welcome.
+    // if (kDebugMode && state.value == null) {
+    //   state = const AsyncValue.data(
+    //     User(
+    //       id: 1,
+    //       name: 'Dev User',
+    //       email: 'dev@local.test',
+    //       coachStyle: 'balanced',
+    //       hasCompletedOnboarding: true,
+    //     ),
+    //   );
+    // }
   }
 
   Future<void> loginDev() async {
@@ -83,17 +85,6 @@ class Auth extends _$Auth {
     }
   }
 
-  Future<void> completeOnboarding({
-    required String coachStyle,
-  }) async {
-    final api = ref.read(authApiProvider);
-    final data = await api.completeOnboarding({
-      'coach_style': coachStyle,
-    });
-    final user = User.fromJson(data['user'] as Map<String, dynamic>);
-    state = AsyncValue.data(user);
-  }
-
   Future<void> logout() async {
     final api = ref.read(authApiProvider);
     final tokenStorage = ref.read(tokenStorageProvider);
@@ -105,5 +96,5 @@ class Auth extends _$Auth {
   }
 
   bool get isLoggedIn => state.value != null;
-  bool get needsOnboarding => state.value?.level == null;
+  bool get needsOnboarding => !(state.value?.hasCompletedOnboarding ?? false);
 }

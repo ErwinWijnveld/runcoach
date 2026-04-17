@@ -7,16 +7,16 @@ import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/auth/screens/welcome_screen.dart';
 import 'package:app/features/auth/screens/strava_auth_screen.dart';
-import 'package:app/features/auth/screens/onboarding_screen.dart';
 import 'package:app/features/dashboard/screens/dashboard_screen.dart';
 import 'package:app/features/schedule/screens/weekly_plan_screen.dart';
 import 'package:app/features/schedule/screens/training_day_detail_screen.dart';
 import 'package:app/features/schedule/screens/training_result_screen.dart';
 import 'package:app/features/coach/screens/coach_chat_list_screen.dart';
 import 'package:app/features/coach/screens/coach_chat_screen.dart';
-import 'package:app/features/races/screens/race_list_screen.dart';
-import 'package:app/features/races/screens/race_create_screen.dart';
-import 'package:app/features/races/screens/race_detail_screen.dart';
+import 'package:app/features/goals/screens/goal_list_screen.dart';
+import 'package:app/features/goals/screens/goal_create_screen.dart';
+import 'package:app/features/goals/screens/goal_detail_screen.dart';
+import 'package:app/features/onboarding/screens/onboarding_shell.dart';
 
 part 'app_router.g.dart';
 
@@ -38,8 +38,8 @@ GoRouter appRouter(Ref ref) {
       if (isLoggedIn && isAuthRoute) return '/dashboard';
 
       final user = authState.value;
-      if (isLoggedIn && user?.coachStyle == null && state.matchedLocation != '/auth/onboarding') {
-        return '/auth/onboarding';
+      if (isLoggedIn && user?.hasCompletedOnboarding == false && state.matchedLocation != '/onboarding') {
+        return '/onboarding';
       }
 
       return null;
@@ -54,8 +54,8 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) => const StravaAuthScreen(),
       ),
       GoRoute(
-        path: '/auth/onboarding',
-        builder: (context, state) => const OnboardingScreen(),
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingShell(),
       ),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,
@@ -103,19 +103,19 @@ GoRouter appRouter(Ref ref) {
             ],
           ),
           GoRoute(
-            path: '/races',
+            path: '/goals',
             pageBuilder: (context, state) => const NoTransitionPage(
-              child: RaceListScreen(),
+              child: GoalListScreen(),
             ),
             routes: [
               GoRoute(
                 path: 'new',
-                builder: (context, state) => const RaceCreateScreen(),
+                builder: (context, state) => const GoalCreateScreen(),
               ),
               GoRoute(
-                path: ':raceId',
-                builder: (context, state) => RaceDetailScreen(
-                  raceId: int.parse(state.pathParameters['raceId']!),
+                path: ':goalId',
+                builder: (context, state) => GoalDetailScreen(
+                  goalId: int.parse(state.pathParameters['goalId']!),
                 ),
               ),
             ],
@@ -134,7 +134,7 @@ class MainShell extends StatelessWidget {
     if (location.startsWith('/dashboard')) return 0;
     if (location.startsWith('/schedule')) return 1;
     if (location.startsWith('/coach')) return 2;
-    if (location.startsWith('/races')) return 3;
+    if (location.startsWith('/goals')) return 3;
     return 0;
   }
 
@@ -171,7 +171,7 @@ class _RunCoreBottomNav extends StatelessWidget {
       case 2:
         context.go('/coach');
       case 3:
-        context.go('/races');
+        context.go('/goals');
     }
   }
 

@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Laravel\Ai\Contracts\ConversationStore;
+use Laravel\Ai\Streaming\Events\ToolResult as ToolResultEvent;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CoachController extends Controller
@@ -23,6 +24,7 @@ class CoachController extends Controller
     {
         $conversations = DB::table('agent_conversations')
             ->where('user_id', $request->user()->id)
+            ->whereNull('context')
             ->orderByDesc('updated_at')
             ->get(['id', 'title', 'created_at', 'updated_at']);
 
@@ -58,7 +60,7 @@ class CoachController extends Controller
             ->where('conversation_id', $conversationId)
             ->whereIn('role', ['user', 'assistant'])
             ->orderBy('created_at')
-            ->get(['id', 'role', 'content', 'created_at']);
+            ->get(['id', 'role', 'content', 'tool_results', 'created_at']);
 
         $proposals = CoachProposal::where('user_id', $request->user()->id)
             ->whereIn('agent_message_id', $messages->pluck('id'))
@@ -67,6 +69,7 @@ class CoachController extends Controller
 
         $messagesWithProposals = $messages->map(function ($msg) use ($proposals) {
             $msg->proposal = $proposals->get($msg->id);
+            $msg->tool_results = json_decode($msg->tool_results ?? '[]', true) ?: [];
 
             return $msg;
         });
@@ -104,6 +107,32 @@ class CoachController extends Controller
                     echo 'data: '.json_encode($payload)."\n\n";
                     ob_flush();
                     flush();
+                }
+
+                if ($event instanceof ToolResultEvent) {
+                    $result = is_string($event->toolResult->result)
+                        ? json_decode($event->toolResult->result, true)
+                        : $event->toolResult->result;
+
+                    if (is_array($result)) {
+                        $display = $result['display'] ?? null;
+                        if ($display === 'stats_card') {
+                            echo 'data: '.json_encode([
+                                'type' => 'data-stats',
+                                'data' => ['metrics' => $result['metrics']],
+                            ])."\n\n";
+                            ob_flush();
+                            flush();
+                        }
+                        if ($display === 'chip_suggestions') {
+                            echo 'data: '.json_encode([
+                                'type' => 'data-chips',
+                                'data' => ['chips' => $result['chips']],
+                            ])."\n\n";
+                            ob_flush();
+                            flush();
+                        }
+                    }
                 }
             }
 

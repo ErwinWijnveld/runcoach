@@ -2,8 +2,7 @@
 
 namespace App\Services;
 
-use App\Enums\RaceStatus;
-use App\Enums\TrainingType;
+use App\Enums\GoalStatus;
 use App\Models\StravaActivity;
 use App\Models\TrainingDay;
 use App\Models\TrainingResult;
@@ -11,17 +10,39 @@ use App\Models\User;
 
 class ComplianceScoringService
 {
-    private const NON_MATCHABLE_TYPES = [
-        TrainingType::Rest,
-        TrainingType::Mobility,
-    ];
-
-    public function matchAndScore(User $user, StravaActivity $activity): void
+    public function matchAndScore(User $user, StravaActivity $activity): ?TrainingResult
     {
+        // If this activity is already matched to any training day (e.g. the
+        // user manually matched before the webhook landed), don't create a
+        // second result on a different day.
+        if (TrainingResult::where('strava_activity_id', $activity->id)->exists()) {
+            return null;
+        }
+
         $day = $this->findMatchingDay($user, $activity);
 
         if (! $day) {
-            return;
+            return null;
+        }
+
+        return $this->scoreDay($day, $activity);
+    }
+
+    /**
+     * Score a Strava activity against an explicitly chosen training day and
+     * persist the TrainingResult. Used by the webhook path (via matchAndScore)
+     * AND by the manual "Select Strava run" endpoint.
+     *
+     * Enforces that the activity belongs to the same user as the training
+     * day — cheap runtime guard against programming errors in future callers.
+     */
+    public function scoreDay(TrainingDay $day, StravaActivity $activity): TrainingResult
+    {
+        $dayUserId = $day->trainingWeek?->goal?->user_id;
+        if ($dayUserId !== null && $activity->user_id !== $dayUserId) {
+            throw new \DomainException(
+                "Cannot score an activity against another user's training day.",
+            );
         }
 
         $paceScore = $this->calculatePaceScore($day, $activity);
@@ -34,7 +55,7 @@ class ComplianceScoringService
             $overallScore = ($distanceScore * 0.45) + ($paceScore * 0.55);
         }
 
-        TrainingResult::updateOrCreate(
+        return TrainingResult::updateOrCreate(
             ['training_day_id' => $day->id],
             [
                 'strava_activity_id' => $activity->id,
@@ -52,16 +73,15 @@ class ComplianceScoringService
 
     private function findMatchingDay(User $user, StravaActivity $activity): ?TrainingDay
     {
-        $candidates = TrainingDay::whereHas('trainingWeek.race', function ($query) use ($user) {
+        $candidates = TrainingDay::whereHas('trainingWeek.goal', function ($query) use ($user) {
             $query->where('user_id', $user->id)
-                ->where('status', RaceStatus::Active);
+                ->where('status', GoalStatus::Active);
         })
             ->whereDoesntHave('result')
             ->whereBetween('date', [
                 $activity->start_date->copy()->subDay()->toDateString(),
                 $activity->start_date->copy()->addDay()->toDateString(),
             ])
-            ->whereNotIn('type', array_map(fn ($t) => $t->value, self::NON_MATCHABLE_TYPES))
             ->get();
 
         if ($candidates->isEmpty()) {
@@ -115,10 +135,55 @@ class ComplianceScoringService
             return null;
         }
 
-        $zoneMidpoints = [1 => 120, 2 => 140, 3 => 155, 4 => 170, 5 => 185];
-        $targetHr = $zoneMidpoints[$day->target_heart_rate_zone] ?? 150;
-        $deviationPercent = abs($activity->average_heartrate - $targetHr) / $targetHr * 100;
+        $zones = $this->zonesFor($activity->user);
+        $targetIndex = $day->target_heart_rate_zone - 1;
+        if (! isset($zones[$targetIndex])) {
+            return null;
+        }
 
-        return max(1.0, min(10.0, 10.0 - ($deviationPercent / 1.5)));
+        $avgHr = (float) $activity->average_heartrate;
+        $min = (float) $zones[$targetIndex]['min'];
+        $max = (float) $zones[$targetIndex]['max'];
+
+        // Zone 5's upper bound is -1 (open-ended) in Strava's representation.
+        $insideZone = $avgHr >= $min && ($max < 0 || $avgHr <= $max);
+        if ($insideZone) {
+            return 10.0;
+        }
+
+        // Outside the target zone — penalise by bpm distance from the
+        // nearest boundary. 5 bpm off == -1 score point, clamped to 1.0.
+        $distanceBpm = $avgHr < $min ? ($min - $avgHr) : ($avgHr - $max);
+
+        return max(1.0, 10.0 - ($distanceBpm / 5.0));
+    }
+
+    /**
+     * Standard Strava-style HR zones used when the runner hasn't connected
+     * Strava yet or we couldn't fetch their custom zones. Matches Strava's
+     * default thresholds for an untrained athlete.
+     */
+    private const DEFAULT_HR_ZONES = [
+        ['min' => 0, 'max' => 115],
+        ['min' => 115, 'max' => 152],
+        ['min' => 152, 'max' => 171],
+        ['min' => 171, 'max' => 190],
+        ['min' => 190, 'max' => -1],
+    ];
+
+    /**
+     * Resolve the zone table for a user. Prefers their Strava-fetched zones
+     * (stored on `users.heart_rate_zones`), falls back to defaults.
+     *
+     * @return array<int, array{min:int|float, max:int|float}>
+     */
+    private function zonesFor(?User $user): array
+    {
+        $stored = $user?->heart_rate_zones;
+        if (is_array($stored) && count($stored) >= 5) {
+            return array_values($stored);
+        }
+
+        return self::DEFAULT_HR_ZONES;
     }
 }

@@ -1,49 +1,117 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/coach/models/coach_message.dart';
+import 'package:app/features/coach/widgets/chip_suggestions_row.dart';
+import 'package:app/features/coach/widgets/stats_card_bubble.dart';
 import 'package:app/features/coach/widgets/thinking_card.dart';
 
 class MessageBubble extends StatelessWidget {
   final CoachMessage message;
   final VoidCallback? onRetry;
+  final void Function(String label, String value)? onChipTap;
 
-  const MessageBubble({super.key, required this.message, this.onRetry});
+  const MessageBubble({
+    super.key,
+    required this.message,
+    this.onRetry,
+    this.onChipTap,
+  });
 
   bool get _isUser => message.role == 'user';
   bool get _failed => message.errorDetail != null;
 
   bool get _isThinking =>
-      !_isUser && message.streaming && message.content.isEmpty;
+      !_isUser &&
+      message.streaming &&
+      message.content.isEmpty &&
+      message.statsCard == null &&
+      message.chips == null;
+
+  bool get _isToolRunning =>
+      !_isUser && message.streaming && message.toolIndicator != null;
 
   @override
   Widget build(BuildContext context) {
+    final children = <Widget>[];
+
+    // Role label
+    children.add(_RoleLabel(isUser: _isUser));
+    children.add(const SizedBox(height: 8));
+
+    if (_isThinking) {
+      children.add(ThinkingCard(label: _thinkingLabel(message.toolIndicator)));
+    } else if (message.content.isNotEmpty || message.streaming) {
+      children.add(_Bubble(message: message));
+      if (_isToolRunning) {
+        children.add(const SizedBox(height: 8));
+        children.add(
+          ThinkingCard(label: _thinkingLabel(message.toolIndicator)),
+        );
+      }
+    }
+
+    if (message.statsCard != null) {
+      children.add(const SizedBox(height: 8));
+      children.add(
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 296),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.zero,
+                topRight: Radius.circular(24),
+                bottomLeft: Radius.circular(24),
+                bottomRight: Radius.circular(24),
+              ),
+            ),
+            child: StatsCardBubble(metrics: message.statsCard!.metrics),
+          ),
+        ),
+      );
+    }
+
+    if (message.chips != null && message.chips!.isNotEmpty) {
+      children.add(const SizedBox(height: 16));
+      children.add(const Align(
+        alignment: Alignment.centerRight,
+        child: _RoleLabel(isUser: true),
+      ));
+      children.add(const SizedBox(height: 8));
+      children.add(ChipSuggestionsRow(
+        chips: message.chips!
+            .map((c) => <String, dynamic>{'label': c.label, 'value': c.value})
+            .toList(),
+        onTap: onChipTap ?? (_, _) {},
+      ));
+    }
+
+    if (_failed) {
+      children.add(const SizedBox(height: 4));
+      children.add(_ErrorStrip(detail: message.errorDetail!, onRetry: onRetry));
+    }
+
+    if (children.length <= 2) {
+      // Only role label and spacer, nothing to show
+      return const SizedBox.shrink();
+    }
+
     return Column(
       crossAxisAlignment:
           _isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-      children: [
-        _RoleLabel(isUser: _isUser),
-        const SizedBox(height: 8),
-        if (_isThinking)
-          ThinkingCard(label: _thinkingLabel(message.toolIndicator))
-        else
-          _Bubble(message: message),
-        if (_failed) ...[
-          const SizedBox(height: 4),
-          _ErrorStrip(detail: message.errorDetail!, onRetry: onRetry),
-        ],
-      ],
+      children: children,
     );
   }
 }
 
 String _thinkingLabel(String? toolIndicator) {
   final trimmed = toolIndicator?.trim();
-  if (trimmed == null || trimmed.isEmpty) return 'Working on your plan';
-  // VercelStreamParser already humanizes tool names (e.g. "Building your
-  // training plan…"). Strip trailing ellipsis so the card stays clean.
+  if (trimmed == null || trimmed.isEmpty) return 'Thinking';
   return trimmed.replaceFirst(RegExp(r'[…\.]+$'), '');
 }
 
@@ -166,7 +234,10 @@ class _BlinkingCaretState extends State<_BlinkingCaret>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _controller,
-      child: Text('▍', style: TextStyle(fontSize: 14, color: widget.color)),
+      child: Text(
+        '\u{2589}',
+        style: TextStyle(fontSize: 14, color: widget.color),
+      ),
     );
   }
 }

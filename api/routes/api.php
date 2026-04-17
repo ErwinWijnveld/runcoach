@@ -3,8 +3,9 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CoachController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\GoalController;
+use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\RaceController;
 use App\Http\Controllers\StravaController;
 use App\Http\Controllers\StravaWebhookController;
 use App\Http\Controllers\TrainingScheduleController;
@@ -27,16 +28,18 @@ Route::prefix('v1')->group(function () {
         // Profile
         Route::get('profile', [ProfileController::class, 'show']);
         Route::put('profile', [ProfileController::class, 'update']);
-        Route::post('profile/onboarding', [ProfileController::class, 'onboarding']);
 
-        // Races
-        Route::apiResource('races', RaceController::class);
+        // Goals
+        Route::apiResource('goals', GoalController::class);
 
         // Training Schedule
-        Route::get('races/{race}/schedule', [TrainingScheduleController::class, 'schedule']);
-        Route::get('races/{race}/schedule/current', [TrainingScheduleController::class, 'currentWeek']);
+        Route::get('goals/{goal}/schedule', [TrainingScheduleController::class, 'schedule']);
+        Route::get('goals/{goal}/schedule/current', [TrainingScheduleController::class, 'currentWeek']);
         Route::get('training-days/{day}', [TrainingScheduleController::class, 'showDay']);
         Route::get('training-days/{day}/result', [TrainingScheduleController::class, 'dayResult']);
+        Route::get('training-days/{day}/available-activities', [TrainingScheduleController::class, 'availableActivitiesForDay']);
+        Route::post('training-days/{day}/match-activity', [TrainingScheduleController::class, 'matchActivityToDay']);
+        Route::delete('training-days/{day}/match-activity', [TrainingScheduleController::class, 'unlinkActivityFromDay']);
 
         // Strava
         Route::post('strava/sync', [StravaController::class, 'sync']);
@@ -45,6 +48,11 @@ Route::prefix('v1')->group(function () {
 
         // Dashboard
         Route::get('dashboard', DashboardController::class);
+
+        // Onboarding
+        Route::prefix('onboarding')->group(function () {
+            Route::post('/start', [OnboardingController::class, 'start']);
+        });
 
         // AI Coach
         Route::get('coach/conversations', [CoachController::class, 'index']);

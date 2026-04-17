@@ -23,6 +23,7 @@ abstract class CoachApi {
 
   @POST('/coach/proposals/{id}/reject')
   Future<void> rejectProposal(@Path() int id);
+
 }
 
 @riverpod

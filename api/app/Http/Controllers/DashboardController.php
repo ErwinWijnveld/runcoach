@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\RaceStatus;
+use App\Enums\GoalStatus;
 use App\Jobs\SyncStravaHistory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,18 +18,18 @@ class DashboardController extends Controller
             SyncStravaHistory::dispatch($user->id, months: 1);
         }
 
-        $race = $user->races()->where('status', RaceStatus::Active)->latest()->first();
+        $goal = $user->goals()->where('status', GoalStatus::Active)->latest()->first();
 
-        if (! $race) {
+        if (! $goal) {
             return response()->json([
                 'weekly_summary' => null,
                 'next_training' => null,
-                'active_race' => null,
+                'active_goal' => null,
                 'coach_insight' => null,
             ]);
         }
 
-        $currentWeek = $race->trainingWeeks()
+        $currentWeek = $goal->trainingWeeks()
             ->with('trainingDays.result')
             ->where('starts_at', '<=', now())
             ->orderByDesc('starts_at')
@@ -68,12 +68,13 @@ class DashboardController extends Controller
         return response()->json([
             'weekly_summary' => $weeklySummary,
             'next_training' => $nextTraining,
-            'active_race' => [
-                'id' => $race->id,
-                'name' => $race->name,
-                'distance' => $race->distance,
-                'race_date' => $race->race_date->toDateString(),
-                'weeks_until_race' => $race->weeksUntilRace(),
+            'active_goal' => [
+                'id' => $goal->id,
+                'type' => $goal->type?->value,
+                'name' => $goal->name,
+                'distance' => $goal->distance?->value,
+                'target_date' => $goal->target_date?->toDateString(),
+                'weeks_until_target_date' => $goal->weeksUntilTargetDate(),
             ],
             'coach_insight' => $coachInsight,
         ]);

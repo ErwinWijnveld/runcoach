@@ -2,9 +2,10 @@
 
 namespace App\Services;
 
+use App\Enums\GoalStatus;
+use App\Enums\GoalType;
 use App\Enums\ProposalStatus;
 use App\Enums\ProposalType;
-use App\Enums\RaceStatus;
 use App\Models\CoachProposal;
 use App\Models\TrainingDay;
 use App\Models\User;
@@ -76,26 +77,52 @@ class ProposalService
             'status' => ProposalStatus::Accepted,
             'applied_at' => now(),
         ]);
+
+        $this->maybeCompleteOnboarding($proposal, $user);
+    }
+
+    private function maybeCompleteOnboarding(CoachProposal $proposal, User $user): void
+    {
+        if ($user->has_completed_onboarding) {
+            return;
+        }
+
+        $conversationId = DB::table('agent_conversation_messages')
+            ->where('id', $proposal->agent_message_id)
+            ->value('conversation_id');
+
+        if (! $conversationId) {
+            return;
+        }
+
+        $context = DB::table('agent_conversations')
+            ->where('id', $conversationId)
+            ->value('context');
+
+        if ($context === 'onboarding') {
+            $user->has_completed_onboarding = true;
+            $user->save();
+        }
     }
 
     private function applyCreateSchedule(User $user, array $payload): void
     {
-        $race = $user->races()->create([
-            'name' => $payload['race_name'],
-            'distance' => $payload['distance'],
+        $goal = $user->goals()->create([
+            'type' => GoalType::from($payload['goal_type'] ?? 'race'),
+            'name' => $payload['goal_name'],
+            'distance' => $payload['distance'] ?? null,
             'goal_time_seconds' => $payload['goal_time_seconds'] ?? null,
-            'race_date' => $payload['race_date'],
-            'status' => RaceStatus::Active,
+            'target_date' => $payload['target_date'] ?? null,
+            'status' => GoalStatus::Active,
         ]);
 
         $weeks = $payload['schedule']['weeks'] ?? [];
+        $today = now()->startOfDay();
 
         foreach ($weeks as $weekData) {
-            $startsAt = Carbon::parse($payload['race_date'])
-                ->subWeeks(count($weeks) - $weekData['week_number'] + 1)
-                ->startOfWeek();
+            $startsAt = $this->resolveWeekStart($weekData['week_number']);
 
-            $week = $race->trainingWeeks()->create([
+            $week = $goal->trainingWeeks()->create([
                 'week_number' => $weekData['week_number'],
                 'starts_at' => $startsAt,
                 'total_km' => $weekData['total_km'],
@@ -103,24 +130,89 @@ class ProposalService
             ]);
 
             foreach ($weekData['days'] ?? [] as $dayData) {
+                $date = $startsAt->copy()->addDays($dayData['day_of_week'] - 1);
+
+                if ($date->lt($today)) {
+                    continue;
+                }
+
                 $week->trainingDays()->create([
-                    'date' => $startsAt->copy()->addDays($dayData['day_of_week'] - 1),
+                    'date' => $date,
                     'type' => $dayData['type'],
                     'title' => $dayData['title'],
                     'description' => $dayData['description'] ?? null,
                     'target_km' => $dayData['target_km'] ?? null,
                     'target_pace_seconds_per_km' => $dayData['target_pace_seconds_per_km'] ?? null,
                     'target_heart_rate_zone' => $dayData['target_heart_rate_zone'] ?? null,
+                    'intervals_json' => $this->normalizeIntervals($dayData['intervals'] ?? null),
                     'order' => $dayData['day_of_week'],
                 ]);
             }
         }
     }
 
+    private function resolveWeekStart(int $weekNumber): Carbon
+    {
+        return now()->startOfWeek()->addWeeks($weekNumber - 1);
+    }
+
+    /**
+     * Normalise the optional `intervals` array on a training day payload.
+     * Returns null if missing/empty so the DB column stays clean for
+     * non-interval runs.
+     *
+     * @param  mixed  $intervals
+     * @return array<int, array<string, mixed>>|null
+     */
+    private function normalizeIntervals($intervals): ?array
+    {
+        if (! is_array($intervals) || $intervals === []) {
+            return null;
+        }
+
+        $allowedKinds = ['warmup', 'work', 'recovery', 'cooldown'];
+        $out = [];
+        foreach ($intervals as $segment) {
+            if (! is_array($segment)) {
+                continue;
+            }
+
+            $kind = $segment['kind'] ?? 'work';
+            if (! in_array($kind, $allowedKinds, true)) {
+                $kind = 'work';
+            }
+
+            $distance = isset($segment['distance_m']) ? (int) $segment['distance_m'] : null;
+            if ($distance !== null && $distance <= 0) {
+                $distance = null;
+            }
+
+            $duration = isset($segment['duration_seconds']) ? (int) $segment['duration_seconds'] : null;
+            if ($duration !== null && $duration <= 0) {
+                $duration = null;
+            }
+
+            $pace = isset($segment['target_pace_seconds_per_km']) ? (int) $segment['target_pace_seconds_per_km'] : null;
+            if ($pace !== null && $pace <= 0) {
+                $pace = null;
+            }
+
+            $out[] = [
+                'kind' => $kind,
+                'label' => (string) ($segment['label'] ?? 'Segment'),
+                'distance_m' => $distance,
+                'duration_seconds' => $duration,
+                'target_pace_seconds_per_km' => $pace,
+            ];
+        }
+
+        return $out === [] ? null : $out;
+    }
+
     private function applyModifySchedule(User $user, array $payload): void
     {
         foreach ($payload['changes'] ?? [] as $change) {
-            $day = TrainingDay::whereHas('trainingWeek.race', fn ($q) => $q->where('user_id', $user->id))
+            $day = TrainingDay::whereHas('trainingWeek.goal', fn ($q) => $q->where('user_id', $user->id))
                 ->find($change['training_day_id']);
 
             if ($day) {
@@ -138,14 +230,21 @@ class ProposalService
 
     private function applyAlternativeWeek(User $user, array $payload): void
     {
-        $race = $user->races()->findOrFail($payload['race_id']);
-        $week = $race->trainingWeeks()->where('week_number', $payload['week_number'])->firstOrFail();
+        $goal = $user->goals()->findOrFail($payload['goal_id']);
+        $week = $goal->trainingWeeks()->where('week_number', $payload['week_number'])->firstOrFail();
+        $today = now()->startOfDay();
 
         $week->trainingDays()->whereDoesntHave('result')->delete();
 
         foreach ($payload['alternative_days'] ?? [] as $dayData) {
+            $date = $week->starts_at->copy()->addDays($dayData['day_of_week'] - 1);
+
+            if ($date->lt($today)) {
+                continue;
+            }
+
             $week->trainingDays()->create([
-                'date' => $week->starts_at->copy()->addDays($dayData['day_of_week'] - 1),
+                'date' => $date,
                 'type' => $dayData['type'],
                 'title' => $dayData['title'],
                 'description' => $dayData['description'] ?? null,

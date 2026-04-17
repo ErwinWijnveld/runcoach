@@ -2,7 +2,7 @@
 
 namespace App\Ai\Tools;
 
-use App\Enums\RaceStatus;
+use App\Enums\GoalStatus;
 use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -20,31 +20,32 @@ class GetCurrentSchedule implements Tool
     public function schema(JsonSchema $schema): array
     {
         return [
-            'race_id' => $schema->integer()->required()->nullable()->description('Specific race ID. Omit or pass null to get the active race.'),
+            'goal_id' => $schema->integer()->required()->nullable()->description('Specific goal ID. Omit or pass null to get the active goal.'),
         ];
     }
 
     public function handle(Request $request): string
     {
-        $race = $request['race_id']
-            ? $this->user->races()->find($request['race_id'])
-            : $this->user->races()->where('status', RaceStatus::Active)->latest()->first();
+        $goal = $request['goal_id']
+            ? $this->user->goals()->find($request['goal_id'])
+            : $this->user->goals()->where('status', GoalStatus::Active)->latest()->first();
 
-        if (! $race) {
-            return json_encode(['message' => 'No active race found.']);
+        if (! $goal) {
+            return json_encode(['message' => 'No active goal found.']);
         }
 
-        $weeks = $race->trainingWeeks()
+        $weeks = $goal->trainingWeeks()
             ->with('trainingDays.result')
             ->orderBy('week_number')
             ->get();
 
         $data = [
-            'race' => [
-                'name' => $race->name,
-                'distance' => $race->distance->value,
-                'race_date' => $race->race_date->toDateString(),
-                'weeks_until_race' => $race->weeksUntilRace(),
+            'goal' => [
+                'type' => $goal->type,
+                'name' => $goal->name,
+                'distance' => $goal->distance?->value,
+                'target_date' => $goal->target_date?->toDateString(),
+                'weeks_until_target_date' => $goal->weeksUntilTargetDate(),
             ],
             'weeks' => $weeks->map(fn ($week) => [
                 'week_number' => $week->week_number,

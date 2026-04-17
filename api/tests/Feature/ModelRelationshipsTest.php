@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\Race;
+use App\Models\Goal;
 use App\Models\StravaActivity;
 use App\Models\StravaToken;
 use App\Models\TrainingDay;
@@ -25,22 +25,22 @@ class ModelRelationshipsTest extends TestCase
         $this->assertTrue($token->user->is($user));
     }
 
-    public function test_user_has_many_races(): void
+    public function test_user_has_many_goals(): void
     {
         $user = User::factory()->create();
-        $race = Race::factory()->create(['user_id' => $user->id]);
+        $goal = Goal::factory()->create(['user_id' => $user->id]);
 
-        $this->assertTrue($user->races->contains($race));
-        $this->assertTrue($race->user->is($user));
+        $this->assertTrue($user->goals->contains($goal));
+        $this->assertTrue($goal->user->is($user));
     }
 
-    public function test_race_has_many_training_weeks(): void
+    public function test_goal_has_many_training_weeks(): void
     {
-        $race = Race::factory()->create();
-        $week = TrainingWeek::factory()->create(['race_id' => $race->id]);
+        $goal = Goal::factory()->create();
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
 
-        $this->assertTrue($race->trainingWeeks->contains($week));
-        $this->assertTrue($week->race->is($race));
+        $this->assertTrue($goal->trainingWeeks->contains($week));
+        $this->assertTrue($week->goal->is($goal));
     }
 
     public function test_training_week_has_many_training_days(): void

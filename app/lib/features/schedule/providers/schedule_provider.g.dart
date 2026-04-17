@@ -66,7 +66,7 @@ final class ScheduleProvider
   }
 }
 
-String _$scheduleHash() => r'1b2318bc1dffaed9b8e14ad58915d289181acf27';
+String _$scheduleHash() => r'bcd6e658baed6db6f974acd06ba50a888ed58513';
 
 final class ScheduleFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<List<TrainingWeek>>, int> {
@@ -79,8 +79,8 @@ final class ScheduleFamily extends $Family
         isAutoDispose: true,
       );
 
-  ScheduleProvider call(int raceId) =>
-      ScheduleProvider._(argument: raceId, from: this);
+  ScheduleProvider call(int goalId) =>
+      ScheduleProvider._(argument: goalId, from: this);
 
   @override
   String toString() => r'scheduleProvider';
@@ -141,7 +141,7 @@ final class CurrentWeekProvider
   }
 }
 
-String _$currentWeekHash() => r'1c7714ff8b469ad430e410b7db6e1039fadd6bc5';
+String _$currentWeekHash() => r'94d43966786c3efb50d7494aff21ec070e74ae2f';
 
 final class CurrentWeekFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<TrainingWeek?>, int> {
@@ -154,8 +154,8 @@ final class CurrentWeekFamily extends $Family
         isAutoDispose: true,
       );
 
-  CurrentWeekProvider call(int raceId) =>
-      CurrentWeekProvider._(argument: raceId, from: this);
+  CurrentWeekProvider call(int goalId) =>
+      CurrentWeekProvider._(argument: goalId, from: this);
 
   @override
   String toString() => r'currentWeekProvider';
@@ -309,4 +309,173 @@ final class TrainingDayResultFamily extends $Family
 
   @override
   String toString() => r'trainingDayResultProvider';
+}
+
+/// Recent Strava runs near a training day's date, with a flag on each
+/// indicating whether it's already matched to a training day (same user).
+/// Feeds the "Select Strava run" modal.
+
+@ProviderFor(availableStravaActivities)
+final availableStravaActivitiesProvider = AvailableStravaActivitiesFamily._();
+
+/// Recent Strava runs near a training day's date, with a flag on each
+/// indicating whether it's already matched to a training day (same user).
+/// Feeds the "Select Strava run" modal.
+
+final class AvailableStravaActivitiesProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<AvailableStravaActivitiesResult>,
+          AvailableStravaActivitiesResult,
+          FutureOr<AvailableStravaActivitiesResult>
+        >
+    with
+        $FutureModifier<AvailableStravaActivitiesResult>,
+        $FutureProvider<AvailableStravaActivitiesResult> {
+  /// Recent Strava runs near a training day's date, with a flag on each
+  /// indicating whether it's already matched to a training day (same user).
+  /// Feeds the "Select Strava run" modal.
+  AvailableStravaActivitiesProvider._({
+    required AvailableStravaActivitiesFamily super.from,
+    required int super.argument,
+  }) : super(
+         retry: null,
+         name: r'availableStravaActivitiesProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$availableStravaActivitiesHash();
+
+  @override
+  String toString() {
+    return r'availableStravaActivitiesProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<AvailableStravaActivitiesResult> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<AvailableStravaActivitiesResult> create(Ref ref) {
+    final argument = this.argument as int;
+    return availableStravaActivities(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is AvailableStravaActivitiesProvider &&
+        other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$availableStravaActivitiesHash() =>
+    r'4d4bd672da5d72e1aa29c8300692d9adb6fae628';
+
+/// Recent Strava runs near a training day's date, with a flag on each
+/// indicating whether it's already matched to a training day (same user).
+/// Feeds the "Select Strava run" modal.
+
+final class AvailableStravaActivitiesFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+          FutureOr<AvailableStravaActivitiesResult>,
+          int
+        > {
+  AvailableStravaActivitiesFamily._()
+    : super(
+        retry: null,
+        name: r'availableStravaActivitiesProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Recent Strava runs near a training day's date, with a flag on each
+  /// indicating whether it's already matched to a training day (same user).
+  /// Feeds the "Select Strava run" modal.
+
+  AvailableStravaActivitiesProvider call(int dayId) =>
+      AvailableStravaActivitiesProvider._(argument: dayId, from: this);
+
+  @override
+  String toString() => r'availableStravaActivitiesProvider';
+}
+
+/// Manually match (or unlink) a Strava activity for a training day.
+/// The caller invalidates `trainingDayDetailProvider(dayId)` + the weekly
+/// schedule providers afterwards to refresh the UI.
+
+@ProviderFor(ManualMatchStravaActivity)
+final manualMatchStravaActivityProvider = ManualMatchStravaActivityProvider._();
+
+/// Manually match (or unlink) a Strava activity for a training day.
+/// The caller invalidates `trainingDayDetailProvider(dayId)` + the weekly
+/// schedule providers afterwards to refresh the UI.
+final class ManualMatchStravaActivityProvider
+    extends $NotifierProvider<ManualMatchStravaActivity, void> {
+  /// Manually match (or unlink) a Strava activity for a training day.
+  /// The caller invalidates `trainingDayDetailProvider(dayId)` + the weekly
+  /// schedule providers afterwards to refresh the UI.
+  ManualMatchStravaActivityProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'manualMatchStravaActivityProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$manualMatchStravaActivityHash();
+
+  @$internal
+  @override
+  ManualMatchStravaActivity create() => ManualMatchStravaActivity();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(void value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<void>(value),
+    );
+  }
+}
+
+String _$manualMatchStravaActivityHash() =>
+    r'cba8522119a7511bee13daa2ef593eeb86705837';
+
+/// Manually match (or unlink) a Strava activity for a training day.
+/// The caller invalidates `trainingDayDetailProvider(dayId)` + the weekly
+/// schedule providers afterwards to refresh the UI.
+
+abstract class _$ManualMatchStravaActivity extends $Notifier<void> {
+  void build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<void, void>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<void, void>,
+              void,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
 }

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/coach/data/coach_api.dart';
 import 'package:app/features/coach/data/coach_stream_client.dart';
 import 'package:app/features/coach/models/coach_message.dart';
@@ -16,6 +17,26 @@ Future<List<Conversation>> conversations(Ref ref) async {
   return list.map((e) => Conversation.fromJson(e as Map<String, dynamic>)).toList();
 }
 
+/// Standalone accept/reject helpers so onboarding can use them without
+/// activating [CoachChat] (which would load messages from the wrong endpoint).
+@Riverpod(keepAlive: true)
+class ProposalActions extends _$ProposalActions {
+  @override
+  void build() {}
+
+  Future<void> accept(int proposalId) async {
+    final api = ref.read(coachApiProvider);
+    await api.acceptProposal(proposalId);
+    if (!ref.mounted) return;
+    await ref.read(authProvider.notifier).loadProfile();
+  }
+
+  Future<void> reject(int proposalId) async {
+    final api = ref.read(coachApiProvider);
+    await api.rejectProposal(proposalId);
+  }
+}
+
 @riverpod
 class CoachChat extends _$CoachChat {
   bool _isStreaming = false;
@@ -26,10 +47,10 @@ class CoachChat extends _$CoachChat {
     final data = await api.getConversation(conversationId);
     final convData = data['data'] as Map<String, dynamic>;
     final messagesList = convData['messages'] as List? ?? [];
-    return messagesList.map((e) => CoachMessage.fromJson(e as Map<String, dynamic>)).toList();
+    return messagesList.map((e) => CoachMessage.fromShowJson(e as Map<String, dynamic>)).toList();
   }
 
-  Future<void> sendMessage(String content) async {
+  Future<void> sendMessage(String content, {String? chipValue}) async {
     if (_isStreaming) return;
     _isStreaming = true;
 
@@ -53,16 +74,30 @@ class CoachChat extends _$CoachChat {
       state = AsyncData([...before, userMsg, current]);
 
       try {
-        await for (final event in stream.streamMessage(conversationId, content)) {
+        await for (final event
+            in stream.streamMessage(conversationId, content, chipValue: chipValue)) {
           current = switch (event) {
             TextDeltaEvent(:final delta) => current.copyWith(
                 content: current.content + delta,
                 toolIndicator: null,
               ),
+            // After a text block ends, Anthropic often streams a long
+            // `tool_use` block (20-30s for big inputs like create_schedule)
+            // before the SDK emits a ToolStart event — the UI would be
+            // silent in the meantime. Show a generic spinner now; the real
+            // tool name overrides it via ToolStartEvent as soon as the SDK
+            // yields it, or clears if more text streams in.
+            TextEndEvent() => current.toolIndicator == null
+                ? current.copyWith(toolIndicator: 'Thinking')
+                : current,
             ToolStartEvent(:final toolName) =>
               current.copyWith(toolIndicator: toolName),
             ToolEndEvent() => current,
-            ProposalEvent(:final proposal) => current.copyWith(proposal: proposal),
+            ProposalEvent(:final proposal) =>
+              current.copyWith(proposal: proposal),
+            StatsEvent(:final stats) =>
+              current.copyWith(statsCard: stats),
+            ChipsEvent(:final chips) => current.copyWith(chips: chips),
             ErrorEvent(:final message) => current.copyWith(
                 errorDetail: message,
                 streaming: false,
@@ -110,6 +145,7 @@ class CoachChat extends _$CoachChat {
   Future<void> acceptProposal(int proposalId) async {
     final api = ref.read(coachApiProvider);
     await api.acceptProposal(proposalId);
+    await ref.read(authProvider.notifier).loadProfile();
   }
 
   Future<void> rejectProposal(int proposalId) async {

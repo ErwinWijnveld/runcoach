@@ -38,7 +38,17 @@ class _StravaAuthScreenState extends ConsumerState<StravaAuthScreen> {
           }
           return NavigationDecision.navigate;
         },
-        onPageFinished: (_) => setState(() => _loading = false),
+        onPageStarted: (_) {
+          if (mounted && _loading) setState(() => _loading = false);
+        },
+        onProgress: (progress) {
+          if (mounted && _loading && progress > 30) {
+            setState(() => _loading = false);
+          }
+        },
+        onPageFinished: (_) {
+          if (mounted && _loading) setState(() => _loading = false);
+        },
       ));
 
     try {

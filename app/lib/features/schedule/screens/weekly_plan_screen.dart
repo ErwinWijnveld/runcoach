@@ -8,6 +8,7 @@ import 'package:app/core/widgets/app_header.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/coach_prompt_bar.dart';
 import 'package:app/features/dashboard/providers/dashboard_provider.dart';
+import 'package:app/features/schedule/data/schedule_coach_suggestions.dart';
 import 'package:app/features/schedule/models/training_day.dart';
 import 'package:app/features/schedule/models/training_week.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
@@ -34,7 +35,7 @@ class WeeklyPlanScreen extends ConsumerWidget {
                 loading: () => const AppSpinner(),
                 error: (err, _) => AppErrorState(title: 'Error: $err'),
                 data: (dashboard) {
-                  final race = dashboard.activeRace;
+                  final race = dashboard.activeGoal;
                   if (race == null) {
                     return _EmptyState(onCreate: () => context.go('/coach'));
                   }
@@ -285,7 +286,10 @@ class _WeekBody extends StatelessWidget {
           const SizedBox(height: 10),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: CoachPromptBar.navigate(onTap: onTapCoach),
+            child: CoachPromptBar.navigateAnimated(
+              onTap: onTapCoach,
+              animatedSuggestions: scheduleCoachSuggestions,
+            ),
           ),
         ],
       ),

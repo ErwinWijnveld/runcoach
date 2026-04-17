@@ -9,17 +9,29 @@ part 'schedule_api.g.dart';
 abstract class ScheduleApi {
   factory ScheduleApi(Dio dio) = _ScheduleApi;
 
-  @GET('/races/{raceId}/schedule')
-  Future<dynamic> getSchedule(@Path() int raceId);
+  @GET('/goals/{goalId}/schedule')
+  Future<dynamic> getSchedule(@Path() int goalId);
 
-  @GET('/races/{raceId}/schedule/current')
-  Future<dynamic> getCurrentWeek(@Path() int raceId);
+  @GET('/goals/{goalId}/schedule/current')
+  Future<dynamic> getCurrentWeek(@Path() int goalId);
 
   @GET('/training-days/{dayId}')
   Future<dynamic> getTrainingDay(@Path() int dayId);
 
   @GET('/training-days/{dayId}/result')
   Future<dynamic> getTrainingResult(@Path() int dayId);
+
+  @GET('/training-days/{dayId}/available-activities')
+  Future<dynamic> getAvailableStravaActivities(@Path() int dayId);
+
+  @POST('/training-days/{dayId}/match-activity')
+  Future<dynamic> matchStravaActivity(
+    @Path() int dayId,
+    @Body() Map<String, dynamic> body,
+  );
+
+  @DELETE('/training-days/{dayId}/match-activity')
+  Future<void> unlinkStravaActivity(@Path() int dayId);
 }
 
 @riverpod
