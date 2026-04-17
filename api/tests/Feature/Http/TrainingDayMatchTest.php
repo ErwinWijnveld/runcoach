@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Http;
 
+use App\Jobs\GenerateActivityFeedback;
 use App\Models\Goal;
 use App\Models\StravaActivity;
 use App\Models\StravaToken;
@@ -11,6 +12,7 @@ use App\Models\TrainingWeek;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class TrainingDayMatchTest extends TestCase
@@ -366,5 +368,31 @@ class TrainingDayMatchTest extends TestCase
             'data' => [],
             'error' => 'strava_disconnected',
         ]);
+    }
+
+    public function test_match_dispatches_feedback_generation(): void
+    {
+        Queue::fake();
+
+        [$user, $headers] = $this->authUser();
+        StravaToken::factory()->create(['user_id' => $user->id]);
+        $day = $this->scheduleDay($user);
+
+        Http::fake([
+            'strava.com/api/v3/activities/7777' => Http::response([
+                'id' => 7777, 'type' => 'Run', 'name' => 'Run',
+                'distance' => 5050, 'moving_time' => 1830, 'elapsed_time' => 1900,
+                'average_speed' => 2.76, 'start_date' => now()->toIso8601String(),
+                'map' => ['summary_polyline' => null],
+            ], 200),
+        ]);
+
+        $this->postJson(
+            "/api/v1/training-days/{$day->id}/match-activity",
+            ['strava_activity_id' => 7777],
+            $headers,
+        )->assertOk();
+
+        Queue::assertPushed(GenerateActivityFeedback::class);
     }
 }

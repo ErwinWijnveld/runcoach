@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\GenerateActivityFeedback;
 use App\Models\Goal;
 use App\Models\StravaActivity;
 use App\Models\TrainingDay;
@@ -231,6 +232,8 @@ class TrainingScheduleController extends Controller
         }
 
         $result = $compliance->scoreDay($day, $activity);
+
+        GenerateActivityFeedback::dispatch($result->id);
 
         return response()->json([
             'data' => $result->load('stravaActivity'),
