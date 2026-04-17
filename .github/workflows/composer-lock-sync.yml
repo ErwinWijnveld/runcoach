@@ -1,0 +1,34 @@
+name: composer-lock-sync
+
+on:
+  pull_request:
+    paths:
+      - composer.lock
+      - api/composer.lock
+      - .github/workflows/composer-lock-sync.yml
+  push:
+    branches: [main]
+    paths:
+      - composer.lock
+      - api/composer.lock
+
+jobs:
+  check:
+    name: Root composer.lock matches api/composer.lock
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compare lockfiles
+        run: |
+          if ! cmp -s composer.lock api/composer.lock; then
+            echo "::error::composer.lock at repo root is out of sync with api/composer.lock."
+            echo "Laravel Cloud uses the root copy for framework detection (see .laravel-cloud/README.md)."
+            echo "Fix locally with:"
+            echo "  cp api/composer.lock composer.lock"
+            echo "Then commit both files."
+            echo "--- diff ---"
+            diff composer.lock api/composer.lock || true
+            exit 1
+          fi
+          echo "composer.lock files are in sync."
