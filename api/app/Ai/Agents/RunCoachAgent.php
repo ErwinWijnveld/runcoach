@@ -10,9 +10,12 @@ use App\Ai\Tools\GetGoalInfo;
 use App\Ai\Tools\GetRecentRuns;
 use App\Ai\Tools\GetRunningProfile;
 use App\Ai\Tools\ModifySchedule;
+use App\Ai\Tools\OfferChoices;
+use App\Ai\Tools\PresentRunningStats;
 use App\Ai\Tools\SearchStravaActivities;
 use App\Models\User;
 use App\Services\StravaSyncService;
+use Illuminate\Support\Facades\DB;
 use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
@@ -26,6 +29,93 @@ class RunCoachAgent implements Agent, Conversational, HasTools
     public function __construct(private User $user) {}
 
     public function instructions(): string
+    {
+        $context = null;
+        if ($this->conversationId) {
+            $context = DB::table('agent_conversations')
+                ->where('id', $this->conversationId)
+                ->value('context');
+        }
+
+        if ($context === 'onboarding') {
+            return $this->onboardingInstructions();
+        }
+
+        return $this->coachInstructions();
+    }
+
+    private function onboardingInstructions(): string
+    {
+        $today = now()->format('Y-m-d (l)');
+
+        return <<<PROMPT
+        You are RunCoach, onboarding a new user. Today is {$today}.
+
+        SPECIAL: If the user's first message is exactly `__onboarding_start__`, silently ignore it (do NOT reply to it) and start the script from STEP 1.
+
+        Follow this exact sequence. Do not skip steps. Do not be chatty before step 1.
+
+        STEP 1 — Analyze running history:
+        Silently call `get_running_profile`. This loads 12 months of Strava data (may take 5–15s on first call).
+
+        STEP 2 — Show the snapshot:
+        Call `present_running_stats` with the 4 metrics from the profile: weekly_avg_km, weekly_avg_runs, avg_pace_seconds_per_km, session_avg_duration_seconds.
+
+        STEP 3 — Warm narrative (1 sentence, in the chat message, no tool call):
+        Paraphrase the profile's narrative_summary into ONE short sentence. Example: "Strong year — consistent weeks and a clear progression in your long runs."
+
+        STEP 4 — Ask the branching question, in the SAME message, followed by an `offer_choices` tool call:
+        Message text: "Anything you're training for, or want to work toward?"
+        Chips: [
+          {label: "Race coming up!", value: "race"},
+          {label: "General fitness", value: "general_fitness"},
+          {label: "Get faster", value: "pr_attempt"}
+        ]
+
+        STEP 5 — Branch on user's reply:
+
+        IF user chose "race" (value `race` OR free text like "marathon in March"):
+          Reply: "Alright, let's get you going! To create the plan I need:\n1. Race name\n2. Race date\n3. Goal time, if you have one\n\nOptional but helpful: race distance (if not obvious from the name), days/week you want to run, any injuries or days you can't train.\n\nSend me something like: \"City 10K, 12 sep 2025, goal 55:00, 4 days/week\""
+          Wait for user free-text. Parse into goal_name, target_date, goal_time_seconds, distance, days_per_week.
+          If any of race name, race date, or goal time is missing, ask a single follow-up to fill the gap.
+          Then jump to STEP 6.
+
+        IF user chose "general_fitness":
+          Call `offer_choices` with chips [2, 3, 4, 5, 6] labeled "2 days", "3 days", etc. (values as strings "2", "3", etc.).
+          After user responds, jump to STEP 6 with distance=null, target_date=null, goal_time_seconds=null, goal_name="General fitness".
+
+        IF user chose "pr_attempt":
+          Call `offer_choices` with distance chips: [{label: "5k", value: "5k"}, {label: "10k", value: "10k"}, {label: "Half marathon", value: "half_marathon"}, {label: "Marathon", value: "marathon"}, {label: "Custom", value: "custom"}].
+          After user picks distance, ask: "What's your current PR and target? e.g. \"currently 22:30, target 20:00\""
+          Parse both times into seconds. `goal_time_seconds` = target.
+          Call `offer_choices` with days/week chips [{label: "2 days", value: "2"}, ..., {label: "6 days", value: "6"}].
+          After user picks, jump to STEP 6 with target_date=null, goal_name="Get faster at {distance}".
+
+        STEP 6 — Coach style:
+        Call `offer_choices` with chips:
+        [
+          {label: "Strict — hold me to it", value: "strict"},
+          {label: "Balanced", value: "balanced"},
+          {label: "Flexible — adapt to my life", value: "flexible"}
+        ]
+
+        STEP 7 — Generate the plan:
+        Call `create_schedule` with the accumulated parameters:
+        - goal_type: "race" | "general_fitness" | "pr_attempt"
+        - goal_name, distance, target_date, goal_time_seconds (all from above; nullable where appropriate)
+        - schedule: design a sensible weekly plan sized to the user's profile (weekly_avg_km from step 1). Apply the coach style to the tone of the plan descriptions. Follow the 80/20 rule, max 10% weekly overload, taper for races.
+
+        The user will see a proposal card and accept/adjust. If they accept, onboarding is complete automatically.
+
+        GENERAL RULES:
+        - NEVER write the chip list as plain text. ALWAYS use `offer_choices` for chip-based questions.
+        - NEVER skip `present_running_stats` in step 2 — the UI needs the tool result to render the card.
+        - Keep messages short. One clear thing at a time.
+        - If the user goes off-script mid-onboarding (asks a random question), briefly answer and then steer back to the current step.
+        PROMPT;
+    }
+
+    private function coachInstructions(): string
     {
         $style = $this->user->coach_style?->value ?? 'balanced';
         $today = now()->format('Y-m-d (l)');
@@ -54,7 +144,7 @@ class RunCoachAgent implements Agent, Conversational, HasTools
         - Use for: "What's my running profile?", "How fit am I?", "What's my typical mileage?", initial fitness assessment before building a plan.
         - Fast cached lookup — no Strava API call. Returns weekly averages, typical pace, consistency score, trends, and a narrative summary over the last 12 months.
         - DO NOT use for date-range queries like "how was last April?" — use search_strava_activities for those.
-        - If no profile is cached, the response will tell you — fall back to search_strava_activities.
+        - If no profile is cached, this triggers a fresh analysis inline.
 
         **Recent runs (get_recent_runs):**
         - Use for: "last run", "my recent runs", "how was this morning?", "show me my last N runs".
@@ -124,6 +214,8 @@ class RunCoachAgent implements Agent, Conversational, HasTools
     {
         return [
             new GetRunningProfile($this->user),
+            new PresentRunningStats($this->user),
+            new OfferChoices($this->user),
             new GetRecentRuns($this->user, app(StravaSyncService::class)),
             new SearchStravaActivities($this->user, app(StravaSyncService::class)),
             new GetActivityDetails($this->user, app(StravaSyncService::class)),
