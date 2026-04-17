@@ -2,6 +2,9 @@
 
 namespace App\Ai\Tools;
 
+use App\Enums\GoalDistance;
+use App\Enums\GoalType;
+use App\Enums\TrainingType;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -32,13 +35,15 @@ class CreateSchedule implements Tool
 
     public function schema(JsonSchema $schema): array
     {
+        $trainingTypes = TrainingType::valuesAsPipe();
+
         return [
-            'goal_type' => $schema->string()->enum(['race', 'general_fitness', 'pr_attempt'])->required()->description('Type of goal the runner is working toward.'),
+            'goal_type' => $schema->string()->enum(GoalType::values())->required()->description('Type of goal the runner is working toward.'),
             'goal_name' => $schema->string()->required()->description('Name of the goal (e.g. "Amsterdam Marathon 2026" or "Build base fitness")'),
-            'distance' => $schema->string()->enum(['5k', '10k', 'half_marathon', 'marathon', 'custom'])->required()->nullable()->description('Target distance, or null for general fitness goals without a specific distance.'),
+            'distance' => $schema->string()->enum(GoalDistance::values())->required()->nullable()->description('Target distance, or null for general fitness goals without a specific distance.'),
             'goal_time_seconds' => $schema->integer()->required()->nullable()->description('Target finish time in seconds (e.g. 5400 for 1:30:00), or null if no specific goal'),
             'target_date' => $schema->string()->required()->nullable()->description('Goal date in YYYY-MM-DD format, or null for open-ended goals.'),
-            'schedule' => $schema->string()->required()->description('Complete training schedule as JSON: {"weeks": [{"week_number": 1, "focus": "base building", "total_km": 30.0, "days": [{"day_of_week": 1, "type": "easy|tempo|threshold|interval|long_run|recovery", "title": "Easy Run", "description": "Keep conversational pace", "target_km": 5.0, "target_pace_seconds_per_km": 390, "target_heart_rate_zone": 2}]}]}. day_of_week: 1=Monday through 7=Sunday. All entries are running sessions — the runner\'s rest days are simply the days of the week that have no entry. Most weeks should have 3-5 day entries.'),
+            'schedule' => $schema->string()->required()->description('Complete training schedule as JSON: {"weeks": [{"week_number": 1, "focus": "base building", "total_km": 30.0, "days": [{"day_of_week": 1, "type": "'.$trainingTypes.'", "title": "Easy Run", "description": "Keep conversational pace", "target_km": 5.0, "target_pace_seconds_per_km": 390, "target_heart_rate_zone": 2}]}]}. day_of_week: 1=Monday through 7=Sunday. All entries are running sessions — the runner\'s rest days are simply the days of the week that have no entry. Most weeks should have 3-5 day entries.'),
         ];
     }
 

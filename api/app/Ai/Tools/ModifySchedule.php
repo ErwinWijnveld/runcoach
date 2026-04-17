@@ -3,6 +3,7 @@
 namespace App\Ai\Tools;
 
 use App\Enums\GoalStatus;
+use App\Enums\TrainingType;
 use App\Models\User;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -19,8 +20,10 @@ class ModifySchedule implements Tool
 
     public function schema(JsonSchema $schema): array
     {
+        $trainingTypes = TrainingType::valuesAsPipe();
+
         return [
-            'changes' => $schema->string()->required()->description('JSON array of changes: [{"training_day_id": 1, "type": "easy|tempo|threshold|interval|long_run|recovery", "title": "Easy Run", "description": "...", "target_km": 5, "target_pace_seconds_per_km": 330, "target_heart_rate_zone": 2}]'),
+            'changes' => $schema->string()->required()->description('JSON array of changes: [{"training_day_id": 1, "type": "'.$trainingTypes.'", "title": "Easy Run", "description": "...", "target_km": 5, "target_pace_seconds_per_km": 330, "target_heart_rate_zone": 2}]'),
         ];
     }
 

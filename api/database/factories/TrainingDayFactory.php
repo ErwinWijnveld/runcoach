@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\TrainingType;
 use App\Models\TrainingDay;
 use App\Models\TrainingWeek;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -21,7 +22,7 @@ class TrainingDayFactory extends Factory
         return [
             'training_week_id' => TrainingWeek::factory(),
             'date' => fake()->dateTimeBetween('+1 week', '+4 months'),
-            'type' => fake()->randomElement(['easy', 'tempo', 'threshold', 'interval', 'long_run', 'recovery']),
+            'type' => fake()->randomElement(TrainingType::values()),
             'title' => fake()->randomElement(['Easy Run', 'Tempo Run', 'Threshold Run', 'Interval Session', 'Long Run', 'Recovery Jog']),
             'description' => fake()->optional()->sentence(),
             'target_km' => fake()->randomFloat(1, 3, 25),
