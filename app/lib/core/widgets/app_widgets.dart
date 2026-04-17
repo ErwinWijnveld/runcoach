@@ -79,14 +79,15 @@ class CircleIconButton extends StatelessWidget {
 
 class GoldBadge extends StatelessWidget {
   final String label;
-  const GoldBadge({super.key, required this.label});
+  final Color? color;
+  const GoldBadge({super.key, required this.label, this.color});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: AppColors.secondary,
+        color: color ?? AppColors.secondary,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(label, style: RunCoreText.badge()),

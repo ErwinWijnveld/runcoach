@@ -659,7 +659,10 @@ class _DayTile extends StatelessWidget {
                       Row(
                         children: [
                           if (badgeLabel != null) ...[
-                            GoldBadge(label: badgeLabel),
+                            GoldBadge(
+                              label: badgeLabel,
+                              color: isCompleted ? AppColors.success : null,
+                            ),
                             const SizedBox(width: 8),
                           ],
                           Flexible(
@@ -752,7 +755,7 @@ class _StatusIcon extends StatelessWidget {
     if (isCompleted) {
       return const Icon(
         Icons.check_circle,
-        color: AppColors.tertiary,
+        color: AppColors.success,
         size: 24,
       );
     }
