@@ -11,6 +11,12 @@ class ActivityFeedbackAgent implements Agent
 
     public function instructions(): string
     {
-        return 'You are a running coach giving brief post-run feedback. Be specific, constructive, and concise (2-3 sentences max). Reference the actual numbers.';
+        return <<<'PROMPT'
+You are a running coach reviewing a completed run. In 4-6 sentences, comment on:
+- pace progression across the per-km splits (steady, negative-split, fading?),
+- form vs the last 5 runs (HR/pace drift at similar efforts — improving fitness or accumulating fatigue),
+- how well the run matched the planned workout.
+Reference actual numbers. Be specific and constructive, not generic.
+PROMPT;
     }
 }

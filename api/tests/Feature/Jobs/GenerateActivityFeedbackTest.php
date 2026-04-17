@@ -1,0 +1,100 @@
+<?php
+
+namespace Tests\Feature\Jobs;
+
+use App\Ai\Agents\ActivityFeedbackAgent;
+use App\Jobs\GenerateActivityFeedback;
+use App\Models\Goal;
+use App\Models\StravaActivity;
+use App\Models\TrainingDay;
+use App\Models\TrainingResult;
+use App\Models\TrainingWeek;
+use App\Models\User;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Tests\TestCase;
+
+class GenerateActivityFeedbackTest extends TestCase
+{
+    use LazilyRefreshDatabase;
+
+    public function test_builds_rich_prompt_and_stores_feedback(): void
+    {
+        ActivityFeedbackAgent::fake(['Generated feedback prose.']);
+
+        $user = User::factory()->create();
+        $goal = Goal::factory()->create(['user_id' => $user->id]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
+        $day = TrainingDay::factory()->create([
+            'training_week_id' => $week->id,
+            'title' => 'Easy 5k',
+            'type' => 'easy',
+            'target_km' => 5.0,
+            'target_pace_seconds_per_km' => 360,
+            'target_heart_rate_zone' => 2,
+        ]);
+
+        // 3 prior runs — should show up in "Recent runs".
+        StravaActivity::factory()->count(3)->create([
+            'user_id' => $user->id,
+            'start_date' => now()->subDays(7),
+        ]);
+
+        $activity = StravaActivity::factory()->create([
+            'user_id' => $user->id,
+            'name' => 'Current run',
+            'raw_data' => [
+                'splits_metric' => [
+                    ['split' => 1, 'distance' => 1000.0, 'moving_time' => 370],
+                    ['split' => 2, 'distance' => 1000.0, 'moving_time' => 365],
+                ],
+            ],
+        ]);
+
+        $result = TrainingResult::factory()->create([
+            'training_day_id' => $day->id,
+            'strava_activity_id' => $activity->id,
+            'actual_km' => 5.05,
+            'actual_pace_seconds_per_km' => 362,
+            'ai_feedback' => null,
+        ]);
+
+        (new GenerateActivityFeedback($result->id))->handle();
+
+        $this->assertSame('Generated feedback prose.', $result->fresh()->ai_feedback);
+
+        ActivityFeedbackAgent::assertPrompted(
+            fn ($prompt) => $prompt->contains('Easy 5k')
+                && $prompt->contains('Actual: 5.1km')   // decimal:1 cast rounds 5.05
+                && $prompt->contains('Splits')
+                && $prompt->contains('6:10')            // 370s split
+                && $prompt->contains('Recent runs')
+                && ! $prompt->contains('Current run')   // current activity excluded
+        );
+    }
+
+    public function test_skips_splits_when_missing_and_early_returns_when_done(): void
+    {
+        ActivityFeedbackAgent::fake(['x']);
+
+        $user = User::factory()->create();
+        $goal = Goal::factory()->create(['user_id' => $user->id]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
+        $day = TrainingDay::factory()->create(['training_week_id' => $week->id]);
+        $activity = StravaActivity::factory()->create(['user_id' => $user->id, 'raw_data' => []]);
+        $result = TrainingResult::factory()->create([
+            'training_day_id' => $day->id,
+            'strava_activity_id' => $activity->id,
+            'ai_feedback' => null,
+        ]);
+
+        (new GenerateActivityFeedback($result->id))->handle();
+
+        ActivityFeedbackAgent::assertPrompted(fn ($p) => ! $p->contains('Splits'));
+        $this->assertSame('x', $result->fresh()->ai_feedback);
+
+        // Second run with feedback already present — early-returns without
+        // touching the agent or overwriting the stored text.
+        (new GenerateActivityFeedback($result->id))->handle();
+        $this->assertSame('x', $result->fresh()->ai_feedback);
+    }
+}
