@@ -191,12 +191,12 @@ class _SelectStravaRunSheetState extends ConsumerState<SelectStravaRunSheet> {
       if (!mounted) return;
       await showCupertinoDialog<void>(
         context: context,
-        builder: (_) => CupertinoAlertDialog(
+        builder: (ctx) => CupertinoAlertDialog(
           title: const Text("Couldn't sync that run"),
           content: Text('$e'),
           actions: [
             CupertinoDialogAction(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('OK'),
             ),
           ],

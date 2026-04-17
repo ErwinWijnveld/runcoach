@@ -198,13 +198,13 @@ class _Loaded extends StatelessWidget {
   Future<void> _showWatchPlaceholder(BuildContext context) {
     return showCupertinoDialog<void>(
       context: context,
-      builder: (_) => CupertinoAlertDialog(
+      builder: (ctx) => CupertinoAlertDialog(
         title: const Text('Coming soon'),
         content: const Text(
             "'Send to watch' will push this session to your Garmin / Apple Watch once we wire the integration."),
         actions: [
           CupertinoDialogAction(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('OK'),
           ),
         ],

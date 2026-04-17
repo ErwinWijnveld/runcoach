@@ -549,18 +549,18 @@ class _UnlinkStravaButtonState extends ConsumerState<_UnlinkStravaButton> {
 
     final confirmed = await showCupertinoDialog<bool>(
       context: context,
-      builder: (_) => CupertinoAlertDialog(
+      builder: (ctx) => CupertinoAlertDialog(
         title: const Text('Unlink Strava run?'),
         content: const Text(
             'The run stays in your Strava history; it just stops being matched to this training day.'),
         actions: [
           CupertinoDialogAction(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(ctx).pop(false),
             child: const Text('Cancel'),
           ),
           CupertinoDialogAction(
             isDestructiveAction: true,
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () => Navigator.of(ctx).pop(true),
             child: const Text('Unlink'),
           ),
         ],
@@ -593,12 +593,12 @@ class _UnlinkStravaButtonState extends ConsumerState<_UnlinkStravaButton> {
       if (!mounted) return;
       await showCupertinoDialog<void>(
         context: context,
-        builder: (_) => CupertinoAlertDialog(
+        builder: (ctx) => CupertinoAlertDialog(
           title: const Text("Couldn't unlink"),
           content: Text('$e'),
           actions: [
             CupertinoDialogAction(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () => Navigator.of(ctx).pop(),
               child: const Text('OK'),
             ),
           ],
