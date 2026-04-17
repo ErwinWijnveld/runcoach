@@ -3,6 +3,8 @@
 namespace App\Ai\Tools;
 
 use App\Models\User;
+use App\Models\UserRunningProfile;
+use App\Services\RunningProfileService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
@@ -14,7 +16,7 @@ class GetRunningProfile implements Tool
     public function description(): string
     {
         return <<<'DESC'
-        Get a fast snapshot of the user's 12-month running profile: weekly averages, typical pace, consistency score, volume trends, and a narrative summary.
+        Get the user's 12-month running profile (weekly averages, pace, consistency, narrative). Fast cached lookup. If no cache exists (first onboarding call), this triggers a fresh Strava fetch + analysis — takes 5–15 seconds but happens inline. Always returns a profile.
 
         USE THIS for queries like:
         - "What's my running profile?"
@@ -24,7 +26,6 @@ class GetRunningProfile implements Tool
         - Assessing current fitness before building a training plan
 
         DO NOT use for date-range queries like "how was last April?" or "compare this month vs last" — use search_strava_activities for those.
-        This is a fast cached lookup (no Strava API call). If no profile is cached yet, the response will indicate that.
         DESC;
     }
 
@@ -35,16 +36,14 @@ class GetRunningProfile implements Tool
 
     public function handle(Request $request): string
     {
-        $profile = $this->user->runningProfile;
+        $profile = UserRunningProfile::where('user_id', $this->user->id)->first();
 
         if (! $profile) {
-            return json_encode([
-                'message' => 'No running profile cached yet. The runner has not completed the onboarding analysis, or the profile has not been generated.',
-            ]);
+            $profile = app(RunningProfileService::class)->analyze($this->user);
         }
 
         return json_encode([
-            'analyzed_at' => $profile->analyzed_at->toDateTimeString(),
+            'analyzed_at' => optional($profile->analyzed_at)->toIso8601String(),
             'data_start_date' => $profile->data_start_date?->toDateString(),
             'data_end_date' => $profile->data_end_date?->toDateString(),
             'metrics' => $profile->metrics,

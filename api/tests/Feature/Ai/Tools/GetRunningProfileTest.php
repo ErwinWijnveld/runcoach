@@ -5,6 +5,7 @@ namespace Tests\Feature\Ai\Tools;
 use App\Ai\Tools\GetRunningProfile;
 use App\Models\User;
 use App\Models\UserRunningProfile;
+use App\Services\RunningProfileService;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Laravel\Ai\Tools\Request;
 use Tests\TestCase;
@@ -50,14 +51,27 @@ class GetRunningProfileTest extends TestCase
         $this->assertSame('Strong, consistent runner with solid base fitness.', $result['narrative_summary']);
     }
 
-    public function test_returns_message_when_no_profile_cached(): void
+    public function test_triggers_analysis_when_no_profile_cached(): void
     {
         $user = User::factory()->create();
+        $this->assertNull(UserRunningProfile::where('user_id', $user->id)->first());
+
+        $service = \Mockery::mock(RunningProfileService::class);
+        $service->shouldReceive('analyze')->once()->with(\Mockery::on(fn ($u) => $u->id === $user->id))
+            ->andReturnUsing(function ($u) {
+                return UserRunningProfile::create([
+                    'user_id' => $u->id,
+                    'metrics' => ['weekly_avg_km' => 20.0, 'weekly_avg_runs' => 3],
+                    'narrative_summary' => 'Freshly analysed.',
+                    'analyzed_at' => now(),
+                ]);
+            });
+        $this->app->instance(RunningProfileService::class, $service);
 
         $result = $this->callTool($user);
 
-        $this->assertArrayHasKey('message', $result);
-        $this->assertStringContainsString('No running profile cached', $result['message']);
+        $this->assertEquals(20.0, $result['metrics']['weekly_avg_km']);
+        $this->assertEquals('Freshly analysed.', $result['narrative_summary']);
     }
 
     public function test_does_not_return_another_users_profile(): void
@@ -74,8 +88,23 @@ class GetRunningProfileTest extends TestCase
             'narrative_summary' => 'Other user.',
         ]);
 
+        // Mock the service so it creates a fresh profile for $user (not the other user's)
+        $service = \Mockery::mock(RunningProfileService::class);
+        $service->shouldReceive('analyze')->once()->with(\Mockery::on(fn ($u) => $u->id === $user->id))
+            ->andReturnUsing(function ($u) {
+                return UserRunningProfile::create([
+                    'user_id' => $u->id,
+                    'metrics' => ['weekly_avg_km' => 10.0],
+                    'narrative_summary' => 'My profile.',
+                    'analyzed_at' => now(),
+                ]);
+            });
+        $this->app->instance(RunningProfileService::class, $service);
+
         $result = $this->callTool($user);
 
-        $this->assertArrayHasKey('message', $result);
+        // Should get the user's own profile, not the other user's
+        $this->assertEquals(10.0, $result['metrics']['weekly_avg_km']);
+        $this->assertNotEquals(50.0, $result['metrics']['weekly_avg_km']);
     }
 }
