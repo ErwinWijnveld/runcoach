@@ -7,6 +7,8 @@ use App\Enums\ProposalStatus;
 use App\Models\CoachProposal;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class CoachChatTest extends TestCase
@@ -98,6 +100,45 @@ class CoachChatTest extends TestCase
 
         $goal = $user->goals()->where('type', 'general_fitness')->firstOrFail();
         $this->assertDatabaseHas('training_weeks', ['goal_id' => $goal->id, 'week_number' => 1]);
+    }
+
+    public function test_show_returns_tool_results_for_messages(): void
+    {
+        [$user, $headers] = $this->authUser();
+
+        $convoId = (string) Str::uuid();
+        DB::table('agent_conversations')->insert([
+            'id' => $convoId, 'user_id' => $user->id, 'title' => 'Test',
+            'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $msgId = (string) Str::uuid();
+        DB::table('agent_conversation_messages')->insert([
+            'id' => $msgId,
+            'conversation_id' => $convoId,
+            'user_id' => $user->id,
+            'agent' => 'RunCoachAgent',
+            'role' => 'assistant',
+            'content' => 'hi',
+            'attachments' => '[]',
+            'tool_calls' => '[]',
+            'tool_results' => json_encode([
+                ['tool' => 'present_running_stats', 'result' => [
+                    'display' => 'stats_card',
+                    'metrics' => ['weekly_avg_km' => 20.0],
+                ]],
+            ]),
+            'usage' => '[]',
+            'meta' => '',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->getJson("/api/v1/coach/conversations/{$convoId}", $headers)->assertOk();
+
+        $this->assertCount(1, $response->json('data.messages'));
+        $this->assertEquals('stats_card',
+            $response->json('data.messages.0.tool_results.0.result.display')
+        );
     }
 
     public function test_reject_proposal(): void

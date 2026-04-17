@@ -59,7 +59,7 @@ class CoachController extends Controller
             ->where('conversation_id', $conversationId)
             ->whereIn('role', ['user', 'assistant'])
             ->orderBy('created_at')
-            ->get(['id', 'role', 'content', 'created_at']);
+            ->get(['id', 'role', 'content', 'tool_results', 'created_at']);
 
         $proposals = CoachProposal::where('user_id', $request->user()->id)
             ->whereIn('agent_message_id', $messages->pluck('id'))
@@ -68,6 +68,7 @@ class CoachController extends Controller
 
         $messagesWithProposals = $messages->map(function ($msg) use ($proposals) {
             $msg->proposal = $proposals->get($msg->id);
+            $msg->tool_results = json_decode($msg->tool_results ?? '[]', true) ?: [];
 
             return $msg;
         });
