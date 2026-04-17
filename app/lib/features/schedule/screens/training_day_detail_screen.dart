@@ -3,6 +3,7 @@ import 'package:flutter/material.dart' show Colors, InkWell, Material;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/coach_prompt_bar.dart';
@@ -301,16 +302,76 @@ class _AnalysisBody extends ConsumerWidget {
         ? initial
         : ref.watch(trainingDayAiFeedbackProvider(dayId)).value;
 
-    if (text != null && text.trim().isNotEmpty) {
-      return Text(text, style: _Loaded._detailTextStyle);
+    if (text == null || text.trim().isEmpty) {
+      return Row(
+        children: [
+          const SwooshingStar(size: 18),
+          const SizedBox(width: 12),
+          Text('Analysing your run…', style: _Loaded._detailTextStyle),
+        ],
+      );
     }
 
-    return Row(
-      children: [
-        const SwooshingStar(size: 18),
-        const SizedBox(width: 12),
-        Text('Analysing your run…', style: _Loaded._detailTextStyle),
-      ],
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => Navigator.of(context).push(
+        CupertinoPageRoute(builder: (_) => _AnalysisFullScreen(text: text)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            height: 110,
+            child: ClipRect(
+              child: OverflowBox(
+                alignment: Alignment.topLeft,
+                maxHeight: double.infinity,
+                child: GptMarkdown(text, style: _Loaded._detailTextStyle),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Read more →',
+            style: GoogleFonts.publicSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.primary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AnalysisFullScreen extends StatelessWidget {
+  final String text;
+  const _AnalysisFullScreen({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoPageScaffold(
+      backgroundColor: AppColors.neutral,
+      navigationBar: CupertinoNavigationBar(
+        backgroundColor: AppColors.neutral.withValues(alpha: 0.92),
+        border: null,
+        middle: Text(
+          'Coach analysis',
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppColors.primaryInk,
+          ),
+        ),
+      ),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          child: GptMarkdown(text, style: _Loaded._detailTextStyle),
+        ),
+      ),
     );
   }
 }
