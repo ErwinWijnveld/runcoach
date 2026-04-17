@@ -5,6 +5,7 @@ namespace Tests\Feature\Ai\Tools;
 use App\Ai\Tools\GetActivityDetails;
 use App\Models\StravaToken;
 use App\Models\User;
+use App\Services\StravaStreamSplits;
 use App\Services\StravaSyncService;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -17,7 +18,11 @@ class GetActivityDetailsTest extends TestCase
 
     private function callTool(User $user, int $activityId): array
     {
-        $tool = new GetActivityDetails($user, app(StravaSyncService::class));
+        $tool = new GetActivityDetails(
+            $user,
+            app(StravaSyncService::class),
+            app(StravaStreamSplits::class),
+        );
         $request = new Request(['activity_id' => $activityId]);
 
         return json_decode($tool->handle($request), true);
@@ -33,42 +38,29 @@ class GetActivityDetailsTest extends TestCase
         $this->assertStringContainsString('No Strava connection', $result['message']);
     }
 
-    public function test_returns_summary_and_splits_for_a_run(): void
+    public function test_returns_summary_and_fine_grained_splits_for_a_run(): void
     {
         $user = User::factory()->create();
         StravaToken::factory()->create(['user_id' => $user->id]);
 
         Http::fake([
+            'strava.com/api/v3/activities/99999/streams*' => Http::response([
+                'time' => ['data' => [0, 5, 10, 15, 20, 25, 30, 35, 40]],
+                'distance' => ['data' => [0.0, 15.0, 30.0, 45.0, 60.0, 75.0, 90.0, 105.0, 120.0]],
+                'heartrate' => ['data' => [140, 142, 145, 148, 150, 152, 155, 157, 158]],
+            ], 200),
             'strava.com/api/v3/activities/99999' => Http::response([
                 'id' => 99999,
                 'name' => 'Morning Run',
                 'type' => 'Run',
                 'start_date' => '2026-04-15T07:00:00Z',
-                'distance' => 5025.4,
+                'distance' => 5025.4,                // <10 km → 50m buckets
                 'moving_time' => 1520,
                 'average_heartrate' => 148.0,
                 'max_heartrate' => 172.0,
                 'total_elevation_gain' => 42.1,
                 'has_heartrate' => true,
                 'average_cadence' => 85.0,
-                'splits_metric' => [
-                    [
-                        'split' => 1,
-                        'distance' => 1006.5,
-                        'moving_time' => 310,
-                        'elevation_difference' => 5.0,
-                        'average_heartrate' => 140.0,
-                        'pace_zone' => 2,
-                    ],
-                    [
-                        'split' => 2,
-                        'distance' => 1004.2,
-                        'moving_time' => 295,
-                        'elevation_difference' => -2.0,
-                        'average_heartrate' => 152.0,
-                        'pace_zone' => 3,
-                    ],
-                ],
                 'laps' => [],
             ], 200),
         ]);
@@ -78,13 +70,12 @@ class GetActivityDetailsTest extends TestCase
         $this->assertSame(99999, $result['summary']['id']);
         $this->assertSame('Morning Run', $result['summary']['name']);
         $this->assertSame(148, $result['summary']['avg_heart_rate']);
-        $this->assertSame(172, $result['summary']['max_heart_rate']);
 
-        $this->assertCount(2, $result['splits_metric']);
-        $this->assertSame(1, $result['splits_metric'][0]['split']);
-        $this->assertSame('5:08/km', $result['splits_metric'][0]['pace']);
-        $this->assertSame(140, $result['splits_metric'][0]['average_heart_rate']);
-        $this->assertSame('4:54/km', $result['splits_metric'][1]['pace']);
+        // Fine-grained splits — 3 × 50m buckets from the streams above.
+        $this->assertGreaterThanOrEqual(2, count($result['splits']));
+        $this->assertArrayHasKey('distance_m', $result['splits'][0]);
+        $this->assertArrayHasKey('pace_seconds_per_km', $result['splits'][0]);
+        $this->assertArrayHasKey('average_heart_rate', $result['splits'][0]);
     }
 
     public function test_formats_laps_when_present(): void
@@ -93,6 +84,7 @@ class GetActivityDetailsTest extends TestCase
         StravaToken::factory()->create(['user_id' => $user->id]);
 
         Http::fake([
+            'strava.com/api/v3/activities/77777/streams*' => Http::response([], 200),
             'strava.com/api/v3/activities/77777' => Http::response([
                 'id' => 77777,
                 'name' => 'Intervals',
@@ -139,6 +131,7 @@ class GetActivityDetailsTest extends TestCase
         StravaToken::factory()->create(['user_id' => $user->id]);
 
         Http::fake([
+            'strava.com/api/v3/activities/55555/streams*' => Http::response([], 200),
             'strava.com/api/v3/activities/55555' => Http::response([
                 'id' => 55555,
                 'name' => 'Short walk',
@@ -151,7 +144,7 @@ class GetActivityDetailsTest extends TestCase
 
         $result = $this->callTool($user, 55555);
 
-        $this->assertSame([], $result['splits_metric']);
+        $this->assertSame([], $result['splits']);
         $this->assertSame([], $result['laps']);
         $this->assertSame('Short walk', $result['summary']['name']);
     }

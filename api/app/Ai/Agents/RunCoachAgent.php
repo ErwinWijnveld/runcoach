@@ -14,6 +14,7 @@ use App\Ai\Tools\OfferChoices;
 use App\Ai\Tools\PresentRunningStats;
 use App\Ai\Tools\SearchStravaActivities;
 use App\Models\User;
+use App\Services\StravaStreamSplits;
 use App\Services\StravaSyncService;
 use Illuminate\Support\Facades\DB;
 use Laravel\Ai\Attributes\Timeout;
@@ -297,7 +298,7 @@ class RunCoachAgent implements Agent, Conversational, HasTools
             new OfferChoices($this->user),
             new GetRecentRuns($this->user, app(StravaSyncService::class)),
             new SearchStravaActivities($this->user, app(StravaSyncService::class)),
-            new GetActivityDetails($this->user, app(StravaSyncService::class)),
+            new GetActivityDetails($this->user, app(StravaSyncService::class), app(StravaStreamSplits::class)),
             new GetCurrentSchedule($this->user),
             new GetGoalInfo($this->user),
             new GetComplianceReport($this->user),

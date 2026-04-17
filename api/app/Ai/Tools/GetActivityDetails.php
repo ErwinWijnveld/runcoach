@@ -3,6 +3,7 @@
 namespace App\Ai\Tools;
 
 use App\Models\User;
+use App\Services\StravaStreamSplits;
 use App\Services\StravaSyncService;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -10,15 +11,19 @@ use Laravel\Ai\Tools\Request;
 
 class GetActivityDetails implements Tool
 {
-    public function __construct(private User $user, private StravaSyncService $stravaSyncService) {}
+    public function __construct(
+        private User $user,
+        private StravaSyncService $stravaSyncService,
+        private StravaStreamSplits $streamSplits,
+    ) {}
 
     public function description(): string
     {
         return <<<'DESC'
-        Fetch detailed data for a single run — per-kilometer splits, laps, average/max heart rate, and elevation profile summary.
+        Fetch detailed data for a single run — fine-grained per-50m/100m splits (50m if under 10km, else 100m), laps, average/max heart rate, and elevation profile summary. Fine splits reveal interval patterns and pace variation that coarse 1km splits hide.
 
         USE THIS for queries like:
-        - "Show me the pace progression of my last run" (1st km, 2nd km, etc.)
+        - "Show me the pace progression of my last run"
         - "What was my HR curve?"
         - "How were my splits on Saturday?"
         - "Did I negative split?"
@@ -26,7 +31,7 @@ class GetActivityDetails implements Tool
 
         WORKFLOW: First call get_recent_runs or search_strava_activities to find the run's `id`. Then pass that id here.
 
-        Returns `splits_metric` (auto 1km splits from Strava with per-km pace, HR, elevation diff), `laps` (if the athlete recorded them), and summary stats.
+        Returns `splits` (fine-grained pace + avg HR per 50m/100m bucket with `distance_m`, `pace_seconds_per_km`, `average_heart_rate`), `laps` (if the athlete recorded them), and summary stats.
         DESC;
     }
 
@@ -55,9 +60,11 @@ class GetActivityDetails implements Tool
             return json_encode(['error' => 'Failed to fetch activity from Strava: '.$e->getMessage()]);
         }
 
+        $distanceMeters = (int) ($activity['distance'] ?? 0);
+
         return json_encode([
             'summary' => $this->formatSummary($activity),
-            'splits_metric' => $this->formatSplits($activity['splits_metric'] ?? []),
+            'splits' => $this->streamSplits->compute($token, $activityId, $distanceMeters),
             'laps' => $this->formatLaps($activity['laps'] ?? []),
         ]);
     }
@@ -82,31 +89,6 @@ class GetActivityDetails implements Tool
             'has_heartrate' => $activity['has_heartrate'] ?? false,
             'average_cadence' => $activity['average_cadence'] ?? null,
         ];
-    }
-
-    /**
-     * @param  array<int, array<string, mixed>>  $splits
-     * @return array<int, array<string, mixed>>
-     */
-    private function formatSplits(array $splits): array
-    {
-        return collect($splits)->map(function (array $split) {
-            $distanceM = $split['distance'] ?? 0;
-            $movingTime = $split['moving_time'] ?? 0;
-            $distanceKm = $distanceM / 1000;
-            $paceSeconds = $distanceKm > 0 ? (int) round($movingTime / $distanceKm) : 0;
-
-            return [
-                'split' => $split['split'] ?? null,
-                'distance_km' => round($distanceKm, 2),
-                'moving_time_seconds' => $movingTime,
-                'pace' => $this->formatPace($paceSeconds),
-                'pace_seconds_per_km' => $paceSeconds,
-                'elevation_difference_m' => $split['elevation_difference'] ?? null,
-                'average_heart_rate' => isset($split['average_heartrate']) ? round($split['average_heartrate'], 0) : null,
-                'pace_zone' => $split['pace_zone'] ?? null,
-            ];
-        })->values()->toArray();
     }
 
     /**

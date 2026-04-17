@@ -125,6 +125,28 @@ class StravaSyncService
     }
 
     /**
+     * Fetch per-sample streams (time, distance, heartrate, …) for an activity.
+     * Returns `{type: {data: [...]}, ...}` keyed by type. Empty array on failure.
+     *
+     * @param  array<int, string>  $keys
+     * @return array<string, array{data: array<int, int|float>}>
+     */
+    public function fetchStreams(StravaToken $token, int $stravaActivityId, array $keys = ['time', 'distance', 'heartrate']): array
+    {
+        $token = $this->refreshTokenIfNeeded($token);
+
+        $response = Http::withToken($token->access_token)
+            ->get("https://www.strava.com/api/v3/activities/{$stravaActivityId}/streams", [
+                'keys' => implode(',', $keys),
+                'key_by_type' => 'true',
+            ]);
+
+        $response->throw();
+
+        return $response->json();
+    }
+
+    /**
      * Fetch the athlete's heart-rate zones. Returns the raw zone array
      * (5 entries, ordered Z1..Z5, each `{min, max}`; Z5 max is -1) or
      * null on failure / missing profile data. Strava's endpoint requires
