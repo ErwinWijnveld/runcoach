@@ -15,8 +15,10 @@ use App\Models\StravaToken;
  */
 class StravaStreamSplits
 {
-    /** Threshold below which consecutive time-buckets merge into one segment. */
+    /** Thresholds below which consecutive time-buckets merge into one segment. */
     private const PACE_MERGE_THRESHOLD_SECONDS = 30;
+
+    private const HR_MERGE_THRESHOLD_BPM = 12;
 
     public function __construct(private StravaSyncService $strava) {}
 
@@ -103,7 +105,14 @@ class StravaStreamSplits
         $current = null;
 
         foreach ($buckets as $b) {
-            if ($current === null || abs($b['pace_seconds_per_km'] - $current['pace_seconds_per_km']) > self::PACE_MERGE_THRESHOLD_SECONDS) {
+            $paceDiff = $current === null ? 0 : abs($b['pace_seconds_per_km'] - $current['pace_seconds_per_km']);
+            $hrDiff = $current === null || $b['average_heart_rate'] === null || $current['average_heart_rate'] === null
+                ? 0
+                : abs($b['average_heart_rate'] - $current['average_heart_rate']);
+
+            if ($current === null
+                || $paceDiff > self::PACE_MERGE_THRESHOLD_SECONDS
+                || $hrDiff > self::HR_MERGE_THRESHOLD_BPM) {
                 if ($current !== null) {
                     $segments[] = $current;
                 }
