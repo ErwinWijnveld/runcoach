@@ -83,7 +83,11 @@ class CoachChat extends _$CoachChat {
             ToolStartEvent(:final toolName) =>
               current.copyWith(toolIndicator: toolName),
             ToolEndEvent() => current,
-            ProposalEvent(:final proposal) => current.copyWith(proposal: proposal),
+            ProposalEvent(:final proposal) =>
+              current.copyWith(proposal: proposal),
+            StatsEvent(:final stats) =>
+              current.copyWith(statsCard: stats),
+            ChipsEvent(:final chips) => current.copyWith(chips: chips),
             ErrorEvent(:final message) => current.copyWith(
                 errorDetail: message,
                 streaming: false,
