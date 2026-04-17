@@ -479,3 +479,92 @@ abstract class _$ManualMatchStravaActivity extends $Notifier<void> {
     element.handleCreate(ref, build);
   }
 }
+
+/// Polls `/training-days/{id}/result` every 5s until `ai_feedback` is non-null,
+/// then yields the text and closes. Yields `null` while pending so the UI can
+/// keep the spinner on screen. Auto-disposes when the screen leaves.
+
+@ProviderFor(trainingDayAiFeedback)
+final trainingDayAiFeedbackProvider = TrainingDayAiFeedbackFamily._();
+
+/// Polls `/training-days/{id}/result` every 5s until `ai_feedback` is non-null,
+/// then yields the text and closes. Yields `null` while pending so the UI can
+/// keep the spinner on screen. Auto-disposes when the screen leaves.
+
+final class TrainingDayAiFeedbackProvider
+    extends $FunctionalProvider<AsyncValue<String?>, String?, Stream<String?>>
+    with $FutureModifier<String?>, $StreamProvider<String?> {
+  /// Polls `/training-days/{id}/result` every 5s until `ai_feedback` is non-null,
+  /// then yields the text and closes. Yields `null` while pending so the UI can
+  /// keep the spinner on screen. Auto-disposes when the screen leaves.
+  TrainingDayAiFeedbackProvider._({
+    required TrainingDayAiFeedbackFamily super.from,
+    required int super.argument,
+  }) : super(
+         retry: null,
+         name: r'trainingDayAiFeedbackProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$trainingDayAiFeedbackHash();
+
+  @override
+  String toString() {
+    return r'trainingDayAiFeedbackProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $StreamProviderElement<String?> $createElement($ProviderPointer pointer) =>
+      $StreamProviderElement(pointer);
+
+  @override
+  Stream<String?> create(Ref ref) {
+    final argument = this.argument as int;
+    return trainingDayAiFeedback(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is TrainingDayAiFeedbackProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$trainingDayAiFeedbackHash() =>
+    r'2562a9a69a33da7b9c84891891dd6e297f520415';
+
+/// Polls `/training-days/{id}/result` every 5s until `ai_feedback` is non-null,
+/// then yields the text and closes. Yields `null` while pending so the UI can
+/// keep the spinner on screen. Auto-disposes when the screen leaves.
+
+final class TrainingDayAiFeedbackFamily extends $Family
+    with $FunctionalFamilyOverride<Stream<String?>, int> {
+  TrainingDayAiFeedbackFamily._()
+    : super(
+        retry: null,
+        name: r'trainingDayAiFeedbackProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Polls `/training-days/{id}/result` every 5s until `ai_feedback` is non-null,
+  /// then yields the text and closes. Yields `null` while pending so the UI can
+  /// keep the spinner on screen. Auto-disposes when the screen leaves.
+
+  TrainingDayAiFeedbackProvider call(int dayId) =>
+      TrainingDayAiFeedbackProvider._(argument: dayId, from: this);
+
+  @override
+  String toString() => r'trainingDayAiFeedbackProvider';
+}

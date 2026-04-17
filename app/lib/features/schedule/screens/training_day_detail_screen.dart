@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/coach_prompt_bar.dart';
+import 'package:app/features/coach/widgets/swooshing_star.dart';
 import 'package:app/features/schedule/data/training_day_coach_suggestions.dart';
 import 'package:app/features/schedule/models/training_day.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
@@ -105,33 +106,7 @@ class _Loaded extends StatelessWidget {
                     child: TrainingIntervalsTable(intervals: day.intervals!),
                   ),
                 ],
-                if (day.description != null &&
-                    day.description!.trim().isNotEmpty) ...[
-                  const SizedBox(height: 16),
-                  const _SectionTitle('Notes'),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: CupertinoColors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: const [
-                          BoxShadow(color: Color(0x08000000), blurRadius: 16),
-                        ],
-                      ),
-                      child: Text(
-                        day.description!,
-                        style: GoogleFonts.publicSans(
-                          fontSize: 14,
-                          height: 1.5,
-                          color: AppColors.primaryInk,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ..._buildDetailSection(day, status),
                 if (status == TrainingDayStatus.completed &&
                     day.result?.stravaActivity != null) ...[
                   const SizedBox(height: 16),
@@ -191,6 +166,34 @@ class _Loaded extends StatelessWidget {
     if (zone == null) return null;
     return '$zone';
   }
+
+  List<Widget> _buildDetailSection(TrainingDay day, TrainingDayStatus status) {
+    final completed = status == TrainingDayStatus.completed;
+    final description = day.description?.trim();
+
+    if (!completed && (description == null || description.isEmpty)) {
+      return const [];
+    }
+
+    final Widget body = completed
+        ? _AnalysisBody(dayId: day.id, initial: day.result?.aiFeedback)
+        : Text(description!, style: _detailTextStyle);
+
+    return [
+      const SizedBox(height: 16),
+      _SectionTitle(completed ? 'Coach analysis' : 'Notes'),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        child: _DetailCard(child: body),
+      ),
+    ];
+  }
+
+  static TextStyle get _detailTextStyle => GoogleFonts.publicSans(
+        fontSize: 14,
+        height: 1.5,
+        color: AppColors.primaryInk,
+      );
 
   Future<void> _showWatchPlaceholder(BuildContext context) {
     return showCupertinoDialog<void>(
@@ -262,6 +265,52 @@ class _BackButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _DetailCard extends StatelessWidget {
+  final Widget child;
+  const _DetailCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: CupertinoColors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(color: Color(0x08000000), blurRadius: 16),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _AnalysisBody extends ConsumerWidget {
+  final int dayId;
+  final String? initial;
+  const _AnalysisBody({required this.dayId, required this.initial});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final text = (initial != null && initial!.trim().isNotEmpty)
+        ? initial
+        : ref.watch(trainingDayAiFeedbackProvider(dayId)).value;
+
+    if (text != null && text.trim().isNotEmpty) {
+      return Text(text, style: _Loaded._detailTextStyle);
+    }
+
+    return Row(
+      children: [
+        const SwooshingStar(size: 18),
+        const SizedBox(width: 12),
+        Text('Analysing your run…', style: _Loaded._detailTextStyle),
+      ],
     );
   }
 }

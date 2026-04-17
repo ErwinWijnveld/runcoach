@@ -114,3 +114,22 @@ class ManualMatchStravaActivity extends _$ManualMatchStravaActivity {
     await api.unlinkStravaActivity(dayId);
   }
 }
+
+/// Polls `/training-days/{id}/result` every 5s until `ai_feedback` is non-null,
+/// then yields the text and closes. Yields `null` while pending so the UI can
+/// keep the spinner on screen. Auto-disposes when the screen leaves.
+@riverpod
+Stream<String?> trainingDayAiFeedback(Ref ref, int dayId) async* {
+  final api = ref.read(scheduleApiProvider);
+  while (true) {
+    final data = await api.getTrainingResult(dayId);
+    final feedback = (data['data'] as Map?)?['ai_feedback'] as String?;
+    yield feedback;
+    if (feedback != null) {
+      ref.invalidate(trainingDayDetailProvider(dayId));
+      ref.invalidate(trainingDayResultProvider(dayId));
+      return;
+    }
+    await Future.delayed(const Duration(seconds: 5));
+  }
+}
