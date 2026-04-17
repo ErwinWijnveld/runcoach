@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'onboarding_provider.dart';
+part of 'onboarding_shell.dart';
 
 // **************************************************************************
 // RiverpodGenerator
@@ -9,25 +9,25 @@ part of 'onboarding_provider.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 
-@ProviderFor(onboardingConversationId)
-final onboardingConversationIdProvider = OnboardingConversationIdProvider._();
+@ProviderFor(_onboardingConversationId)
+final _onboardingConversationIdProvider = _OnboardingConversationIdProvider._();
 
-final class OnboardingConversationIdProvider
+final class _OnboardingConversationIdProvider
     extends $FunctionalProvider<AsyncValue<String>, String, FutureOr<String>>
     with $FutureModifier<String>, $FutureProvider<String> {
-  OnboardingConversationIdProvider._()
+  _OnboardingConversationIdProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
-        name: r'onboardingConversationIdProvider',
+        name: r'_onboardingConversationIdProvider',
         isAutoDispose: true,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
 
   @override
-  String debugGetCreateSourceHash() => _$onboardingConversationIdHash();
+  String debugGetCreateSourceHash() => _$_onboardingConversationIdHash();
 
   @$internal
   @override
@@ -36,9 +36,9 @@ final class OnboardingConversationIdProvider
 
   @override
   FutureOr<String> create(Ref ref) {
-    return onboardingConversationId(ref);
+    return _onboardingConversationId(ref);
   }
 }
 
-String _$onboardingConversationIdHash() =>
-    r'a8c64deeca0bb483bae839e7d7214c60837eb0ad';
+String _$_onboardingConversationIdHash() =>
+    r'4db9f20df318fab60da5ece5763c9e9dadfadd4a';

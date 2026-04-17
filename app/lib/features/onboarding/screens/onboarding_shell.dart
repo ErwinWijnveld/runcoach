@@ -1,18 +1,28 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:app/core/api/dio_client.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/runcore_logo.dart';
-import 'package:app/features/coach/providers/coach_provider.dart';
+import 'package:app/features/coach/providers/coach_provider.dart'
+    show coachChatProvider, proposalActionsProvider;
 import 'package:app/features/coach/widgets/coach_chat_view.dart';
-import 'package:app/features/onboarding/providers/onboarding_chat_provider.dart';
-import 'package:app/features/onboarding/providers/onboarding_provider.dart';
+
+part 'onboarding_shell.g.dart';
+
+@riverpod
+Future<String> _onboardingConversationId(Ref ref) async {
+  final dio = ref.watch(dioProvider);
+  final response = await dio.post('/onboarding/start');
+  return (response.data as Map<String, dynamic>)['conversation_id'] as String;
+}
 
 class OnboardingShell extends ConsumerWidget {
   const OnboardingShell({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final idAsync = ref.watch(onboardingConversationIdProvider);
+    final idAsync = ref.watch(_onboardingConversationIdProvider);
 
     return CupertinoPageScaffold(
       backgroundColor: AppColors.neutral,
@@ -35,26 +45,32 @@ class OnboardingShell extends ConsumerWidget {
           bottom: false,
           child: Column(
             children: [
-              const _OnboardingTopBar(),
+              const SizedBox(
+                height: 44,
+                child: Center(
+                  child: RunCoreLogo(starSize: 22, textSize: 22, gap: 8),
+                ),
+              ),
               Expanded(
                 child: idAsync.when(
-                  data: (id) => CoachChatView(
+                  data: (id) => _OnboardingAutoKickoff(
                     conversationId: id,
-                    watchMessages: (ref) =>
-                        ref.watch(onboardingChatProvider(id)),
-                    sendMessage: (ref, text, {chipValue}) => ref
-                        .read(onboardingChatProvider(id).notifier)
-                        .sendMessage(text, chipValue: chipValue),
-                    onAccept: (ref, proposalId) async {
-                      await ref
+                    child: CoachChatView(
+                      conversationId: id,
+                      watchMessages: (ref) =>
+                          ref.watch(coachChatProvider(id)),
+                      sendMessage: (ref, text, {chipValue}) => ref
                           .read(coachChatProvider(id).notifier)
-                          .acceptProposal(proposalId);
-                    },
-                    onReject: (ref, proposalId) async {
-                      await ref
-                          .read(coachChatProvider(id).notifier)
-                          .rejectProposal(proposalId);
-                    },
+                          .sendMessage(text, chipValue: chipValue),
+                      onAccept: (ref, proposalId) => ref
+                          .read(proposalActionsProvider.notifier)
+                          .accept(proposalId),
+                      onReject: (ref, proposalId) => ref
+                          .read(proposalActionsProvider.notifier)
+                          .reject(proposalId),
+                      onInvalidate: (ref) =>
+                          ref.invalidate(coachChatProvider(id)),
+                    ),
                   ),
                   loading: () =>
                       const Center(child: CupertinoActivityIndicator()),
@@ -70,20 +86,39 @@ class OnboardingShell extends ConsumerWidget {
   }
 }
 
-class _OnboardingTopBar extends StatelessWidget {
-  const _OnboardingTopBar();
+/// Sends an initial trigger message on first mount so the agent starts its
+/// onboarding script. Subsequent mounts do nothing (the conversation already
+/// has messages).
+class _OnboardingAutoKickoff extends ConsumerStatefulWidget {
+  final String conversationId;
+  final Widget child;
+
+  const _OnboardingAutoKickoff({
+    required this.conversationId,
+    required this.child,
+  });
 
   @override
-  Widget build(BuildContext context) {
-    return const SizedBox(
-      height: 44,
-      child: Center(
-        child: RunCoreLogo(
-          starSize: 22,
-          textSize: 22,
-          gap: 8,
-        ),
-      ),
-    );
+  ConsumerState<_OnboardingAutoKickoff> createState() =>
+      _OnboardingAutoKickoffState();
+}
+
+class _OnboardingAutoKickoffState
+    extends ConsumerState<_OnboardingAutoKickoff> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final messages =
+          await ref.read(coachChatProvider(widget.conversationId).future);
+      if (messages.isEmpty && mounted) {
+        await ref
+            .read(coachChatProvider(widget.conversationId).notifier)
+            .sendMessage('__onboarding_start__');
+      }
+    });
   }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
