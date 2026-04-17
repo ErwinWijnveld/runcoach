@@ -38,7 +38,6 @@ class OnboardingController extends Controller
             'user_id' => $user->id,
             'title' => 'Onboarding',
             'context' => 'onboarding',
-            'meta' => null,
             'created_at' => $now,
             'updated_at' => $now,
         ]);

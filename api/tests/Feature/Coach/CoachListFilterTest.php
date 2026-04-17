@@ -27,7 +27,6 @@ class CoachListFilterTest extends TestCase
             'user_id' => $user->id,
             'title' => 'Regular chat',
             'context' => null,
-            'meta' => json_encode([]),
             'created_at' => $now,
             'updated_at' => $now,
         ]);
@@ -39,7 +38,6 @@ class CoachListFilterTest extends TestCase
             'user_id' => $user->id,
             'title' => 'Onboarding',
             'context' => 'onboarding',
-            'meta' => json_encode(['onboarding_step' => 'plan_proposed']),
             'created_at' => $now,
             'updated_at' => $now,
         ]);
