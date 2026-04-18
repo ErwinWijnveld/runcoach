@@ -188,55 +188,8 @@ class _Bubble extends StatelessWidget {
               Text(message.content, style: bodyStyle)
             else if (message.content.isNotEmpty)
               GptMarkdown(message.content, style: bodyStyle),
-            if (message.streaming && message.content.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: _BlinkingCaret(
-                  key: const Key('streaming-caret'),
-                  color: textColor,
-                ),
-              ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _BlinkingCaret extends StatefulWidget {
-  final Color color;
-  const _BlinkingCaret({super.key, required this.color});
-
-  @override
-  State<_BlinkingCaret> createState() => _BlinkingCaretState();
-}
-
-class _BlinkingCaretState extends State<_BlinkingCaret>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    )..repeat(reverse: true);
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _controller,
-      child: Text(
-        '\u{2589}',
-        style: TextStyle(fontSize: 14, color: widget.color),
       ),
     );
   }

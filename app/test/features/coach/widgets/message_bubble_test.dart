@@ -18,27 +18,6 @@ CoachMessage _msg({
     );
 
 void main() {
-  testWidgets('renders streaming caret when streaming with content',
-      (tester) async {
-    await tester.pumpWidget(
-      CupertinoApp(
-        home: MessageBubble(message: _msg(content: 'Hello', streaming: true)),
-      ),
-    );
-
-    expect(find.byKey(const Key('streaming-caret')), findsOneWidget);
-  });
-
-  testWidgets('does not render caret when streaming is false', (tester) async {
-    await tester.pumpWidget(
-      CupertinoApp(
-        home: MessageBubble(message: _msg(content: 'Hello', streaming: false)),
-      ),
-    );
-
-    expect(find.byKey(const Key('streaming-caret')), findsNothing);
-  });
-
   testWidgets(
     'renders thinking card with default label while streaming with empty content',
     (tester) async {
