@@ -102,7 +102,7 @@ class GenerateActivityFeedback implements ShouldQueue
             ->where('user_id', $activity->user_id)
             ->where('id', '!=', $activity->id)
             ->orderByDesc('start_date')
-            ->limit(5)
+            ->limit(10)
             ->get();
 
         if ($runs->isEmpty()) {

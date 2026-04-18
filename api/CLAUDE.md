@@ -336,6 +336,15 @@ Always run `vendor/bin/pint --dirty --format agent` after modifying PHP files.
 - **Agent tool logging** — `AppServiceProvider::logAgentToolInvocations()` is active in local env and logs every tool in/out with duration to `laravel.log` (`[agent:tool] → Foo input=…` / `← Foo (XXXms) output=…`). Useful for tracing agent behavior.
 - **Admin token dashboard** — `/admin/token-usages` is the fastest way to spot cost regressions, duplicate-logging, or broken cache hits.
 
+## Deployment (Laravel Cloud)
+
+Prod at **https://runcoach.free.laravel.cloud**. Full workaround + commands in `../.laravel-cloud/README.md` and the monorepo-level `../CLAUDE.md` → Deployment. Key points:
+
+- Cloud does not officially support monorepos. `../composer.lock` is a copy of `api/composer.lock` used purely for framework detection; keep them in sync or CI (`.github/workflows/composer-lock-sync.yml`) fails.
+- Build command in Cloud: `bash .laravel-cloud/build.sh` — promotes `api/` to the deployment root, then runs `composer install --no-dev` + `npm ci && npm run build`.
+- Deploy command: `php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan event:cache`.
+- PHP overrides: `public/.user.ini` (web, `memory_limit=512M`, `max_execution_time=150`) and `bootstrap/app.php` line 3 (CLI / queue workers, `ini_set('memory_limit', '512M')`).
+
 ## Specs and plans
 
 All feature design specs live in `../docs/superpowers/specs/` and implementation plans in `../docs/superpowers/plans/`. Before implementing non-trivial changes, consult existing specs and plans first.

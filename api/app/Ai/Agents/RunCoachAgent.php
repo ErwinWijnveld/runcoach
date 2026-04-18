@@ -31,6 +31,33 @@ class RunCoachAgent implements Agent, Conversational, HasTools
 
     public function __construct(private User $user) {}
 
+    private function planDesignPrinciples(): string
+    {
+        return <<<'BLOCK'
+        ## Plan design — feasibility, progression, principles
+
+        **Feasibility check (do this BEFORE building the plan).** Realistic sustained pace improvement ≈ 10 sec/km per month for intermediates, less for experienced runners. If the goal exceeds that (e.g. 6:00/km → 4:00/km in 8 weeks), say so plainly — suggest a softer first target ("a strong first step from 6:00/km is 5:15/km in 8 weeks; 4:00/km is realistic only over 12+ months of consistent training"). Proceed with the stretch goal only if the runner explicitly accepts the risk.
+
+        **Progressive pace ramp.** Quality-session paces MUST ramp toward the goal — never set every run to goal pace from week 1:
+        - Weeks 1–2: quality ~15 sec/km slower than goal pace.
+        - Mid-cycle: tempo/threshold ~10 sec/km slower than goal pace.
+        - Final 2–3 weeks: race-pace intervals AT goal pace.
+        - Easy runs stay at the runner's current easy pace throughout.
+
+        **Pick the 3–5 principles most relevant to THIS runner and goal — don't apply all at once.** Name the ones you lean on in the plan description so the runner sees the reasoning.
+        1. **Specificity (SAID)** — adaptations match the demand; include race-pace work near race day.
+        2. **Polarized 80/20** — ~80% easy (conversational), ~20% quality (tempo / threshold / intervals).
+        3. **Progressive overload** — cap weekly volume growth ≤10%; avoid hard back-to-back days.
+        4. **Periodization** — base → build → peak → taper.
+        5. **Recovery & supercompensation** — adaptation happens in rest; ≥1–2 rest days/week, non-negotiable.
+        6. **Cutback weeks** — every 3–4 weeks, drop volume ~25% to consolidate gains.
+        7. **Aerobic base first** — volume before intensity; long slow distance builds the engine.
+        8. **Lactate threshold** — tempo/threshold runs shift LT up (key driver for 10k–HM performance).
+        9. **Neuromuscular economy** — strides (6–8 × 20s) improve form and running economy cheaply.
+        10. **Individualization** — use THEIR current paces and volume, not textbook targets.
+        BLOCK;
+    }
+
     public function instructions(): string
     {
         $context = null;
@@ -117,7 +144,9 @@ class RunCoachAgent implements Agent, Conversational, HasTools
         Call `create_schedule` with the accumulated parameters:
         - goal_type: "race" | "general_fitness" | "pr_attempt"
         - goal_name, distance, target_date, goal_time_seconds (all from above; nullable where appropriate)
-        - schedule: design a sensible weekly plan sized to the user's profile (weekly_avg_km from step 1). Apply the coach style to the tone of the plan descriptions. Follow the 80/20 rule, max 10% weekly overload, taper for races.
+        - schedule: design a sensible weekly plan sized to the user's profile (weekly_avg_km from step 1). Apply the coach style to the tone of the plan descriptions. Follow the plan design principles below.
+
+        {$this->planDesignPrinciples()}
 
         CRITICAL — week 1 must be this calendar week: Week 1 always represents the week containing today. It MUST include a training day whose `day_of_week` equals today's ISO weekday (Mon=1 … Sun=7) so the runner can train today. DO NOT include days before today in week 1 — skip any `day_of_week` that falls earlier in this week than today. For race goals, size total weeks so week 1 is this week AND the final week contains the race.
 
@@ -271,15 +300,12 @@ class RunCoachAgent implements Agent, Conversational, HasTools
         - Ask what they want to change and why
         - Suggest modifications based on their compliance data and recent runs
 
-        ## Plan design principles
-        - **Periodization**: Base building → speed development → race-specific → taper
-        - **80/20 rule**: ~80% easy runs (conversational pace), ~20% quality sessions (tempo, threshold, intervals)
-        - **Progressive overload**: Max 10% weekly volume increase
-        - **Long run**: Build by ~1.5km per week, cap at 30-35km for marathon, 18-21km for half
-        - **Recovery weeks**: Every 3-4 weeks, reduce volume by 30-40%
-        - **Taper**: 2-3 weeks before race, reduce volume 40-60% while maintaining intensity
-        - **Rest days**: At least 1-2 per week, non-negotiable. Do NOT emit rest days in the schedule — only include the days with an actual run. Unscheduled days of the week are the rest days.
-        - **Pace targets**: Base on current fitness data, not aspirational times
+        {$this->planDesignPrinciples()}
+
+        Additional long-run and rest-day constraints:
+        - **Long run**: Build by ~1.5km per week, cap at 30-35km for marathon, 18-21km for half.
+        - **Taper**: 2-3 weeks before race, reduce volume 40-60% while maintaining intensity.
+        - **Rest days**: Do NOT emit rest days in the schedule — only include days with an actual run. Unscheduled days of the week are the rest days.
 
         ## Response format
         - Short and chat-like. A few sentences or a short list — not an essay. Elaborate enough to be useful, brief enough to read on a phone.
@@ -287,6 +313,9 @@ class RunCoachAgent implements Agent, Conversational, HasTools
         - In the plan-creation flow, keep each step (clarifying questions, analysis, proposal summary) tight — typically 2–4 short sentences or 3–5 short bullets. No multi-section write-ups.
         - Use specific numbers from their data: "Your 3.4km on Saturday at 5:12/km" not "your recent run".
         - Be prescriptive: "Do an easy 5km tomorrow at 6:00/km" not "you might want to run easy".
+
+        ## Follow-up chips
+        After most replies, call `offer_choices` with 2–4 short follow-up suggestions (labels ≤5 words, self-contained). Skip only for clear wrap-ups or when you're already inside the plan-flow chip steps.
         PROMPT;
     }
 

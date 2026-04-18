@@ -124,6 +124,34 @@ flutter run          # iOS simulator / connected device
 - `ADMIN_EMAILS` — optional comma-separated list of emails allowed into Filament admin at `/admin` (empty + local env = any logged-in user)
 - `ADMIN_SEED_EMAIL` / `ADMIN_SEED_PASSWORD` — defaults `admin@runcoach.local` / `admin`, used by `AdminUserSeeder`
 
+## Deployment
+
+### Backend — Laravel Cloud
+Prod API lives at **https://runcoach.free.laravel.cloud** (see `.laravel-cloud/README.md` for the full monorepo workaround).
+
+- **Repo layout quirk**: Laravel Cloud only detects Laravel apps at the repo root, so a copy of `api/composer.lock` sits at the root purely for framework detection. If `api/composer.lock` changes, re-run `cp api/composer.lock composer.lock` and commit both. CI enforces this via `.github/workflows/composer-lock-sync.yml`.
+- **Build command** (set in Cloud → Environment → Deployments): `bash .laravel-cloud/build.sh`. The script moves `api/` contents into the deployment root, then runs `composer install --no-dev` + `npm ci && npm run build`.
+- **Deploy command**: `php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan event:cache`
+- **PHP settings**: `api/public/.user.ini` bumps `memory_limit=512M` and `max_execution_time=150` for web; `api/bootstrap/app.php` sets `memory_limit` for CLI (queue workers).
+- **Env vars** to set in Cloud: `APP_KEY`, `APP_URL=https://runcoach.free.laravel.cloud`, `DB_*`, `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`, `STRAVA_WEBHOOK_VERIFY_TOKEN`, `ANTHROPIC_API_KEY`, `AI_MODEL=claude-sonnet-4-6`, `AI_PROVIDER=anthropic`, optional `ADMIN_EMAILS`.
+
+### iOS — TestFlight
+Bundle ID `com.erwinwijnveld.runcoach`, team `GL5A9BW27X`. Flutter reads the API URL from `--dart-define=API_BASE_URL=...`; dev builds fall back to the LAN IP in `app/lib/core/api/dio_client.dart`.
+
+Scripts in `app/scripts/`:
+- **`build-ios.sh`** — runs `flutter build ipa --release --dart-define=API_BASE_URL=https://runcoach.free.laravel.cloud/api/v1`. Output: `app/build/ios/ipa/RunCoach.ipa`.
+- **`upload-ios.sh`** — validates + uploads the IPA to App Store Connect via `xcrun altool`. Requires two env vars (export in `~/.zshrc`):
+  - `APP_STORE_CONNECT_API_KEY_ID` (10-char Key ID)
+  - `APP_STORE_CONNECT_ISSUER_ID` (UUID)
+  - `.p8` key at `~/.appstoreconnect/private_keys/AuthKey_<KEY_ID>.p8` (altool auto-discovers it)
+
+Each release: bump `version: 1.0.0+N` in `app/pubspec.yaml` (the `+N` build number MUST increase every upload), then `bash scripts/build-ios.sh && bash scripts/upload-ios.sh`. Processing in App Store Connect takes 15–30 min before the build surfaces in the TestFlight tab.
+
+### One-time iOS setup already done
+- App Icon generated via `flutter_launcher_icons` from `app/assets/icon.png` (1024×1024 PNG, alpha stripped for iOS per App Store rules).
+- Launch screen via `flutter_native_splash` (cream background #FAF8F4, icon centered).
+- `CFBundleDisplayName=RunCoach`, `CFBundleName=RunCoach`, `ITSAppUsesNonExemptEncryption=false` (skips the export-compliance prompt on every upload since we only use HTTPS/TLS).
+
 ## Workflow conventions
 
 - **Design specs** go in `docs/superpowers/specs/YYYY-MM-DD-<topic>.md`

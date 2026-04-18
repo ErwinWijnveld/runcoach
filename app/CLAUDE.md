@@ -181,16 +181,33 @@ flutter test
 
 ### Physical device setup
 
-The base URL in `lib/core/api/dio_client.dart` must point to the Mac's local IP (NOT `localhost`) when running on a physical device:
+The base URL is read from a `--dart-define` in `lib/core/api/dio_client.dart`, falling back to a hardcoded LAN IP for `flutter run`:
 ```dart
-const String baseUrl = 'http://192.168.x.x:8000/api/v1';
+const String baseUrl = String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: 'http://192.168.178.31:8000/api/v1',
+);
 ```
-
-Find your IP with `ipconfig getifaddr en0`. Also ensure Laravel is serving on all interfaces: `php artisan serve --host=0.0.0.0 --port=8000`.
+Update the fallback to your Mac's LAN IP (`ipconfig getifaddr en0`) when testing on a physical iPhone. Also ensure Laravel is serving on all interfaces: `php artisan serve --host=0.0.0.0 --port=8000`. Simulator works with the LAN IP too.
 
 ### Bundle identifier
 
 iOS bundle ID is `com.erwinwijnveld.runcoach` in `ios/Runner.xcodeproj/project.pbxproj`. This matches the developer team signing and must stay unique across the App Store.
+
+### Release builds + TestFlight
+
+Two scripts in `app/scripts/` handle the release pipeline. Full flow + prereqs are documented in `../CLAUDE.md` → Deployment.
+
+- **`bash scripts/build-ios.sh`** — runs `flutter build ipa --release --dart-define=API_BASE_URL=https://runcoach.free.laravel.cloud/api/v1`. Override the URL with `API_BASE_URL=... bash scripts/build-ios.sh`.
+- **`bash scripts/upload-ios.sh`** — validates + uploads to App Store Connect via `xcrun altool`. Requires `APP_STORE_CONNECT_API_KEY_ID` + `APP_STORE_CONNECT_ISSUER_ID` env vars and a `.p8` key at `~/.appstoreconnect/private_keys/`.
+
+Before every upload, bump the `+N` build number in `pubspec.yaml` — App Store Connect rejects duplicate build numbers.
+
+Icon and splash are generated from `app/assets/icon.png` via `flutter_launcher_icons` + `flutter_native_splash` (configs in `pubspec.yaml`). Regenerate after swapping the source:
+```bash
+dart run flutter_launcher_icons
+dart run flutter_native_splash:create
+```
 
 ## Conventions
 
