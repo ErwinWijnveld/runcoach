@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/features/auth/models/user.dart';
+import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/coach/providers/coach_provider.dart';
 import 'package:app/features/coach/widgets/coach_chat_view.dart';
 
@@ -11,6 +13,19 @@ class CoachChatScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // If the user just completed onboarding (accepted the proposal inside an
+    // onboarding conversation), take them to the schedule so they land on
+    // their plan rather than sitting on an empty chat follow-up.
+    ref.listen<AsyncValue<User?>>(authProvider, (prev, next) {
+      final wasOnboarding = prev?.value?.hasCompletedOnboarding == false;
+      final nowOnboarded = next.value?.hasCompletedOnboarding == true;
+      if (wasOnboarding && nowOnboarded) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted) context.go('/schedule');
+        });
+      }
+    });
+
     return CupertinoPageScaffold(
       backgroundColor: AppColors.neutral,
       child: DecoratedBox(

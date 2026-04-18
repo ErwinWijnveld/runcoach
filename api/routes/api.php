@@ -52,7 +52,9 @@ Route::prefix('v1')->group(function () {
 
         // Onboarding
         Route::prefix('onboarding')->group(function () {
-            Route::post('/start', [OnboardingController::class, 'start']);
+            Route::get('/profile', [OnboardingController::class, 'profile']);
+            Route::post('/generate-plan', [OnboardingController::class, 'generatePlan']);
+            Route::post('/start', [OnboardingController::class, 'start']); // DEPRECATED
         });
 
         // AI Coach

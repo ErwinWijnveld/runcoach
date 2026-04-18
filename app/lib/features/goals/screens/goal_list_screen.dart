@@ -1,69 +1,71 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show showModalBottomSheet;
+import 'package:flutter/material.dart'
+    show RoundedRectangleBorder, showModalBottomSheet;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/app_header.dart';
 import 'package:app/core/widgets/app_widgets.dart';
+import 'package:app/core/widgets/coach_prompt_bar.dart';
 import 'package:app/features/coach/data/coach_api.dart';
 import 'package:app/features/coach/providers/coach_provider.dart';
+import 'package:app/features/goals/data/goal_coach_suggestions.dart';
 import 'package:app/features/goals/models/goal.dart';
 import 'package:app/features/goals/providers/goal_provider.dart';
 
-const List<_GoalSuggestion> _suggestions = [
-  _GoalSuggestion('Train for a marathon'),
-  _GoalSuggestion('Get faster at 10k'),
-  _GoalSuggestion('Improve general fitness'),
-  _GoalSuggestion('I have a race coming up'),
-];
-
 class GoalListScreen extends ConsumerWidget {
   const GoalListScreen({super.key});
+
+  Future<void> _startNewChat(BuildContext context, WidgetRef ref) async {
+    final api = ref.read(coachApiProvider);
+    final response = await api.createConversation({'title': 'New Chat'});
+    final id = response['data']['id'];
+    ref.invalidate(conversationsProvider);
+    if (context.mounted) context.go('/coach/chat/$id');
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final goalsAsync = ref.watch(goalsProvider);
 
     return CupertinoPageScaffold(
-      backgroundColor: AppColors.cream,
+      backgroundColor: AppColors.neutral,
       child: SafeArea(
         bottom: false,
         child: Column(
           children: [
+            const AppHeader(),
             Expanded(
-              child: CustomScrollView(
-                physics: const BouncingScrollPhysics(
-                  parent: AlwaysScrollableScrollPhysics(),
+              child: goalsAsync.when(
+                loading: () => const AppSpinner(),
+                error: (err, _) => AppErrorState(
+                  title: 'Error: $err',
+                  onRetry: () => ref.invalidate(goalsProvider),
                 ),
-                slivers: [
-                  CupertinoSliverNavigationBar(
-                    backgroundColor: AppColors.cream.withValues(alpha: 0.92),
-                    border: null,
-                    largeTitle: const Text('Goals'),
-                  ),
-                  CupertinoSliverRefreshControl(
-                    onRefresh: () async => ref.invalidate(goalsProvider),
-                  ),
-                  goalsAsync.when(
-                    loading: () =>
-                        const SliverFillRemaining(child: AppSpinner()),
-                    error: (_, _) => SliverFillRemaining(
-                      child: AppErrorState(
-                        title: 'Could not load goals',
-                        onRetry: () => ref.invalidate(goalsProvider),
-                      ),
-                    ),
-                    data: (goals) => _GoalsBody(goals: goals),
-                  ),
-                ],
+                data: (goals) => _GoalsBody(goals: goals),
               ),
             ),
-            const _CoachEntryBar(),
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: CoachPromptBar.navigateAnimated(
+                  onTap: () => _startNewChat(context, ref),
+                  animatedSuggestions: goalCoachSuggestions,
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 }
+
+// ---------------------------------------------------------------------------
+// Body
+// ---------------------------------------------------------------------------
 
 class _GoalsBody extends StatelessWidget {
   final List<Goal> goals;
@@ -72,71 +74,101 @@ class _GoalsBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (goals.isEmpty) {
-      return const SliverFillRemaining(
-        hasScrollBody: false,
-        child: _EmptyState(),
-      );
+      return const _EmptyState();
     }
 
-    // Active first, then everything else by most-recent target_date.
     final active = goals.where((g) => g.status == 'active').toList();
     final others = goals.where((g) => g.status != 'active').toList();
-    final ordered = [...active, ...others];
 
-    return SliverPadding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-      sliver: SliverList.separated(
-        itemCount: ordered.length,
-        separatorBuilder: (_, _) => const SizedBox(height: 10),
-        itemBuilder: (_, i) => _GoalRow(goal: ordered[i]),
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 12),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: _GoalsHeader(),
+          ),
+          if (active.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+              child: _ActiveGoalCard(goal: active.first),
+            ),
+          if (others.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: _SectionTitle('Other goals'),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+              child: Column(
+                children: [
+                  for (int i = 0; i < others.length; i++) ...[
+                    _OtherGoalTile(goal: others[i]),
+                    if (i < others.length - 1) const SizedBox(height: 6),
+                  ],
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+        ],
       ),
     );
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+class _GoalsHeader extends StatelessWidget {
+  const _GoalsHeader();
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              CupertinoIcons.flag,
-              size: 56,
-              color: AppColors.textSecondary,
-            ),
-            SizedBox(height: 12),
-            Text(
-              'No goals yet',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            SizedBox(height: 6),
-            Text(
-              'Ask the coach below to build your first training plan.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
-            ),
-          ],
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          'Your goals',
+          style: GoogleFonts.ebGaramond(
+            fontSize: 32,
+            fontWeight: FontWeight.w500,
+            fontStyle: FontStyle.italic,
+            color: AppColors.primaryInk,
+            height: 1.0,
+          ),
         ),
+      ],
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  final String label;
+  const _SectionTitle(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: GoogleFonts.spaceGrotesk(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.8,
+        color: AppColors.inkMuted,
       ),
     );
   }
 }
 
-class _GoalRow extends ConsumerWidget {
-  final Goal goal;
-  const _GoalRow({required this.goal});
+// ---------------------------------------------------------------------------
+// Active goal — large feature card (matches hero slabs elsewhere in the app)
+// ---------------------------------------------------------------------------
 
-  bool get _isActive => goal.status == 'active';
+class _ActiveGoalCard extends StatelessWidget {
+  final Goal goal;
+  const _ActiveGoalCard({required this.goal});
 
   int? _daysUntil() {
     final td = goal.targetDate;
@@ -152,36 +184,144 @@ class _GoalRow extends ConsumerWidget {
     }
   }
 
-  String _trailingLabel() {
-    final days = _daysUntil();
-    if (_isActive && days != null && days >= 0) {
-      return days == 0 ? 'Race day' : '${days}d';
-    }
-    return goal.status;
+  String _formatGoalTime() {
+    final s = goal.goalTimeSeconds;
+    if (s == null) return '—';
+    final h = s ~/ 3600;
+    final m = (s % 3600) ~/ 60;
+    if (h > 0) return '${h}h ${m.toString().padLeft(2, '0')}m';
+    return '${m}m';
   }
+
+  @override
+  Widget build(BuildContext context) {
+    final days = _daysUntil();
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => context.go('/goals/${goal.id}'),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: CupertinoColors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: const [
+            BoxShadow(color: Color(0x08000000), blurRadius: 16),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(children: [GoldBadge(label: 'ACTIVE')]),
+            const SizedBox(height: 8),
+            Text(
+              goal.name,
+              style: GoogleFonts.ebGaramond(
+                fontSize: 28,
+                fontWeight: FontWeight.w500,
+                fontStyle: FontStyle.italic,
+                color: AppColors.primaryInk,
+                height: 1.05,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: _StatMini(
+                    label: 'DISTANCE',
+                    value: goal.distance ?? '—',
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _StatMini(label: 'GOAL TIME', value: _formatGoalTime()),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _StatMini(
+                    label: days == null || days < 0
+                        ? 'TARGET'
+                        : (days == 0 ? 'TODAY' : 'DAYS LEFT'),
+                    value: days == null || days < 0
+                        ? (goal.targetDate ?? '—')
+                        : (days == 0 ? '🏁' : '$days'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StatMini extends StatelessWidget {
+  final String label;
+  final String value;
+  const _StatMini({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+      decoration: BoxDecoration(
+        color: AppColors.neutral,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        children: [
+          Text(label, style: RunCoreText.statLabel()),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: GoogleFonts.spaceGrotesk(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primaryInk,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Inactive / past goal row
+// ---------------------------------------------------------------------------
+
+class _OtherGoalTile extends ConsumerWidget {
+  final Goal goal;
+  const _OtherGoalTile({required this.goal});
+
+  bool get _canReactivate =>
+      goal.status == 'paused' || goal.status == 'planning';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () {
-        if (_isActive) {
-          context.go('/goals/${goal.id}');
-        } else {
+        if (_canReactivate) {
           _showSwitchSheet(context, ref);
+        } else {
+          context.go('/goals/${goal.id}');
         }
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          color: _isActive ? AppColors.cardBg : AppColors.lightTan,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: _isActive
-                ? AppColors.warmBrown.withValues(alpha: 0.35)
-                : AppColors.border,
-            width: _isActive ? 1.4 : 1,
-          ),
+          color: CupertinoColors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(color: Color(0x06000000), blurRadius: 10),
+          ],
         ),
         child: Row(
           children: [
@@ -193,12 +333,10 @@ class _GoalRow extends ConsumerWidget {
                     goal.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: GoogleFonts.publicSans(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: _isActive
-                          ? AppColors.textPrimary
-                          : AppColors.textSecondary,
+                      color: AppColors.primaryInk,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -207,9 +345,9 @@ class _GoalRow extends ConsumerWidget {
                       if (goal.distance != null) goal.distance,
                       if (goal.targetDate != null) goal.targetDate,
                     ].whereType<String>().join(' · '),
-                    style: const TextStyle(
+                    style: GoogleFonts.publicSans(
                       fontSize: 12,
-                      color: AppColors.textSecondary,
+                      color: AppColors.inkMuted,
                     ),
                   ),
                 ],
@@ -217,14 +355,21 @@ class _GoalRow extends ConsumerWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              _trailingLabel(),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: _isActive
+              _canReactivate ? 'Switch' : goal.status.toUpperCase(),
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6,
+                color: _canReactivate
                     ? AppColors.warmBrown
-                    : AppColors.textSecondary,
+                    : AppColors.inkMuted,
               ),
+            ),
+            const SizedBox(width: 6),
+            const Icon(
+              CupertinoIcons.chevron_right,
+              size: 14,
+              color: AppColors.inkMuted,
             ),
           ],
         ),
@@ -235,7 +380,10 @@ class _GoalRow extends ConsumerWidget {
   void _showSwitchSheet(BuildContext context, WidgetRef ref) {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.cream,
+      backgroundColor: CupertinoColors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (sheetCtx) => SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
@@ -243,22 +391,23 @@ class _GoalRow extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
+              Text(
                 'Switch active goal?',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                style: GoogleFonts.ebGaramond(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w500,
+                  fontStyle: FontStyle.italic,
+                  color: AppColors.primaryInk,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 8),
               Text(
                 'Make "${goal.name}" your active goal. Your current active goal will be paused.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: GoogleFonts.publicSans(
                   fontSize: 13,
-                  color: AppColors.textSecondary,
+                  color: AppColors.inkMuted,
                 ),
               ),
               const SizedBox(height: 16),
@@ -283,116 +432,48 @@ class _GoalRow extends ConsumerWidget {
   }
 }
 
-class _CoachEntryBar extends ConsumerWidget {
-  const _CoachEntryBar();
+// ---------------------------------------------------------------------------
+// Empty state
+// ---------------------------------------------------------------------------
 
-  Future<void> _startNewChat(BuildContext context, WidgetRef ref) async {
-    final api = ref.read(coachApiProvider);
-    final response = await api.createConversation({'title': 'New Chat'});
-    final id = response['data']['id'];
-    ref.invalidate(conversationsProvider);
-    if (context.mounted) context.go('/coach/chat/$id');
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.cream,
-        border: Border(top: BorderSide(color: AppColors.border, width: 0.5)),
-      ),
-      padding: EdgeInsets.fromLTRB(
-        12,
-        10,
-        12,
-        MediaQuery.of(context).padding.bottom + 10,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (final s in _suggestions) ...[
-                  _SuggestionChip(
-                    label: s.label,
-                    onTap: () => _startNewChat(context, ref),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-          GestureDetector(
-            onTap: () => _startNewChat(context, ref),
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.lightTan,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: const Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Ask the coach anything…',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                  Icon(
-                    CupertinoIcons.arrow_up_circle_fill,
-                    size: 22,
-                    color: AppColors.warmBrown,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SuggestionChip extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  const _SuggestionChip({required this.label, required this.onTap});
+class _EmptyState extends StatelessWidget {
+  const _EmptyState();
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: AppColors.cardBg,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: AppColors.textPrimary,
-          ),
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              CupertinoIcons.flag,
+              size: 56,
+              color: AppColors.inkMuted,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'No goals yet',
+              style: GoogleFonts.ebGaramond(
+                fontSize: 24,
+                fontWeight: FontWeight.w500,
+                fontStyle: FontStyle.italic,
+                color: AppColors.primaryInk,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Ask the coach below to build your first training plan.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.publicSans(
+                fontSize: 14,
+                color: AppColors.inkMuted,
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
-}
-
-class _GoalSuggestion {
-  final String label;
-  const _GoalSuggestion(this.label);
 }

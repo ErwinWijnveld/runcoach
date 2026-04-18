@@ -11,7 +11,7 @@ class AppColors {
   static const textPrimary = Color(0xFF2D2D2D);
   static const textSecondary = Color(0xFF888888);
   static const success = Color(0xFF4CAF50);
-  static const danger = Color(0xFFD0504E);
+  static const danger = Color(0xFF8F3A3A);
   static const todayHighlight = Color(0xFF8B7355);
 
   // RunCore design system tokens (Figma)

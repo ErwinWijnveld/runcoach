@@ -610,33 +610,12 @@ class _UnlinkStravaButtonState extends ConsumerState<_UnlinkStravaButton> {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: _busy ? null : _confirmAndUnlink,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: AppColors.neutralHighlight,
-            border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          alignment: Alignment.center,
-          child: _busy
-              ? const CupertinoActivityIndicator(radius: 10)
-              : Text(
-                  'UNLINK STRAVA RUN',
-                  style: GoogleFonts.spaceGrotesk(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.danger,
-                  ),
-                ),
-        ),
-      ),
+    return AppFilledButton(
+      label: 'Unlink Strava run',
+      icon: CupertinoIcons.link,
+      color: AppColors.danger,
+      loading: _busy,
+      onPressed: _confirmAndUnlink,
     );
   }
 }

@@ -15,7 +15,9 @@ import 'package:app/features/coach/screens/coach_chat_list_screen.dart';
 import 'package:app/features/coach/screens/coach_chat_screen.dart';
 import 'package:app/features/goals/screens/goal_list_screen.dart';
 import 'package:app/features/goals/screens/goal_detail_screen.dart';
-import 'package:app/features/onboarding/screens/onboarding_shell.dart';
+import 'package:app/features/onboarding/screens/onboarding_overview_screen.dart';
+import 'package:app/features/onboarding/screens/onboarding_form_screen.dart';
+import 'package:app/features/onboarding/screens/onboarding_generating_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -37,7 +39,10 @@ GoRouter appRouter(Ref ref) {
       if (isLoggedIn && isAuthRoute) return '/dashboard';
 
       final user = authState.value;
-      if (isLoggedIn && user?.hasCompletedOnboarding == false && state.matchedLocation != '/onboarding') {
+      if (isLoggedIn &&
+          user?.hasCompletedOnboarding == false &&
+          !state.matchedLocation.startsWith('/onboarding') &&
+          !state.matchedLocation.startsWith('/coach/chat/')) {
         return '/onboarding';
       }
 
@@ -54,7 +59,20 @@ GoRouter appRouter(Ref ref) {
       ),
       GoRoute(
         path: '/onboarding',
-        builder: (context, state) => const OnboardingShell(),
+        redirect: (context, state) =>
+            state.matchedLocation == '/onboarding' ? '/onboarding/overview' : null,
+      ),
+      GoRoute(
+        path: '/onboarding/overview',
+        builder: (context, state) => const OnboardingOverviewScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding/form',
+        builder: (context, state) => const OnboardingFormScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding/generating',
+        builder: (context, state) => const OnboardingGeneratingScreen(),
       ),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,

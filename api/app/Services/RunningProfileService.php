@@ -2,12 +2,10 @@
 
 namespace App\Services;
 
-use App\Ai\Agents\RunningNarrativeAgent;
 use App\Models\User;
 use App\Models\UserRunningProfile;
 use App\Services\Strava\StravaClient;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\Log;
 
 class RunningProfileService
 {
@@ -24,13 +22,33 @@ class RunningProfileService
         $runs = array_filter($activities, fn ($a) => ($a['type'] ?? '') === 'Run');
 
         $profile = $this->computeMetrics($user, array_values($runs));
-        $profile->narrative_summary = $this->generateNarrative($profile->metrics);
+        $profile->narrative_summary = $this->fixedNarrative();
         $profile->analyzed_at = now();
         $profile->data_start_date = $start;
         $profile->data_end_date = $end;
         $profile->save();
 
         return $profile;
+    }
+
+    /**
+     * Returns a cached profile when one exists, otherwise analyzes from the
+     * user's Strava history. Returns null while the initial Strava sync is
+     * still in flight (no activities synced yet).
+     */
+    public function getOrAnalyze(User $user): ?UserRunningProfile
+    {
+        $existing = $user->runningProfile()->first();
+
+        if ($existing) {
+            return $existing;
+        }
+
+        if (! $user->stravaActivities()->exists()) {
+            return null;
+        }
+
+        return $this->analyze($user);
     }
 
     public function computeMetrics(User $user, array $runs): UserRunningProfile
@@ -110,24 +128,8 @@ class RunningProfileService
         return $this->trend($runs, fn ($r) => $r['distance'] > 0 ? $r['moving_time'] / $r['distance'] : 0);
     }
 
-    private function generateNarrative(array $metrics): string
+    private function fixedNarrative(): string
     {
-        try {
-            $response = RunningNarrativeAgent::make()->prompt('Metrics: '.json_encode($metrics));
-
-            $text = trim($response->text);
-
-            return $text !== '' ? $text : "Here's your last 12 months.";
-        } catch (\Throwable $e) {
-            Log::warning('Narrative generation failed', ['error' => $e->getMessage()]);
-
-            return "Here's your last 12 months.";
-        }
-    }
-
-    /** @internal — exposed for testing only */
-    public function generateNarrativePublic(array $metrics): string
-    {
-        return $this->generateNarrative($metrics);
+        return "Here's your last 12 months of running on Strava.";
     }
 }

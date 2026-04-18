@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Services;
 
-use App\Ai\Agents\RunningNarrativeAgent;
 use App\Models\User;
 use App\Models\UserRunningProfile;
 use App\Services\RunningProfileService;
@@ -60,46 +59,5 @@ class RunningProfileServiceTest extends TestCase
         $this->assertEquals(0, $profile->metrics['total_runs_12mo']);
         $this->assertEquals(0.0, $profile->metrics['weekly_avg_km']);
         $this->assertEquals(0, $profile->metrics['consistency_score']);
-    }
-
-    public function test_generate_narrative_uses_agent_with_metrics_context(): void
-    {
-        $metrics = [
-            'weekly_avg_km' => 25.0,
-            'weekly_avg_runs' => 3,
-            'consistency_score' => 85,
-            'long_run_trend' => 'improving',
-            'pace_trend' => 'flat',
-        ];
-
-        $receivedPrompt = null;
-        RunningNarrativeAgent::fake([
-            function (string $prompt) use (&$receivedPrompt) {
-                $receivedPrompt = $prompt;
-
-                return 'Strong consistent year.';
-            },
-        ]);
-
-        $service = new RunningProfileService(app(StravaClient::class));
-        $narrative = $service->generateNarrativePublic($metrics);
-
-        $this->assertEquals('Strong consistent year.', $narrative);
-        $this->assertStringContainsString((string) $metrics['weekly_avg_km'], $receivedPrompt);
-        $this->assertStringContainsString('improving', $receivedPrompt);
-    }
-
-    public function test_generate_narrative_falls_back_on_agent_failure(): void
-    {
-        RunningNarrativeAgent::fake([
-            function (): never {
-                throw new \Exception('API down');
-            },
-        ]);
-
-        $service = new RunningProfileService(app(StravaClient::class));
-        $narrative = $service->generateNarrativePublic(['weekly_avg_km' => 10]);
-
-        $this->assertEquals("Here's your last 12 months.", $narrative);
     }
 }

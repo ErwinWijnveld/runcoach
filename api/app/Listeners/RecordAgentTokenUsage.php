@@ -3,8 +3,8 @@
 namespace App\Listeners;
 
 use App\Ai\Agents\ActivityFeedbackAgent;
+use App\Ai\Agents\OnboardingPlanAgent;
 use App\Ai\Agents\RunCoachAgent;
-use App\Ai\Agents\RunningNarrativeAgent;
 use App\Ai\Agents\WeeklyInsightAgent;
 use App\Models\TokenUsage;
 use Illuminate\Support\Facades\DB;
@@ -101,7 +101,7 @@ class RecordAgentTokenUsage
         return match (true) {
             $agent instanceof ActivityFeedbackAgent => 'activity_feedback',
             $agent instanceof WeeklyInsightAgent => 'weekly_insight',
-            $agent instanceof RunningNarrativeAgent => 'running_narrative',
+            $agent instanceof OnboardingPlanAgent => 'onboarding_plan',
             default => Str::snake(class_basename($agent)),
         };
     }

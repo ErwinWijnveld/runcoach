@@ -312,58 +312,6 @@ class AppFilledButton extends StatelessWidget {
   }
 }
 
-class AppBorderedButton extends StatelessWidget {
-  final String label;
-  final VoidCallback? onPressed;
-  final IconData? icon;
-  final Color color;
-  const AppBorderedButton({
-    super.key,
-    required this.label,
-    this.onPressed,
-    this.icon,
-    this.color = AppColors.warmBrown,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: CupertinoButton(
-        onPressed: onPressed,
-        borderRadius: BorderRadius.circular(AppRadius.button),
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
-        child: Container(
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            border: Border.all(color: color.withValues(alpha: 0.4)),
-            borderRadius: BorderRadius.circular(AppRadius.button),
-          ),
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[
-                Icon(icon, color: color, size: 18),
-                const SizedBox(width: 8),
-              ],
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: color,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 Future<void> showAppAlert(
   BuildContext context, {
   required String title,
