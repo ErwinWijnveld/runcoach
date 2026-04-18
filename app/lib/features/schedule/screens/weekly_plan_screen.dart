@@ -37,7 +37,7 @@ class WeeklyPlanScreen extends ConsumerWidget {
                 data: (dashboard) {
                   final race = dashboard.activeGoal;
                   if (race == null) {
-                    return _EmptyState(onCreate: () => context.go('/coach'));
+                    return _EmptyState(onOpenGoals: () => context.go('/goals'));
                   }
                   final weeksAsync = ref.watch(scheduleProvider(race.id));
                   return weeksAsync.when(
@@ -72,8 +72,8 @@ class WeeklyPlanScreen extends ConsumerWidget {
 // ---------------------------------------------------------------------------
 
 class _EmptyState extends StatelessWidget {
-  final VoidCallback onCreate;
-  const _EmptyState({required this.onCreate});
+  final VoidCallback onOpenGoals;
+  const _EmptyState({required this.onOpenGoals});
 
   @override
   Widget build(BuildContext context) {
@@ -90,17 +90,21 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             const Text(
-              'No active training plan',
+              'No active goal',
               style: TextStyle(
                 fontSize: 16,
-                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
               ),
             ),
-            const SizedBox(height: 16),
-            AppFilledButton(
-              label: 'Create one with AI Coach',
-              onPressed: onCreate,
+            const SizedBox(height: 6),
+            const Text(
+              'Pick a goal (or ask the coach to build one) to see its schedule here.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
             ),
+            const SizedBox(height: 16),
+            AppFilledButton(label: 'Go to Goals', onPressed: onOpenGoals),
           ],
         ),
       ),

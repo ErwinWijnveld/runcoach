@@ -26,6 +26,9 @@ abstract class GoalApi {
 
   @DELETE('/goals/{id}')
   Future<void> deleteGoal(@Path() int id);
+
+  @POST('/goals/{id}/activate')
+  Future<dynamic> activateGoal(@Path() int id);
 }
 
 @riverpod

@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\DB;
 
 class ProposalService
 {
+    public function __construct(private GoalService $goals) {}
+
     /**
      * Detect proposals from the SDK's stored tool results after an agent prompt.
      * The SDK stores tool_calls and tool_results in agent_conversation_messages.
@@ -113,8 +115,10 @@ class ProposalService
             'distance' => $payload['distance'] ?? null,
             'goal_time_seconds' => $payload['goal_time_seconds'] ?? null,
             'target_date' => $payload['target_date'] ?? null,
-            'status' => GoalStatus::Active,
+            'status' => GoalStatus::Planning,
         ]);
+
+        $this->goals->activate($goal);
 
         $weeks = $payload['schedule']['weeks'] ?? [];
         $today = now()->startOfDay();

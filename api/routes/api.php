@@ -31,6 +31,7 @@ Route::prefix('v1')->group(function () {
 
         // Goals
         Route::apiResource('goals', GoalController::class);
+        Route::post('goals/{goal}/activate', [GoalController::class, 'activate']);
 
         // Training Schedule
         Route::get('goals/{goal}/schedule', [TrainingScheduleController::class, 'schedule']);

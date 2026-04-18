@@ -1,4 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:app/features/dashboard/providers/dashboard_provider.dart';
 import 'package:app/features/goals/data/goal_api.dart';
 import 'package:app/features/goals/models/goal.dart';
 
@@ -52,5 +53,12 @@ class GoalActions extends _$GoalActions {
     final api = ref.read(goalApiProvider);
     await api.deleteGoal(id);
     ref.invalidate(goalsProvider);
+  }
+
+  Future<void> activateGoal(int id) async {
+    final api = ref.read(goalApiProvider);
+    await api.activateGoal(id);
+    ref.invalidate(goalsProvider);
+    ref.invalidate(dashboardProvider);
   }
 }

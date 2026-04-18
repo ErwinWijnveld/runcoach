@@ -14,7 +14,6 @@ import 'package:app/features/schedule/screens/training_result_screen.dart';
 import 'package:app/features/coach/screens/coach_chat_list_screen.dart';
 import 'package:app/features/coach/screens/coach_chat_screen.dart';
 import 'package:app/features/goals/screens/goal_list_screen.dart';
-import 'package:app/features/goals/screens/goal_create_screen.dart';
 import 'package:app/features/goals/screens/goal_detail_screen.dart';
 import 'package:app/features/onboarding/screens/onboarding_shell.dart';
 
@@ -108,10 +107,6 @@ GoRouter appRouter(Ref ref) {
               child: GoalListScreen(),
             ),
             routes: [
-              GoRoute(
-                path: 'new',
-                builder: (context, state) => const GoalCreateScreen(),
-              ),
               GoRoute(
                 path: ':goalId',
                 builder: (context, state) => GoalDetailScreen(

@@ -148,7 +148,7 @@ final class GoalActionsProvider
   }
 }
 
-String _$goalActionsHash() => r'c22dc7de494593c1bfc7eeaf605fe4f939b4e32d';
+String _$goalActionsHash() => r'aacef173458d53cfb150228e6e8f7ea5d4b0c40b';
 
 abstract class _$GoalActions extends $Notifier<AsyncValue<void>> {
   AsyncValue<void> build();

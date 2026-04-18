@@ -5,11 +5,14 @@ namespace App\Http\Controllers;
 use App\Enums\GoalStatus;
 use App\Http\Requests\StoreGoalRequest;
 use App\Models\Goal;
+use App\Services\GoalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class GoalController extends Controller
 {
+    public function __construct(private GoalService $goals) {}
+
     public function index(Request $request): JsonResponse
     {
         $goals = $request->user()->goals()
@@ -60,5 +63,14 @@ class GoalController extends Controller
         $goal->update(['status' => GoalStatus::Cancelled]);
 
         return response()->json(['message' => 'Goal cancelled']);
+    }
+
+    public function activate(Request $request, Goal $goal): JsonResponse
+    {
+        abort_unless($goal->user_id === $request->user()->id, 403);
+
+        $fresh = $this->goals->activate($goal);
+
+        return response()->json(['data' => $fresh]);
     }
 }

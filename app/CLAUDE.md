@@ -199,7 +199,7 @@ iOS bundle ID is `com.erwinwijnveld.runcoach` in `ios/Runner.xcodeproj/project.p
 Two scripts in `app/scripts/` handle the release pipeline. Full flow + prereqs are documented in `../CLAUDE.md` → Deployment.
 
 - **`bash scripts/build-ios.sh`** — runs `flutter build ipa --release --dart-define=API_BASE_URL=https://runcoach.free.laravel.cloud/api/v1`. Override the URL with `API_BASE_URL=... bash scripts/build-ios.sh`.
-- **`bash scripts/upload-ios.sh`** — validates + uploads to App Store Connect via `xcrun altool`. Requires `APP_STORE_CONNECT_API_KEY_ID` + `APP_STORE_CONNECT_ISSUER_ID` env vars and a `.p8` key at `~/.appstoreconnect/private_keys/`.
+- **`bash scripts/upload-ios.sh`** — validates + uploads to App Store Connect via `xcrun altool`. Credentials already configured on this machine (`APP_STORE_CONNECT_API_KEY_ID` + `APP_STORE_CONNECT_ISSUER_ID` in `~/.zshrc`, `.p8` key in `~/.appstoreconnect/private_keys/`). Just run the script.
 
 Before every upload, bump the `+N` build number in `pubspec.yaml` — App Store Connect rejects duplicate build numbers.
 

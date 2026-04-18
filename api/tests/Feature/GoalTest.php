@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\GoalStatus;
 use App\Models\Goal;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -97,6 +98,35 @@ class GoalTest extends TestCase
 
         $response->assertOk();
         $this->assertDatabaseHas('goals', ['id' => $goal->id, 'status' => 'cancelled']);
+    }
+
+    public function test_activate_goal_pauses_other_active_goals(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $previouslyActive = Goal::factory()->create([
+            'user_id' => $user->id,
+            'status' => GoalStatus::Active,
+        ]);
+        $target = Goal::factory()->create([
+            'user_id' => $user->id,
+            'status' => GoalStatus::Paused,
+        ]);
+
+        $response = $this->postJson("/api/v1/goals/{$target->id}/activate", [], $headers);
+
+        $response->assertOk();
+        $this->assertDatabaseHas('goals', ['id' => $target->id, 'status' => 'active']);
+        $this->assertDatabaseHas('goals', ['id' => $previouslyActive->id, 'status' => 'paused']);
+    }
+
+    public function test_activate_is_scoped_to_current_user(): void
+    {
+        [, $headers] = $this->authUser();
+        $otherGoal = Goal::factory()->create(['status' => GoalStatus::Paused]);
+
+        $response = $this->postJson("/api/v1/goals/{$otherGoal->id}/activate", [], $headers);
+
+        $response->assertForbidden();
     }
 
     public function test_cannot_access_other_users_goal(): void

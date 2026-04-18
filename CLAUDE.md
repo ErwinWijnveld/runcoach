@@ -140,10 +140,7 @@ Bundle ID `com.erwinwijnveld.runcoach`, team `GL5A9BW27X`. Flutter reads the API
 
 Scripts in `app/scripts/`:
 - **`build-ios.sh`** — runs `flutter build ipa --release --dart-define=API_BASE_URL=https://runcoach.free.laravel.cloud/api/v1`. Output: `app/build/ios/ipa/RunCoach.ipa`.
-- **`upload-ios.sh`** — validates + uploads the IPA to App Store Connect via `xcrun altool`. Requires two env vars (export in `~/.zshrc`):
-  - `APP_STORE_CONNECT_API_KEY_ID` (10-char Key ID)
-  - `APP_STORE_CONNECT_ISSUER_ID` (UUID)
-  - `.p8` key at `~/.appstoreconnect/private_keys/AuthKey_<KEY_ID>.p8` (altool auto-discovers it)
+- **`upload-ios.sh`** — validates + uploads the IPA to App Store Connect via `xcrun altool`. Already configured on this machine — `APP_STORE_CONNECT_API_KEY_ID` + `APP_STORE_CONNECT_ISSUER_ID` are exported in `~/.zshrc`, and the `.p8` key is at `~/.appstoreconnect/private_keys/AuthKey_<KEY_ID>.p8`. Just run the script — no need to re-export anything.
 
 Each release: bump `version: 1.0.0+N` in `app/pubspec.yaml` (the `+N` build number MUST increase every upload), then `bash scripts/build-ios.sh && bash scripts/upload-ios.sh`. Processing in App Store Connect takes 15–30 min before the build surfaces in the TestFlight tab.
 
