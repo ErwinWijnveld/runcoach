@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Colors;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
 
@@ -82,7 +83,7 @@ class _ChoiceTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.primaryInk : AppColors.cardBg;
+    final color = selected ? AppColors.primaryInk : Colors.white;
     final borderColor = selected ? AppColors.primaryInk : AppColors.border;
     final textColor = selected ? AppColors.neutral : AppColors.primaryInk;
     final subtitleColor = selected ? AppColors.neutralHighlight : AppColors.inkMuted;

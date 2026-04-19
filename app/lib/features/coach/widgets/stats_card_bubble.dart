@@ -5,8 +5,15 @@ import 'package:app/core/theme/app_theme.dart';
 /// Stats card rendered inside the bot-message bubble. 2x2 grid of metric tiles.
 class StatsCardBubble extends StatelessWidget {
   final Map<String, dynamic> metrics;
+  final Color tileColor;
+  final double tileAspectRatio;
 
-  const StatsCardBubble({super.key, required this.metrics});
+  const StatsCardBubble({
+    super.key,
+    required this.metrics,
+    this.tileColor = AppColors.lightTan,
+    this.tileAspectRatio = 1.0,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -48,10 +55,10 @@ class StatsCardBubble extends StatelessWidget {
 
   Widget _metric(_Tile t) {
     return AspectRatio(
-      aspectRatio: 1.0,
+      aspectRatio: tileAspectRatio,
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.lightTan,
+          color: tileColor,
           borderRadius: BorderRadius.circular(24),
           boxShadow: const [
             BoxShadow(color: Color(0x08000000), blurRadius: 16),
@@ -89,7 +96,7 @@ class StatsCardBubble extends StatelessWidget {
   String _formatKm(dynamic v) => v == null ? '0' : (v is num ? v.toStringAsFixed(1) : '$v');
 
   String _formatPace(dynamic seconds) {
-    if (seconds == null || seconds is! num || seconds == 0) return '—';
+    if (seconds == null || seconds is! num || seconds == 0) return '-';
     final s = seconds.toInt();
     final mins = s ~/ 60;
     final secs = s % 60;
@@ -97,7 +104,7 @@ class StatsCardBubble extends StatelessWidget {
   }
 
   String _formatDuration(dynamic seconds) {
-    if (seconds == null || seconds is! num || seconds == 0) return '—';
+    if (seconds == null || seconds is! num || seconds == 0) return '-';
     final s = seconds.toInt();
     final mins = s ~/ 60;
     final secs = s % 60;

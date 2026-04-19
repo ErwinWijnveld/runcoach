@@ -37,6 +37,17 @@ class OnboardingPlanGeneratorService
         $profile = $this->profiles->getOrAnalyze($user);
         $metrics = $profile?->metrics ?? [];
 
+        $preferredWeekdays = $formData['preferred_weekdays'] ?? null;
+        if (is_array($preferredWeekdays)) {
+            $preferredWeekdays = array_values(array_unique(array_map('intval', $preferredWeekdays)));
+            sort($preferredWeekdays);
+            if (count($preferredWeekdays) === 0) {
+                $preferredWeekdays = null;
+            }
+        } else {
+            $preferredWeekdays = null;
+        }
+
         $prompt = $this->promptBuilder->build(
             goalType: $formData['goal_type'],
             distanceMeters: $formData['distance_meters'] ?? null,
@@ -49,6 +60,8 @@ class OnboardingPlanGeneratorService
             profileMetrics: $metrics,
             todayIso: now()->toDateString(),
             todayWeekday: (int) now()->isoWeekday(),
+            preferredWeekdays: $preferredWeekdays,
+            additionalNotes: $formData['additional_notes'] ?? null,
         );
 
         $response = OnboardingPlanAgent::make()->prompt($prompt);
@@ -85,7 +98,7 @@ class OnboardingPlanGeneratorService
                 'user_id' => $user->id,
                 'agent' => 'App\\Ai\\Agents\\RunCoachAgent',
                 'role' => 'assistant',
-                'content' => "Based on your performance over the last year and your goals, I've built a plan for you. Take a look below — tap Accept if it looks right, or Adjust if you'd like me to tweak anything.",
+                'content' => "Based on your performance over the last year and your goals, I've built a plan for you. Take a look below. Tap Accept if it looks right, or Adjust if you'd like me to tweak anything.",
                 'attachments' => '[]',
                 'tool_calls' => '[]',
                 'tool_results' => json_encode([
@@ -157,6 +170,7 @@ class OnboardingPlanGeneratorService
         return match ($formData['goal_type']) {
             'race' => 'Race',
             'pr' => 'Personal record attempt',
+            'weight_loss' => 'Weight loss',
             default => 'General fitness',
         };
     }

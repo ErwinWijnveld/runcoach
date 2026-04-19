@@ -24,7 +24,7 @@ class TokenUsagesTable
                 TextColumn::make('user.email')
                     ->label('User')
                     ->searchable()
-                    ->placeholder('— system —')
+                    ->placeholder('(system)')
                     ->toggleable(),
                 TextColumn::make('context')
                     ->badge()

@@ -18,11 +18,15 @@ _OnboardingFormData _$OnboardingFormDataFromJson(Map<String, dynamic> json) =>
       goalTimeSeconds: (json['goal_time_seconds'] as num?)?.toInt(),
       prCurrentSeconds: (json['pr_current_seconds'] as num?)?.toInt(),
       daysPerWeek: (json['days_per_week'] as num?)?.toInt(),
+      preferredWeekdays: (json['preferred_weekdays'] as List<dynamic>?)
+          ?.map((e) => (e as num).toInt())
+          .toList(),
       coachStyle: $enumDecodeNullable(
         _$CoachStyleOptionEnumMap,
         json['coach_style'],
       ),
       notes: json['notes'] as String?,
+      additionalNotes: json['additional_notes'] as String?,
     );
 
 Map<String, dynamic> _$OnboardingFormDataToJson(_OnboardingFormData instance) =>
@@ -34,14 +38,17 @@ Map<String, dynamic> _$OnboardingFormDataToJson(_OnboardingFormData instance) =>
       'goal_time_seconds': instance.goalTimeSeconds,
       'pr_current_seconds': instance.prCurrentSeconds,
       'days_per_week': instance.daysPerWeek,
+      'preferred_weekdays': instance.preferredWeekdays,
       'coach_style': _$CoachStyleOptionEnumMap[instance.coachStyle],
       'notes': instance.notes,
+      'additional_notes': instance.additionalNotes,
     };
 
 const _$OnboardingGoalTypeEnumMap = {
   OnboardingGoalType.race: 'race',
   OnboardingGoalType.pr: 'pr',
   OnboardingGoalType.fitness: 'fitness',
+  OnboardingGoalType.weightLoss: 'weight_loss',
 };
 
 const _$CoachStyleOptionEnumMap = {

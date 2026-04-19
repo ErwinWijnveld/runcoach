@@ -400,7 +400,7 @@ class _DayRow extends StatelessWidget {
         : null;
     final dayLabel = (dow != null && dow >= 1 && dow <= 7)
         ? _WeekCard._dayNames[dow - 1]
-        : '—';
+        : '-';
     final title = (day['title'] as String?)?.trim().isNotEmpty == true
         ? day['title'] as String
         : _prettifyType(day['type'] as String?);

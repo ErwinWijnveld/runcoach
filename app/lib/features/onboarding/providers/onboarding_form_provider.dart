@@ -39,12 +39,25 @@ class OnboardingForm extends _$OnboardingForm {
     state = state.copyWith(daysPerWeek: days);
   }
 
+  void setPreferredWeekdays(List<int>? weekdays) {
+    final cleaned = weekdays == null || weekdays.isEmpty
+        ? null
+        : (List<int>.from(weekdays)..sort());
+    state = state.copyWith(preferredWeekdays: cleaned);
+  }
+
   void setCoachStyle(CoachStyleOption style) {
     state = state.copyWith(coachStyle: style);
   }
 
   void setNotes(String? notes) {
     state = state.copyWith(notes: (notes != null && notes.trim().isEmpty) ? null : notes);
+  }
+
+  void setAdditionalNotes(String? notes) {
+    state = state.copyWith(
+      additionalNotes: (notes != null && notes.trim().isEmpty) ? null : notes,
+    );
   }
 
   /// Strip fields that aren't relevant for the chosen goal type. Called

@@ -10,7 +10,7 @@ part 'dio_client.g.dart';
 // physical iPhones can reach the Mac's `php artisan serve --host=0.0.0.0`.
 const String baseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'http://192.168.2.104:8000/api/v1',
+  defaultValue: 'http://localhost:8000/api/v1',
 );
 
 @Riverpod(keepAlive: true)

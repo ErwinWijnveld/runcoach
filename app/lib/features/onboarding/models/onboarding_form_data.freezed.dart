@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 mixin _$OnboardingFormData {
 
 @JsonKey(name: 'goal_type') OnboardingGoalType? get goalType;@JsonKey(name: 'goal_name') String? get goalName;@JsonKey(name: 'distance_meters') int? get distanceMeters;@JsonKey(name: 'target_date') String? get targetDate;// YYYY-MM-DD
-@JsonKey(name: 'goal_time_seconds') int? get goalTimeSeconds;@JsonKey(name: 'pr_current_seconds') int? get prCurrentSeconds;@JsonKey(name: 'days_per_week') int? get daysPerWeek;@JsonKey(name: 'coach_style') CoachStyleOption? get coachStyle; String? get notes;
+@JsonKey(name: 'goal_time_seconds') int? get goalTimeSeconds;@JsonKey(name: 'pr_current_seconds') int? get prCurrentSeconds;@JsonKey(name: 'days_per_week') int? get daysPerWeek;@JsonKey(name: 'preferred_weekdays') List<int>? get preferredWeekdays;@JsonKey(name: 'coach_style') CoachStyleOption? get coachStyle; String? get notes;@JsonKey(name: 'additional_notes') String? get additionalNotes;
 /// Create a copy of OnboardingFormData
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -29,16 +29,16 @@ $OnboardingFormDataCopyWith<OnboardingFormData> get copyWith => _$OnboardingForm
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OnboardingFormData&&(identical(other.goalType, goalType) || other.goalType == goalType)&&(identical(other.goalName, goalName) || other.goalName == goalName)&&(identical(other.distanceMeters, distanceMeters) || other.distanceMeters == distanceMeters)&&(identical(other.targetDate, targetDate) || other.targetDate == targetDate)&&(identical(other.goalTimeSeconds, goalTimeSeconds) || other.goalTimeSeconds == goalTimeSeconds)&&(identical(other.prCurrentSeconds, prCurrentSeconds) || other.prCurrentSeconds == prCurrentSeconds)&&(identical(other.daysPerWeek, daysPerWeek) || other.daysPerWeek == daysPerWeek)&&(identical(other.coachStyle, coachStyle) || other.coachStyle == coachStyle)&&(identical(other.notes, notes) || other.notes == notes));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OnboardingFormData&&(identical(other.goalType, goalType) || other.goalType == goalType)&&(identical(other.goalName, goalName) || other.goalName == goalName)&&(identical(other.distanceMeters, distanceMeters) || other.distanceMeters == distanceMeters)&&(identical(other.targetDate, targetDate) || other.targetDate == targetDate)&&(identical(other.goalTimeSeconds, goalTimeSeconds) || other.goalTimeSeconds == goalTimeSeconds)&&(identical(other.prCurrentSeconds, prCurrentSeconds) || other.prCurrentSeconds == prCurrentSeconds)&&(identical(other.daysPerWeek, daysPerWeek) || other.daysPerWeek == daysPerWeek)&&const DeepCollectionEquality().equals(other.preferredWeekdays, preferredWeekdays)&&(identical(other.coachStyle, coachStyle) || other.coachStyle == coachStyle)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.additionalNotes, additionalNotes) || other.additionalNotes == additionalNotes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,goalType,goalName,distanceMeters,targetDate,goalTimeSeconds,prCurrentSeconds,daysPerWeek,coachStyle,notes);
+int get hashCode => Object.hash(runtimeType,goalType,goalName,distanceMeters,targetDate,goalTimeSeconds,prCurrentSeconds,daysPerWeek,const DeepCollectionEquality().hash(preferredWeekdays),coachStyle,notes,additionalNotes);
 
 @override
 String toString() {
-  return 'OnboardingFormData(goalType: $goalType, goalName: $goalName, distanceMeters: $distanceMeters, targetDate: $targetDate, goalTimeSeconds: $goalTimeSeconds, prCurrentSeconds: $prCurrentSeconds, daysPerWeek: $daysPerWeek, coachStyle: $coachStyle, notes: $notes)';
+  return 'OnboardingFormData(goalType: $goalType, goalName: $goalName, distanceMeters: $distanceMeters, targetDate: $targetDate, goalTimeSeconds: $goalTimeSeconds, prCurrentSeconds: $prCurrentSeconds, daysPerWeek: $daysPerWeek, preferredWeekdays: $preferredWeekdays, coachStyle: $coachStyle, notes: $notes, additionalNotes: $additionalNotes)';
 }
 
 
@@ -49,7 +49,7 @@ abstract mixin class $OnboardingFormDataCopyWith<$Res>  {
   factory $OnboardingFormDataCopyWith(OnboardingFormData value, $Res Function(OnboardingFormData) _then) = _$OnboardingFormDataCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'goal_type') OnboardingGoalType? goalType,@JsonKey(name: 'goal_name') String? goalName,@JsonKey(name: 'distance_meters') int? distanceMeters,@JsonKey(name: 'target_date') String? targetDate,@JsonKey(name: 'goal_time_seconds') int? goalTimeSeconds,@JsonKey(name: 'pr_current_seconds') int? prCurrentSeconds,@JsonKey(name: 'days_per_week') int? daysPerWeek,@JsonKey(name: 'coach_style') CoachStyleOption? coachStyle, String? notes
+@JsonKey(name: 'goal_type') OnboardingGoalType? goalType,@JsonKey(name: 'goal_name') String? goalName,@JsonKey(name: 'distance_meters') int? distanceMeters,@JsonKey(name: 'target_date') String? targetDate,@JsonKey(name: 'goal_time_seconds') int? goalTimeSeconds,@JsonKey(name: 'pr_current_seconds') int? prCurrentSeconds,@JsonKey(name: 'days_per_week') int? daysPerWeek,@JsonKey(name: 'preferred_weekdays') List<int>? preferredWeekdays,@JsonKey(name: 'coach_style') CoachStyleOption? coachStyle, String? notes,@JsonKey(name: 'additional_notes') String? additionalNotes
 });
 
 
@@ -66,7 +66,7 @@ class _$OnboardingFormDataCopyWithImpl<$Res>
 
 /// Create a copy of OnboardingFormData
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? goalType = freezed,Object? goalName = freezed,Object? distanceMeters = freezed,Object? targetDate = freezed,Object? goalTimeSeconds = freezed,Object? prCurrentSeconds = freezed,Object? daysPerWeek = freezed,Object? coachStyle = freezed,Object? notes = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? goalType = freezed,Object? goalName = freezed,Object? distanceMeters = freezed,Object? targetDate = freezed,Object? goalTimeSeconds = freezed,Object? prCurrentSeconds = freezed,Object? daysPerWeek = freezed,Object? preferredWeekdays = freezed,Object? coachStyle = freezed,Object? notes = freezed,Object? additionalNotes = freezed,}) {
   return _then(_self.copyWith(
 goalType: freezed == goalType ? _self.goalType : goalType // ignore: cast_nullable_to_non_nullable
 as OnboardingGoalType?,goalName: freezed == goalName ? _self.goalName : goalName // ignore: cast_nullable_to_non_nullable
@@ -75,8 +75,10 @@ as int?,targetDate: freezed == targetDate ? _self.targetDate : targetDate // ign
 as String?,goalTimeSeconds: freezed == goalTimeSeconds ? _self.goalTimeSeconds : goalTimeSeconds // ignore: cast_nullable_to_non_nullable
 as int?,prCurrentSeconds: freezed == prCurrentSeconds ? _self.prCurrentSeconds : prCurrentSeconds // ignore: cast_nullable_to_non_nullable
 as int?,daysPerWeek: freezed == daysPerWeek ? _self.daysPerWeek : daysPerWeek // ignore: cast_nullable_to_non_nullable
-as int?,coachStyle: freezed == coachStyle ? _self.coachStyle : coachStyle // ignore: cast_nullable_to_non_nullable
+as int?,preferredWeekdays: freezed == preferredWeekdays ? _self.preferredWeekdays : preferredWeekdays // ignore: cast_nullable_to_non_nullable
+as List<int>?,coachStyle: freezed == coachStyle ? _self.coachStyle : coachStyle // ignore: cast_nullable_to_non_nullable
 as CoachStyleOption?,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
+as String?,additionalNotes: freezed == additionalNotes ? _self.additionalNotes : additionalNotes // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -159,10 +161,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'goal_type')  OnboardingGoalType? goalType, @JsonKey(name: 'goal_name')  String? goalName, @JsonKey(name: 'distance_meters')  int? distanceMeters, @JsonKey(name: 'target_date')  String? targetDate, @JsonKey(name: 'goal_time_seconds')  int? goalTimeSeconds, @JsonKey(name: 'pr_current_seconds')  int? prCurrentSeconds, @JsonKey(name: 'days_per_week')  int? daysPerWeek, @JsonKey(name: 'coach_style')  CoachStyleOption? coachStyle,  String? notes)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'goal_type')  OnboardingGoalType? goalType, @JsonKey(name: 'goal_name')  String? goalName, @JsonKey(name: 'distance_meters')  int? distanceMeters, @JsonKey(name: 'target_date')  String? targetDate, @JsonKey(name: 'goal_time_seconds')  int? goalTimeSeconds, @JsonKey(name: 'pr_current_seconds')  int? prCurrentSeconds, @JsonKey(name: 'days_per_week')  int? daysPerWeek, @JsonKey(name: 'preferred_weekdays')  List<int>? preferredWeekdays, @JsonKey(name: 'coach_style')  CoachStyleOption? coachStyle,  String? notes, @JsonKey(name: 'additional_notes')  String? additionalNotes)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OnboardingFormData() when $default != null:
-return $default(_that.goalType,_that.goalName,_that.distanceMeters,_that.targetDate,_that.goalTimeSeconds,_that.prCurrentSeconds,_that.daysPerWeek,_that.coachStyle,_that.notes);case _:
+return $default(_that.goalType,_that.goalName,_that.distanceMeters,_that.targetDate,_that.goalTimeSeconds,_that.prCurrentSeconds,_that.daysPerWeek,_that.preferredWeekdays,_that.coachStyle,_that.notes,_that.additionalNotes);case _:
   return orElse();
 
 }
@@ -180,10 +182,10 @@ return $default(_that.goalType,_that.goalName,_that.distanceMeters,_that.targetD
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'goal_type')  OnboardingGoalType? goalType, @JsonKey(name: 'goal_name')  String? goalName, @JsonKey(name: 'distance_meters')  int? distanceMeters, @JsonKey(name: 'target_date')  String? targetDate, @JsonKey(name: 'goal_time_seconds')  int? goalTimeSeconds, @JsonKey(name: 'pr_current_seconds')  int? prCurrentSeconds, @JsonKey(name: 'days_per_week')  int? daysPerWeek, @JsonKey(name: 'coach_style')  CoachStyleOption? coachStyle,  String? notes)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'goal_type')  OnboardingGoalType? goalType, @JsonKey(name: 'goal_name')  String? goalName, @JsonKey(name: 'distance_meters')  int? distanceMeters, @JsonKey(name: 'target_date')  String? targetDate, @JsonKey(name: 'goal_time_seconds')  int? goalTimeSeconds, @JsonKey(name: 'pr_current_seconds')  int? prCurrentSeconds, @JsonKey(name: 'days_per_week')  int? daysPerWeek, @JsonKey(name: 'preferred_weekdays')  List<int>? preferredWeekdays, @JsonKey(name: 'coach_style')  CoachStyleOption? coachStyle,  String? notes, @JsonKey(name: 'additional_notes')  String? additionalNotes)  $default,) {final _that = this;
 switch (_that) {
 case _OnboardingFormData():
-return $default(_that.goalType,_that.goalName,_that.distanceMeters,_that.targetDate,_that.goalTimeSeconds,_that.prCurrentSeconds,_that.daysPerWeek,_that.coachStyle,_that.notes);}
+return $default(_that.goalType,_that.goalName,_that.distanceMeters,_that.targetDate,_that.goalTimeSeconds,_that.prCurrentSeconds,_that.daysPerWeek,_that.preferredWeekdays,_that.coachStyle,_that.notes,_that.additionalNotes);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -197,10 +199,10 @@ return $default(_that.goalType,_that.goalName,_that.distanceMeters,_that.targetD
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'goal_type')  OnboardingGoalType? goalType, @JsonKey(name: 'goal_name')  String? goalName, @JsonKey(name: 'distance_meters')  int? distanceMeters, @JsonKey(name: 'target_date')  String? targetDate, @JsonKey(name: 'goal_time_seconds')  int? goalTimeSeconds, @JsonKey(name: 'pr_current_seconds')  int? prCurrentSeconds, @JsonKey(name: 'days_per_week')  int? daysPerWeek, @JsonKey(name: 'coach_style')  CoachStyleOption? coachStyle,  String? notes)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'goal_type')  OnboardingGoalType? goalType, @JsonKey(name: 'goal_name')  String? goalName, @JsonKey(name: 'distance_meters')  int? distanceMeters, @JsonKey(name: 'target_date')  String? targetDate, @JsonKey(name: 'goal_time_seconds')  int? goalTimeSeconds, @JsonKey(name: 'pr_current_seconds')  int? prCurrentSeconds, @JsonKey(name: 'days_per_week')  int? daysPerWeek, @JsonKey(name: 'preferred_weekdays')  List<int>? preferredWeekdays, @JsonKey(name: 'coach_style')  CoachStyleOption? coachStyle,  String? notes, @JsonKey(name: 'additional_notes')  String? additionalNotes)?  $default,) {final _that = this;
 switch (_that) {
 case _OnboardingFormData() when $default != null:
-return $default(_that.goalType,_that.goalName,_that.distanceMeters,_that.targetDate,_that.goalTimeSeconds,_that.prCurrentSeconds,_that.daysPerWeek,_that.coachStyle,_that.notes);case _:
+return $default(_that.goalType,_that.goalName,_that.distanceMeters,_that.targetDate,_that.goalTimeSeconds,_that.prCurrentSeconds,_that.daysPerWeek,_that.preferredWeekdays,_that.coachStyle,_that.notes,_that.additionalNotes);case _:
   return null;
 
 }
@@ -212,7 +214,7 @@ return $default(_that.goalType,_that.goalName,_that.distanceMeters,_that.targetD
 @JsonSerializable()
 
 class _OnboardingFormData implements OnboardingFormData {
-  const _OnboardingFormData({@JsonKey(name: 'goal_type') this.goalType, @JsonKey(name: 'goal_name') this.goalName, @JsonKey(name: 'distance_meters') this.distanceMeters, @JsonKey(name: 'target_date') this.targetDate, @JsonKey(name: 'goal_time_seconds') this.goalTimeSeconds, @JsonKey(name: 'pr_current_seconds') this.prCurrentSeconds, @JsonKey(name: 'days_per_week') this.daysPerWeek, @JsonKey(name: 'coach_style') this.coachStyle, this.notes});
+  const _OnboardingFormData({@JsonKey(name: 'goal_type') this.goalType, @JsonKey(name: 'goal_name') this.goalName, @JsonKey(name: 'distance_meters') this.distanceMeters, @JsonKey(name: 'target_date') this.targetDate, @JsonKey(name: 'goal_time_seconds') this.goalTimeSeconds, @JsonKey(name: 'pr_current_seconds') this.prCurrentSeconds, @JsonKey(name: 'days_per_week') this.daysPerWeek, @JsonKey(name: 'preferred_weekdays') final  List<int>? preferredWeekdays, @JsonKey(name: 'coach_style') this.coachStyle, this.notes, @JsonKey(name: 'additional_notes') this.additionalNotes}): _preferredWeekdays = preferredWeekdays;
   factory _OnboardingFormData.fromJson(Map<String, dynamic> json) => _$OnboardingFormDataFromJson(json);
 
 @override@JsonKey(name: 'goal_type') final  OnboardingGoalType? goalType;
@@ -223,8 +225,18 @@ class _OnboardingFormData implements OnboardingFormData {
 @override@JsonKey(name: 'goal_time_seconds') final  int? goalTimeSeconds;
 @override@JsonKey(name: 'pr_current_seconds') final  int? prCurrentSeconds;
 @override@JsonKey(name: 'days_per_week') final  int? daysPerWeek;
+ final  List<int>? _preferredWeekdays;
+@override@JsonKey(name: 'preferred_weekdays') List<int>? get preferredWeekdays {
+  final value = _preferredWeekdays;
+  if (value == null) return null;
+  if (_preferredWeekdays is EqualUnmodifiableListView) return _preferredWeekdays;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(value);
+}
+
 @override@JsonKey(name: 'coach_style') final  CoachStyleOption? coachStyle;
 @override final  String? notes;
+@override@JsonKey(name: 'additional_notes') final  String? additionalNotes;
 
 /// Create a copy of OnboardingFormData
 /// with the given fields replaced by the non-null parameter values.
@@ -239,16 +251,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OnboardingFormData&&(identical(other.goalType, goalType) || other.goalType == goalType)&&(identical(other.goalName, goalName) || other.goalName == goalName)&&(identical(other.distanceMeters, distanceMeters) || other.distanceMeters == distanceMeters)&&(identical(other.targetDate, targetDate) || other.targetDate == targetDate)&&(identical(other.goalTimeSeconds, goalTimeSeconds) || other.goalTimeSeconds == goalTimeSeconds)&&(identical(other.prCurrentSeconds, prCurrentSeconds) || other.prCurrentSeconds == prCurrentSeconds)&&(identical(other.daysPerWeek, daysPerWeek) || other.daysPerWeek == daysPerWeek)&&(identical(other.coachStyle, coachStyle) || other.coachStyle == coachStyle)&&(identical(other.notes, notes) || other.notes == notes));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OnboardingFormData&&(identical(other.goalType, goalType) || other.goalType == goalType)&&(identical(other.goalName, goalName) || other.goalName == goalName)&&(identical(other.distanceMeters, distanceMeters) || other.distanceMeters == distanceMeters)&&(identical(other.targetDate, targetDate) || other.targetDate == targetDate)&&(identical(other.goalTimeSeconds, goalTimeSeconds) || other.goalTimeSeconds == goalTimeSeconds)&&(identical(other.prCurrentSeconds, prCurrentSeconds) || other.prCurrentSeconds == prCurrentSeconds)&&(identical(other.daysPerWeek, daysPerWeek) || other.daysPerWeek == daysPerWeek)&&const DeepCollectionEquality().equals(other._preferredWeekdays, _preferredWeekdays)&&(identical(other.coachStyle, coachStyle) || other.coachStyle == coachStyle)&&(identical(other.notes, notes) || other.notes == notes)&&(identical(other.additionalNotes, additionalNotes) || other.additionalNotes == additionalNotes));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,goalType,goalName,distanceMeters,targetDate,goalTimeSeconds,prCurrentSeconds,daysPerWeek,coachStyle,notes);
+int get hashCode => Object.hash(runtimeType,goalType,goalName,distanceMeters,targetDate,goalTimeSeconds,prCurrentSeconds,daysPerWeek,const DeepCollectionEquality().hash(_preferredWeekdays),coachStyle,notes,additionalNotes);
 
 @override
 String toString() {
-  return 'OnboardingFormData(goalType: $goalType, goalName: $goalName, distanceMeters: $distanceMeters, targetDate: $targetDate, goalTimeSeconds: $goalTimeSeconds, prCurrentSeconds: $prCurrentSeconds, daysPerWeek: $daysPerWeek, coachStyle: $coachStyle, notes: $notes)';
+  return 'OnboardingFormData(goalType: $goalType, goalName: $goalName, distanceMeters: $distanceMeters, targetDate: $targetDate, goalTimeSeconds: $goalTimeSeconds, prCurrentSeconds: $prCurrentSeconds, daysPerWeek: $daysPerWeek, preferredWeekdays: $preferredWeekdays, coachStyle: $coachStyle, notes: $notes, additionalNotes: $additionalNotes)';
 }
 
 
@@ -259,7 +271,7 @@ abstract mixin class _$OnboardingFormDataCopyWith<$Res> implements $OnboardingFo
   factory _$OnboardingFormDataCopyWith(_OnboardingFormData value, $Res Function(_OnboardingFormData) _then) = __$OnboardingFormDataCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'goal_type') OnboardingGoalType? goalType,@JsonKey(name: 'goal_name') String? goalName,@JsonKey(name: 'distance_meters') int? distanceMeters,@JsonKey(name: 'target_date') String? targetDate,@JsonKey(name: 'goal_time_seconds') int? goalTimeSeconds,@JsonKey(name: 'pr_current_seconds') int? prCurrentSeconds,@JsonKey(name: 'days_per_week') int? daysPerWeek,@JsonKey(name: 'coach_style') CoachStyleOption? coachStyle, String? notes
+@JsonKey(name: 'goal_type') OnboardingGoalType? goalType,@JsonKey(name: 'goal_name') String? goalName,@JsonKey(name: 'distance_meters') int? distanceMeters,@JsonKey(name: 'target_date') String? targetDate,@JsonKey(name: 'goal_time_seconds') int? goalTimeSeconds,@JsonKey(name: 'pr_current_seconds') int? prCurrentSeconds,@JsonKey(name: 'days_per_week') int? daysPerWeek,@JsonKey(name: 'preferred_weekdays') List<int>? preferredWeekdays,@JsonKey(name: 'coach_style') CoachStyleOption? coachStyle, String? notes,@JsonKey(name: 'additional_notes') String? additionalNotes
 });
 
 
@@ -276,7 +288,7 @@ class __$OnboardingFormDataCopyWithImpl<$Res>
 
 /// Create a copy of OnboardingFormData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? goalType = freezed,Object? goalName = freezed,Object? distanceMeters = freezed,Object? targetDate = freezed,Object? goalTimeSeconds = freezed,Object? prCurrentSeconds = freezed,Object? daysPerWeek = freezed,Object? coachStyle = freezed,Object? notes = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? goalType = freezed,Object? goalName = freezed,Object? distanceMeters = freezed,Object? targetDate = freezed,Object? goalTimeSeconds = freezed,Object? prCurrentSeconds = freezed,Object? daysPerWeek = freezed,Object? preferredWeekdays = freezed,Object? coachStyle = freezed,Object? notes = freezed,Object? additionalNotes = freezed,}) {
   return _then(_OnboardingFormData(
 goalType: freezed == goalType ? _self.goalType : goalType // ignore: cast_nullable_to_non_nullable
 as OnboardingGoalType?,goalName: freezed == goalName ? _self.goalName : goalName // ignore: cast_nullable_to_non_nullable
@@ -285,8 +297,10 @@ as int?,targetDate: freezed == targetDate ? _self.targetDate : targetDate // ign
 as String?,goalTimeSeconds: freezed == goalTimeSeconds ? _self.goalTimeSeconds : goalTimeSeconds // ignore: cast_nullable_to_non_nullable
 as int?,prCurrentSeconds: freezed == prCurrentSeconds ? _self.prCurrentSeconds : prCurrentSeconds // ignore: cast_nullable_to_non_nullable
 as int?,daysPerWeek: freezed == daysPerWeek ? _self.daysPerWeek : daysPerWeek // ignore: cast_nullable_to_non_nullable
-as int?,coachStyle: freezed == coachStyle ? _self.coachStyle : coachStyle // ignore: cast_nullable_to_non_nullable
+as int?,preferredWeekdays: freezed == preferredWeekdays ? _self._preferredWeekdays : preferredWeekdays // ignore: cast_nullable_to_non_nullable
+as List<int>?,coachStyle: freezed == coachStyle ? _self.coachStyle : coachStyle // ignore: cast_nullable_to_non_nullable
 as CoachStyleOption?,notes: freezed == notes ? _self.notes : notes // ignore: cast_nullable_to_non_nullable
+as String?,additionalNotes: freezed == additionalNotes ? _self.additionalNotes : additionalNotes // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

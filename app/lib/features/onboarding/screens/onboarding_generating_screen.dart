@@ -125,19 +125,22 @@ class _OnboardingGeneratingScreenState
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      backgroundColor: AppColors.neutral,
-      child: SafeArea(
-        child: _error != null
-            ? _ErrorBody(
-                error: _error!,
-                onRetry: _retry,
-                onBack: () => context.go('/onboarding/form'),
-              )
-            : _LoadingBody(
-                progress: _progress,
-                stage: _stage,
-                completed: _completed,
-              ),
+      backgroundColor: CupertinoColors.transparent,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(gradient: AppColors.onboardingGradient),
+        child: SafeArea(
+          child: _error != null
+              ? _ErrorBody(
+                  error: _error!,
+                  onRetry: _retry,
+                  onBack: () => context.go('/onboarding/form'),
+                )
+              : _LoadingBody(
+                  progress: _progress,
+                  stage: _stage,
+                  completed: _completed,
+                ),
+        ),
       ),
     );
   }
@@ -208,7 +211,7 @@ class _LoadingBody extends StatelessWidget {
           Text(
             completed
                 ? 'Loading your plan…'
-                : 'Sit tight — this usually takes under a minute.',
+                : 'Sit tight. This usually takes under a minute.',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 13,

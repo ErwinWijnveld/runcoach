@@ -101,17 +101,36 @@ class CoachChat extends _$CoachChat {
             ErrorEvent(:final message) => current.copyWith(
                 errorDetail: message,
                 streaming: false,
+                toolIndicator: null,
               ),
             DoneEvent() =>
               current.copyWith(streaming: false, toolIndicator: null),
           };
           state = AsyncData([...before, userMsg, current]);
         }
+        // Stream closed without a DoneEvent or ErrorEvent (e.g. server
+        // dropped the connection mid-stream). Never leave a bubble stuck
+        // on the thinking spinner.
+        if (current.streaming) {
+          state = AsyncData([
+            ...before,
+            userMsg,
+            current.copyWith(
+              streaming: false,
+              toolIndicator: null,
+              errorDetail: 'Connection interrupted. Tap retry.',
+            ),
+          ]);
+        }
       } catch (e) {
         state = AsyncData([
           ...before,
           userMsg,
-          current.copyWith(streaming: false, errorDetail: _humanize(e)),
+          current.copyWith(
+            streaming: false,
+            toolIndicator: null,
+            errorDetail: _humanize(e),
+          ),
         ]);
       }
     } finally {
@@ -151,5 +170,6 @@ class CoachChat extends _$CoachChat {
   Future<void> rejectProposal(int proposalId) async {
     final api = ref.read(coachApiProvider);
     await api.rejectProposal(proposalId);
+    await sendMessage("Let's adjust this plan.");
   }
 }

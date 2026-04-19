@@ -12,6 +12,7 @@ class OnboardingPlanPromptBuilder
      * which is the format `ProposalService::applyCreateSchedule` expects.
      *
      * @param  array<string, mixed>  $profileMetrics
+     * @param  array<int, int>|null  $preferredWeekdays  ISO weekdays (1=Mon…7=Sun) the runner can train.
      */
     public function build(
         string $goalType,
@@ -25,6 +26,8 @@ class OnboardingPlanPromptBuilder
         array $profileMetrics,
         string $todayIso,
         int $todayWeekday,
+        ?array $preferredWeekdays = null,
+        ?string $additionalNotes = null,
     ): string {
         $lines = [];
         $lines[] = 'You are generating a running training plan. Output ONLY a JSON object matching this schema — no prose, no markdown fences:';
@@ -55,6 +58,14 @@ JSON;
         $lines[] = "- Today is {$todayIso} (ISO weekday {$todayWeekday}, where 1=Mon…7=Sun).";
         $lines[] = "- Week 1 represents THIS calendar week. Do NOT emit any day whose `day_of_week` is earlier than {$todayWeekday}; the runner cannot train in the past.";
         $lines[] = "- Each week contains EXACTLY {$daysPerWeek} training days. Skip the other days entirely (do NOT emit rest days).";
+        if (is_array($preferredWeekdays) && count($preferredWeekdays) > 0) {
+            $names = [1 => 'Mon', 2 => 'Tue', 3 => 'Wed', 4 => 'Thu', 5 => 'Fri', 6 => 'Sat', 7 => 'Sun'];
+            $sorted = $preferredWeekdays;
+            sort($sorted);
+            $labels = implode(', ', array_map(fn ($d) => $names[$d] ?? (string) $d, $sorted));
+            $csv = implode(', ', $sorted);
+            $lines[] = "- The runner can ONLY run on these ISO weekdays: [{$csv}] ({$labels}). Every training day's `day_of_week` MUST be one of these values. Do not schedule runs on any other weekday.";
+        }
         $lines[] = "- Coaching style: {$coachStyle}. Reflect this in tone and volume progression (strict = tight, flexible = forgiving).";
         $lines[] = '- Allowed `type` values: easy, tempo, interval, long_run, recovery. Nothing else.';
 
@@ -82,6 +93,8 @@ JSON;
                 $lines[] = "- Current PR: {$prCurrentSeconds} seconds (≈{$currentPace} sec/km).";
             }
             $lines[] = '- Generate 8 weeks of progression ending with a race-pace test.';
+        } elseif ($goalType === 'weight_loss') {
+            $lines[] = '- The user is training primarily for weight loss. Prioritise consistent, sustainable calorie burn: lean heavy on easy-effort volume (Z2), stack gradual long-run progression, and keep high-intensity sessions limited to 1 per week to preserve recovery. Generate 8 weeks of steady progression.';
         } else {
             $lines[] = '- The user is training for general fitness (no specific race). Generate 6 weeks of sustainable progression.';
         }
@@ -100,6 +113,12 @@ JSON;
         $lines[] = '- Periodization: base → build → peak → taper (race only).';
         $lines[] = '- Cutback every 3-4 weeks (~25% volume drop).';
         $lines[] = "- Individualization: build on the runner's current volume and pace, not textbook defaults.";
+
+        if (is_string($additionalNotes) && trim($additionalNotes) !== '') {
+            $lines[] = '';
+            $lines[] = 'Additional notes from the runner (factor these in where reasonable, but never violate the hard constraints above):';
+            $lines[] = '"'.trim($additionalNotes).'"';
+        }
 
         $lines[] = '';
         $lines[] = 'Output ONLY the JSON object. No prose before or after. No markdown code fences.';

@@ -124,6 +124,6 @@ class GenerateActivityFeedback implements ShouldQueue
 
     private function pace(int $seconds): string
     {
-        return $seconds > 0 ? sprintf('%d:%02d', intdiv($seconds, 60), $seconds % 60) : '—';
+        return $seconds > 0 ? sprintf('%d:%02d', intdiv($seconds, 60), $seconds % 60) : '-';
     }
 }

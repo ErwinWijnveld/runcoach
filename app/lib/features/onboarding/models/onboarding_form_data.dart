@@ -10,6 +10,8 @@ enum OnboardingGoalType {
   pr,
   @JsonValue('fitness')
   fitness,
+  @JsonValue('weight_loss')
+  weightLoss,
 }
 
 enum CoachStyleOption {
@@ -31,8 +33,10 @@ sealed class OnboardingFormData with _$OnboardingFormData {
     @JsonKey(name: 'goal_time_seconds') int? goalTimeSeconds,
     @JsonKey(name: 'pr_current_seconds') int? prCurrentSeconds,
     @JsonKey(name: 'days_per_week') int? daysPerWeek,
+    @JsonKey(name: 'preferred_weekdays') List<int>? preferredWeekdays,
     @JsonKey(name: 'coach_style') CoachStyleOption? coachStyle,
     String? notes,
+    @JsonKey(name: 'additional_notes') String? additionalNotes,
   }) = _OnboardingFormData;
 
   factory OnboardingFormData.fromJson(Map<String, dynamic> json) =>

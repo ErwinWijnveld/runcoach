@@ -351,10 +351,10 @@ class _VsTargetCard extends StatelessWidget {
     if (targetHeartRateZone != null || actualAvgHeartRate != null) {
       rows.add(_ComparisonRow(
         label: 'Heart rate',
-        target: targetHeartRateZone != null ? 'Zone $targetHeartRateZone' : '—',
+        target: targetHeartRateZone != null ? 'Zone $targetHeartRateZone' : '-',
         actual: actualAvgHeartRate != null
             ? '${actualAvgHeartRate!.round()} bpm'
-            : '—',
+            : '-',
       ));
     }
 
@@ -384,7 +384,7 @@ class _VsTargetCard extends StatelessWidget {
   }
 
   String _formatPace(int s) {
-    if (s <= 0) return '—';
+    if (s <= 0) return '-';
     final mm = s ~/ 60;
     final ss = s % 60;
     return '$mm:${ss.toString().padLeft(2, '0')} /km';

@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Colors;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -19,29 +20,32 @@ class OnboardingOverviewScreen extends ConsumerWidget {
     final profileAsync = ref.watch(onboardingProfileControllerProvider);
 
     return CupertinoPageScaffold(
-      backgroundColor: AppColors.neutral,
-      child: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(
-              height: 56,
-              child: Center(
-                child: RunCoreLogo(starSize: 22, textSize: 22, gap: 8),
-              ),
-            ),
-            Expanded(
-              child: profileAsync.when(
-                data: (profile) => _OverviewBody(profile: profile),
-                loading: () => const _SyncingState(),
-                error: (e, _) => _ErrorState(
-                  message: e.toString(),
-                  onRetry: () => ref
-                      .read(onboardingProfileControllerProvider.notifier)
-                      .refresh(),
+      backgroundColor: CupertinoColors.transparent,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(gradient: AppColors.onboardingGradient),
+        child: SafeArea(
+          child: Column(
+            children: [
+              const SizedBox(
+                height: 56,
+                child: Center(
+                  child: RunCoreLogo(starSize: 22, textSize: 22, gap: 8),
                 ),
               ),
-            ),
-          ],
+              Expanded(
+                child: profileAsync.when(
+                  data: (profile) => _OverviewBody(profile: profile),
+                  loading: () => const _SyncingState(),
+                  error: (e, _) => _ErrorState(
+                    message: e.toString(),
+                    onRetry: () => ref
+                        .read(onboardingProfileControllerProvider.notifier)
+                        .refresh(),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -88,7 +92,11 @@ class _OverviewBody extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  StatsCardBubble(metrics: metricsMap),
+                  StatsCardBubble(
+                    metrics: metricsMap,
+                    tileColor: Colors.white,
+                    tileAspectRatio: 16 / 9,
+                  ),
                   if ((profile.narrativeSummary ?? '').isNotEmpty) ...[
                     const SizedBox(height: 24),
                     _NarrativeQuote(text: profile.narrativeSummary!),
@@ -116,7 +124,7 @@ class _NarrativeQuote extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       decoration: BoxDecoration(
-        color: AppColors.neutralHighlight,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
       ),

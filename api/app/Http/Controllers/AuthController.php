@@ -49,7 +49,7 @@ class AuthController extends Controller
     {
         abort_unless(app()->environment('local'), 404);
 
-        $user = User::orderBy('id')->firstOrFail();
+        $user = User::whereNotNull('strava_athlete_id')->orderBy('id')->firstOrFail();
         $token = $user->createToken('dev')->plainTextToken;
 
         return response()->json([

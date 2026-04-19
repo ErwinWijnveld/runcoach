@@ -18,15 +18,18 @@ class GeneratePlanRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'goal_type' => 'required|in:race,pr,fitness',
+            'goal_type' => 'required|in:race,pr,fitness,weight_loss',
             'goal_name' => 'nullable|string|max:100',
-            'distance_meters' => 'nullable|integer|min:1000|max:200000',
+            'distance_meters' => 'nullable|integer|min:1000|max:1000000',
             'target_date' => 'nullable|date|after:today',
             'goal_time_seconds' => 'nullable|integer|min:600|max:86400',
             'pr_current_seconds' => 'nullable|integer|min:600|max:86400',
             'days_per_week' => 'required|integer|min:1|max:7',
+            'preferred_weekdays' => 'nullable|array|max:7',
+            'preferred_weekdays.*' => 'integer|min:1|max:7|distinct',
             'coach_style' => 'required|in:balanced,strict,flexible,motivational,analytical',
             'notes' => 'nullable|string|max:500',
+            'additional_notes' => 'nullable|string|max:500',
         ];
     }
 
@@ -47,6 +50,15 @@ class GeneratePlanRequest extends FormRequest
 
             if ($this->input('goal_type') === 'pr' && ! $this->filled('goal_time_seconds')) {
                 $v->errors()->add('goal_time_seconds', 'Required when goal_type=pr');
+            }
+
+            $weekdays = $this->input('preferred_weekdays');
+            $daysPerWeek = (int) $this->input('days_per_week');
+            if (is_array($weekdays) && count($weekdays) > 0 && count($weekdays) < $daysPerWeek) {
+                $v->errors()->add(
+                    'preferred_weekdays',
+                    "Pick at least {$daysPerWeek} weekdays (or leave empty for any day)."
+                );
             }
         });
     }

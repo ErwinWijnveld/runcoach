@@ -106,7 +106,7 @@ class StravaSummaryCard extends StatelessWidget {
                   label: 'AVG HR',
                   value: activity.averageHeartrate != null
                       ? activity.averageHeartrate!.toStringAsFixed(0)
-                      : '—',
+                      : '-',
                 ),
               ),
             ],
@@ -120,12 +120,12 @@ class StravaSummaryCard extends StatelessWidget {
   }
 
   String _formatDistanceKm(int meters) {
-    if (meters <= 0) return '—';
+    if (meters <= 0) return '-';
     return (meters / 1000).toStringAsFixed(2);
   }
 
   String _formatDuration(int seconds) {
-    if (seconds <= 0) return '—';
+    if (seconds <= 0) return '-';
     final h = seconds ~/ 3600;
     final m = (seconds % 3600) ~/ 60;
     final s = seconds % 60;

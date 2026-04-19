@@ -20,29 +20,13 @@ class Auth extends _$Auth {
     final hasToken = await tokenStorage.hasToken();
     if (hasToken) {
       await loadProfile();
-      // TEMP: dev-mode re-login disabled for real-auth onboarding testing.
-      // if (kDebugMode && state.hasError) {
-      //   await tokenStorage.clearToken();
-      //   await loginDev();
-      // }
+      if (kDebugMode && state.hasError) {
+        await tokenStorage.clearToken();
+        await loginDev();
+      }
+    } else if (kDebugMode) {
+      await loginDev();
     }
-    // TEMP: auto dev-login disabled; go through the real Strava OAuth flow.
-    // else if (kDebugMode) {
-    //   await loginDev();
-    // }
-
-    // TEMP: mock-user fallback disabled so the router sends us to /auth/welcome.
-    // if (kDebugMode && state.value == null) {
-    //   state = const AsyncValue.data(
-    //     User(
-    //       id: 1,
-    //       name: 'Dev User',
-    //       email: 'dev@local.test',
-    //       coachStyle: 'balanced',
-    //       hasCompletedOnboarding: true,
-    //     ),
-    //   );
-    // }
   }
 
   Future<void> loginDev() async {

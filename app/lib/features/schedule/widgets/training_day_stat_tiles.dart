@@ -21,11 +21,11 @@ class TrainingDayStatTiles extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(child: _Tile(label: 'DISTANCE', value: distance ?? '—')),
+        Expanded(child: _Tile(label: 'DISTANCE', value: distance ?? '-')),
         const SizedBox(width: 8),
-        Expanded(child: _Tile(label: 'PACE', value: pace ?? '—')),
+        Expanded(child: _Tile(label: 'PACE', value: pace ?? '-')),
         const SizedBox(width: 8),
-        Expanded(child: _Tile(label: 'HR ZONE', value: hrZone ?? '—')),
+        Expanded(child: _Tile(label: 'HR ZONE', value: hrZone ?? '-')),
       ],
     );
   }

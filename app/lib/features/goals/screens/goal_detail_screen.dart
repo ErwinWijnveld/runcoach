@@ -293,7 +293,7 @@ class _GoalStatTiles extends StatelessWidget {
 
   String _formatGoalTime() {
     final s = goal.goalTimeSeconds;
-    if (s == null) return '—';
+    if (s == null) return '-';
     final h = s ~/ 3600;
     final m = (s % 3600) ~/ 60;
     if (h > 0) return '${h}h${m.toString().padLeft(2, '0')}';
@@ -304,14 +304,14 @@ class _GoalStatTiles extends StatelessWidget {
   Widget build(BuildContext context) {
     final days = _daysUntil(goal);
     final daysStr = days == null
-        ? (goal.targetDate ?? '—')
+        ? (goal.targetDate ?? '-')
         : (days < 0 ? 'PAST' : (days == 0 ? 'TODAY' : '$days'));
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          child: _Tile(label: 'DISTANCE', value: goal.distance ?? '—'),
+          child: _Tile(label: 'DISTANCE', value: goal.distance ?? '-'),
         ),
         const SizedBox(width: 8),
         Expanded(child: _Tile(label: 'GOAL TIME', value: _formatGoalTime())),

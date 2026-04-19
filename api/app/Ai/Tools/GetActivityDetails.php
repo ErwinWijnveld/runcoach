@@ -119,7 +119,7 @@ class GetActivityDetails implements Tool
     private function formatPace(int $seconds): string
     {
         if ($seconds <= 0) {
-            return '—';
+            return '-';
         }
 
         return floor($seconds / 60).':'.str_pad($seconds % 60, 2, '0', STR_PAD_LEFT).'/km';

@@ -186,7 +186,7 @@ class _ActiveGoalCard extends StatelessWidget {
 
   String _formatGoalTime() {
     final s = goal.goalTimeSeconds;
-    if (s == null) return '—';
+    if (s == null) return '-';
     final h = s ~/ 3600;
     final m = (s % 3600) ~/ 60;
     if (h > 0) return '${h}h ${m.toString().padLeft(2, '0')}m';
@@ -232,7 +232,7 @@ class _ActiveGoalCard extends StatelessWidget {
                 Expanded(
                   child: _StatMini(
                     label: 'DISTANCE',
-                    value: goal.distance ?? '—',
+                    value: goal.distance ?? '-',
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -246,7 +246,7 @@ class _ActiveGoalCard extends StatelessWidget {
                         ? 'TARGET'
                         : (days == 0 ? 'TODAY' : 'DAYS LEFT'),
                     value: days == null || days < 0
-                        ? (goal.targetDate ?? '—')
+                        ? (goal.targetDate ?? '-')
                         : (days == 0 ? '🏁' : '$days'),
                   ),
                 ),

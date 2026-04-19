@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Colors;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -18,6 +19,7 @@ enum _Step {
   goalTime,
   prCurrent,
   daysPerWeek,
+  preferredWeekdays,
   coachStyle,
   review,
 }
@@ -31,6 +33,7 @@ List<_Step> _flowFor(OnboardingGoalType? goalType) {
         _Step.raceDate,
         _Step.goalTime,
         _Step.daysPerWeek,
+        _Step.preferredWeekdays,
         _Step.coachStyle,
         _Step.review,
       ],
@@ -40,12 +43,16 @@ List<_Step> _flowFor(OnboardingGoalType? goalType) {
         _Step.goalTime,
         _Step.prCurrent,
         _Step.daysPerWeek,
+        _Step.preferredWeekdays,
         _Step.coachStyle,
         _Step.review,
       ],
-    OnboardingGoalType.fitness || null => const [
+    OnboardingGoalType.fitness ||
+    OnboardingGoalType.weightLoss ||
+    null => const [
         _Step.goalType,
         _Step.daysPerWeek,
+        _Step.preferredWeekdays,
         _Step.coachStyle,
         _Step.review,
       ],
@@ -132,6 +139,13 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
           onBack: _goBack,
         ),
       _Step.daysPerWeek => _DaysPerWeekStep(
+          stepIndex: safeIndex,
+          stepCount: flow.length,
+          form: form,
+          onContinue: _advance,
+          onBack: _goBack,
+        ),
+      _Step.preferredWeekdays => _PreferredWeekdaysStep(
           stepIndex: safeIndex,
           stepCount: flow.length,
           form: form,
@@ -228,6 +242,11 @@ class _GoalTypeStepState extends ConsumerState<_GoalTypeStep> {
             label: 'General fitness',
             subtitle: 'Run regularly, no specific target.',
           ),
+          ChoiceOption(
+            value: OnboardingGoalType.weightLoss,
+            label: 'Weight loss',
+            subtitle: 'Consistent running to steadily drop weight.',
+          ),
         ],
         selected: _otherSelected ? null : goalType,
         onSelected: (v) {
@@ -301,7 +320,7 @@ class _DistanceStepState extends ConsumerState<_DistanceStep> {
 
   int? _kmAsMeters() {
     final v = double.tryParse(_kmCtrl.text.replaceAll(',', '.'));
-    if (v == null || v < 1 || v > 200) return null;
+    if (v == null || v < 1 || v > 1000) return null;
     return (v * 1000).round();
   }
 
@@ -394,7 +413,7 @@ class _RaceNameStepState extends ConsumerState<_RaceNameStep> {
       stepIndex: widget.stepIndex,
       stepCount: widget.stepCount,
       title: "What's the race called?",
-      subtitle: 'Anything goes — we just use it as a label.',
+      subtitle: "Anything goes, we just use it as a label.",
       canContinue: canContinue,
       onSkip: () {
         notifier.setGoalName(null);
@@ -464,9 +483,9 @@ class _RaceDateStepState extends ConsumerState<_RaceDateStep> {
       onBack: widget.onBack,
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.cardBg,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: AppColors.inputBorder),
         ),
         child: SizedBox(
           height: 220,
@@ -535,7 +554,7 @@ class _GoalTimeStepState extends ConsumerState<_GoalTimeStep> {
       stepIndex: widget.stepIndex,
       stepCount: widget.stepCount,
       title: 'What goal time or pace are you aiming for?',
-      subtitle: 'Enter it however feels natural — we parse it.',
+      subtitle: 'Enter it however feels natural, we parse it.',
       canContinue: parsed != null,
       onSkip: () {
         widget.onContinue();
@@ -608,7 +627,7 @@ class _PrCurrentStepState extends ConsumerState<_PrCurrentStep> {
       stepIndex: widget.stepIndex,
       stepCount: widget.stepCount,
       title: "What's your current PR?",
-      subtitle: 'Optional — helps us gauge a realistic target.',
+      subtitle: 'Optional, helps us gauge a realistic target.',
       canContinue: _ctrl.text.trim().isEmpty || parsed != null,
       onSkip: () {
         notifier.setPrCurrent(null);
@@ -684,7 +703,7 @@ class _DaysPerWeekStepState extends ConsumerState<_DaysPerWeekStep> {
       stepIndex: widget.stepIndex,
       stepCount: widget.stepCount,
       title: 'How many days per week?',
-      subtitle: 'Be realistic — the plan is only as good as your consistency.',
+      subtitle: 'Be realistic. The plan is only as good as your consistency.',
       canContinue: canContinue,
       onContinue: () {
         if (_otherSelected) {
@@ -695,13 +714,13 @@ class _DaysPerWeekStepState extends ConsumerState<_DaysPerWeekStep> {
       onBack: widget.onBack,
       child: ChoiceGroup<int>(
         options: const [
-          ChoiceOption(value: 1, label: '1 day', subtitle: 'Light maintenance.'),
-          ChoiceOption(value: 2, label: '2 days'),
-          ChoiceOption(value: 3, label: '3 days', subtitle: 'Entry-level rhythm.'),
+          ChoiceOption(value: 1, label: '1 day', subtitle: 'Keeps the habit alive.'),
+          ChoiceOption(value: 2, label: '2 days', subtitle: 'Minimal but consistent.'),
+          ChoiceOption(value: 3, label: '3 days', subtitle: 'A solid base to build on.'),
           ChoiceOption(value: 4, label: '4 days', subtitle: 'Great balance for most runners.'),
           ChoiceOption(value: 5, label: '5 days', subtitle: 'Solid block for serious goals.'),
-          ChoiceOption(value: 6, label: '6 days', subtitle: 'High-volume, experienced only.'),
-          ChoiceOption(value: 7, label: '7 days', subtitle: 'Every day — only if you know recovery.'),
+          ChoiceOption(value: 6, label: '6 days', subtitle: 'High volume, for experienced runners.'),
+          ChoiceOption(value: 7, label: '7 days', subtitle: 'Every day, only if recovery is dialed in.'),
         ],
         selected: selected,
         onSelected: (v) {
@@ -717,6 +736,178 @@ class _DaysPerWeekStepState extends ConsumerState<_DaysPerWeekStep> {
           controller: _notesCtrl,
           hint: 'Tell me about your schedule…',
           onChanged: (_) => setState(() {}),
+        ),
+      ),
+    );
+  }
+}
+
+// ---- Step: preferred weekdays (multi-select) ----
+
+class _PreferredWeekdaysStep extends ConsumerStatefulWidget {
+  final int stepIndex;
+  final int stepCount;
+  final OnboardingFormData form;
+  final VoidCallback onContinue;
+  final VoidCallback onBack;
+
+  const _PreferredWeekdaysStep({
+    required this.stepIndex,
+    required this.stepCount,
+    required this.form,
+    required this.onContinue,
+    required this.onBack,
+  });
+
+  @override
+  ConsumerState<_PreferredWeekdaysStep> createState() =>
+      _PreferredWeekdaysStepState();
+}
+
+class _PreferredWeekdaysStepState
+    extends ConsumerState<_PreferredWeekdaysStep> {
+  late final Set<int> _selected = {...?widget.form.preferredWeekdays};
+
+  static const List<({int iso, String label, String short})> _days = [
+    (iso: 1, label: 'Monday', short: 'Mon'),
+    (iso: 2, label: 'Tuesday', short: 'Tue'),
+    (iso: 3, label: 'Wednesday', short: 'Wed'),
+    (iso: 4, label: 'Thursday', short: 'Thu'),
+    (iso: 5, label: 'Friday', short: 'Fri'),
+    (iso: 6, label: 'Saturday', short: 'Sat'),
+    (iso: 7, label: 'Sunday', short: 'Sun'),
+  ];
+
+  void _toggle(int iso) {
+    setState(() {
+      if (_selected.contains(iso)) {
+        _selected.remove(iso);
+      } else {
+        _selected.add(iso);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final notifier = ref.read(onboardingFormProvider.notifier);
+    final daysPerWeek = widget.form.daysPerWeek ?? 0;
+    final count = _selected.length;
+    final enough = count == 0 || count >= daysPerWeek;
+    final canContinue = enough;
+
+    final hint = (count > 0 && count < daysPerWeek)
+        ? 'Pick at least $daysPerWeek days (you chose $count).'
+        : 'Leave empty if any day works.';
+
+    return StepScaffold(
+      stepIndex: widget.stepIndex,
+      stepCount: widget.stepCount,
+      title: 'Which weekdays can you run?',
+      subtitle: 'Optional — pick the days that work for you.',
+      canContinue: canContinue,
+      onSkip: () {
+        notifier.setPreferredWeekdays(null);
+        widget.onContinue();
+      },
+      onContinue: () {
+        notifier.setPreferredWeekdays(
+          _selected.isEmpty ? null : _selected.toList(),
+        );
+        widget.onContinue();
+      },
+      onBack: widget.onBack,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ..._days.map((d) {
+            final selected = _selected.contains(d.iso);
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _WeekdayTile(
+                label: d.label,
+                short: d.short,
+                selected: selected,
+                onTap: () => _toggle(d.iso),
+              ),
+            );
+          }),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              hint,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: AppColors.inkMuted,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WeekdayTile extends StatelessWidget {
+  final String label;
+  final String short;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _WeekdayTile({
+    required this.label,
+    required this.short,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primaryInk : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? AppColors.primaryInk : AppColors.inputBorder,
+          ),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 44,
+              child: Text(
+                short,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: selected ? AppColors.cream : AppColors.inkMuted,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: selected ? Colors.white : AppColors.primaryInk,
+                ),
+              ),
+            ),
+            Icon(
+              selected
+                  ? CupertinoIcons.check_mark_circled_solid
+                  : CupertinoIcons.circle,
+              size: 22,
+              color: selected ? AppColors.gold : AppColors.inputBorder,
+            ),
+          ],
         ),
       ),
     );
@@ -788,7 +979,7 @@ class _CoachStyleStepState extends ConsumerState<_CoachStyleStep> {
           ChoiceOption(
             value: CoachStyleOption.strict,
             label: 'Strict',
-            subtitle: "Hold me to it — don't soften the plan.",
+            subtitle: "Hold me to it. Don't soften the plan.",
           ),
           ChoiceOption(
             value: CoachStyleOption.flexible,
@@ -818,7 +1009,7 @@ class _CoachStyleStepState extends ConsumerState<_CoachStyleStep> {
 
 // ---- Step 9: review ----
 
-class _ReviewStep extends ConsumerWidget {
+class _ReviewStep extends ConsumerStatefulWidget {
   final int stepIndex;
   final int stepCount;
   final OnboardingFormData form;
@@ -834,44 +1025,92 @@ class _ReviewStep extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_ReviewStep> createState() => _ReviewStepState();
+}
+
+class _ReviewStepState extends ConsumerState<_ReviewStep> {
+  late final TextEditingController _extraNotesCtrl =
+      TextEditingController(text: widget.form.additionalNotes ?? '');
+
+  @override
+  void dispose() {
+    _extraNotesCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final form = widget.form;
     return StepScaffold(
-      stepIndex: stepIndex,
-      stepCount: stepCount,
+      stepIndex: widget.stepIndex,
+      stepCount: widget.stepCount,
       title: 'Ready to build your plan?',
-      subtitle: "Quick recap — I'll take it from here.",
+      subtitle: "Quick recap. I'll take it from here.",
       canContinue: true,
       continueLabel: 'CREATE MY PLAN',
-      onContinue: onSubmit,
-      onBack: onBack,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppColors.cardBg,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _reviewRow('Goal', _goalLabel(form)),
-            if (form.distanceMeters != null)
-              _reviewRow('Distance', _distanceLabel(form.distanceMeters!)),
-            if (form.goalName != null && form.goalName!.isNotEmpty)
-              _reviewRow('Race', form.goalName!),
-            if (form.targetDate != null) _reviewRow('Race day', form.targetDate!),
-            if (form.goalTimeSeconds != null)
-              _reviewRow('Goal time', _formatDuration(form.goalTimeSeconds!)),
-            if (form.prCurrentSeconds != null)
-              _reviewRow('Current PR', _formatDuration(form.prCurrentSeconds!)),
-            if (form.daysPerWeek != null)
-              _reviewRow('Days / week', '${form.daysPerWeek}'),
-            if (form.coachStyle != null)
-              _reviewRow('Coach style', _coachStyleLabel(form.coachStyle!)),
-            if (form.notes != null && form.notes!.isNotEmpty)
-              _reviewRow('Notes', form.notes!),
-          ],
-        ),
+      onContinue: () {
+        ref
+            .read(onboardingFormProvider.notifier)
+            .setAdditionalNotes(_extraNotesCtrl.text.trim());
+        widget.onSubmit();
+      },
+      onBack: widget.onBack,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.cardBg,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _reviewRow('Goal', _goalLabel(form)),
+                if (form.distanceMeters != null)
+                  _reviewRow('Distance', _distanceLabel(form.distanceMeters!)),
+                if (form.goalName != null && form.goalName!.isNotEmpty)
+                  _reviewRow('Race', form.goalName!),
+                if (form.targetDate != null)
+                  _reviewRow('Race day', form.targetDate!),
+                if (form.goalTimeSeconds != null)
+                  _reviewRow('Goal time', _formatDuration(form.goalTimeSeconds!)),
+                if (form.prCurrentSeconds != null)
+                  _reviewRow(
+                      'Current PR', _formatDuration(form.prCurrentSeconds!)),
+                if (form.daysPerWeek != null)
+                  _reviewRow('Days / week', '${form.daysPerWeek}'),
+                if (form.preferredWeekdays != null &&
+                    form.preferredWeekdays!.isNotEmpty)
+                  _reviewRow(
+                    'Preferred days',
+                    _weekdaysLabel(form.preferredWeekdays!),
+                  ),
+                if (form.coachStyle != null)
+                  _reviewRow('Coach style', _coachStyleLabel(form.coachStyle!)),
+                if (form.notes != null && form.notes!.isNotEmpty)
+                  _reviewRow('Notes', form.notes!),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Anything else for your coach?',
+            style: GoogleFonts.inter(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: AppColors.primaryInk,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _NotesField(
+            controller: _extraNotesCtrl,
+            hint: 'Injuries, schedule quirks, anything to consider…',
+            onChanged: (_) => setState(() {}),
+          ),
+        ],
       ),
     );
   }
@@ -912,7 +1151,8 @@ class _ReviewStep extends ConsumerWidget {
         OnboardingGoalType.race => 'Train for a race',
         OnboardingGoalType.pr => 'Chase a PR',
         OnboardingGoalType.fitness => 'General fitness',
-        null => '—',
+        OnboardingGoalType.weightLoss => 'Weight loss',
+        null => '-',
       };
 
   String _distanceLabel(int meters) {
@@ -934,6 +1174,20 @@ class _ReviewStep extends ConsumerWidget {
         CoachStyleOption.strict => 'Strict',
         CoachStyleOption.flexible => 'Flexible',
       };
+
+  String _weekdaysLabel(List<int> days) {
+    const names = {
+      1: 'Mon',
+      2: 'Tue',
+      3: 'Wed',
+      4: 'Thu',
+      5: 'Fri',
+      6: 'Sat',
+      7: 'Sun',
+    };
+    final sorted = [...days]..sort();
+    return sorted.map((d) => names[d] ?? '?').join(', ');
+  }
 
   String _formatDuration(int seconds) {
     final h = seconds ~/ 3600;
@@ -967,9 +1221,9 @@ class _TextField extends StatelessWidget {
       onChanged: onChanged,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.inputBorder),
       ),
       style: GoogleFonts.inter(
         fontSize: 16,
@@ -1001,9 +1255,9 @@ class _NotesField extends StatelessWidget {
       minLines: 2,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.inputBorder),
       ),
       style: GoogleFonts.inter(
         fontSize: 15,
@@ -1047,9 +1301,9 @@ class _NumberField extends StatelessWidget {
         ),
       ),
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.inputBorder),
       ),
       style: GoogleFonts.inter(
         fontSize: 16,
@@ -1172,7 +1426,7 @@ class _GoalTimePreview extends StatelessWidget {
     final pace = distanceMeters == null || distanceMeters! <= 0
         ? null
         : _formatSecondsToHuman((parsedSeconds! / (distanceMeters! / 1000)).round());
-    final paceSuffix = pace == null ? '' : ' — $pace/km';
+    final paceSuffix = pace == null ? '' : ' ($pace/km)';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),

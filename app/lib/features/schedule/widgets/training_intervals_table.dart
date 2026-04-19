@@ -85,7 +85,7 @@ class _IntervalRow extends StatelessWidget {
 
   String _formatDistance(TrainingInterval s) {
     final m = s.distanceM;
-    if (m == null || m <= 0) return '—';
+    if (m == null || m <= 0) return '-';
     if (m >= 1000 && m % 100 == 0) {
       return '${(m / 1000).toStringAsFixed(m % 1000 == 0 ? 0 : 1)}km';
     }
@@ -94,7 +94,7 @@ class _IntervalRow extends StatelessWidget {
 
   String _formatDuration(TrainingInterval s) {
     final secs = s.durationSeconds;
-    if (secs == null || secs <= 0) return '—';
+    if (secs == null || secs <= 0) return '-';
     final mm = secs ~/ 60;
     final ss = secs % 60;
     return '$mm:${ss.toString().padLeft(2, '0')}';
@@ -102,7 +102,7 @@ class _IntervalRow extends StatelessWidget {
 
   String _formatPace(TrainingInterval s) {
     final secs = s.targetPaceSecondsPerKm;
-    if (secs == null || secs <= 0) return '—';
+    if (secs == null || secs <= 0) return '-';
     final mm = secs ~/ 60;
     final ss = secs % 60;
     return "$mm'${ss.toString().padLeft(2, '0')}\"";

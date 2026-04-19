@@ -7,12 +7,15 @@ use App\Enums\ProposalStatus;
 use App\Http\Requests\SendMessageRequest;
 use App\Models\CoachProposal;
 use App\Services\ProposalService;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Contracts\ConversationStore;
 use Laravel\Ai\Streaming\Events\ToolResult as ToolResultEvent;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class CoachController extends Controller
 {
@@ -97,52 +100,65 @@ class CoachController extends Controller
             ignore_user_abort(true);
             set_time_limit(0);
 
-            $stream = RunCoachAgent::make(user: $user)
-                ->continue($conversationId, as: $user)
-                ->stream($content);
+            try {
+                $stream = RunCoachAgent::make(user: $user)
+                    ->continue($conversationId, as: $user)
+                    ->stream($content);
 
-            foreach ($stream as $event) {
-                $payload = $event->toVercelProtocolArray();
-                if (! empty($payload)) {
-                    echo 'data: '.json_encode($payload)."\n\n";
-                    ob_flush();
-                    flush();
-                }
+                foreach ($stream as $event) {
+                    $payload = $event->toVercelProtocolArray();
+                    if (! empty($payload)) {
+                        echo 'data: '.json_encode($payload)."\n\n";
+                        ob_flush();
+                        flush();
+                    }
 
-                if ($event instanceof ToolResultEvent) {
-                    $result = is_string($event->toolResult->result)
-                        ? json_decode($event->toolResult->result, true)
-                        : $event->toolResult->result;
+                    if ($event instanceof ToolResultEvent) {
+                        $result = is_string($event->toolResult->result)
+                            ? json_decode($event->toolResult->result, true)
+                            : $event->toolResult->result;
 
-                    if (is_array($result)) {
-                        $display = $result['display'] ?? null;
-                        if ($display === 'stats_card') {
-                            echo 'data: '.json_encode([
-                                'type' => 'data-stats',
-                                'data' => ['metrics' => $result['metrics']],
-                            ])."\n\n";
-                            ob_flush();
-                            flush();
-                        }
-                        if ($display === 'chip_suggestions') {
-                            echo 'data: '.json_encode([
-                                'type' => 'data-chips',
-                                'data' => ['chips' => $result['chips']],
-                            ])."\n\n";
-                            ob_flush();
-                            flush();
+                        if (is_array($result)) {
+                            $display = $result['display'] ?? null;
+                            if ($display === 'stats_card') {
+                                echo 'data: '.json_encode([
+                                    'type' => 'data-stats',
+                                    'data' => ['metrics' => $result['metrics']],
+                                ])."\n\n";
+                                ob_flush();
+                                flush();
+                            }
+                            if ($display === 'chip_suggestions') {
+                                echo 'data: '.json_encode([
+                                    'type' => 'data-chips',
+                                    'data' => ['chips' => $result['chips']],
+                                ])."\n\n";
+                                ob_flush();
+                                flush();
+                            }
                         }
                     }
                 }
-            }
 
-            $proposal = $this->proposalService
-                ->detectProposalFromConversation($user, $conversationId);
+                $proposal = $this->proposalService
+                    ->detectProposalFromConversation($user, $conversationId);
 
-            if ($proposal) {
+                if ($proposal) {
+                    echo 'data: '.json_encode([
+                        'type' => 'data-proposal',
+                        'data' => $proposal->toArray(),
+                    ])."\n\n";
+                    ob_flush();
+                    flush();
+                }
+            } catch (Throwable $e) {
+                Log::error('[coach stream] '.get_class($e).': '.$e->getMessage(), [
+                    'conversation_id' => $conversationId,
+                    'user_id' => $user->id,
+                ]);
                 echo 'data: '.json_encode([
-                    'type' => 'data-proposal',
-                    'data' => $proposal->toArray(),
+                    'type' => 'error',
+                    'errorText' => $this->humanizeStreamError($e),
                 ])."\n\n";
                 ob_flush();
                 flush();
@@ -156,6 +172,21 @@ class CoachController extends Controller
             'Cache-Control' => 'no-cache, no-transform',
             'X-Accel-Buffering' => 'no',
         ]);
+    }
+
+    private function humanizeStreamError(Throwable $e): string
+    {
+        $message = $e->getMessage();
+
+        if ($e instanceof ConnectionException || str_contains($message, 'Connection refused') || str_contains($message, 'Could not resolve host')) {
+            return "Couldn't reach the coach. Check your connection and try again.";
+        }
+
+        if (str_contains($message, 'rate_limit') || str_contains($message, '429')) {
+            return 'The coach is rate-limited right now. Try again in a moment.';
+        }
+
+        return 'The coach hit an error. Please try again.';
     }
 
     public function acceptProposal(Request $request, int $proposalId): JsonResponse

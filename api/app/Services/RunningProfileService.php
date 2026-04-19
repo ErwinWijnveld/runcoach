@@ -22,7 +22,7 @@ class RunningProfileService
         $runs = array_filter($activities, fn ($a) => ($a['type'] ?? '') === 'Run');
 
         $profile = $this->computeMetrics($user, array_values($runs));
-        $profile->narrative_summary = $this->fixedNarrative();
+        $profile->narrative_summary = $this->buildNarrative($profile->metrics);
         $profile->analyzed_at = now();
         $profile->data_start_date = $start;
         $profile->data_end_date = $end;
@@ -125,11 +125,111 @@ class RunningProfileService
             return 'flat';
         }
 
-        return $this->trend($runs, fn ($r) => $r['distance'] > 0 ? $r['moving_time'] / $r['distance'] : 0);
+        $paceMetric = fn ($r) => $r['distance'] > 0 ? $r['moving_time'] / $r['distance'] : 0;
+
+        $first = array_slice($runs, 0, (int) floor(count($runs) / 2));
+        $last = array_slice($runs, (int) floor(count($runs) / 2));
+        $avgFirst = array_sum(array_map($paceMetric, $first)) / max(1, count($first));
+        $avgLast = array_sum(array_map($paceMetric, $last)) / max(1, count($last));
+
+        if ($avgLast < $avgFirst * 0.95) {
+            return 'improving';
+        }
+        if ($avgLast > $avgFirst * 1.05) {
+            return 'declining';
+        }
+
+        return 'flat';
     }
 
-    private function fixedNarrative(): string
+    /**
+     * @param  array<string, mixed>  $metrics
+     */
+    private function buildNarrative(array $metrics): string
     {
-        return "Here's your last 12 months of running on Strava.";
+        $totalRuns = (int) ($metrics['total_runs_12mo'] ?? 0);
+
+        if ($totalRuns === 0) {
+            return "No Strava runs in the past 12 months yet, we'll build from the ground up.";
+        }
+
+        $totalKm = (float) ($metrics['total_distance_km_12mo'] ?? 0);
+        $weeklyKm = (float) ($metrics['weekly_avg_km'] ?? 0);
+        $weeklyRuns = (int) ($metrics['weekly_avg_runs'] ?? 0);
+        $consistency = (int) ($metrics['consistency_score'] ?? 0);
+        $paceSec = (int) ($metrics['avg_pace_seconds_per_km'] ?? 0);
+        $longRunTrend = (string) ($metrics['long_run_trend'] ?? 'flat');
+        $paceTrend = (string) ($metrics['pace_trend'] ?? 'flat');
+
+        $volumeTier = match (true) {
+            $weeklyKm < 5 => 'a light weekly rhythm',
+            $weeklyKm < 15 => 'a modest weekly base',
+            $weeklyKm < 30 => 'solid weekly mileage',
+            $weeklyKm < 50 => 'serious weekly volume',
+            default => 'high-volume training',
+        };
+
+        $consistencyLine = match (true) {
+            $consistency >= 85 => "You've barely missed a week. Your consistency score is {$consistency}.",
+            $consistency >= 65 => "You've been pretty consistent, with a consistency score of {$consistency}.",
+            $consistency >= 40 => "Your routine has been on-and-off, with a consistency score of {$consistency}.",
+            default => "Running has been sporadic lately, with a consistency score of {$consistency}.",
+        };
+
+        $lines = [
+            sprintf(
+                "Over the past 12 months you've logged %d runs covering %s km at a typical pace of %s/km.",
+                $totalRuns,
+                $this->formatKm($totalKm),
+                $this->formatPace($paceSec),
+            ),
+            sprintf(
+                "That's about %s a week at %s km, %s.",
+                $weeklyRuns <= 0 ? 'less than one run' : ($weeklyRuns === 1 ? '1 run' : "{$weeklyRuns} runs"),
+                rtrim(rtrim(number_format($weeklyKm, 1), '0'), '.'),
+                $volumeTier,
+            ),
+            $consistencyLine,
+        ];
+
+        $trendLine = $this->buildTrendLine($longRunTrend, $paceTrend);
+        if ($trendLine !== null) {
+            $lines[] = $trendLine;
+        }
+
+        return implode(' ', $lines);
+    }
+
+    private function buildTrendLine(string $longRun, string $pace): ?string
+    {
+        return match (true) {
+            $longRun === 'improving' && $pace === 'improving' => 'Both your distances and pace are trending up, a strong recent trajectory.',
+            $longRun === 'declining' && $pace === 'declining' => 'Both distance and pace have slipped over the last few months.',
+            $longRun === 'improving' && $pace === 'declining' => 'Your long runs have stretched out, though pace has eased off a touch.',
+            $longRun === 'declining' && $pace === 'improving' => "You've pulled back on distance, but your pace has sharpened.",
+            $longRun === 'improving' => 'Your long runs have been getting longer.',
+            $longRun === 'declining' => 'Your long runs have shortened recently.',
+            $pace === 'improving' => 'Your pace has been getting faster.',
+            $pace === 'declining' => 'Your pace has slowed a bit recently.',
+            default => null,
+        };
+    }
+
+    private function formatPace(int $seconds): string
+    {
+        if ($seconds <= 0) {
+            return '-';
+        }
+
+        return sprintf('%d:%02d', intdiv($seconds, 60), $seconds % 60);
+    }
+
+    private function formatKm(float $km): string
+    {
+        if ($km >= 1000) {
+            return number_format($km, 0);
+        }
+
+        return rtrim(rtrim(number_format($km, 1), '0'), '.');
     }
 }

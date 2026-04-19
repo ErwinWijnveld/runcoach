@@ -24,7 +24,20 @@ class AppColors {
   static const eyebrow = Color(0xFF4E4635);
   static const inkMuted = Color(0xFF817662);
   static const border = Color(0x148C7A5B);
+  static const inputBorder = Color(0xFFE6DDC6);
   static const goldGlow = Color(0xFFF5E0AF);
+
+  /// Warm cream → gold gradient used on the onboarding overview screen.
+  static const onboardingGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    stops: [0.0, 0.7, 1.0],
+    colors: [
+      Color(0xFFFDF9ED),
+      Color(0xFFFCEFC8),
+      Color(0xFFF8E4AE),
+    ],
+  );
 }
 
 /// Three-font design system: EB Garamond (display/serif), Space Grotesk

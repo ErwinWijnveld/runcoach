@@ -107,7 +107,7 @@ class ProposalCard extends StatelessWidget {
             ] else ...[
               const SizedBox(height: 8),
               Text(
-                proposal.status == 'accepted' ? 'Plan accepted.' : 'Plan rejected.',
+                proposal.status == 'accepted' ? 'Plan accepted.' : 'Rejected.',
                 style: const TextStyle(color: AppColors.inkMuted),
               ),
             ],
