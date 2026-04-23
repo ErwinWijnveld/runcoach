@@ -7,6 +7,10 @@ import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_header.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/coach_prompt_bar.dart';
+import 'package:app/core/widgets/gradient_scaffold.dart';
+import 'package:app/features/coach/providers/coach_provider.dart';
+import 'package:app/router/app_router.dart'
+    show floatingPromptBarBottomOffset, kBottomStackedReservedHeight;
 import 'package:app/features/dashboard/providers/dashboard_provider.dart';
 import 'package:app/features/schedule/data/schedule_coach_suggestions.dart';
 import 'package:app/features/schedule/models/training_day.dart';
@@ -23,45 +27,63 @@ class WeeklyPlanScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final dashboardAsync = ref.watch(dashboardProvider);
 
-    return CupertinoPageScaffold(
-      backgroundColor: AppColors.neutral,
-      child: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            const AppHeader(),
-            Expanded(
-              child: dashboardAsync.when(
-                loading: () => const AppSpinner(),
-                error: (err, _) => AppErrorState(title: 'Error: $err'),
-                data: (dashboard) {
-                  final race = dashboard.activeGoal;
-                  if (race == null) {
-                    return _EmptyState(onOpenGoals: () => context.go('/goals'));
-                  }
-                  final weeksAsync = ref.watch(scheduleProvider(race.id));
-                  return weeksAsync.when(
+    return GradientScaffold(
+      child: Stack(
+        children: [
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                const AppHeader(),
+                Expanded(
+                  child: dashboardAsync.when(
                     loading: () => const AppSpinner(),
                     error: (err, _) => AppErrorState(title: 'Error: $err'),
-                    data: (weeks) {
-                      if (weeks.isEmpty) {
-                        return const Center(
-                          child: Text('No training week found'),
-                        );
+                    data: (dashboard) {
+                      final race = dashboard.activeGoal;
+                      if (race == null) {
+                        return _EmptyState(onOpenGoals: () => context.go('/goals'));
                       }
-                      return _WeekPages(
-                        weeks: weeks,
-                        initialIndex: _initialWeekIndex(weeks),
-                        onTapDay: (id) => context.go('/schedule/day/$id'),
-                        onTapCoach: () => context.go('/coach'),
+                      final weeksAsync = ref.watch(scheduleProvider(race.id));
+                      return weeksAsync.when(
+                        loading: () => const AppSpinner(),
+                        error: (err, _) => AppErrorState(title: 'Error: $err'),
+                        data: (weeks) {
+                          if (weeks.isEmpty) {
+                            return const Center(
+                              child: Text('No training week found'),
+                            );
+                          }
+                          return _WeekPages(
+                            weeks: weeks,
+                            initialIndex: _initialWeekIndex(weeks),
+                            onTapDay: (id) => context.go('/schedule/day/$id'),
+                            onTapCoach: () => startNewCoachChat(context, ref),
+                          );
+                        },
                       );
                     },
-                  );
-                },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: floatingPromptBarBottomOffset(context),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: CoachPromptBar.navigateAnimated(
+                  onTap: () => startNewCoachChat(context, ref),
+                  animatedSuggestions: scheduleCoachSuggestions,
+                ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -282,19 +304,12 @@ class _WeekBody extends StatelessWidget {
                         : _DayHighlight.none,
                     onTap: () => onTapDay(days[i].id),
                   ),
-                  if (i < days.length - 1) const SizedBox(height: 6),
+                  if (i < days.length - 1) const SizedBox(height: 8),
                 ],
               ],
             ),
           ),
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: CoachPromptBar.navigateAnimated(
-              onTap: onTapCoach,
-              animatedSuggestions: scheduleCoachSuggestions,
-            ),
-          ),
+          const SizedBox(height: kBottomStackedReservedHeight),
         ],
       ),
     );
@@ -599,6 +614,18 @@ class _DayTile extends StatelessWidget {
     return day.description ?? '';
   }
 
+  /// Title with the target distance prepended when available, e.g.
+  /// `"5km Easy run"`. Falls back to the raw title for interval/mobility days
+  /// where a single target distance doesn't make sense.
+  String get _displayTitle {
+    final km = day.targetKm;
+    if (km == null || km <= 0) return day.title;
+    final label = km == km.truncate()
+        ? '${km.toInt()}km'
+        : '${km.toStringAsFixed(1)}km';
+    return '$label ${day.title}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final highlighted = _isHighlighted;
@@ -607,35 +634,39 @@ class _DayTile extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: highlighted
             ? const [
                 BoxShadow(
-                  color: Color(0x08000000),
-                  blurRadius: 16,
-                  spreadRadius: 0,
-                  offset: Offset(0, 0),
+                  color: Color(0x73E9B638),
+                  offset: Offset(0, 6),
+                  blurRadius: 18,
+                  spreadRadius: -8,
+                ),
+                BoxShadow(
+                  color: Color(0x38E9B638),
+                  blurRadius: 0,
+                  spreadRadius: 1,
                 ),
               ]
-            : null,
+            : const [
+                BoxShadow(
+                  color: Color(0x0A37280F),
+                  offset: Offset(0, 1),
+                  blurRadius: 2,
+                ),
+              ],
       ),
       child: Material(
-        color: highlighted
-            ? CupertinoColors.white
-            : AppColors.neutralHighlight,
-        borderRadius: BorderRadius.circular(24),
+        color: CupertinoColors.white,
+        borderRadius: BorderRadius.circular(20),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(20),
           child: Container(
-            height: highlighted ? 76 : 68,
-            padding: EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: highlighted ? 16 : 12,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              border: Border.all(color: AppColors.border),
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(20),
               gradient: highlighted
                   ? RadialGradient(
                       center: Alignment.centerRight,
@@ -671,9 +702,9 @@ class _DayTile extends StatelessWidget {
                           ],
                           Flexible(
                             child: Text(
-                              day.title,
+                              _displayTitle,
                               style: GoogleFonts.inter(
-                                fontSize: highlighted ? 16 : 14,
+                                fontSize: 15,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.primaryInk,
                               ),
@@ -754,26 +785,57 @@ class _StatusIcon extends StatelessWidget {
   final bool isHighlighted;
   const _StatusIcon({required this.isCompleted, required this.isHighlighted});
 
+  static const _size = 32.0;
+  static const _pendingBg = Color(0xFFF1EAD8);
+  static const _pendingIcon = Color(0xFFB0A590);
+
   @override
   Widget build(BuildContext context) {
     if (isCompleted) {
-      return const Icon(
-        Icons.check_circle,
-        color: AppColors.success,
-        size: 24,
+      return Container(
+        width: _size,
+        height: _size,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          color: AppColors.primaryInk,
+        ),
+        alignment: Alignment.center,
+        child: const Icon(
+          Icons.check_rounded,
+          color: CupertinoColors.white,
+          size: 18,
+        ),
       );
     }
     if (isHighlighted) {
-      return const Icon(
-        Icons.bolt,
-        color: AppColors.secondary,
-        size: 28,
+      return Container(
+        width: _size,
+        height: _size,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          color: AppColors.secondary,
+        ),
+        alignment: Alignment.center,
+        child: const Icon(
+          Icons.bolt_rounded,
+          color: CupertinoColors.white,
+          size: 18,
+        ),
       );
     }
-    return const Icon(
-      Icons.schedule,
-      color: Color(0xFFCCCCCC),
-      size: 24,
+    return Container(
+      width: _size,
+      height: _size,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: _pendingBg,
+      ),
+      alignment: Alignment.center,
+      child: const Icon(
+        Icons.schedule_rounded,
+        color: _pendingIcon,
+        size: 16,
+      ),
     );
   }
 }

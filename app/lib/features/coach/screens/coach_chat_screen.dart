@@ -2,7 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app/core/theme/app_theme.dart';
-import 'package:app/features/auth/models/user.dart';
+import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/coach/providers/coach_provider.dart';
 import 'package:app/features/coach/widgets/coach_chat_view.dart';
@@ -13,42 +13,17 @@ class CoachChatScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // If the user just completed onboarding (accepted the proposal inside an
-    // onboarding conversation), take them to the schedule so they land on
-    // their plan rather than sitting on an empty chat follow-up.
-    ref.listen<AsyncValue<User?>>(authProvider, (prev, next) {
-      final wasOnboarding = prev?.value?.hasCompletedOnboarding == false;
-      final nowOnboarded = next.value?.hasCompletedOnboarding == true;
-      if (wasOnboarding && nowOnboarded) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (context.mounted) context.go('/schedule');
-        });
-      }
-    });
-
-    return CupertinoPageScaffold(
-      backgroundColor: AppColors.neutral,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            stops: [0.0, 0.25, 0.5, 0.75, 1.0],
-            colors: [
-              AppColors.neutral,
-              Color(0xFFFAF1D9),
-              AppColors.neutral,
-              Color(0xFFFAF1D9),
-              AppColors.neutral,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          bottom: false,
-          child: Column(
+    return GradientScaffold(
+      child: SafeArea(
+        bottom: false,
+        child: Column(
             children: [
               _TopBar(
                 onBack: () {
+                  // Refresh the list so the auto-generated title (derived from
+                  // the first user message by the backend) shows up after the
+                  // user returns from the chat.
+                  ref.invalidate(conversationsProvider);
                   if (context.canPop()) {
                     context.pop();
                   } else {
@@ -70,9 +45,15 @@ class CoachChatScreen extends ConsumerWidget {
                   onInvalidate: (ref) =>
                       ref.invalidate(coachChatProvider(conversationId)),
                   onAccept: (ref, proposalId) async {
+                    final wasOnboarding = ref.read(authProvider).value?.hasCompletedOnboarding == false;
                     await ref
                         .read(coachChatProvider(conversationId).notifier)
                         .acceptProposal(proposalId);
+                    if (!context.mounted) return;
+                    final nowOnboarded = ref.read(authProvider).value?.hasCompletedOnboarding == true;
+                    if (wasOnboarding && nowOnboarded) {
+                      context.go('/schedule');
+                    }
                   },
                   onReject: (ref, proposalId) async {
                     await ref
@@ -84,7 +65,6 @@ class CoachChatScreen extends ConsumerWidget {
             ],
           ),
         ),
-      ),
     );
   }
 }

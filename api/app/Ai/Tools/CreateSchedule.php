@@ -4,6 +4,7 @@ namespace App\Ai\Tools;
 
 use App\Enums\GoalDistance;
 use App\Enums\GoalType;
+use App\Enums\ProposalType;
 use App\Enums\TrainingType;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Laravel\Ai\Contracts\Tool;
@@ -13,13 +14,17 @@ class CreateSchedule implements Tool
 {
     public function description(): string
     {
-        return <<<'DESC'
+        $race = GoalType::Race->value;
+        $generalFitness = GoalType::GeneralFitness->value;
+        $prAttempt = GoalType::PrAttempt->value;
+
+        return <<<DESC
         Create a complete training goal and schedule for the runner. Returns a proposal the runner must approve.
 
         Goal types:
-        - `race`: training for a specific race event (distance + target_date required)
-        - `general_fitness`: improving overall fitness, no fixed race (distance and target_date may be null)
-        - `pr_attempt`: attempting a personal record at a given distance (distance required, target_date optional)
+        - `{$race}`: training for a specific race event (distance + target_date required)
+        - `{$generalFitness}`: improving overall fitness, no fixed race (distance and target_date may be null)
+        - `{$prAttempt}`: attempting a personal record at a given distance (distance required, target_date optional)
 
         IMPORTANT: Before calling this tool, you should have already:
         1. Asked the runner about their goal (type, distance, date, target time where applicable)
@@ -35,7 +40,7 @@ class CreateSchedule implements Tool
 
     public function schema(JsonSchema $schema): array
     {
-        $trainingTypes = TrainingType::valuesAsPipe();
+        $trainingTypes = TrainingType::activeValuesAsPipe();
 
         return [
             'goal_type' => $schema->string()->enum(GoalType::values())->required()->description('Type of goal the runner is working toward.'),
@@ -59,7 +64,7 @@ class CreateSchedule implements Tool
 
         return json_encode([
             'requires_approval' => true,
-            'proposal_type' => 'create_schedule',
+            'proposal_type' => ProposalType::CreateSchedule->value,
             'payload' => [
                 'goal_type' => $request['goal_type'],
                 'goal_name' => $request['goal_name'],

@@ -7,6 +7,8 @@ import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/utils/relative_time.dart';
 import 'package:app/core/widgets/app_header.dart';
 import 'package:app/core/widgets/app_widgets.dart';
+import 'package:app/core/widgets/gradient_scaffold.dart';
+import 'package:app/router/app_router.dart' show kBottomNavReservedHeight;
 import 'package:app/features/coach/data/coach_api.dart';
 import 'package:app/features/coach/models/conversation.dart';
 import 'package:app/features/coach/providers/coach_provider.dart';
@@ -31,8 +33,7 @@ class CoachChatListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final conversationsAsync = ref.watch(conversationsProvider);
 
-    return CupertinoPageScaffold(
-      backgroundColor: AppColors.neutral,
+    return GradientScaffold(
       child: SafeArea(
         bottom: false,
         child: Column(
@@ -99,10 +100,10 @@ class _ListBody extends StatelessWidget {
           )
         else
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, kBottomNavReservedHeight),
             sliver: SliverList.separated(
               itemCount: conversations.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 6),
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final conv = conversations[index];
                 return _ConversationTile(
@@ -128,58 +129,68 @@ class _ConversationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.neutralHighlight,
-      borderRadius: BorderRadius.circular(24),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(24),
-        onTap: onTap,
-        child: Container(
-          height: 68,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(24),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A37280F),
+            offset: Offset(0, 1),
+            blurRadius: 2,
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      conversation.title,
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primaryInk,
+        ],
+      ),
+      child: Material(
+        color: CupertinoColors.white,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        conversation.title,
+                        style: GoogleFonts.inter(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primaryInk,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      formatRelativeTimeString(conversation.createdAt),
-                      style: GoogleFonts.spaceGrotesk(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: _goldAccent,
+                      const SizedBox(height: 2),
+                      Text(
+                        formatRelativeTimeString(conversation.createdAt),
+                        style: GoogleFonts.spaceGrotesk(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: _goldAccent,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              const Icon(
-                Icons.chevron_right,
-                color: AppColors.tertiary,
-                size: 24,
-              ),
-            ],
+                const SizedBox(width: 12),
+                const Icon(
+                  Icons.chevron_right,
+                  color: AppColors.tertiary,
+                  size: 24,
+                ),
+              ],
+            ),
           ),
         ),
       ),

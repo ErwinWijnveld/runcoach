@@ -82,12 +82,12 @@ class _NavigateBar extends StatelessWidget {
 
     return Material(
       color: CupertinoColors.white,
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(999),
       child: InkWell(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(999),
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           decoration: _promptDecoration(),
           child: Row(
             children: [
@@ -163,12 +163,12 @@ class _InputBarState extends State<_InputBar> {
 
     return Material(
       color: CupertinoColors.white,
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(999),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _focusField,
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           decoration: _promptDecoration(),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -197,8 +197,8 @@ class _InputBarState extends State<_InputBar> {
               ),
               const SizedBox(width: 12),
               SizedBox(
-                width: 28,
-                height: 28,
+                width: 24,
+                height: 24,
                 child: widget.sending
                     ? const Center(
                         child: CupertinoActivityIndicator(radius: 8),
@@ -222,16 +222,15 @@ class _InputBarState extends State<_InputBar> {
 
 BoxDecoration _promptDecoration() {
   return BoxDecoration(
-    border: Border.all(color: AppColors.border),
-    borderRadius: BorderRadius.circular(24),
-    gradient: RadialGradient(
-      center: Alignment.centerRight,
-      radius: 3.5,
-      colors: [
-        AppColors.secondary.withValues(alpha: 0.15),
-        AppColors.secondary.withValues(alpha: 0.0),
-      ],
-    ),
+    color: CupertinoColors.white,
+    borderRadius: BorderRadius.circular(999),
+    boxShadow: const [
+      BoxShadow(
+        color: Color(0x0A37280F),
+        offset: Offset(0, 1),
+        blurRadius: 2,
+      ),
+    ],
   );
 }
 
@@ -242,8 +241,8 @@ class _StarIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return SvgPicture.asset(
       'assets/icons/coach_prompt_star.svg',
-      width: 18,
-      height: 19,
+      width: 15,
+      height: 16,
     );
   }
 }
@@ -253,10 +252,12 @@ class _SendIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SvgPicture.asset(
-      'assets/icons/coach_send.svg',
-      width: 28,
-      height: 28,
+    return ClipOval(
+      child: SvgPicture.asset(
+        'assets/icons/coach_send.svg',
+        width: 24,
+        height: 24,
+      ),
     );
   }
 }

@@ -12,6 +12,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
+import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/features/schedule/models/training_result.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
 
@@ -24,8 +25,7 @@ class TrainingResultScreen extends ConsumerWidget {
     final resultAsync = ref.watch(trainingDayResultProvider(dayId));
     final dayAsync = ref.watch(trainingDayDetailProvider(dayId));
 
-    return CupertinoPageScaffold(
-      backgroundColor: AppColors.neutral,
+    return GradientScaffold(
       child: SafeArea(
         child: resultAsync.when(
           loading: () => const AppSpinner(),
@@ -41,7 +41,7 @@ class TrainingResultScreen extends ConsumerWidget {
             }
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 32),
+              padding: EdgeInsets.only(bottom: 24 + MediaQuery.paddingOf(context).bottom),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

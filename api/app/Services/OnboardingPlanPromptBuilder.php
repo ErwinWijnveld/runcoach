@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\TrainingType;
+
 class OnboardingPlanPromptBuilder
 {
     /**
@@ -29,9 +31,12 @@ class OnboardingPlanPromptBuilder
         ?array $preferredWeekdays = null,
         ?string $additionalNotes = null,
     ): string {
+        $trainingTypes = TrainingType::activeValuesAsPipe();
+        $trainingTypeCsv = implode(', ', TrainingType::activeValues());
+
         $lines = [];
         $lines[] = 'You are generating a running training plan. Output ONLY a JSON object matching this schema — no prose, no markdown fences:';
-        $lines[] = <<<'JSON'
+        $lines[] = <<<JSON
 {
   "weeks": [
     {
@@ -41,12 +46,12 @@ class OnboardingPlanPromptBuilder
       "days": [
         {
           "day_of_week": 1,
-          "type": "easy|tempo|interval|long_run|recovery",
+          "type": "{$trainingTypes}",
           "title": "short label",
           "description": "1-2 sentence coaching note",
           "target_km": number|null,
           "target_pace_seconds_per_km": number|null,
-          "target_heart_rate_zone": "Z1|Z2|Z3|Z4|Z5"|null
+          "target_heart_rate_zone": integer 1-5 (not "Z1" or "z1" - use the plain integer)|null
         }
       ]
     }
@@ -67,7 +72,7 @@ JSON;
             $lines[] = "- The runner can ONLY run on these ISO weekdays: [{$csv}] ({$labels}). Every training day's `day_of_week` MUST be one of these values. Do not schedule runs on any other weekday.";
         }
         $lines[] = "- Coaching style: {$coachStyle}. Reflect this in tone and volume progression (strict = tight, flexible = forgiving).";
-        $lines[] = '- Allowed `type` values: easy, tempo, interval, long_run, recovery. Nothing else.';
+        $lines[] = "- Allowed `type` values: {$trainingTypeCsv}. Nothing else. Use `easy` for low-intensity shakeout / recovery runs — there is no separate \"recovery\" type.";
 
         if ($goalType === 'race' && $targetDate && $distanceMeters) {
             $name = $goalName ?: 'Race day';

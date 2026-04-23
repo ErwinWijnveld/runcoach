@@ -5,8 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/utils/date_formatter.dart';
 import 'package:app/core/widgets/app_header.dart';
 import 'package:app/core/widgets/app_widgets.dart';
+import 'package:app/core/widgets/gradient_scaffold.dart';
+import 'package:app/router/app_router.dart'
+    show floatingPromptBarBottomOffset, kBottomStackedReservedHeight;
 import 'package:app/core/widgets/coach_prompt_bar.dart';
 import 'package:app/features/coach/data/coach_api.dart';
 import 'package:app/features/coach/providers/coach_provider.dart';
@@ -29,24 +33,32 @@ class GoalListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final goalsAsync = ref.watch(goalsProvider);
 
-    return CupertinoPageScaffold(
-      backgroundColor: AppColors.neutral,
-      child: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            const AppHeader(),
-            Expanded(
-              child: goalsAsync.when(
-                loading: () => const AppSpinner(),
-                error: (err, _) => AppErrorState(
-                  title: 'Error: $err',
-                  onRetry: () => ref.invalidate(goalsProvider),
+    return GradientScaffold(
+      child: Stack(
+        children: [
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                const AppHeader(),
+                Expanded(
+                  child: goalsAsync.when(
+                    loading: () => const AppSpinner(),
+                    error: (err, _) => AppErrorState(
+                      title: 'Error: $err',
+                      onRetry: () => ref.invalidate(goalsProvider),
+                    ),
+                    data: (goals) => _GoalsBody(goals: goals),
+                  ),
                 ),
-                data: (goals) => _GoalsBody(goals: goals),
-              ),
+              ],
             ),
-            SafeArea(
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: floatingPromptBarBottomOffset(context),
+            child: SafeArea(
               top: false,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
@@ -56,8 +68,8 @@ class GoalListScreen extends ConsumerWidget {
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -82,7 +94,7 @@ class _GoalsBody extends StatelessWidget {
 
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: kBottomStackedReservedHeight),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -246,7 +258,7 @@ class _ActiveGoalCard extends StatelessWidget {
                         ? 'TARGET'
                         : (days == 0 ? 'TODAY' : 'DAYS LEFT'),
                     value: days == null || days < 0
-                        ? (goal.targetDate ?? '-')
+                        ? formatDateString(goal.targetDate, fallback: '-')
                         : (days == 0 ? '🏁' : '$days'),
                   ),
                 ),
@@ -343,8 +355,8 @@ class _OtherGoalTile extends ConsumerWidget {
                   Text(
                     [
                       if (goal.distance != null) goal.distance,
-                      if (goal.targetDate != null) goal.targetDate,
-                    ].whereType<String>().join(' · '),
+                      if (goal.targetDate != null) formatDateString(goal.targetDate),
+                    ].whereType<String>().where((s) => s.isNotEmpty).join(' · '),
                     style: GoogleFonts.publicSans(
                       fontSize: 12,
                       color: AppColors.inkMuted,

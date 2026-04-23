@@ -19,10 +19,18 @@ class ProposalCard extends StatelessWidget {
 
   bool get _isPending => proposal.status == 'pending';
 
+  List<dynamic>? get _diff {
+    final raw = proposal.payload['diff'];
+    return raw is List && raw.isNotEmpty ? raw : null;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final diff = _diff;
+    final isRevision = diff != null;
     final weeklyKm = _computeWeeklyKm(proposal.payload);
     final weeklyRuns = _computeWeeklyRuns(proposal.payload);
+    final changeCount = diff?.length ?? 0;
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 296),
@@ -37,11 +45,48 @@ class ProposalCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [
-              Expanded(child: _summaryItem('WEEKLY KM', '${weeklyKm.toStringAsFixed(1)} km')),
-              const SizedBox(width: 32),
-              Expanded(child: _summaryItem('WEEKLY RUNS', weeklyRuns)),
-            ]),
+            if (isRevision) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.goldGlow,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  'PLAN REVISION',
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.8,
+                    color: const Color(0xFF785A00),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '$changeCount ${changeCount == 1 ? 'change' : 'changes'} to your plan',
+                style: GoogleFonts.inter(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryInk,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Tap below to review what changed before applying.',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: AppColors.inkMuted,
+                  height: 1.3,
+                ),
+              ),
+            ] else ...[
+              Row(children: [
+                Expanded(child: _summaryItem('WEEKLY KM', '${weeklyKm.toStringAsFixed(1)} km')),
+                const SizedBox(width: 32),
+                Expanded(child: _summaryItem('WEEKLY RUNS', weeklyRuns)),
+              ]),
+            ],
             const SizedBox(height: 16),
             OutlinedButton(
               onPressed: onViewDetails,
@@ -54,10 +99,14 @@ class ProposalCard extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.visibility_outlined, size: 20, color: AppColors.primary),
+                  Icon(
+                    isRevision ? Icons.tune_rounded : Icons.visibility_outlined,
+                    size: 20,
+                    color: AppColors.primary,
+                  ),
                   const SizedBox(width: 8),
                   Text(
-                    'VIEW DETAILS',
+                    isRevision ? 'VIEW CHANGES' : 'VIEW DETAILS',
                     style: GoogleFonts.spaceGrotesk(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,

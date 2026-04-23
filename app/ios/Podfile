@@ -1,5 +1,7 @@
-# Uncomment this line to define a global platform for your project
-# platform :ios, '13.0'
+# cupertino_native requires iOS 14.0 minimum. iOS 26 Liquid Glass tab bar
+# material is applied automatically when running on iOS 26+; older iOS gets
+# the pre-26 translucent UITabBar.
+platform :ios, '14.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'

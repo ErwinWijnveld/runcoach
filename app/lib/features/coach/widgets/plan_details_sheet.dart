@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/coach/models/coach_proposal.dart';
+import 'package:app/features/coach/widgets/plan_revision_content.dart';
 
 /// Full week-by-week plan overview, rendered directly from the proposal
 /// payload (the agent already included a structured `schedule.weeks[]`
@@ -9,8 +10,8 @@ import 'package:app/features/coach/models/coach_proposal.dart';
 /// scrollable summary per week.
 class PlanDetailsSheet extends StatelessWidget {
   final CoachProposal proposal;
-  final VoidCallback? onAccept;
-  final VoidCallback? onAdjust;
+  final Future<void> Function()? onAccept;
+  final Future<void> Function()? onAdjust;
 
   const PlanDetailsSheet({
     super.key,
@@ -22,8 +23,8 @@ class PlanDetailsSheet extends StatelessWidget {
   static Future<void> show(
     BuildContext context, {
     required CoachProposal proposal,
-    VoidCallback? onAccept,
-    VoidCallback? onAdjust,
+    Future<void> Function()? onAccept,
+    Future<void> Function()? onAdjust,
   }) {
     return showModalBottomSheet(
       context: context,
@@ -40,8 +41,18 @@ class PlanDetailsSheet extends StatelessWidget {
 
   bool get _isPending => proposal.status == 'pending';
 
+  List<Map<String, dynamic>>? get _diffOps {
+    final raw = proposal.payload['diff'];
+    if (raw is! List || raw.isEmpty) return null;
+    return raw
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final ops = _diffOps;
     final weeks = _weeks(proposal.payload);
     final avgKm = _averageWeeklyKm(weeks);
     final runsRange = _weeklyRunsRange(weeks);
@@ -75,27 +86,34 @@ class PlanDetailsSheet extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _Header(goalName: _goalName()),
+                      _Header(
+                        goalName: _goalName(),
+                        isRevision: ops != null,
+                      ),
                       const SizedBox(height: 16),
-                      _TopStats(
-                        totalWeeks: weeks.length,
-                        avgWeeklyKm: avgKm,
-                        weeklyRuns: runsRange,
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        'WEEKLY BREAKDOWN',
-                        style: GoogleFonts.spaceGrotesk(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.8,
-                          color: AppColors.inkMuted,
+                      if (ops != null) ...[
+                        PlanRevisionContent(ops: ops),
+                      ] else ...[
+                        _TopStats(
+                          totalWeeks: weeks.length,
+                          avgWeeklyKm: avgKm,
+                          weeklyRuns: runsRange,
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      for (final w in weeks) ...[
-                        _WeekCard(week: w),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 24),
+                        Text(
+                          'WEEKLY BREAKDOWN',
+                          style: GoogleFonts.spaceGrotesk(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 0.8,
+                            color: AppColors.inkMuted,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        for (final w in weeks) ...[
+                          _WeekCard(week: w),
+                          const SizedBox(height: 8),
+                        ],
                       ],
                       const SizedBox(height: 16),
                       if (_isPending) ...[
@@ -103,14 +121,16 @@ class PlanDetailsSheet extends StatelessWidget {
                           children: [
                             Expanded(
                               child: _PrimaryButton(
-                                label: 'ACCEPT PLAN',
+                                label: ops != null ? 'APPLY CHANGES' : 'ACCEPT PLAN',
                                 background: AppColors.secondary,
                                 foreground: AppColors.primary,
                                 onPressed: onAccept == null
                                     ? null
-                                    : () {
-                                        Navigator.of(context).pop();
-                                        onAccept!();
+                                    : () async {
+                                        await onAccept!();
+                                        if (context.mounted) {
+                                          Navigator.of(context).pop();
+                                        }
                                       },
                               ),
                             ),
@@ -122,9 +142,11 @@ class PlanDetailsSheet extends StatelessWidget {
                                 foreground: AppColors.neutral,
                                 onPressed: onAdjust == null
                                     ? null
-                                    : () {
-                                        Navigator.of(context).pop();
-                                        onAdjust!();
+                                    : () async {
+                                        await onAdjust!();
+                                        if (context.mounted) {
+                                          Navigator.of(context).pop();
+                                        }
                                       },
                               ),
                             ),
@@ -184,7 +206,8 @@ class PlanDetailsSheet extends StatelessWidget {
 
 class _Header extends StatelessWidget {
   final String goalName;
-  const _Header({required this.goalName});
+  final bool isRevision;
+  const _Header({required this.goalName, this.isRevision = false});
 
   @override
   Widget build(BuildContext context) {
@@ -196,7 +219,7 @@ class _Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'RECOMMENDED PLAN',
+                isRevision ? 'PLAN REVISION' : 'RECOMMENDED PLAN',
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
@@ -206,7 +229,7 @@ class _Header extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                goalName,
+                isRevision ? 'Review your changes' : goalName,
                 style: GoogleFonts.ebGaramond(
                   fontSize: 28,
                   fontWeight: FontWeight.w400,
@@ -217,8 +240,8 @@ class _Header extends StatelessWidget {
             ],
           ),
         ),
-        const Icon(
-          Icons.directions_run,
+        Icon(
+          isRevision ? Icons.tune_rounded : Icons.directions_run,
           size: 28,
           color: AppColors.eyebrow,
         ),

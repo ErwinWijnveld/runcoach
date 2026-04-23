@@ -10,5 +10,6 @@ enum ProposalType: string
 
     case CreateSchedule = 'create_schedule';
     case ModifySchedule = 'modify_schedule';
+    case EditActivePlan = 'edit_active_plan';
     case AlternativeWeek = 'alternative_week';
 }

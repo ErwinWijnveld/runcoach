@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/utils/date_formatter.dart';
 import 'package:app/core/widgets/app_widgets.dart';
+import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/core/widgets/coach_prompt_bar.dart';
 import 'package:app/features/coach/data/coach_api.dart';
 import 'package:app/features/coach/providers/coach_provider.dart';
@@ -22,8 +24,7 @@ class GoalDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final goalAsync = ref.watch(goalDetailProvider(goalId));
 
-    return CupertinoPageScaffold(
-      backgroundColor: AppColors.neutral,
+    return GradientScaffold(
       child: goalAsync.when(
         loading: () => const SafeArea(child: AppSpinner()),
         error: (err, _) => SafeArea(child: AppErrorState(title: 'Error: $err')),
@@ -49,66 +50,72 @@ class _Loaded extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isActive = goal.status == 'active';
 
-    return Stack(
-      children: [
-        SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 120),
-          child: SafeArea(
-            bottom: false,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _BackButton(),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                  child: _GoalHeroCard(goal: goal),
-                ),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                  child: _GoalStatTiles(goal: goal),
-                ),
-                const SizedBox(height: 16),
-                if (isActive) ...[
-                  const _SectionTitle('Training'),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                    child: _ScheduleRow(
-                      onTap: () => context.go('/schedule'),
+    return SafeArea(
+      bottom: false,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _BackButton(),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                          child: _GoalHeroCard(goal: goal),
+                        ),
+                        const SizedBox(height: 12),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                          child: _GoalStatTiles(goal: goal),
+                        ),
+                        const SizedBox(height: 16),
+                        if (isActive) ...[
+                          const _SectionTitle('Training'),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                            child: _ScheduleRow(
+                              onTap: () => context.go('/schedule'),
+                            ),
+                          ),
+                        ] else if (goal.status == 'paused' ||
+                            goal.status == 'planning') ...[
+                          const _SectionTitle('Not active'),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                            child: _SwitchToGoalCard(goal: goal),
+                          ),
+                        ],
+                        // Spacer pushes the delete button to sit just above
+                        // the docked prompt bar when content is short.
+                        const Spacer(),
+                        if (goal.status == 'active' ||
+                            goal.status == 'paused' ||
+                            goal.status == 'planning') ...[
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                            child: AppFilledButton(
+                              label: 'Delete goal',
+                              icon: CupertinoIcons.delete,
+                              color: AppColors.danger,
+                              onPressed: () => _confirmDelete(context, ref),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                      ],
                     ),
                   ),
-                ] else if (goal.status == 'paused' ||
-                    goal.status == 'planning') ...[
-                  const _SectionTitle('Not active'),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                    child: _SwitchToGoalCard(goal: goal),
-                  ),
-                ],
-                const SizedBox(height: 20),
-                if (goal.status == 'active' ||
-                    goal.status == 'paused' ||
-                    goal.status == 'planning') ...[
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-                    child: AppFilledButton(
-                      label: 'Delete goal',
-                      icon: CupertinoIcons.delete,
-                      color: AppColors.danger,
-                      onPressed: () => _confirmDelete(context, ref),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 32),
-              ],
+                ),
+              ),
             ),
           ),
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: SafeArea(
+          SafeArea(
             top: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
@@ -118,8 +125,8 @@ class _Loaded extends ConsumerWidget {
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -265,8 +272,8 @@ String _subtitle(Goal goal) {
   }
   return [
     if (goal.distance != null) goal.distance!.toUpperCase(),
-    if (goal.targetDate != null) goal.targetDate!,
-  ].join(' · ');
+    if (goal.targetDate != null) formatDateString(goal.targetDate),
+  ].where((s) => s.isNotEmpty).join(' · ');
 }
 
 int? _daysUntil(Goal goal) {
@@ -304,7 +311,7 @@ class _GoalStatTiles extends StatelessWidget {
   Widget build(BuildContext context) {
     final days = _daysUntil(goal);
     final daysStr = days == null
-        ? (goal.targetDate ?? '-')
+        ? formatDateString(goal.targetDate, fallback: '-')
         : (days < 0 ? 'PAST' : (days == 0 ? 'TODAY' : '$days'));
 
     return Row(

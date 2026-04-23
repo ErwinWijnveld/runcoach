@@ -1,72 +1,90 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Icons, Material, InkWell;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_header.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/coach_prompt_bar.dart';
+import 'package:app/core/widgets/gradient_scaffold.dart';
+import 'package:app/features/coach/providers/coach_provider.dart';
+import 'package:app/router/app_router.dart'
+    show floatingPromptBarBottomOffset, kBottomStackedReservedHeight;
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
-      backgroundColor: AppColors.neutral,
-      child: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            const AppHeader(),
-            Expanded(
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _TodayCard(
-                      onTap: () => context.go('/schedule'),
-                    ),
-                    const SizedBox(height: 12),
-                    CoachPromptBar.navigate(
-                      onTap: () => context.go('/coach'),
-                    ),
-                    const SizedBox(height: 12),
-                    const _GoalProgressionCard(
-                      title: 'ASML Marathon Eindhoven',
-                      daysToGo: 28,
-                      progress: 147 / 297,
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget build(BuildContext context, WidgetRef ref) {
+    return GradientScaffold(
+      child: Stack(
+        children: [
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                const AppHeader(),
+                Expanded(
+                  child: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, kBottomStackedReservedHeight),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(
-                          child: _ImageCard(
-                            asset: 'assets/images/ai_coach_bg.png',
-                            title: 'AI Coach',
-                            alignment: const Alignment(-0.1, -0.2),
-                            onTap: () => context.go('/coach'),
-                          ),
+                        _TodayCard(
+                          onTap: () => context.go('/schedule'),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _ImageCard(
-                            asset: 'assets/images/goals_bg.png',
-                            title: 'Goals',
-                            alignment: const Alignment(0.0, 0.0),
-                            onTap: () => context.go('/goals'),
-                          ),
+                        const SizedBox(height: 12),
+                        const _GoalProgressionCard(
+                          title: 'ASML Marathon Eindhoven',
+                          daysToGo: 28,
+                          progress: 147 / 297,
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _ImageCard(
+                                asset: 'assets/images/ai_coach_bg.png',
+                                title: 'AI Coach',
+                                alignment: const Alignment(-0.1, -0.2),
+                                onTap: () => context.go('/coach'),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: _ImageCard(
+                                asset: 'assets/images/goals_bg.png',
+                                title: 'Goals',
+                                alignment: const Alignment(0.0, 0.0),
+                                onTap: () => context.go('/goals'),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: floatingPromptBarBottomOffset(context),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: CoachPromptBar.navigate(
+                  onTap: () => startNewCoachChat(context, ref),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -1,5 +1,7 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Colors;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/coach_prompt_bar.dart';
@@ -7,7 +9,6 @@ import 'package:app/features/coach/models/coach_message.dart';
 import 'package:app/features/coach/widgets/message_bubble.dart';
 import 'package:app/features/coach/widgets/plan_details_sheet.dart';
 import 'package:app/features/coach/widgets/proposal_card.dart';
-import 'package:app/features/coach/widgets/quick_action_card.dart';
 
 class CoachChatView extends ConsumerStatefulWidget {
   final String conversationId;
@@ -167,71 +168,138 @@ class _EmptyState extends StatelessWidget {
   final ValueChanged<String> onQuickAction;
   const _EmptyState({required this.onQuickAction});
 
+  static const _suggestions = [
+    (
+      emoji: '\u{1F4C5}',
+      label: 'Create a training plan',
+      subtitle: 'For an upcoming race or new goal.',
+      prompt: 'I want to create a training plan for an upcoming race',
+    ),
+    (
+      emoji: '\u{1F504}',
+      label: 'Adjust my schedule',
+      subtitle: "Tweak this week's plan.",
+      prompt: "Can you adjust this week's training schedule?",
+    ),
+    (
+      emoji: '\u{1F4CA}',
+      label: 'Analyze my progress',
+      subtitle: 'How am I trending lately?',
+      prompt: 'How is my training going? Give me an analysis of my progress.',
+    ),
+    (
+      emoji: '\u{1F3C3}',
+      label: 'Training advice',
+      subtitle: 'Pacing, recovery, nutrition, gear.',
+      prompt: 'Got any running advice for me today?',
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(24),
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(20, 32, 20, 24),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(
-            CupertinoIcons.sparkles,
-            size: 48,
-            color: AppColors.secondary,
-          ),
-          const SizedBox(height: 16),
           Text(
-            'What can I help you with?',
-            style: RunCoreText.serifTitle(size: 28, height: 32 / 28),
+            "What can I help you with?",
+            style: RunCoreText.serifTitle(size: 32).copyWith(height: 1.15),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
-            'I know your training history and can manage your schedule',
-            style: RunCoreText.statSuffix(),
+            'I know your training history and can manage your schedule.',
             textAlign: TextAlign.center,
+            style: GoogleFonts.inter(
+              fontSize: 15,
+              fontWeight: FontWeight.w400,
+              color: AppColors.inkMuted,
+              height: 1.4,
+            ),
           ),
           const SizedBox(height: 24),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1.3,
-            physics: const NeverScrollableScrollPhysics(),
-            children: [
-              QuickActionCard(
-                emoji: '\u{1F4C5}',
-                title: 'Create a training plan',
-                subtitle: 'For an upcoming race',
-                onTap: () => onQuickAction(
-                  'I want to create a training plan for an upcoming race',
-                ),
-              ),
-              QuickActionCard(
-                emoji: '\u{1F504}',
-                title: 'Adjust my schedule',
-                subtitle: "Modify this week's plan",
-                onTap: () =>
-                    onQuickAction("Can you adjust this week's training schedule?"),
-              ),
-              QuickActionCard(
-                emoji: '\u{1F4CA}',
-                title: 'Analyze my progress',
-                subtitle: 'How am I trending?',
-                onTap: () => onQuickAction(
-                  'How is my training going? Give me an analysis of my progress.',
-                ),
-              ),
-              QuickActionCard(
-                emoji: '\u{2753}',
-                title: 'Ask anything',
-                subtitle: 'Training advice & tips',
-                onTap: () {},
-              ),
-            ],
-          ),
+          for (final s in _suggestions) ...[
+            _SuggestionTile(
+              emoji: s.emoji,
+              label: s.label,
+              subtitle: s.subtitle,
+              onTap: () => onQuickAction(s.prompt),
+            ),
+            const SizedBox(height: 10),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+class _SuggestionTile extends StatelessWidget {
+  final String emoji;
+  final String label;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _SuggestionTile({
+    required this.emoji,
+    required this.label,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      onPressed: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.inputBorder),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 36,
+              child: Text(emoji, style: const TextStyle(fontSize: 22)),
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primaryInk,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.inkMuted,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              CupertinoIcons.chevron_right,
+              size: 16,
+              color: AppColors.inkMuted,
+            ),
+          ],
+        ),
       ),
     );
   }

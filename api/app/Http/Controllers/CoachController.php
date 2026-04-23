@@ -91,10 +91,12 @@ class CoachController extends Controller
         $user = $request->user();
         $content = $request->validated()['content'];
 
-        DB::table('agent_conversations')
+        $conversation = DB::table('agent_conversations')
             ->where('id', $conversationId)
             ->where('user_id', $user->id)
             ->firstOrFail();
+
+        $this->maybeAutoTitle($conversation, $content);
 
         return response()->stream(function () use ($user, $conversationId, $content) {
             ignore_user_abort(true);
@@ -209,5 +211,66 @@ class CoachController extends Controller
         $proposal->update(['status' => ProposalStatus::Rejected]);
 
         return response()->json(['message' => 'Proposal rejected']);
+    }
+
+    /**
+     * When a user sends the first message into a freshly-created conversation
+     * (still titled "New Chat" from the create endpoint), rename the
+     * conversation using the first 5-6 words of their message so the list
+     * view shows something meaningful.
+     *
+     * @param  object  $conversation  raw row from agent_conversations
+     */
+    private function maybeAutoTitle(object $conversation, string $content): void
+    {
+        $current = trim((string) ($conversation->title ?? ''));
+        if ($current !== '' && mb_strtolower($current) !== 'new chat') {
+            return;
+        }
+
+        $hasPriorUserMessage = DB::table('agent_conversation_messages')
+            ->where('conversation_id', $conversation->id)
+            ->where('role', 'user')
+            ->exists();
+        if ($hasPriorUserMessage) {
+            return;
+        }
+
+        $title = $this->deriveTitleFromMessage($content);
+        if ($title === '') {
+            return;
+        }
+
+        DB::table('agent_conversations')
+            ->where('id', $conversation->id)
+            ->update(['title' => $title, 'updated_at' => now()]);
+    }
+
+    /**
+     * Build a short conversation title (≤ 50 chars, ≤ 6 words) from a free-text
+     * user message. Trims whitespace, capitalises the first letter, drops
+     * trailing punctuation, appends an ellipsis when truncated.
+     */
+    private function deriveTitleFromMessage(string $content): string
+    {
+        $clean = trim(preg_replace('/\s+/', ' ', $content) ?? '');
+        if ($clean === '') {
+            return '';
+        }
+
+        $words = explode(' ', $clean);
+        $picked = array_slice($words, 0, 6);
+        $title = implode(' ', $picked);
+
+        if (mb_strlen($title) > 50) {
+            $title = rtrim(mb_substr($title, 0, 50));
+            $title .= '…';
+        } elseif (count($words) > 6) {
+            $title .= '…';
+        } else {
+            $title = rtrim($title, ' .,!?;:—-');
+        }
+
+        return mb_strtoupper(mb_substr($title, 0, 1)).mb_substr($title, 1);
     }
 }

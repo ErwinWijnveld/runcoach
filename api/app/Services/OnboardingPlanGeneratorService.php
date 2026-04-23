@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Ai\Agents\OnboardingPlanAgent;
+use App\Enums\GoalType;
 use App\Enums\ProposalStatus;
 use App\Enums\ProposalType;
 use App\Models\CoachProposal;
@@ -69,7 +70,11 @@ class OnboardingPlanGeneratorService
         $schedule = $this->parseScheduleJson($response->text);
 
         $payload = [
-            'goal_type' => $formData['goal_type'] === 'race' ? 'race' : ($formData['goal_type'] === 'pr' ? 'pr_attempt' : 'general_fitness'),
+            'goal_type' => match ($formData['goal_type']) {
+                'race' => GoalType::Race->value,
+                'pr' => GoalType::PrAttempt->value,
+                default => GoalType::GeneralFitness->value,
+            },
             'goal_name' => $this->resolveGoalName($formData),
             'distance' => $formData['distance_meters'] ?? null,
             'goal_time_seconds' => $formData['goal_time_seconds'] ?? null,
@@ -103,10 +108,10 @@ class OnboardingPlanGeneratorService
                 'tool_calls' => '[]',
                 'tool_results' => json_encode([
                     [
-                        'tool_name' => 'create_schedule',
+                        'tool_name' => ProposalType::CreateSchedule->value,
                         'result' => [
                             'requires_approval' => true,
-                            'proposal_type' => 'create_schedule',
+                            'proposal_type' => ProposalType::CreateSchedule->value,
                             'payload' => $payload,
                         ],
                     ],

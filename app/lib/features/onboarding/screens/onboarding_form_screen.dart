@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/utils/date_formatter.dart';
 import 'package:app/features/onboarding/models/onboarding_form_data.dart';
 import 'package:app/features/onboarding/providers/onboarding_form_provider.dart';
 import 'package:app/features/onboarding/widgets/choice_group.dart';
@@ -1074,7 +1075,7 @@ class _ReviewStepState extends ConsumerState<_ReviewStep> {
                 if (form.goalName != null && form.goalName!.isNotEmpty)
                   _reviewRow('Race', form.goalName!),
                 if (form.targetDate != null)
-                  _reviewRow('Race day', form.targetDate!),
+                  _reviewRow('Race day', formatDateString(form.targetDate, fallback: form.targetDate!)),
                 if (form.goalTimeSeconds != null)
                   _reviewRow('Goal time', _formatDuration(form.goalTimeSeconds!)),
                 if (form.prCurrentSeconds != null)

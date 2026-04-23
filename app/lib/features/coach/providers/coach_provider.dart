@@ -1,4 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/coach/data/coach_api.dart';
@@ -8,6 +11,18 @@ import 'package:app/features/coach/models/conversation.dart';
 import 'package:app/features/coach/models/vercel_stream_event.dart';
 
 part 'coach_provider.g.dart';
+
+/// Create a fresh coach conversation and navigate straight into it.
+/// Used by every tap-to-open-chat entry point (dashboard prompt bar, goal
+/// detail, schedule detail, etc.) so the runner never sees the chat list —
+/// a new empty chat is always ready to send the first message into.
+Future<void> startNewCoachChat(BuildContext context, WidgetRef ref) async {
+  final api = ref.read(coachApiProvider);
+  final response = await api.createConversation({'title': 'New Chat'});
+  final id = response['data']['id'];
+  ref.invalidate(conversationsProvider);
+  if (context.mounted) context.push('/coach/chat/$id');
+}
 
 @riverpod
 Future<List<Conversation>> conversations(Ref ref) async {
