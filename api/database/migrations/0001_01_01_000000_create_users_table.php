@@ -16,6 +16,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->bigInteger('strava_athlete_id')->unique()->nullable();
+            $table->string('strava_profile_url')->nullable();
             $table->string('coach_style')->default('balanced');
             $table->boolean('has_completed_onboarding')->default(false);
             // Heart-rate zones fetched from Strava's /athlete/zones endpoint.
