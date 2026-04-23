@@ -287,39 +287,36 @@ class MainShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final router = GoRouter.of(context);
 
+    // Keep `child` (the routed shell navigator) OUTSIDE the rebuilding
+    // subtree. Rebuilding its parent reparents the Navigator's pages, which
+    // collides with go_router's internal GlobalObjectKeys and throws a
+    // "Duplicate GlobalKey detected" assertion. Only the bottom-nav slot
+    // listens to route + visibility changes.
     return CupertinoPageScaffold(
       backgroundColor: CupertinoColors.transparent,
-      child: ValueListenableBuilder<bool>(
-        valueListenable: _bottomNavHidden,
-        builder: (context, forceHidden, _) {
-          return AnimatedBuilder(
-            // routerDelegate is a ChangeNotifier — rebuild on every nav change
-            // so we can hide the tab bar the instant a detail route is pushed.
-            animation: router.routerDelegate,
-            builder: (context, _) {
-              final location =
-                  router.routerDelegate.currentConfiguration.uri.path;
-              final showNav = !forceHidden && _isTabRoot(location);
-              final currentIndex = _indexOf(location);
-
-              return Stack(
-                children: [
-                  // Routed tab content fills the whole shell. Scrollable content
-                  // slides UNDER the translucent bar at the bottom, which is the
-                  // iOS-standard floating-tabbar look.
-                  Positioned.fill(child: child),
-                  if (showNav)
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: _RunCoreBottomNav(currentIndex: currentIndex),
-                    ),
-                ],
-              );
-            },
-          );
-        },
+      child: Stack(
+        children: [
+          Positioned.fill(child: child),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: AnimatedBuilder(
+              animation: Listenable.merge([
+                router.routerDelegate,
+                _bottomNavHidden,
+              ]),
+              builder: (context, _) {
+                final location =
+                    router.routerDelegate.currentConfiguration.uri.path;
+                final forceHidden = _bottomNavHidden.value;
+                final showNav = !forceHidden && _isTabRoot(location);
+                if (!showNav) return const SizedBox.shrink();
+                return _RunCoreBottomNav(currentIndex: _indexOf(location));
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
