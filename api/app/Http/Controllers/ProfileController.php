@@ -12,7 +12,7 @@ class ProfileController extends Controller
     {
         return response()->json([
             'user' => $request->user()->only([
-                'id', 'name', 'email', 'strava_athlete_id',
+                'id', 'name', 'email', 'strava_athlete_id', 'strava_profile_url',
                 'coach_style', 'has_completed_onboarding',
             ]),
         ]);
@@ -24,7 +24,7 @@ class ProfileController extends Controller
 
         return response()->json([
             'user' => $request->user()->fresh()->only([
-                'id', 'name', 'email', 'strava_athlete_id',
+                'id', 'name', 'email', 'strava_athlete_id', 'strava_profile_url',
                 'coach_style', 'has_completed_onboarding',
             ]),
         ]);
