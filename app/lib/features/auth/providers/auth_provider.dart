@@ -79,6 +79,14 @@ class Auth extends _$Auth {
     state = const AsyncValue.data(null);
   }
 
+  Future<void> deleteAccount() async {
+    final api = ref.read(authApiProvider);
+    final tokenStorage = ref.read(tokenStorageProvider);
+    await api.deleteAccount();
+    await tokenStorage.clearToken();
+    state = const AsyncValue.data(null);
+  }
+
   bool get isLoggedIn => state.value != null;
   bool get needsOnboarding => !(state.value?.hasCompletedOnboarding ?? false);
 }

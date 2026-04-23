@@ -22,6 +22,9 @@ abstract class AuthApi {
   @POST('/auth/logout')
   Future<void> logout();
 
+  @DELETE('/profile')
+  Future<void> deleteAccount();
+
   @GET('/profile')
   Future<dynamic> getProfile();
 
