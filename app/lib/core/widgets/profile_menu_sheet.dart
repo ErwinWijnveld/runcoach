@@ -3,11 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
+import 'package:app/router/app_router.dart';
 
 Future<void> showProfileMenuSheet(BuildContext context) {
+  // Wrap in HidesBottomNav so the native CNTabBar (UiKitView) is removed from
+  // the tree while the sheet is open — otherwise its shadow bleeds through
+  // the bottom edge of the sheet.
   return showCupertinoModalPopup<void>(
     context: context,
-    builder: (_) => const ProfileMenuSheet(),
+    builder: (_) => const HidesBottomNav(child: ProfileMenuSheet()),
   );
 }
 
