@@ -44,6 +44,7 @@ class StravaSyncService
             [
                 'name' => trim($athlete['firstname'].' '.$athlete['lastname']),
                 'email' => $athlete['email'] ?? $athlete['id'].'@strava.runcoach',
+                'strava_profile_url' => $this->extractProfileUrl($athlete),
             ]
         );
 
@@ -181,5 +182,26 @@ class StravaSyncService
 
             return null;
         }
+    }
+
+    /**
+     * Extract a usable profile picture URL from Strava's athlete payload.
+     * Prefers `profile_medium`, falls back to `profile`. Strava returns the
+     * literal path "avatar/athlete/..." when the user has no picture set —
+     * we treat that as null.
+     */
+    private function extractProfileUrl(array $athlete): ?string
+    {
+        $url = $athlete['profile_medium'] ?? $athlete['profile'] ?? null;
+
+        if (! is_string($url) || $url === '') {
+            return null;
+        }
+
+        if (! str_starts_with($url, 'http')) {
+            return null;
+        }
+
+        return $url;
     }
 }
