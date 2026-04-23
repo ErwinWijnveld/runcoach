@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$User {
 
- int get id; String get name; String get email;@JsonKey(name: 'strava_athlete_id') int? get stravaAthleteId;@JsonKey(name: 'coach_style') String? get coachStyle;@JsonKey(name: 'has_completed_onboarding') bool get hasCompletedOnboarding;
+ int get id; String get name; String get email;@JsonKey(name: 'strava_athlete_id') int? get stravaAthleteId;@JsonKey(name: 'strava_profile_url') String? get stravaProfileUrl;@JsonKey(name: 'coach_style') String? get coachStyle;@JsonKey(name: 'has_completed_onboarding') bool get hasCompletedOnboarding;
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $UserCopyWith<User> get copyWith => _$UserCopyWithImpl<User>(this as User, _$ide
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is User&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.stravaAthleteId, stravaAthleteId) || other.stravaAthleteId == stravaAthleteId)&&(identical(other.coachStyle, coachStyle) || other.coachStyle == coachStyle)&&(identical(other.hasCompletedOnboarding, hasCompletedOnboarding) || other.hasCompletedOnboarding == hasCompletedOnboarding));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is User&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.stravaAthleteId, stravaAthleteId) || other.stravaAthleteId == stravaAthleteId)&&(identical(other.stravaProfileUrl, stravaProfileUrl) || other.stravaProfileUrl == stravaProfileUrl)&&(identical(other.coachStyle, coachStyle) || other.coachStyle == coachStyle)&&(identical(other.hasCompletedOnboarding, hasCompletedOnboarding) || other.hasCompletedOnboarding == hasCompletedOnboarding));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,email,stravaAthleteId,coachStyle,hasCompletedOnboarding);
+int get hashCode => Object.hash(runtimeType,id,name,email,stravaAthleteId,stravaProfileUrl,coachStyle,hasCompletedOnboarding);
 
 @override
 String toString() {
-  return 'User(id: $id, name: $name, email: $email, stravaAthleteId: $stravaAthleteId, coachStyle: $coachStyle, hasCompletedOnboarding: $hasCompletedOnboarding)';
+  return 'User(id: $id, name: $name, email: $email, stravaAthleteId: $stravaAthleteId, stravaProfileUrl: $stravaProfileUrl, coachStyle: $coachStyle, hasCompletedOnboarding: $hasCompletedOnboarding)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $UserCopyWith<$Res>  {
   factory $UserCopyWith(User value, $Res Function(User) _then) = _$UserCopyWithImpl;
 @useResult
 $Res call({
- int id, String name, String email,@JsonKey(name: 'strava_athlete_id') int? stravaAthleteId,@JsonKey(name: 'coach_style') String? coachStyle,@JsonKey(name: 'has_completed_onboarding') bool hasCompletedOnboarding
+ int id, String name, String email,@JsonKey(name: 'strava_athlete_id') int? stravaAthleteId,@JsonKey(name: 'strava_profile_url') String? stravaProfileUrl,@JsonKey(name: 'coach_style') String? coachStyle,@JsonKey(name: 'has_completed_onboarding') bool hasCompletedOnboarding
 });
 
 
@@ -65,13 +65,14 @@ class _$UserCopyWithImpl<$Res>
 
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? email = null,Object? stravaAthleteId = freezed,Object? coachStyle = freezed,Object? hasCompletedOnboarding = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? email = null,Object? stravaAthleteId = freezed,Object? stravaProfileUrl = freezed,Object? coachStyle = freezed,Object? hasCompletedOnboarding = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,stravaAthleteId: freezed == stravaAthleteId ? _self.stravaAthleteId : stravaAthleteId // ignore: cast_nullable_to_non_nullable
-as int?,coachStyle: freezed == coachStyle ? _self.coachStyle : coachStyle // ignore: cast_nullable_to_non_nullable
+as int?,stravaProfileUrl: freezed == stravaProfileUrl ? _self.stravaProfileUrl : stravaProfileUrl // ignore: cast_nullable_to_non_nullable
+as String?,coachStyle: freezed == coachStyle ? _self.coachStyle : coachStyle // ignore: cast_nullable_to_non_nullable
 as String?,hasCompletedOnboarding: null == hasCompletedOnboarding ? _self.hasCompletedOnboarding : hasCompletedOnboarding // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
@@ -155,10 +156,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name,  String email, @JsonKey(name: 'strava_athlete_id')  int? stravaAthleteId, @JsonKey(name: 'coach_style')  String? coachStyle, @JsonKey(name: 'has_completed_onboarding')  bool hasCompletedOnboarding)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name,  String email, @JsonKey(name: 'strava_athlete_id')  int? stravaAthleteId, @JsonKey(name: 'strava_profile_url')  String? stravaProfileUrl, @JsonKey(name: 'coach_style')  String? coachStyle, @JsonKey(name: 'has_completed_onboarding')  bool hasCompletedOnboarding)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _User() when $default != null:
-return $default(_that.id,_that.name,_that.email,_that.stravaAthleteId,_that.coachStyle,_that.hasCompletedOnboarding);case _:
+return $default(_that.id,_that.name,_that.email,_that.stravaAthleteId,_that.stravaProfileUrl,_that.coachStyle,_that.hasCompletedOnboarding);case _:
   return orElse();
 
 }
@@ -176,10 +177,10 @@ return $default(_that.id,_that.name,_that.email,_that.stravaAthleteId,_that.coac
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name,  String email, @JsonKey(name: 'strava_athlete_id')  int? stravaAthleteId, @JsonKey(name: 'coach_style')  String? coachStyle, @JsonKey(name: 'has_completed_onboarding')  bool hasCompletedOnboarding)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name,  String email, @JsonKey(name: 'strava_athlete_id')  int? stravaAthleteId, @JsonKey(name: 'strava_profile_url')  String? stravaProfileUrl, @JsonKey(name: 'coach_style')  String? coachStyle, @JsonKey(name: 'has_completed_onboarding')  bool hasCompletedOnboarding)  $default,) {final _that = this;
 switch (_that) {
 case _User():
-return $default(_that.id,_that.name,_that.email,_that.stravaAthleteId,_that.coachStyle,_that.hasCompletedOnboarding);}
+return $default(_that.id,_that.name,_that.email,_that.stravaAthleteId,_that.stravaProfileUrl,_that.coachStyle,_that.hasCompletedOnboarding);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -193,10 +194,10 @@ return $default(_that.id,_that.name,_that.email,_that.stravaAthleteId,_that.coac
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name,  String email, @JsonKey(name: 'strava_athlete_id')  int? stravaAthleteId, @JsonKey(name: 'coach_style')  String? coachStyle, @JsonKey(name: 'has_completed_onboarding')  bool hasCompletedOnboarding)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name,  String email, @JsonKey(name: 'strava_athlete_id')  int? stravaAthleteId, @JsonKey(name: 'strava_profile_url')  String? stravaProfileUrl, @JsonKey(name: 'coach_style')  String? coachStyle, @JsonKey(name: 'has_completed_onboarding')  bool hasCompletedOnboarding)?  $default,) {final _that = this;
 switch (_that) {
 case _User() when $default != null:
-return $default(_that.id,_that.name,_that.email,_that.stravaAthleteId,_that.coachStyle,_that.hasCompletedOnboarding);case _:
+return $default(_that.id,_that.name,_that.email,_that.stravaAthleteId,_that.stravaProfileUrl,_that.coachStyle,_that.hasCompletedOnboarding);case _:
   return null;
 
 }
@@ -208,13 +209,14 @@ return $default(_that.id,_that.name,_that.email,_that.stravaAthleteId,_that.coac
 @JsonSerializable()
 
 class _User implements User {
-  const _User({required this.id, required this.name, required this.email, @JsonKey(name: 'strava_athlete_id') this.stravaAthleteId, @JsonKey(name: 'coach_style') this.coachStyle, @JsonKey(name: 'has_completed_onboarding') this.hasCompletedOnboarding = false});
+  const _User({required this.id, required this.name, required this.email, @JsonKey(name: 'strava_athlete_id') this.stravaAthleteId, @JsonKey(name: 'strava_profile_url') this.stravaProfileUrl, @JsonKey(name: 'coach_style') this.coachStyle, @JsonKey(name: 'has_completed_onboarding') this.hasCompletedOnboarding = false});
   factory _User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
 
 @override final  int id;
 @override final  String name;
 @override final  String email;
 @override@JsonKey(name: 'strava_athlete_id') final  int? stravaAthleteId;
+@override@JsonKey(name: 'strava_profile_url') final  String? stravaProfileUrl;
 @override@JsonKey(name: 'coach_style') final  String? coachStyle;
 @override@JsonKey(name: 'has_completed_onboarding') final  bool hasCompletedOnboarding;
 
@@ -231,16 +233,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _User&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.stravaAthleteId, stravaAthleteId) || other.stravaAthleteId == stravaAthleteId)&&(identical(other.coachStyle, coachStyle) || other.coachStyle == coachStyle)&&(identical(other.hasCompletedOnboarding, hasCompletedOnboarding) || other.hasCompletedOnboarding == hasCompletedOnboarding));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _User&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.stravaAthleteId, stravaAthleteId) || other.stravaAthleteId == stravaAthleteId)&&(identical(other.stravaProfileUrl, stravaProfileUrl) || other.stravaProfileUrl == stravaProfileUrl)&&(identical(other.coachStyle, coachStyle) || other.coachStyle == coachStyle)&&(identical(other.hasCompletedOnboarding, hasCompletedOnboarding) || other.hasCompletedOnboarding == hasCompletedOnboarding));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,email,stravaAthleteId,coachStyle,hasCompletedOnboarding);
+int get hashCode => Object.hash(runtimeType,id,name,email,stravaAthleteId,stravaProfileUrl,coachStyle,hasCompletedOnboarding);
 
 @override
 String toString() {
-  return 'User(id: $id, name: $name, email: $email, stravaAthleteId: $stravaAthleteId, coachStyle: $coachStyle, hasCompletedOnboarding: $hasCompletedOnboarding)';
+  return 'User(id: $id, name: $name, email: $email, stravaAthleteId: $stravaAthleteId, stravaProfileUrl: $stravaProfileUrl, coachStyle: $coachStyle, hasCompletedOnboarding: $hasCompletedOnboarding)';
 }
 
 
@@ -251,7 +253,7 @@ abstract mixin class _$UserCopyWith<$Res> implements $UserCopyWith<$Res> {
   factory _$UserCopyWith(_User value, $Res Function(_User) _then) = __$UserCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String name, String email,@JsonKey(name: 'strava_athlete_id') int? stravaAthleteId,@JsonKey(name: 'coach_style') String? coachStyle,@JsonKey(name: 'has_completed_onboarding') bool hasCompletedOnboarding
+ int id, String name, String email,@JsonKey(name: 'strava_athlete_id') int? stravaAthleteId,@JsonKey(name: 'strava_profile_url') String? stravaProfileUrl,@JsonKey(name: 'coach_style') String? coachStyle,@JsonKey(name: 'has_completed_onboarding') bool hasCompletedOnboarding
 });
 
 
@@ -268,13 +270,14 @@ class __$UserCopyWithImpl<$Res>
 
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? email = null,Object? stravaAthleteId = freezed,Object? coachStyle = freezed,Object? hasCompletedOnboarding = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? email = null,Object? stravaAthleteId = freezed,Object? stravaProfileUrl = freezed,Object? coachStyle = freezed,Object? hasCompletedOnboarding = null,}) {
   return _then(_User(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,stravaAthleteId: freezed == stravaAthleteId ? _self.stravaAthleteId : stravaAthleteId // ignore: cast_nullable_to_non_nullable
-as int?,coachStyle: freezed == coachStyle ? _self.coachStyle : coachStyle // ignore: cast_nullable_to_non_nullable
+as int?,stravaProfileUrl: freezed == stravaProfileUrl ? _self.stravaProfileUrl : stravaProfileUrl // ignore: cast_nullable_to_non_nullable
+as String?,coachStyle: freezed == coachStyle ? _self.coachStyle : coachStyle // ignore: cast_nullable_to_non_nullable
 as String?,hasCompletedOnboarding: null == hasCompletedOnboarding ? _self.hasCompletedOnboarding : hasCompletedOnboarding // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
