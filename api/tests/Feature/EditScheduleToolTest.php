@@ -167,6 +167,35 @@ class EditScheduleToolTest extends TestCase
         $this->assertEquals(25.0, $result['payload']['schedule']['weeks'][0]['total_km']);
     }
 
+    public function test_add_day_auto_titles_when_title_omitted(): void
+    {
+        // The agent often forgets to pass `title` on add_day. The
+        // optimizer's generateTitles already fills a default from the
+        // type label ("Easy", "Long run", etc.), so requiring title up
+        // front just causes an extra ~23s round trip while the agent
+        // retries. Title is now optional; if omitted it gets
+        // auto-generated.
+        $user = User::factory()->create();
+        $proposal = CoachProposal::factory()->create([
+            'user_id' => $user->id,
+            'status' => ProposalStatus::Rejected,
+            'payload' => $this->samplePayload(),
+        ]);
+
+        $result = $this->invoke($user, [
+            'proposal_id' => $proposal->id,
+            'operations' => json_encode([
+                ['op' => 'add_day', 'week' => 1, 'day_of_week' => 7, 'fields' => ['type' => 'easy', 'target_km' => 3.0]],
+            ]),
+        ]);
+
+        $newDay = collect($result['payload']['schedule']['weeks'][0]['days'])
+            ->firstWhere('day_of_week', 7);
+        $this->assertNotNull($newDay);
+        $this->assertSame('easy', $newDay['type']);
+        $this->assertSame('Easy', $newDay['title']);
+    }
+
     public function test_shift_day_moves_to_new_weekday(): void
     {
         $user = User::factory()->create();
@@ -757,8 +786,8 @@ class EditScheduleToolTest extends TestCase
     public function test_set_day_regenerates_title_when_type_changes(): void
     {
         // When `set_day` flips a day's type without passing an explicit
-        // title, the stale "{km}km {OldType}" label must be replaced so the
-        // UI doesn't show "5km Tempo" on a day whose type is now `interval`.
+        // title, the stale type label must be replaced so the UI doesn't
+        // show "Tempo" on a day whose type is now `interval`.
         $user = User::factory()->create();
         $proposal = CoachProposal::factory()->create([
             'user_id' => $user->id,
@@ -777,7 +806,7 @@ class EditScheduleToolTest extends TestCase
         $tuesday = collect($result['payload']['schedule']['weeks'][0]['days'])
             ->firstWhere('day_of_week', 4);
         $this->assertSame('interval', $tuesday['type']);
-        $this->assertSame('5km Intervals', $tuesday['title']);
+        $this->assertSame('Intervals', $tuesday['title']);
     }
 
     public function test_set_day_preserves_explicit_title(): void

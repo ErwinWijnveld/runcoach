@@ -196,8 +196,8 @@ class PlanOptimizerServiceTest extends TestCase
         $result = $this->optimizer->optimize($payload, $user);
 
         $days = $result['schedule']['weeks'][0]['days'];
-        $this->assertSame('6km Easy', $days[0]['title']);
-        $this->assertSame('8.5km Tempo', $days[1]['title']);
+        $this->assertSame('Easy', $days[0]['title']);
+        $this->assertSame('Tempo', $days[1]['title']);
         // Last day is the race day → title overridden to goal_name
         $this->assertSame('Big Race', $days[2]['title']);
     }
@@ -237,7 +237,7 @@ class PlanOptimizerServiceTest extends TestCase
 
         $result = $this->optimizer->optimize($payload, $user);
 
-        $this->assertSame('8km Intervals', $result['schedule']['weeks'][0]['days'][0]['title']);
+        $this->assertSame('Intervals', $result['schedule']['weeks'][0]['days'][0]['title']);
     }
 
     public function test_last_day_in_plan_is_always_titled_with_goal_name(): void
@@ -268,7 +268,7 @@ class PlanOptimizerServiceTest extends TestCase
 
         $result = $this->optimizer->optimize($payload, $user);
 
-        $this->assertSame('15km Long run', $result['schedule']['weeks'][0]['days'][0]['title']);
+        $this->assertSame('Long run', $result['schedule']['weeks'][0]['days'][0]['title']);
         $this->assertSame('Amsterdam Marathon', $result['schedule']['weeks'][1]['days'][0]['title']);
     }
 
@@ -531,6 +531,168 @@ class PlanOptimizerServiceTest extends TestCase
         $this->assertSame(10.0, (float) $raceDay['target_km']);
         $this->assertSame(240, $raceDay['target_pace_seconds_per_km']); // 2400/10
         $this->assertSame('Test Race', $raceDay['title']);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_salvages_misplaced_race_day_description_into_target_slot(): void
+    {
+        // Regression: when the agent miscounts weeks and places the race
+        // entry past target_date (e.g. week 10 day 6 when target_date sits
+        // on week 9 day 6), dropDaysPastTarget would discard the agent's
+        // detailed description and ensureRaceDayEntry would fall back to
+        // a generic skeleton ("Goal day. Execute your plan.").
+        // The salvage step should detect the misplaced tempo-typed
+        // race-distance day and relocate it to target_date instead.
+        Carbon::setTestNow('2026-04-25');
+        $user = $this->userWithBaseline(342);
+
+        $payload = [
+            'goal_type' => 'race',
+            'goal_name' => 'My Race',
+            'distance' => '10k',
+            'goal_time_seconds' => 2400,
+            'target_date' => '2026-06-20', // Sat, week 9 day 6
+            'preferred_weekdays' => [1, 3, 5, 6, 7],
+            'schedule' => [
+                'weeks' => [
+                    [
+                        'week_number' => 1,
+                        'focus' => 'base',
+                        'days' => [
+                            ['day_of_week' => 1, 'type' => 'easy', 'target_km' => 5.0],
+                        ],
+                    ],
+                    [
+                        // Agent miscounted — race day landed here on the
+                        // wrong calendar date (2026-06-27, after target).
+                        'week_number' => 10,
+                        'focus' => 'race',
+                        'days' => [
+                            [
+                                'day_of_week' => 6,
+                                'type' => 'tempo',
+                                'target_km' => 10.0,
+                                'target_pace_seconds_per_km' => 240,
+                                'description' => 'Race day! Run your 10k at goal pace. Trust your training!',
+                                'target_heart_rate_zone' => 4,
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $result = $this->optimizer->optimize($payload, $user);
+
+        // Race day should now sit on week 9 day 6 (target_date) and
+        // carry the agent's description, not the generic skeleton.
+        $weeks = collect($result['schedule']['weeks']);
+        $raceWeek = $weeks->firstWhere('week_number', 9);
+        $this->assertNotNull($raceWeek);
+        $raceDay = collect($raceWeek['days'])->firstWhere('day_of_week', 6);
+        $this->assertNotNull($raceDay);
+        $this->assertSame('Race day! Run your 10k at goal pace. Trust your training!', $raceDay['description']);
+        $this->assertSame('My Race', $raceDay['title']);
+        $this->assertSame(10.0, (float) $raceDay['target_km']);
+
+        // And week 10 should be gone (dropped past target).
+        $this->assertNull($weeks->firstWhere('week_number', 10));
+
+        Carbon::setTestNow();
+    }
+
+    public function test_does_not_salvage_long_run_as_race_day(): void
+    {
+        // Long runs typically have km close to the goal distance for
+        // shorter races (e.g. 10km long run for a 10k race). They must
+        // NOT be misidentified as the race entry. The type-tempo gate
+        // is what protects against this.
+        Carbon::setTestNow('2026-04-25');
+        $user = $this->userWithBaseline(342);
+
+        $payload = [
+            'goal_type' => 'race',
+            'goal_name' => 'My Race',
+            'distance' => '10k',
+            'goal_time_seconds' => 2400,
+            'target_date' => '2026-06-20',
+            'preferred_weekdays' => [1, 3, 5, 6, 7],
+            'schedule' => [
+                'weeks' => [
+                    [
+                        'week_number' => 6,
+                        'focus' => 'build',
+                        'days' => [
+                            // 10km long run — same km as goal but type=long_run.
+                            ['day_of_week' => 7, 'type' => 'long_run', 'target_km' => 10.0],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $result = $this->optimizer->optimize($payload, $user);
+
+        // Long run should still be present in week 6 (not stolen as race day).
+        $weeks = collect($result['schedule']['weeks']);
+        $week6 = $weeks->firstWhere('week_number', 6);
+        $longRun = collect($week6['days'])->firstWhere('day_of_week', 7);
+        $this->assertNotNull($longRun);
+        $this->assertSame('long_run', $longRun['type']);
+
+        // Race day should still be inserted as a skeleton on week 9 day 6.
+        $raceWeek = $weeks->firstWhere('week_number', 9);
+        $raceDay = collect($raceWeek['days'])->firstWhere('day_of_week', 6);
+        $this->assertNotNull($raceDay);
+        $this->assertSame('My Race', $raceDay['title']);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_race_day_keeps_goal_name_title_on_edit_pass(): void
+    {
+        // Regression: on edit-pass optimize calls (alignRaceDay=false) the
+        // race day's title was being clobbered to "{km}km Tempo" because
+        // enforceRaceDay nulls the title and generateTitles wasn't given
+        // goal_name to recover it. The title must always come back as the
+        // goal_name regardless of whether the optimizer is in create or
+        // edit mode.
+        Carbon::setTestNow('2026-04-24');
+        $user = $this->userWithBaseline(342);
+
+        $payload = [
+            'goal_type' => 'race',
+            'goal_name' => '10k Race — test',
+            'distance' => '10k',
+            'goal_time_seconds' => 2400,
+            'target_date' => '2026-05-08',
+            'preferred_weekdays' => [1, 5],
+            'schedule' => [
+                'weeks' => [
+                    [
+                        'week_number' => 1,
+                        'focus' => 'base',
+                        'days' => [
+                            ['day_of_week' => 1, 'type' => 'easy', 'target_km' => 5.0],
+                        ],
+                    ],
+                    [
+                        'week_number' => 3,
+                        'focus' => 'race',
+                        'days' => [
+                            ['day_of_week' => 5, 'type' => 'tempo', 'target_km' => 10.0, 'title' => 'Stale tempo label'],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $result = $this->optimizer->optimize($payload, $user, alignRaceDay: false);
+
+        $raceWeek = collect($result['schedule']['weeks'])->firstWhere('week_number', 3);
+        $raceDay = $raceWeek['days'][0];
+        $this->assertSame('10k Race — test', $raceDay['title']);
 
         Carbon::setTestNow();
     }

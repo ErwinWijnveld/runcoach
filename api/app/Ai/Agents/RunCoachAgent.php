@@ -116,7 +116,7 @@ class RunCoachAgent implements Agent, Conversational, HasTools
             3. Reply with ONE short friendly sentence telling the runner the plan is ready and they can accept or ask to adjust. No markdown, no lists, no multi-sentence essays.
 
             ## Verify loop (MANDATORY)
-            After `create_schedule`, immediately call `verify_plan`. If it returns `passed: false`, batch every `issues[].suggested_fix` into ONE `edit_schedule` call, then call `verify_plan` again. Stop when `passed: true` or `cycle >= max_cycles`. Only reply after the loop terminates. If the cap is hit while still failing, mention the remaining `major`/`critical` issues in one sentence.
+            After `create_schedule`, immediately call `verify_plan`. If it returns `passed: false`, batch every `issues[].suggested_fix` into ONE `edit_schedule` call, then call `verify_plan` again. Stop when `passed: true` or `cycle >= max_cycles`. Only reply after the loop terminates. NEVER mention the verifier, max cycles, "server-managed", display labels, or any other internal mechanics in your reply — those are implementation details the runner doesn't need to see. If the cap is hit, just tell them the plan is ready and to tap Accept or ask to adjust; the proposal card already shows everything they need.
 
             {$this->planDesignPrinciples()}
             PROMPT;
@@ -143,7 +143,7 @@ class RunCoachAgent implements Agent, Conversational, HasTools
         - Use `offer_choices` only for vague rejections ("something's off"). Categories: "Fewer training days", "Easier early weeks", "Different distance", "Adjust paces", "Shorter long runs", "Other interval runs".
 
         ## Verify loop (MANDATORY)
-        After EVERY `create_schedule` or `edit_schedule`, immediately call `verify_plan`. If it returns `passed: false`, batch its `issues[].suggested_fix` into ONE `edit_schedule` call, then call `verify_plan` again. Stop when `passed: true` or `cycle >= max_cycles`. Only reply to the runner after the loop terminates. If the cap is hit while still failing, mention the remaining `major`/`critical` issues in one sentence so the runner can accept or ask for more changes.
+        After EVERY `create_schedule` or `edit_schedule`, immediately call `verify_plan`. If it returns `passed: false`, batch its `issues[].suggested_fix` into ONE `edit_schedule` call, then call `verify_plan` again. Stop when `passed: true` or `cycle >= max_cycles`. Only reply to the runner after the loop terminates. NEVER mention the verifier, max cycles, "server-managed", display labels, or any other internal mechanics in your reply — those are implementation details. If the cap is hit, just tell them the plan is ready and to tap Accept or ask to adjust; do not surface the verifier's complaints in user-facing prose.
 
         {$this->planDesignPrinciples()}
 
@@ -303,7 +303,7 @@ class RunCoachAgent implements Agent, Conversational, HasTools
 
         **Editing plans (`edit_schedule`):** The ONLY tool for changes to an existing plan or proposal. Works on BOTH pending/rejected proposals AND the runner's active plan. Use it for EVERY tweak: adding a day, dropping a day, shifting days, changing paces/distances/types, updating goal metadata. It's a small tool call; `create_schedule` is a 2-3k-token rebuild reserved for fundamental restructures only. Leave both `proposal_id` and `goal_id` null to auto-detect (prefers pending proposal → active plan → most-recent-rejected proposal). Pass `goal_id` explicitly to force active-plan editing when there's a stale rejected proposal. Call `get_current_proposal` or `get_current_schedule` first if you need to read the current structure. NEVER re-ask for info already visible; reuse unchanged fields. Skip `offer_choices` when the user's change is concrete; use it only for vague rejections ("Fewer training days", "Easier early weeks", "Different distance", "Adjust paces", "Other interval runs").
 
-        **Verify loop (MANDATORY):** After EVERY `create_schedule` or `edit_schedule`, immediately call `verify_plan` before replying to the runner. If `passed: false`, batch every `issues[].suggested_fix` into ONE `edit_schedule` call and then call `verify_plan` again. Stop when `passed: true` or `cycle >= max_cycles`. If the cap is hit while still failing, reply anyway and mention the remaining `major`/`critical` issues in one sentence.
+        **Verify loop (MANDATORY):** After EVERY `create_schedule` or `edit_schedule`, immediately call `verify_plan` before replying to the runner. If `passed: false`, batch every `issues[].suggested_fix` into ONE `edit_schedule` call and then call `verify_plan` again. Stop when `passed: true` or `cycle >= max_cycles`. NEVER mention the verifier, max cycles, "server-managed", display labels, or any other internal mechanics in your reply. If the cap is hit, reply naturally about the plan and suggest they accept or ask to adjust — do not surface the verifier's complaints in user-facing prose.
 
         {$this->planDesignPrinciples()}
 

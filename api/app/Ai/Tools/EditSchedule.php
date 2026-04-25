@@ -46,7 +46,7 @@ class EditSchedule implements Tool
         `operations` is a JSON-encoded array of ops. Shapes:
         - `{"op":"set_day","week":1,"day_of_week":6,"fields":{"type":"{$longRun}","target_km":18,"target_pace_seconds_per_km":360}}` - update fields on one day
         - `{"op":"remove_day","week":2,"day_of_week":3}` - delete a day
-        - `{"op":"add_day","week":2,"day_of_week":3,"fields":{"type":"{$easy}","title":"Easy Run","target_km":5,"target_pace_seconds_per_km":390,"target_heart_rate_zone":2}}` - add a day (fails if one already exists on that weekday)
+        - `{"op":"add_day","week":2,"day_of_week":3,"fields":{"type":"{$easy}","target_km":5,"target_pace_seconds_per_km":390,"target_heart_rate_zone":2}}` - add a day. Only `type` is required; `title` is auto-generated from `type` (don't pass it unless you want a custom label). Fails if a day already exists on that weekday.
         - `{"op":"shift_day","week":3,"from_day_of_week":2,"to_day_of_week":4}` - move a day to a different weekday
         - `{"op":"set_goal","fields":{"distance":"{$distanceExample}","target_date":"2026-09-15","goal_time_seconds":6300,"preferred_weekdays":[2,4,6],"goal_name":"Half PR","additional_notes":"left knee sensitive"}}` - update goal metadata. `distance` must be a GoalDistance enum value (one of: {$distanceCsv}), NOT a meter count.
 
@@ -261,9 +261,9 @@ class EditSchedule implements Tool
         $validated = $this->validateDayFields($fields, strict: true);
 
         // If the op changes type or target_km but doesn't pass an explicit
-        // title, null the existing title so the optimizer regenerates a
-        // fresh "{km}km {TypeName}" label. Otherwise a stale "5km Tempo"
-        // title survives on a day whose type was just flipped to `interval`.
+        // title, null the existing title so the optimizer relabels it
+        // from the new type. Otherwise a stale "Tempo" title survives on
+        // a day whose type was just flipped to `interval`.
         $shapeChanged = array_key_exists('type', $validated) || array_key_exists('target_km', $validated);
         if ($shapeChanged && ! array_key_exists('title', $validated)) {
             $validated['title'] = null;
@@ -312,8 +312,8 @@ class EditSchedule implements Tool
         $week = $this->requireInt($op, 'week');
         $dow = $this->requireInt($op, 'day_of_week', min: 1, max: 7);
         $fields = $this->requireFields($op, 'add_day');
-        if (! isset($fields['type'], $fields['title'])) {
-            throw new InvalidArgumentException("'fields.type' and 'fields.title' required for add_day");
+        if (! isset($fields['type'])) {
+            throw new InvalidArgumentException("'fields.type' required for add_day");
         }
 
         $weekIndex = $this->findWeekIndex($payload, $week);

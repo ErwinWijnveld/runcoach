@@ -64,7 +64,7 @@ class _OnboardingGeneratingScreenState
       final diffDays = target.difference(DateTime.now()).inDays;
       weeks = ((diffDays / 7).ceil()).clamp(3, 26);
     }
-    return (weeks * 6).clamp(30, 180);
+    return (weeks * 10).clamp(30, 180);
   }
 
   void _updateStage() {

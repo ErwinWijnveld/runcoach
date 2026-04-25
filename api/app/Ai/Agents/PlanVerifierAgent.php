@@ -63,6 +63,7 @@ Pass (`passed: true`) when there are zero `critical` and zero `major` issues. Mi
 Do NOT flag:
 - Missing or wrong titles, paces, heart-rate zones, or weekly totals — those are computed deterministically after you see the plan.
 - Race-day title or `target_date` alignment — also handled elsewhere.
+- The training entry on `target_date` itself — the system represents the race as a `tempo`-typed day with `target_km` equal to the goal distance and the goal name as the title. That IS the race day, by design; treat it as such and never flag it as "should be type 'race'", "should not be a tempo workout", or similar. There is no `race` training type in this schema.
 - 80/20 intensity distribution or specific training-type mixes — not every schema needs this, don't enforce it.
 - Presence of an `intervals` array on `interval` days — the agent prompt requires it.
 

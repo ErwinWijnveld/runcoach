@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
-import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/coach/providers/coach_provider.dart';
 import 'package:app/features/coach/widgets/coach_chat_view.dart';
 
@@ -45,15 +44,11 @@ class CoachChatScreen extends ConsumerWidget {
                   onInvalidate: (ref) =>
                       ref.invalidate(coachChatProvider(conversationId)),
                   onAccept: (ref, proposalId) async {
-                    final wasOnboarding = ref.read(authProvider).value?.hasCompletedOnboarding == false;
                     await ref
                         .read(coachChatProvider(conversationId).notifier)
                         .acceptProposal(proposalId);
                     if (!context.mounted) return;
-                    final nowOnboarded = ref.read(authProvider).value?.hasCompletedOnboarding == true;
-                    if (wasOnboarding && nowOnboarded) {
-                      context.go('/schedule');
-                    }
+                    context.go('/schedule');
                   },
                   onReject: (ref, proposalId) async {
                     await ref

@@ -64,7 +64,12 @@ class PlanOptimizerService
         }
 
         $baseline = $this->resolveBaselinePace($user);
-        $goalName = $alignRaceDay ? ($payload['goal_name'] ?? null) : null;
+        // Always read goal_name regardless of alignRaceDay. enforceRaceDay
+        // nulls the title on race day on every call (create AND edit) so
+        // generateTitles needs goal_name to relabel it back; otherwise the
+        // race day falls through to dayTitle() and ends up as e.g.
+        // "10km Tempo" instead of the actual goal name.
+        $goalName = $payload['goal_name'] ?? null;
 
         // Hard guardrails that apply to EVERY call — create and edit alike.
         // These are structural invariants the plan must satisfy no matter
@@ -79,8 +84,15 @@ class PlanOptimizerService
         $payload = $this->enforcePreferredWeekdays($payload);
         $payload = $this->enforceMinimumRunLength($payload, $user);
         $payload = $this->deduplicateDaysPerWeek($payload);
-        $payload = $this->dropDaysPastTarget($payload);
+        // ensureRaceDayEntry runs BEFORE dropDaysPastTarget so it can
+        // salvage a misplaced race-like day (e.g. agent miscounted weeks
+        // and put the race past target_date) and relocate it to the
+        // correct slot, preserving the agent's description / intervals.
+        // Otherwise dropDaysPastTarget would discard the agent's content
+        // and we'd fall back to a generic "Goal day. Execute your plan."
+        // skeleton.
         $payload = $this->ensureRaceDayEntry($payload);
+        $payload = $this->dropDaysPastTarget($payload);
         $payload = $this->enforceRaceDay($payload);
 
         // Create-only: when NO target_date was stated (open-ended /
@@ -203,10 +215,16 @@ class PlanOptimizerService
      * must have a training entry ON race day — that's the entire point of
      * the plan.
      *
-     * The new day is a skeleton (type=tempo, target_km=goal distance,
-     * description="Goal day. Execute your plan.") — `enforceRaceDay` fills
-     * in pace/type properly on the next pass, and `generateTitles` titles
-     * it with `goal_name`.
+     * Before falling back to a generic skeleton, the method scans the
+     * agent's existing days for a probable race entry (target_km close to
+     * goal distance) and relocates it to target_date, preserving its
+     * description / intervals / pace. This handles the common bug where
+     * the agent miscounts weeks and places the race a week too far —
+     * we don't want `dropDaysPastTarget` to discard the agent's content
+     * and replace it with "Goal day. Execute your plan."
+     *
+     * `enforceRaceDay` fills in pace/type/km on the next pass, and
+     * `generateTitles` titles it with `goal_name`.
      *
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
@@ -239,16 +257,29 @@ class PlanOptimizerService
             }
         }
 
-        $skeleton = [
-            'day_of_week' => $dowTarget,
+        // Try to salvage a misplaced race day from the agent's input
+        // before falling back to a skeleton. Heuristic: a day whose
+        // target_km is within 15% of the goal distance is almost
+        // certainly the race entry the agent intended, just on the
+        // wrong calendar slot.
+        $goalKm = PlanPayload::goalKm($payload);
+        $salvaged = null;
+        if ($goalKm !== null) {
+            [$salvaged, $payload] = $this->extractMisplacedRaceDay($payload, $goalKm);
+        }
+
+        $newDay = $salvaged ?? [
             'type' => TrainingType::Tempo->value,
             'description' => 'Goal day. Execute your plan.',
         ];
+        // Force the relocated/skeleton entry onto target_date's weekday
+        // so enforceRaceDay sees it where it belongs.
+        $newDay['day_of_week'] = $dowTarget;
 
         // Add to the target week if it already exists...
         foreach (($payload['schedule']['weeks'] ?? []) as $wi => $week) {
             if ((int) ($week['week_number'] ?? 0) === $targetWeekNum) {
-                $payload['schedule']['weeks'][$wi]['days'][] = $skeleton;
+                $payload['schedule']['weeks'][$wi]['days'][] = $newDay;
 
                 return $payload;
             }
@@ -258,10 +289,68 @@ class PlanOptimizerService
         $payload['schedule']['weeks'][] = [
             'week_number' => $targetWeekNum,
             'focus' => 'Race week',
-            'days' => [$skeleton],
+            'days' => [$newDay],
         ];
 
         return $payload;
+    }
+
+    /**
+     * Find a day that looks like a misplaced race entry, remove it from
+     * the schedule, and return both the extracted day and the mutated
+     * payload. Returns `[null, $payload]` if no match.
+     *
+     * Heuristic combines two signals to avoid grabbing a regular long
+     * run: the day's `type` must be `tempo` (the agent's race-day
+     * convention — see planDesignPrinciples and enforceRaceDay) AND its
+     * `target_km` must be within 10% of the goal distance. Preference:
+     * closest km match wins; ties broken by latest position (the agent
+     * typically places the race entry last).
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array{0: array<string, mixed>|null, 1: array<string, mixed>}
+     */
+    private function extractMisplacedRaceDay(array $payload, float $goalKm): array
+    {
+        $tolerance = max(0.5, $goalKm * 0.1);
+
+        $bestWi = null;
+        $bestDi = null;
+        $bestDelta = INF;
+
+        foreach (($payload['schedule']['weeks'] ?? []) as $wi => $week) {
+            foreach (($week['days'] ?? []) as $di => $day) {
+                if (($day['type'] ?? null) !== TrainingType::Tempo->value) {
+                    continue;
+                }
+                $km = (float) ($day['target_km'] ?? 0);
+                if ($km <= 0) {
+                    continue;
+                }
+                $delta = abs($km - $goalKm);
+                if ($delta > $tolerance) {
+                    continue;
+                }
+                // <= so later-positioned ties (typical race-entry spot) win.
+                if ($delta <= $bestDelta) {
+                    $bestDelta = $delta;
+                    $bestWi = $wi;
+                    $bestDi = $di;
+                }
+            }
+        }
+
+        if ($bestWi === null || $bestDi === null) {
+            return [null, $payload];
+        }
+
+        $day = $payload['schedule']['weeks'][$bestWi]['days'][$bestDi];
+        array_splice($payload['schedule']['weeks'][$bestWi]['days'], $bestDi, 1);
+        $payload['schedule']['weeks'][$bestWi]['days'] = array_values(
+            $payload['schedule']['weeks'][$bestWi]['days']
+        );
+
+        return [$day, $payload];
     }
 
     /**
@@ -429,7 +518,9 @@ class PlanOptimizerService
      * doesn't already have one set. The training day whose real date
      * matches `target_date` is the race itself and gets the goal name as
      * its title, overriding whatever was previously set. All other days
-     * fall through to `{km}km {TypeName}`.
+     * fall through to the type label (e.g. "Easy", "Long run") — the
+     * km value is rendered separately by the UI, so the title doesn't
+     * need to encode it.
      *
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
@@ -480,14 +571,8 @@ class PlanOptimizerService
     private function dayTitle(array $day): string
     {
         $type = (string) ($day['type'] ?? TrainingType::Easy->value);
-        $name = $this->typeName($type);
-        $km = (float) ($day['target_km'] ?? 0);
 
-        if ($km <= 0) {
-            return $name;
-        }
-
-        return $this->formatKm($km).'km '.$name;
+        return $this->typeName($type);
     }
 
     private function typeName(string $type): string
@@ -500,18 +585,6 @@ class PlanOptimizerService
             TrainingType::Threshold->value => 'Threshold',
             default => ucfirst(str_replace('_', ' ', $type)),
         };
-    }
-
-    private function formatKm(float $km): string
-    {
-        if ($km <= 0) {
-            return '0';
-        }
-        if ($km == (float) (int) $km) {
-            return (string) (int) $km;
-        }
-
-        return rtrim(rtrim(number_format($km, 1), '0'), '.');
     }
 
     /**

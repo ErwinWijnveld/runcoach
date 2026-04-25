@@ -239,6 +239,117 @@ Workaround lives entirely in the Flutter coach provider (`app/lib/features/coach
 
 An earlier attempt patched the SDK to yield a second ToolCall event at `content_block_start` — that polluted `$response->toolCalls` with duplicate ids and caused `messages.N.content.M: tool_use ids must be unique` on the next turn. We removed the vendor patch; DO NOT bring it back.
 
+### Plan generation pipeline (onboarding + edits)
+
+This is the single most important pipeline in the backend. Read this before touching anything in `RunCoachAgent`, `PlanOptimizerService`, `PlanVerifierAgent`, `CreateSchedule`, `EditSchedule`, or `VerifyPlan`.
+
+#### Top-down flow
+
+```
+[Flutter onboarding form]
+    │
+    ▼
+POST /onboarding/finalize → OnboardingPlanGeneratorService::generate()
+    │   1. Reject any stale pending proposals
+    │   2. Insert agent_conversations row with context='onboarding'
+    │   3. Build priming message: form data + 12-month profile metrics
+    │   4. RunCoachAgent::make(user)->continue($cid, as: $user)->prompt($priming)
+    │
+    ▼
+[RunCoachAgent.instructions()]
+    branches on agent_conversations.context:
+    └─ 'onboarding' AND no proposal yet → onboardingInstructions() [GENERATE mode]
+    └─ 'onboarding' AND proposal exists → onboardingInstructions() [REVIEW/EDIT mode]
+    └─ otherwise                        → coachInstructions()
+    │
+    ▼
+[Agent autonomous tool loop, driven by the SDK]
+    Generate mode:
+        CreateSchedule → VerifyPlan → (EditSchedule → VerifyPlan)*  → reply
+    Review/Edit mode (follow-up user message):
+        GetCurrentProposal? → EditSchedule → VerifyPlan → (EditSchedule → VerifyPlan)* → reply
+    │
+    ▼
+ProposalService::detectProposalFromConversation()
+    Reads agent_conversation_messages.tool_results, finds the last
+    `requires_approval:true` row, hydrates a CoachProposal row.
+    │
+    ▼
+[Flutter shows ProposalCard with VIEW DETAILS / ACCEPT / "tell me what to adjust"]
+```
+
+The same loop runs for follow-up coach chat, just with `coachInstructions()` driving and `CoachController::sendMessage` streaming the SSE.
+
+#### The mandatory verify cycle
+
+Hardcoded in the agent system prompt (every variant of `instructions()` includes it):
+
+> After EVERY `create_schedule` or `edit_schedule`, immediately call `verify_plan`. If `passed:false`, batch every `issues[].suggested_fix` into ONE `edit_schedule` call, then call `verify_plan` again. Stop when `passed:true` or `cycle >= max_cycles`.
+
+- **Cap:** `MAX_CYCLES = 2` in `VerifyPlan.php`.
+- **Cap counter key:** `verify_plan:cycle:user:{$userId}` (NOT proposal_id, because `EditSchedule` supersedes the pending proposal on every call — a proposal-keyed counter would reset every iteration and the loop would never terminate).
+- **Counter reset:** `CreateSchedule::handle` calls `Cache::forget(VerifyPlan::cycleCacheKey($userId))` before persisting, so a fresh generation always starts at cycle 1.
+- **Counter increment:** in `VerifyPlan::handle`, before calling Haiku.
+- **Capped short-circuit:** when the counter exceeds `MAX_CYCLES`, `VerifyPlan` returns `{passed:true, capped:true, summary:"Max verification cycles reached..."}` WITHOUT calling Haiku. This forces the agent to terminate the loop.
+- **User-facing reply discipline:** the prompt explicitly forbids the agent from saying "max cycles", "verifier", "server-managed", "display label", or any internal mechanic in its reply when the cap fires. If you see those words leak into the chat, the prompt's been edited.
+
+#### The optimizer (deterministic post-processor)
+
+`PlanOptimizerService::optimize($payload, User $user, bool $alignRaceDay = true)` runs at the END of `CreateSchedule::handle` and `EditSchedule::handle`. Everything beyond the agent's raw draft is deterministic — the AI is responsible for *coaching judgment* (volume curve, hard/easy mix, when to insert intervals), the optimizer is responsible for *structural correctness* (preferred days, race-day position, paces, titles, totals).
+
+**`alignRaceDay`:** `true` on create (allows `alignTargetDateToLastDay` for open-ended plans). `false` on edit (the user has already seen and reasoned about `target_date`, don't move it).
+
+**Pipeline order — KEEP this order, the comments in `optimize()` explain why:**
+
+| # | Pass | What it does |
+|---|---|---|
+| 1 | `enforcePreferredWeekdays` | Drop days whose DOW isn't in `preferred_weekdays[]`. Race-day exempt by date match. |
+| 2 | `enforceMinimumRunLength` | Bump per-run km up to `max(4, min(6, avg_run_km × 0.4))`. Prevents 3km runs for an 8.6km/run runner. |
+| 3 | `deduplicateDaysPerWeek` | Drop duplicate `day_of_week` within a single week. |
+| 4 | **`ensureRaceDayEntry`** | If no day matches `target_date`, salvage a misplaced race-like day (`type=tempo` AND `target_km` within 10% of goal_km) and relocate it; otherwise insert a skeleton on target_date. **Runs BEFORE drop** so the agent's nice description survives when the agent miscounts weeks and puts the race past target_date. See `extractMisplacedRaceDay`. |
+| 5 | `dropDaysPastTarget` | Strip everything strictly past `target_date`. |
+| 6 | `enforceRaceDay` | Force the race-day entry's `type=tempo`, `km=goal_km`, `pace=goal_pace`, **`title=null`** (so generateTitles can rewrite to goal_name). |
+| 7 | `alignTargetDateToLastDay` (create only) | For open-ended plans, snap `target_date` to the last training day's date. |
+| 8 | `reclassifyLongRuns` | Demote `long_run` days under `MIN_LONG_RUN_KM` (6.0) to `easy`. |
+| 9 | `promoteLongRuns` | If a week has no `long_run` but has a clear longest `easy` ≥ MIN_LONG_RUN_KM, promote it. |
+| 10 | `computePaces` | Fill `target_pace_seconds_per_km` for null fields, using the runner's baseline pace + a type-specific delta (easy +30, long +15, tempo −25, interval −50, threshold −25). AI-set quality paces survive (only nulls get filled). |
+| 11 | `generateTitles` | Race day → `goal_name`. Other days with no title → just the type label (`"Easy"`, `"Long run"`, `"Tempo"`, `"Intervals"`, `"Threshold"`). The km is NOT in the title — the UI renders km separately. |
+| 12 | `recalculateWeeklyTotals` | Sum `total_km` per week. |
+
+**`goal_name` handling:** read from `$payload['goal_name']` *regardless* of `alignRaceDay`. `enforceRaceDay` nulls the title on EVERY call (create + edit), so `generateTitles` always needs `goal_name` available to relabel the race day. If `goal_name` is missing, the race day falls through to `dayTitle()` and ends up labeled "Tempo" — this is a regression to look out for. Test: `test_race_day_keeps_goal_name_title_on_edit_pass`.
+
+#### The verifier (PlanVerifierAgent)
+
+`app/Ai/Agents/PlanVerifierAgent.php`. One-shot Haiku auditor:
+- `#[Model('claude-haiku-4-5')]` — 10× cheaper, 3-5× faster than Sonnet for a structured rules check. The verify loop runs up to 2× per plan, so this matters.
+- `#[Temperature(0.2)]` — same plan should get the same verdict run-to-run.
+- No tools, no memory; the caller (`VerifyPlan::buildPrompt`) packs all context into the prompt.
+
+**Output shape (strict JSON):** `{passed, summary, issues[]}`. Each issue: `severity` (critical|major|minor), `area` (volume|progression|structure|recovery), `week`, `day_of_week`, `description`, `suggested_fix`. Pass = zero critical, zero major. Minor alone doesn't fail.
+
+**What it checks (the only 5 principles):**
+1. Single-week volume jumps — flag CRITICAL only if a single week has a run > 2× the runner's currently-demonstrated longest run, or weekly total jumps > 30%.
+2. Cutback weeks — after 3 consecutive build weeks; missing across 6+ build weeks is major.
+3. Taper — final 2-3 weeks should drop volume 30-50% while preserving race-pace work.
+4. Rest cadence — at least 1 day per week with no run.
+5. Long-run proportion — no single long run > 40% of week's total.
+
+**The "Do NOT flag" list (extend this whenever Haiku hallucinates a false positive):**
+- Titles, paces, HR zones, weekly totals (deterministic post-pass).
+- Race-day title or `target_date` alignment (optimizer handles).
+- **The training entry on `target_date` itself** — Haiku kept flagging "should be type 'race'" or "should not be a tempo workout". There is NO `race` type in `TrainingType`; the convention is `tempo` with `km=goal_km`, `title=goal_name`. Adding this rule killed a doom loop.
+- 80/20 intensity, presence of `intervals` array on interval days (agent prompt enforces).
+
+**Known Haiku weakness:** invents `(week, day_of_week)` pairs that don't exist in the plan. The prompt ends with "scan weeks[].days[].day_of_week before emitting a fix", but it's still imperfect — that's why agent EditSchedule ops sometimes fail with `"week N has no day on day_of_week M"` errors. Today: agent retries (each retry ≈ 25s of LLM streaming). TODO in `../TODO.md`: tighten the agent's prompt to always re-read `plan_structure` from the latest tool result before composing ops.
+
+#### Caching middleware (cost / latency lever)
+
+`AnthropicPromptCaching` (in `app/Ai/Support/`) attaches TWO `cache_control: ephemeral` breakpoints per outgoing Anthropic request:
+1. On the last tool — caches `system` + all `tools` (~7k tokens for RunCoachAgent's 13 tools).
+2. On the last content block of the last assistant message — caches the conversation history.
+
+TTL is ~5 minutes. Within onboarding (3-4 turns in 1-2 min) the cache hits hard: turn 2+ pays full input price ONLY on the new user message. Cache hits show up as `cache_read_input_tokens` in the `[ai:usage]` log and the `token_usages` table. If you see `cache_read=0` on turn 2+, something's wrong (middleware not registered, or conversation went idle past TTL).
+
 ### Token usage tracking
 
 - `token_usages` table (migration, `App\Models\TokenUsage`) records one row per Anthropic call with user_id, conversation_id, agent_class, context, provider, model, and all five token counters (`prompt`, `completion`, `cache_read_input`, `cache_write_input`, `reasoning`) plus `total_tokens`.
@@ -331,10 +442,63 @@ Always run `vendor/bin/pint --dirty --format agent` after modifying PHP files.
 
 ### Debugging patterns we use
 
-- **Capture outgoing Anthropic request bodies** — in a tinker session, `Illuminate\Support\Facades\Http::globalRequestMiddleware(fn($req) => tap($req, fn() => Log::info('[anthropic] '.substr((string)$req->getBody(), 0, 20000))));` then tail `storage/logs/laravel.log`.
-- **Inspect raw tool calls stored by the SDK** — `DB::table('agent_conversation_messages')->where('conversation_id', …)->get(['role','content','tool_calls','tool_results'])`.
-- **Agent tool logging** — `AppServiceProvider::logAgentToolInvocations()` is active in local env and logs every tool in/out with duration to `laravel.log` (`[agent:tool] → Foo input=…` / `← Foo (XXXms) output=…`). Useful for tracing agent behavior.
-- **Admin token dashboard** — `/admin/token-usages` is the fastest way to spot cost regressions, duplicate-logging, or broken cache hits.
+#### Diagnostic log lines
+
+Local env emits compact one-line logs on every agent call. Tail with:
+
+```bash
+tail -f storage/logs/laravel.log | grep -E '\[(onboarding:start|agent:tool|agent:prompt|ai:usage|coach stream)\]'
+```
+
+| Marker | Source | What it tells you |
+|---|---|---|
+| `[onboarding:start] user_id=N goal_type=… distance=… target_date=… days=… weekdays=… style=…` | `OnboardingPlanGeneratorService::generate()` | Marks the start of a fresh onboarding with all inputs. Use as the anchor when reading a slow / failed run. |
+| `[agent:tool] → ToolName input={…}` | `AppServiceProvider::logAgentToolInvocations()` | Every tool invocation, with full args. |
+| `[agent:tool] ← ToolName (Nms) output={…}` | same | Tool return + duration. Errors surface as `output={"error":...}`. |
+| `[ai:usage] AgentClass ctx=… model=… in=N (cache_read=N, write=N) out=N total=N` | `RecordAgentTokenUsage` listener | Per-Anthropic-call token accounting. Watch `cache_read` to confirm caching. |
+| `[agent:prompt] ctx=onboarding\|coach user_id=N duration_ms=N message_bytes=N` | `OnboardingPlanGeneratorService` and `CoachController::sendMessage` | Wall-clock for the entire `prompt()` / streaming loop. Big number here = something's hot. |
+| `[coach stream] ExceptionClass: message` | `CoachController::sendMessage` catch | SSE streaming error. |
+
+**The `[ai:usage]` SDK caveat (important):** `StreamableAgentResponse::$usage` only reflects the *final* tool-loop iteration's usage. Intermediate iterations that returned `stop_reason: tool_use` are NOT tallied. Reported totals undercount streaming agent runs by 30-50%. So a fresh onboarding emitting one `[ai:usage] in=2228 out=4094` line actually burned several thousand more tokens across the iterations between `CreateSchedule` → `VerifyPlan` → reply.
+
+#### Common failure modes (read the logs in this order)
+
+| Symptom | Where to look | Likely cause |
+|---|---|---|
+| **Slow follow-up edit (~70-80s for "add intervals")** | Multiple adjacent `[agent:tool] ← EditSchedule (Nms) output={"error":...}` lines | Agent referenced a missing `(week, day_of_week)` or omitted a required field; each retry costs ~20-25s of LLM streaming. Each `EditSchedule` op JSON with intervals is 2-3KB. |
+| **Race day labeled "Tempo" instead of goal_name** | `tinker --execute 'echo CoachProposal::find(N)->payload["goal_name"];'` | `goal_name` was lost in payload OR `generateTitles` ran with `$goalName=null` (used to be tied to `alignRaceDay`; now decoupled — see `optimize()` line 67-72). |
+| **Race day description is generic "Goal day. Execute your plan."** | Compare agent's CreateSchedule input vs final proposal. Agent likely placed race past `target_date`. | `extractMisplacedRaceDay` didn't find a match — check `target_km` (within 10% of goal_km?) and `type` (must be `tempo`). Widen the heuristic in `extractMisplacedRaceDay` if needed. |
+| **Verifier doom loop hits cap** | `[agent:tool] ← VerifyPlan` lines repeating with same `issues[].description` | Agent burning cycles trying to fix something the optimizer already handles. Read the issue description — if it mentions titles, paces, HR zones, race-day type, or anything in the verifier's "Do NOT flag" list, ADD IT TO THAT LIST in `PlanVerifierAgent::instructions()`. |
+| **Cache miss on turn 2+** | `[ai:usage] cache_read=0` instead of large number | (a) `AnthropicPromptCaching` not registered in `AppServiceProvider::boot()`. (b) Conversation went idle past 5-min TTL. (c) Tools or system prompt changed between turns (cache key invalidated). |
+| **Token usage rows duplicated** | `token_usages` table has 2 rows per `invocation_id` | Listener registered twice (Laravel 13 auto-discovery + a manual `Event::listen`). Remove the manual listen. |
+| **"PLAN REVISION" card on fresh onboarding** | Flutter shows revision UI instead of new-plan UI | `EditSchedule` attached `diff` to a pending-proposal edit. `diff` should ONLY attach when `responseProposalType === EditActivePlan`. See `EditSchedule::handle`. |
+
+#### Tinker recipes for the plan pipeline
+
+```bash
+# Dump the latest pending proposal's structure
+php artisan tinker --execute 'use App\Models\CoachProposal; $p = CoachProposal::orderByDesc("id")->first(); echo "id={$p->id} status=".$p->status->value." goal_name=".($p->payload["goal_name"]??"?")."\n"; foreach ($p->payload["schedule"]["weeks"] as $w) { $tot=$w["total_km"]??0; $types=array_count_values(array_column($w["days"], "type")); echo "  week ".$w["week_number"]." total={$tot}km days=".count($w["days"])." types=".json_encode($types)."\n"; }'
+
+# Inspect the race-day entry (last week's days)
+php artisan tinker --execute 'use App\Models\CoachProposal; $p = CoachProposal::orderByDesc("id")->first(); $last = end($p->payload["schedule"]["weeks"]); foreach ($last["days"] as $d) { echo "  dow={$d["day_of_week"]} type={$d["type"]} km={$d["target_km"]} title=".json_encode($d["title"]??null)." desc=".substr($d["description"]??"", 0, 80)."\n"; }'
+
+# Replay the optimizer on a payload (without round-tripping through the agent)
+php artisan tinker --execute 'use App\Services\PlanOptimizerService; use App\Models\User; $payload = json_decode(file_get_contents("/tmp/plan.json"), true); $result = app(PlanOptimizerService::class)->optimize($payload, User::find(2)); echo json_encode($result["schedule"]["weeks"], JSON_PRETTY_PRINT);'
+
+# Reset the verify-cycle cap counter for a user (useful when iterating on the verifier prompt)
+php artisan tinker --execute 'Cache::forget("verify_plan:cycle:user:2");'
+
+# Mark all pending proposals rejected (clean slate before re-onboarding)
+php artisan tinker --execute 'use App\Models\CoachProposal; use App\Enums\ProposalStatus; CoachProposal::where("user_id", 2)->where("status", ProposalStatus::Pending)->update(["status" => ProposalStatus::Rejected]);'
+
+# Inspect raw SDK-stored conversation messages (tool_calls + tool_results columns)
+php artisan tinker --execute 'DB::table("agent_conversation_messages")->where("conversation_id", "uuid-here")->get(["role","content","tool_calls","tool_results"])->each(fn($m) => print($m->role.": ".substr($m->content ?? "", 0, 120)."\n"));'
+```
+
+#### Other useful patterns
+
+- **Capture outgoing Anthropic request bodies** — in a tinker session, `Http::globalRequestMiddleware(fn($req) => tap($req, fn() => Log::info('[anthropic] '.substr((string)$req->getBody(), 0, 20000))));` then tail `storage/logs/laravel.log`. Useful when you want to see the EXACT prompt + cache_control breakpoints sent to Anthropic.
+- **Admin token dashboard at `/admin/token-usages`** — fastest way to spot cost regressions, duplicate-logging, or broken cache hits without opening the log file.
 
 ## Deployment (Laravel Cloud)
 
