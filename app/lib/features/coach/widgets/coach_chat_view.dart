@@ -123,10 +123,6 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
                             await widget.onAccept!(ref, msg.proposal!.id);
                             widget.onInvalidate?.call(ref);
                           },
-                          onAdjust: () async {
-                            await widget.onReject?.call(ref, msg.proposal!.id);
-                            widget.onInvalidate?.call(ref);
-                          },
                           onViewDetails: () => PlanDetailsSheet.show(
                             context,
                             proposal: msg.proposal!,

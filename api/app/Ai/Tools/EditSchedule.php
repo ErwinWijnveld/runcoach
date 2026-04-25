@@ -10,6 +10,9 @@ use App\Enums\TrainingType;
 use App\Models\CoachProposal;
 use App\Models\Goal;
 use App\Models\User;
+use App\Services\PlanOptimizerService;
+use App\Services\ProposalService;
+use App\Support\PlanPayload;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use InvalidArgumentException;
 use Laravel\Ai\Contracts\Tool;
@@ -17,7 +20,11 @@ use Laravel\Ai\Tools\Request;
 
 class EditSchedule implements Tool
 {
-    public function __construct(private User $user) {}
+    public function __construct(
+        private User $user,
+        private PlanOptimizerService $optimizer,
+        private ProposalService $proposals,
+    ) {}
 
     public function description(): string
     {
@@ -45,7 +52,7 @@ class EditSchedule implements Tool
 
         Use `create_schedule` ONLY for fundamental rebuilds (different goal type, completely new structure). For every other change, use `edit_schedule`. To change `goal_type` or the runner's `coach_style`, use `create_schedule` - those are out of scope for edits.
 
-        Week totals are recalculated automatically after your ops. Past training days are preserved untouched; only days from today onward are modified when editing an active plan.
+        After your ops run: weekly km totals, day titles, and paces (for days you didn't explicitly set) are recomputed from the runner's Strava baseline, and `target_date` is aligned to the final training day. Past training days are preserved untouched; only days from today onward are modified when editing an active plan.
         DESC;
     }
 
@@ -83,25 +90,63 @@ class EditSchedule implements Tool
 
         foreach ($ops as $i => $op) {
             if (! is_array($op)) {
-                return json_encode(['error' => "Operation #{$i} must be a JSON object."]);
+                return json_encode([
+                    'error' => "Operation #{$i} must be a JSON object.",
+                    'plan_structure' => PlanPayload::weekStructure($payload),
+                ]);
             }
             try {
                 $payload = $this->apply($payload, $op);
             } catch (InvalidArgumentException $e) {
-                return json_encode(['error' => "Operation #{$i}: ".$e->getMessage()]);
+                // Include the current plan structure so the agent can see
+                // what weeks/days actually exist and retry with a valid op
+                // instead of guessing day_of_week values.
+                return json_encode([
+                    'error' => "Operation #{$i}: ".$e->getMessage(),
+                    'plan_structure' => PlanPayload::weekStructure($payload),
+                ]);
             }
         }
 
-        $payload = $this->recalculateWeekTotals($payload);
+        // Verify+optimize pass: recompute weekly totals, regenerate titles
+        // and paces for any day that didn't already have them, reclassify
+        // long runs. `alignRaceDay: false` because edits shouldn't stomp
+        // user-set target_date changes (set_goal op) or rename the final
+        // day to the goal name — both of those are CreateSchedule-only
+        // behaviours. Explicit user paces/titles survive.
+        $payload = $this->optimizer->optimize($payload, $this->user, alignRaceDay: false);
 
-        // Attach the ops as a `diff` so the UI can render a human-readable
-        // "what changed" summary instead of the whole weekly plan.
-        $payload['diff'] = array_values($ops);
+        // Only attach a `diff` when editing a plan the runner has already
+        // ACCEPTED (active goal). That's the only case where "N changes to
+        // your plan" is meaningful UX. Edits to a still-pending proposal
+        // (verify-loop fixups during onboarding, or mid-chat tweaks before
+        // the runner has accepted) must NOT carry a diff — the runner
+        // never saw the pre-edit version, so showing a "revision" card
+        // is confusing (this was the onboarding-shows-"Plan revision" bug).
+        if ($responseProposalType === ProposalType::EditActivePlan) {
+            $payload['diff'] = array_values($ops);
+        } else {
+            unset($payload['diff']);
+        }
 
+        // Persist the edited plan IMMEDIATELY as a new pending proposal
+        // so the next tool in the agent loop (verify_plan auto-target)
+        // sees this revision, not the version before the ops were applied.
+        $proposal = $this->proposals->persistPending(
+            $this->user,
+            $responseProposalType,
+            $payload,
+        );
+
+        // Full payload omitted intentionally — see CreateSchedule::handle
+        // for the rationale (conversation-history bloat vs rate limits).
+        // `plan_structure` is enough for the agent to compose follow-up
+        // ops; `verify_plan` and the UI read the full plan from the DB.
         return json_encode([
             'requires_approval' => true,
             'proposal_type' => $responseProposalType->value,
-            'payload' => $payload,
+            'proposal_id' => $proposal->id,
+            'plan_structure' => PlanPayload::weekStructure($payload),
         ]);
     }
 
@@ -130,7 +175,7 @@ class EditSchedule implements Tool
                 return json_encode(['error' => "Goal is not active (status = {$goal->status->value}). Only active goals can be edited in place."]);
             }
 
-            return [$this->buildPayloadFromGoal($goal), ProposalType::EditActivePlan];
+            return [PlanPayload::fromGoal($goal), ProposalType::EditActivePlan];
         }
 
         // Auto: pending proposal wins
@@ -145,7 +190,7 @@ class EditSchedule implements Tool
         // Then active Goal
         $activeGoal = $this->user->goals()->where('status', GoalStatus::Active)->latest('id')->first();
         if ($activeGoal) {
-            return [$this->buildPayloadFromGoal($activeGoal), ProposalType::EditActivePlan];
+            return [PlanPayload::fromGoal($activeGoal), ProposalType::EditActivePlan];
         }
 
         // Fallback: latest any-status proposal (covers reject-then-adjust onboarding flow)
@@ -173,49 +218,6 @@ class EditSchedule implements Tool
         }
 
         return [$proposal->payload, ProposalType::CreateSchedule];
-    }
-
-    /**
-     * Reconstruct a CreateSchedule-shaped payload from an active Goal + its
-     * training weeks/days. Used when edit_schedule targets an active plan.
-     *
-     * @return array<string, mixed>
-     */
-    private function buildPayloadFromGoal(Goal $goal): array
-    {
-        $weeks = [];
-        foreach ($goal->trainingWeeks()->orderBy('week_number')->get() as $week) {
-            $days = [];
-            foreach ($week->trainingDays()->orderBy('order')->get() as $day) {
-                $days[] = array_filter([
-                    'day_of_week' => (int) $day->order,
-                    'type' => $day->type?->value,
-                    'title' => $day->title,
-                    'description' => $day->description,
-                    'target_km' => $day->target_km === null ? null : (float) $day->target_km,
-                    'target_pace_seconds_per_km' => $day->target_pace_seconds_per_km,
-                    'target_heart_rate_zone' => $day->target_heart_rate_zone,
-                    'intervals' => $day->intervals_json,
-                ], fn ($v) => $v !== null);
-            }
-            $weeks[] = [
-                'week_number' => $week->week_number,
-                'focus' => $week->focus,
-                'total_km' => (float) $week->total_km,
-                'days' => $days,
-            ];
-        }
-
-        return [
-            'goal_id' => $goal->id,
-            'goal_type' => $goal->type->value,
-            'goal_name' => $goal->name,
-            'distance' => $goal->distance?->value,
-            'custom_distance_meters' => $goal->custom_distance_meters,
-            'goal_time_seconds' => $goal->goal_time_seconds,
-            'target_date' => $goal->target_date?->toDateString(),
-            'schedule' => ['weeks' => $weeks],
-        ];
     }
 
     /**
@@ -249,12 +251,27 @@ class EditSchedule implements Tool
         $weekIndex = $this->findWeekIndex($payload, $week);
         $dayIndex = $this->findDayIndex($payload['schedule']['weeks'][$weekIndex]['days'] ?? [], $dow);
         if ($dayIndex === null) {
-            throw new InvalidArgumentException("week {$week} has no day on day_of_week {$dow}");
+            throw new InvalidArgumentException(
+                "week {$week} has no day on day_of_week {$dow}. "
+                .$this->availableDaysHint($payload, $weekIndex)
+                .' Use `set_day` on an existing day, or `add_day` to create a new one.'
+            );
+        }
+
+        $validated = $this->validateDayFields($fields, strict: true);
+
+        // If the op changes type or target_km but doesn't pass an explicit
+        // title, null the existing title so the optimizer regenerates a
+        // fresh "{km}km {TypeName}" label. Otherwise a stale "5km Tempo"
+        // title survives on a day whose type was just flipped to `interval`.
+        $shapeChanged = array_key_exists('type', $validated) || array_key_exists('target_km', $validated);
+        if ($shapeChanged && ! array_key_exists('title', $validated)) {
+            $validated['title'] = null;
         }
 
         $payload['schedule']['weeks'][$weekIndex]['days'][$dayIndex] = array_merge(
             $payload['schedule']['weeks'][$weekIndex]['days'][$dayIndex],
-            $this->validateDayFields($fields, strict: true),
+            $validated,
         );
 
         return $payload;
@@ -273,7 +290,10 @@ class EditSchedule implements Tool
         $weekIndex = $this->findWeekIndex($payload, $week);
         $dayIndex = $this->findDayIndex($payload['schedule']['weeks'][$weekIndex]['days'] ?? [], $dow);
         if ($dayIndex === null) {
-            throw new InvalidArgumentException("week {$week} has no day on day_of_week {$dow}");
+            throw new InvalidArgumentException(
+                "week {$week} has no day on day_of_week {$dow} to remove. "
+                .$this->availableDaysHint($payload, $weekIndex)
+            );
         }
 
         array_splice($payload['schedule']['weeks'][$weekIndex]['days'], $dayIndex, 1);
@@ -299,7 +319,10 @@ class EditSchedule implements Tool
         $weekIndex = $this->findWeekIndex($payload, $week);
         $existing = $this->findDayIndex($payload['schedule']['weeks'][$weekIndex]['days'] ?? [], $dow);
         if ($existing !== null) {
-            throw new InvalidArgumentException("week {$week} already has a day on day_of_week {$dow} (use set_day instead)");
+            throw new InvalidArgumentException(
+                "week {$week} already has a day on day_of_week {$dow}. Use `set_day` to modify it instead. "
+                .$this->availableDaysHint($payload, $weekIndex)
+            );
         }
 
         $newDay = array_merge(
@@ -330,10 +353,15 @@ class EditSchedule implements Tool
         $days = $payload['schedule']['weeks'][$weekIndex]['days'] ?? [];
         $fromIndex = $this->findDayIndex($days, $from);
         if ($fromIndex === null) {
-            throw new InvalidArgumentException("week {$week} has no day on day_of_week {$from}");
+            throw new InvalidArgumentException(
+                "week {$week} has no day on day_of_week {$from} to shift. "
+                .$this->availableDaysHint($payload, $weekIndex)
+            );
         }
         if ($this->findDayIndex($days, $to) !== null) {
-            throw new InvalidArgumentException("week {$week} already has a day on day_of_week {$to}");
+            throw new InvalidArgumentException(
+                "week {$week} already has a day on day_of_week {$to}. Shift that day first, or `remove_day` it, before moving another day to that slot."
+            );
         }
 
         $payload['schedule']['weeks'][$weekIndex]['days'][$fromIndex]['day_of_week'] = $to;
@@ -484,7 +512,38 @@ class EditSchedule implements Tool
                 return $i;
             }
         }
-        throw new InvalidArgumentException("no week with week_number {$weekNumber}");
+        $available = [];
+        foreach (($payload['schedule']['weeks'] ?? []) as $week) {
+            if (isset($week['week_number'])) {
+                $available[] = (int) $week['week_number'];
+            }
+        }
+        sort($available);
+        $availableCsv = $available === [] ? '(plan has no weeks)' : 'Available week_numbers: ['.implode(', ', $available).'].';
+        throw new InvalidArgumentException("no week with week_number {$weekNumber}. {$availableCsv}");
+    }
+
+    /**
+     * Build a short hint listing which day_of_week values actually exist
+     * in the target week, so the agent can retry with a valid op on its
+     * very next turn instead of guessing.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    private function availableDaysHint(array $payload, int $weekIndex): string
+    {
+        $days = $payload['schedule']['weeks'][$weekIndex]['days'] ?? [];
+        $dows = [];
+        foreach ($days as $day) {
+            if (isset($day['day_of_week'])) {
+                $dows[] = (int) $day['day_of_week'];
+            }
+        }
+        sort($dows);
+
+        return $dows === []
+            ? 'That week currently has no scheduled days.'
+            : 'That week has days on day_of_week: ['.implode(', ', $dows).'].';
     }
 
     /**
@@ -532,22 +591,5 @@ class EditSchedule implements Tool
         }
 
         return $fields;
-    }
-
-    /**
-     * @param  array<string, mixed>  $payload
-     * @return array<string, mixed>
-     */
-    private function recalculateWeekTotals(array $payload): array
-    {
-        foreach ($payload['schedule']['weeks'] ?? [] as $i => $week) {
-            $total = 0.0;
-            foreach ($week['days'] ?? [] as $day) {
-                $total += (float) ($day['target_km'] ?? 0);
-            }
-            $payload['schedule']['weeks'][$i]['total_km'] = round($total, 1);
-        }
-
-        return $payload;
     }
 }

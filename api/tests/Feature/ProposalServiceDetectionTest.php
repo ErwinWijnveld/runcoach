@@ -12,11 +12,18 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
+/**
+ * After the refactor where CreateSchedule/EditSchedule persist their own
+ * proposals mid-loop, `detectProposalFromConversation` is no longer
+ * responsible for creating proposals — it just backfills the
+ * `agent_message_id` FK on the existing pending proposal to the latest
+ * assistant message in the conversation.
+ */
 class ProposalServiceDetectionTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
-    private function seedAssistantMessage(string $conversationId, User $user, array $toolResults): string
+    private function seedAssistantMessage(string $conversationId, User $user): string
     {
         $messageId = (string) Str::uuid();
         DB::table('agent_conversations')->insert([
@@ -36,7 +43,7 @@ class ProposalServiceDetectionTest extends TestCase
             'content' => 'test',
             'attachments' => '[]',
             'tool_calls' => '[]',
-            'tool_results' => json_encode($toolResults),
+            'tool_results' => '[]',
             'usage' => '{}',
             'meta' => '{}',
             'created_at' => now(),
@@ -46,101 +53,92 @@ class ProposalServiceDetectionTest extends TestCase
         return $messageId;
     }
 
-    public function test_last_requires_approval_tool_result_wins(): void
+    public function test_backfills_agent_message_id_on_pending_proposal(): void
     {
         $user = User::factory()->create();
         $convId = (string) Str::uuid();
+        $messageId = $this->seedAssistantMessage($convId, $user);
 
-        $this->seedAssistantMessage($convId, $user, [
-            [
-                'tool_name' => 'edit_schedule',
-                'result' => [
-                    'requires_approval' => true,
-                    'proposal_type' => 'create_schedule',
-                    'payload' => ['goal_name' => 'FIRST', 'schedule' => ['weeks' => []]],
-                ],
-            ],
-            [
-                'tool_name' => 'edit_schedule',
-                'result' => [
-                    'requires_approval' => true,
-                    'proposal_type' => 'create_schedule',
-                    'payload' => ['goal_name' => 'SECOND', 'schedule' => ['weeks' => []]],
-                ],
-            ],
-        ]);
-
-        $proposal = app(ProposalService::class)->detectProposalFromConversation($user, $convId);
-
-        $this->assertNotNull($proposal);
-        $this->assertSame('SECOND', $proposal->payload['goal_name']);
-    }
-
-    public function test_detection_supersedes_other_pending_proposals(): void
-    {
-        $user = User::factory()->create();
-        $convId = (string) Str::uuid();
-
-        $oldPending = CoachProposal::factory()->create([
+        $pending = CoachProposal::factory()->create([
             'user_id' => $user->id,
+            'agent_message_id' => null,
             'type' => ProposalType::CreateSchedule,
             'status' => ProposalStatus::Pending,
             'payload' => ['schedule' => ['weeks' => []]],
         ]);
 
-        $this->seedAssistantMessage($convId, $user, [[
-            'tool_name' => 'edit_schedule',
-            'result' => [
-                'requires_approval' => true,
-                'proposal_type' => 'create_schedule',
-                'payload' => ['goal_name' => 'Revised', 'schedule' => ['weeks' => []]],
-            ],
-        ]]);
+        $returned = app(ProposalService::class)->detectProposalFromConversation($user, $convId);
 
-        $newProposal = app(ProposalService::class)->detectProposalFromConversation($user, $convId);
-
-        $this->assertNotNull($newProposal);
-        $this->assertSame(ProposalStatus::Pending, $newProposal->status);
-        $this->assertSame(ProposalStatus::Rejected, $oldPending->fresh()->status);
+        $this->assertNotNull($returned);
+        $this->assertSame($pending->id, $returned->id);
+        $this->assertSame($messageId, $pending->fresh()->agent_message_id);
     }
 
-    public function test_detection_leaves_other_users_proposals_untouched(): void
+    public function test_returns_null_when_no_pending_proposal_exists(): void
+    {
+        $user = User::factory()->create();
+        $convId = (string) Str::uuid();
+        $this->seedAssistantMessage($convId, $user);
+
+        $this->assertNull(
+            app(ProposalService::class)->detectProposalFromConversation($user, $convId)
+        );
+    }
+
+    public function test_returns_null_when_no_assistant_message_exists(): void
+    {
+        $user = User::factory()->create();
+
+        CoachProposal::factory()->create([
+            'user_id' => $user->id,
+            'agent_message_id' => null,
+            'type' => ProposalType::CreateSchedule,
+            'status' => ProposalStatus::Pending,
+            'payload' => ['schedule' => ['weeks' => []]],
+        ]);
+
+        $this->assertNull(
+            app(ProposalService::class)->detectProposalFromConversation($user, (string) Str::uuid())
+        );
+    }
+
+    public function test_leaves_already_linked_proposal_untouched(): void
+    {
+        $user = User::factory()->create();
+        $convId = (string) Str::uuid();
+        $this->seedAssistantMessage($convId, $user);
+        $originalLink = (string) Str::uuid();
+
+        $pending = CoachProposal::factory()->create([
+            'user_id' => $user->id,
+            'agent_message_id' => $originalLink,
+            'type' => ProposalType::CreateSchedule,
+            'status' => ProposalStatus::Pending,
+            'payload' => ['schedule' => ['weeks' => []]],
+        ]);
+
+        app(ProposalService::class)->detectProposalFromConversation($user, $convId);
+
+        $this->assertSame($originalLink, $pending->fresh()->agent_message_id);
+    }
+
+    public function test_ignores_other_users_pending_proposals(): void
     {
         $user = User::factory()->create();
         $other = User::factory()->create();
         $convId = (string) Str::uuid();
+        $this->seedAssistantMessage($convId, $user);
 
-        $otherPending = CoachProposal::factory()->create([
+        CoachProposal::factory()->create([
             'user_id' => $other->id,
+            'agent_message_id' => null,
             'type' => ProposalType::CreateSchedule,
             'status' => ProposalStatus::Pending,
             'payload' => ['schedule' => ['weeks' => []]],
         ]);
 
-        $this->seedAssistantMessage($convId, $user, [[
-            'tool_name' => 'edit_schedule',
-            'result' => [
-                'requires_approval' => true,
-                'proposal_type' => 'create_schedule',
-                'payload' => ['schedule' => ['weeks' => []]],
-            ],
-        ]]);
-
-        app(ProposalService::class)->detectProposalFromConversation($user, $convId);
-
-        $this->assertSame(ProposalStatus::Pending, $otherPending->fresh()->status);
-    }
-
-    public function test_detection_returns_null_when_no_tool_result_requires_approval(): void
-    {
-        $user = User::factory()->create();
-        $convId = (string) Str::uuid();
-
-        $this->seedAssistantMessage($convId, $user, [[
-            'tool_name' => 'get_recent_runs',
-            'result' => ['runs' => []],
-        ]]);
-
-        $this->assertNull(app(ProposalService::class)->detectProposalFromConversation($user, $convId));
+        $this->assertNull(
+            app(ProposalService::class)->detectProposalFromConversation($user, $convId)
+        );
     }
 }

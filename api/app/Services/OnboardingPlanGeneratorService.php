@@ -2,10 +2,8 @@
 
 namespace App\Services;
 
-use App\Ai\Agents\OnboardingPlanAgent;
-use App\Enums\GoalType;
+use App\Ai\Agents\RunCoachAgent;
 use App\Enums\ProposalStatus;
-use App\Enums\ProposalType;
 use App\Models\CoachProposal;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -16,19 +14,23 @@ use RuntimeException;
 class OnboardingPlanGeneratorService
 {
     public function __construct(
-        private readonly OnboardingPlanPromptBuilder $promptBuilder,
         private readonly RunningProfileService $profiles,
+        private readonly ProposalService $proposals,
     ) {}
 
     /**
-     * Generate a training plan from the onboarding-form payload.
+     * Generate the runner's first training plan by driving the shared
+     * agentic loop: an `agent_conversations` row with context=`onboarding`
+     * is seeded, a priming user message carrying the form data is sent
+     * through `RunCoachAgent`, and the agent responds by calling
+     * `create_schedule` → `verify_plan` (→ `edit_schedule` → `verify_plan`
+     * if the auditor flagged issues) until the loop settles or the cap
+     * hits.
      *
-     * Side effects:
-     *  - Calls the LLM via OnboardingPlanAgent.
-     *  - Creates an `agent_conversations` row with context='onboarding'.
-     *  - Seeds one assistant message (content + tool_results JSON) so the
-     *    Flutter coach chat can hydrate it as an opening message + proposal.
-     *  - Creates a pending CoachProposal.
+     * Same pipeline the coach-chat uses, which means the optimizer runs
+     * automatically inside `CreateSchedule::handle` and the verify-edit
+     * retry loop is owned by the agent — no bespoke JSON parsing, no
+     * duplicate verifier orchestration.
      *
      * @param  array<string, mixed>  $formData
      * @return array{conversation_id: string, proposal_id: int, weeks: int}
@@ -38,127 +40,138 @@ class OnboardingPlanGeneratorService
         $profile = $this->profiles->getOrAnalyze($user);
         $metrics = $profile?->metrics ?? [];
 
-        $preferredWeekdays = $formData['preferred_weekdays'] ?? null;
-        if (is_array($preferredWeekdays)) {
-            $preferredWeekdays = array_values(array_unique(array_map('intval', $preferredWeekdays)));
-            sort($preferredWeekdays);
-            if (count($preferredWeekdays) === 0) {
-                $preferredWeekdays = null;
-            }
-        } else {
-            $preferredWeekdays = null;
-        }
+        $preferredWeekdays = $this->normalizePreferredWeekdays($formData['preferred_weekdays'] ?? null);
 
-        $prompt = $this->promptBuilder->build(
-            goalType: $formData['goal_type'],
-            distanceMeters: $formData['distance_meters'] ?? null,
-            goalName: $formData['goal_name'] ?? null,
-            targetDate: $formData['target_date'] ?? null,
-            goalTimeSeconds: $formData['goal_time_seconds'] ?? null,
-            daysPerWeek: (int) $formData['days_per_week'],
-            coachStyle: $formData['coach_style'],
-            prCurrentSeconds: $formData['pr_current_seconds'] ?? null,
-            profileMetrics: $metrics,
-            todayIso: now()->toDateString(),
-            todayWeekday: (int) now()->isoWeekday(),
-            preferredWeekdays: $preferredWeekdays,
-            additionalNotes: $formData['additional_notes'] ?? null,
-        );
+        Log::info(sprintf(
+            '[onboarding:start] user_id=%d goal_type=%s distance=%s target_date=%s days=%s weekdays=%s style=%s',
+            $user->id,
+            $formData['goal_type'] ?? 'null',
+            $formData['distance_meters'] ?? 'null',
+            $formData['target_date'] ?? 'null',
+            $formData['days_per_week'] ?? 'null',
+            $preferredWeekdays ? implode(',', $preferredWeekdays) : 'any',
+            $formData['coach_style'] ?? 'null',
+        ));
 
-        $response = OnboardingPlanAgent::make()->prompt($prompt);
-
-        $schedule = $this->parseScheduleJson($response->text);
-
-        $payload = [
-            'goal_type' => match ($formData['goal_type']) {
-                'race' => GoalType::Race->value,
-                'pr' => GoalType::PrAttempt->value,
-                default => GoalType::GeneralFitness->value,
-            },
-            'goal_name' => $this->resolveGoalName($formData),
-            'distance' => $formData['distance_meters'] ?? null,
-            'goal_time_seconds' => $formData['goal_time_seconds'] ?? null,
-            'target_date' => $formData['target_date'] ?? null,
-            'schedule' => $schedule,
-        ];
+        // Kill any residual pending proposals (e.g. from an interrupted
+        // previous onboarding session). A fresh onboarding always starts
+        // from a clean slate — otherwise the agent's auto-target logic in
+        // verify_plan / edit_schedule could pick up a stale proposal mid
+        // loop and end up mashing the old plan together with the new one.
+        CoachProposal::where('user_id', $user->id)
+            ->where('status', ProposalStatus::Pending)
+            ->update(['status' => ProposalStatus::Rejected]);
 
         $conversationId = (string) Str::uuid();
-        $messageId = (string) Str::uuid();
+        $now = now();
 
-        DB::transaction(function () use ($user, $conversationId, $messageId, $payload): void {
-            $now = now();
-
-            DB::table('agent_conversations')->insert([
-                'id' => $conversationId,
-                'user_id' => $user->id,
-                'title' => 'Your training plan',
-                'context' => 'onboarding',
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
-
-            DB::table('agent_conversation_messages')->insert([
-                'id' => $messageId,
-                'conversation_id' => $conversationId,
-                'user_id' => $user->id,
-                'agent' => 'App\\Ai\\Agents\\RunCoachAgent',
-                'role' => 'assistant',
-                'content' => "Based on your performance over the last year and your goals, I've built a plan for you. Take a look below. Tap Accept if it looks right, or Adjust if you'd like me to tweak anything.",
-                'attachments' => '[]',
-                'tool_calls' => '[]',
-                'tool_results' => json_encode([
-                    [
-                        'tool_name' => ProposalType::CreateSchedule->value,
-                        'result' => [
-                            'requires_approval' => true,
-                            'proposal_type' => ProposalType::CreateSchedule->value,
-                            'payload' => $payload,
-                        ],
-                    ],
-                ]),
-                'usage' => '{}',
-                'meta' => '{}',
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
-        });
-
-        $proposal = CoachProposal::create([
-            'agent_message_id' => $messageId,
+        DB::table('agent_conversations')->insert([
+            'id' => $conversationId,
             'user_id' => $user->id,
-            'type' => ProposalType::CreateSchedule,
-            'payload' => $payload,
-            'status' => ProposalStatus::Pending,
+            'title' => 'Your training plan',
+            'context' => 'onboarding',
+            'created_at' => $now,
+            'updated_at' => $now,
         ]);
+
+        $primingMessage = $this->buildPrimingMessage($formData, $metrics, $preferredWeekdays);
+
+        $promptStartedAt = microtime(true);
+
+        RunCoachAgent::make(user: $user)
+            ->continue($conversationId, as: $user)
+            ->prompt($primingMessage);
+
+        Log::info(sprintf(
+            '[agent:prompt] ctx=onboarding user_id=%d duration_ms=%d message_bytes=%d',
+            $user->id,
+            (int) round((microtime(true) - $promptStartedAt) * 1000),
+            strlen($primingMessage),
+        ));
+
+        $proposal = $this->proposals->detectProposalFromConversation($user, $conversationId);
+
+        if (! $proposal) {
+            Log::error('OnboardingPlanGenerator: agent completed without producing a proposal', [
+                'user_id' => $user->id,
+                'conversation_id' => $conversationId,
+            ]);
+
+            throw new RuntimeException('Onboarding agent did not produce a plan proposal.');
+        }
 
         return [
             'conversation_id' => $conversationId,
             'proposal_id' => $proposal->id,
-            'weeks' => count($schedule['weeks'] ?? []),
+            'weeks' => count($proposal->payload['schedule']['weeks'] ?? []),
         ];
     }
 
     /**
-     * @return array{weeks: array<int, array<string, mixed>>}
+     * @param  mixed  $raw
+     * @return list<int>|null
      */
-    private function parseScheduleJson(string $text): array
+    private function normalizePreferredWeekdays($raw): ?array
     {
-        $cleaned = trim($text);
-        // Strip leading/trailing markdown code fences if present.
-        $cleaned = preg_replace('/^```(?:json)?\s*|\s*```$/m', '', $cleaned) ?? $cleaned;
-        $cleaned = trim($cleaned);
-
-        $parsed = json_decode($cleaned, true);
-
-        if (! is_array($parsed) || ! isset($parsed['weeks']) || ! is_array($parsed['weeks'])) {
-            Log::error('OnboardingPlanGenerator: invalid JSON returned by agent', [
-                'text_preview' => Str::limit($text, 500),
-            ]);
-
-            throw new RuntimeException('Generator returned invalid schedule JSON.');
+        if (! is_array($raw)) {
+            return null;
         }
 
-        return $parsed;
+        $normalized = array_values(array_unique(array_map('intval', $raw)));
+        sort($normalized);
+
+        return count($normalized) === 0 ? null : $normalized;
+    }
+
+    /**
+     * @param  array<string, mixed>  $formData
+     * @param  array<string, mixed>  $metrics
+     * @param  array<int, int>|null  $preferredWeekdays
+     */
+    private function buildPrimingMessage(array $formData, array $metrics, ?array $preferredWeekdays): string
+    {
+        $goalType = match ($formData['goal_type']) {
+            'race' => 'race',
+            'pr' => 'pr_attempt',
+            default => 'general_fitness',
+        };
+
+        $goalName = $this->resolveGoalName($formData);
+        $weekdays = $preferredWeekdays ? implode(',', $preferredWeekdays) : 'any';
+
+        $lines = [
+            'Onboarding form complete. Generate my plan now — do not ask follow-up questions, all fields are filled in.',
+            '',
+            'Form data:',
+            "- goal_type: {$goalType}",
+            "- goal_name: {$goalName}",
+            '- distance (meters): '.($formData['distance_meters'] ?? 'null'),
+            '- target_date: '.($formData['target_date'] ?? 'null'),
+            '- goal_time_seconds: '.($formData['goal_time_seconds'] ?? 'null'),
+            '- days_per_week: '.$formData['days_per_week'],
+            "- preferred_weekdays (1=Mon…7=Sun): {$weekdays}",
+            '- coach_style: '.$formData['coach_style'],
+            '- additional_notes: '.($this->formatNotes($formData['additional_notes'] ?? null)),
+            '',
+            'My 12-month profile:',
+            '- weekly_avg_km: '.($metrics['weekly_avg_km'] ?? 'unknown'),
+            '- avg_pace_seconds_per_km: '.($metrics['avg_pace_seconds_per_km'] ?? 'unknown'),
+            '- weekly_avg_runs: '.($metrics['weekly_avg_runs'] ?? 'unknown'),
+            '- consistency_score: '.($metrics['consistency_score'] ?? 'unknown').'/100',
+            '- long_run_trend: '.($metrics['long_run_trend'] ?? 'unknown'),
+            '- pace_trend: '.($metrics['pace_trend'] ?? 'unknown'),
+        ];
+
+        return implode("\n", $lines);
+    }
+
+    private function formatNotes(mixed $notes): string
+    {
+        if (! is_string($notes) || trim($notes) === '') {
+            return 'none';
+        }
+
+        return '"'.trim($notes).'"';
     }
 
     /**

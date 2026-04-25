@@ -12,12 +12,7 @@ enum TrainingType: string
     case Tempo = 'tempo';
     case Interval = 'interval';
     case LongRun = 'long_run';
-    // Deprecated cases below. Kept so legacy DB rows (pre-cleanup plans)
-    // still deserialize via Eloquent casts. Do NOT expose to the agent
-    // as generate-time options — use activeValues() / activeValuesAsPipe()
-    // when rendering prompts or tool schemas.
     case Threshold = 'threshold';
-    case Recovery = 'recovery';
 
     /**
      * Training types the agent is allowed to generate in new plans.
@@ -31,6 +26,7 @@ enum TrainingType: string
             self::Tempo->value,
             self::Interval->value,
             self::LongRun->value,
+            self::Threshold->value,
         ];
     }
 

@@ -60,4 +60,63 @@ class AnthropicPromptCachingTest extends TestCase
 
         $this->assertSame($request, $result);
     }
+
+    public function test_adds_ephemeral_cache_control_to_last_assistant_message(): void
+    {
+        $body = json_encode([
+            'messages' => [
+                ['role' => 'user', 'content' => [['type' => 'text', 'text' => 'hi']]],
+                ['role' => 'assistant', 'content' => [['type' => 'text', 'text' => 'hello']]],
+                ['role' => 'user', 'content' => [['type' => 'text', 'text' => 'how are you']]],
+                ['role' => 'assistant', 'content' => [['type' => 'text', 'text' => 'good']]],
+                ['role' => 'user', 'content' => [['type' => 'text', 'text' => 'cool']]],
+            ],
+        ]);
+
+        $request = new Request('POST', 'https://api.anthropic.com/v1/messages', [], $body);
+        $result = (new AnthropicPromptCaching)($request);
+
+        $decoded = json_decode((string) $result->getBody(), true);
+        $this->assertArrayNotHasKey('cache_control', $decoded['messages'][1]['content'][0]);
+        $this->assertSame('ephemeral', $decoded['messages'][3]['content'][0]['cache_control']['type']);
+    }
+
+    public function test_promotes_string_assistant_content_to_array_when_caching(): void
+    {
+        $body = json_encode([
+            'messages' => [
+                ['role' => 'user', 'content' => 'hi'],
+                ['role' => 'assistant', 'content' => 'hello there'],
+            ],
+        ]);
+
+        $request = new Request('POST', 'https://api.anthropic.com/v1/messages', [], $body);
+        $result = (new AnthropicPromptCaching)($request);
+
+        $decoded = json_decode((string) $result->getBody(), true);
+        $this->assertIsArray($decoded['messages'][1]['content']);
+        $this->assertSame('text', $decoded['messages'][1]['content'][0]['type']);
+        $this->assertSame('hello there', $decoded['messages'][1]['content'][0]['text']);
+        $this->assertSame('ephemeral', $decoded['messages'][1]['content'][0]['cache_control']['type']);
+    }
+
+    public function test_caches_last_tool_use_block_on_assistant_message(): void
+    {
+        $body = json_encode([
+            'messages' => [
+                ['role' => 'user', 'content' => [['type' => 'text', 'text' => 'create plan']]],
+                ['role' => 'assistant', 'content' => [
+                    ['type' => 'text', 'text' => 'Calling tool…'],
+                    ['type' => 'tool_use', 'id' => 'abc', 'name' => 'create_schedule', 'input' => ['weeks' => []]],
+                ]],
+            ],
+        ]);
+
+        $request = new Request('POST', 'https://api.anthropic.com/v1/messages', [], $body);
+        $result = (new AnthropicPromptCaching)($request);
+
+        $decoded = json_decode((string) $result->getBody(), true);
+        $this->assertArrayNotHasKey('cache_control', $decoded['messages'][1]['content'][0]);
+        $this->assertSame('ephemeral', $decoded['messages'][1]['content'][1]['cache_control']['type']);
+    }
 }

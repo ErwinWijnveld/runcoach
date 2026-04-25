@@ -142,11 +142,13 @@ class PlanDetailsSheet extends StatelessWidget {
                                 foreground: AppColors.neutral,
                                 onPressed: onAdjust == null
                                     ? null
-                                    : () async {
-                                        await onAdjust!();
-                                        if (context.mounted) {
-                                          Navigator.of(context).pop();
-                                        }
+                                    : () {
+                                        // Close the sheet immediately so the
+                                        // user lands back in the chat and can
+                                        // type their adjustment; the reject
+                                        // API runs in the background.
+                                        Navigator.of(context).pop();
+                                        onAdjust!();
                                       },
                               ),
                             ),

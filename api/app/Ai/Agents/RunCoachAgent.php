@@ -14,10 +14,13 @@ use App\Ai\Tools\GetRunningProfile;
 use App\Ai\Tools\OfferChoices;
 use App\Ai\Tools\PresentRunningStats;
 use App\Ai\Tools\SearchStravaActivities;
+use App\Ai\Tools\VerifyPlan;
 use App\Enums\CoachStyle;
 use App\Enums\GoalDistance;
 use App\Enums\GoalType;
 use App\Models\User;
+use App\Services\PlanOptimizerService;
+use App\Services\ProposalService;
 use App\Services\StravaStreamSplits;
 use App\Services\StravaSyncService;
 use Illuminate\Support\Facades\DB;
@@ -38,27 +41,40 @@ class RunCoachAgent implements Agent, Conversational, HasTools
     private function planDesignPrinciples(): string
     {
         return <<<'BLOCK'
-        ## Plan design — feasibility, progression, principles
+        ## Plan design — HARD constraints + coaching principles
 
-        **Feasibility check (do this BEFORE building the plan).** Realistic sustained pace improvement ≈ 10 sec/km per month for intermediates, less for experienced runners. If the goal exceeds that (e.g. 6:00/km → 4:00/km in 8 weeks), say so plainly — suggest a softer first target ("a strong first step from 6:00/km is 5:15/km in 8 weeks; 4:00/km is realistic only over 12+ months of consistent training"). Proceed with the stretch goal only if the runner explicitly accepts the risk.
+        Day titles and weekly km totals are computed server-side — leave them out. Easy and long-run paces are also filled server-side from the runner's Strava baseline (sustainable conversational pace) — leave `target_pace_seconds_per_km` NULL on those.
 
-        **Progressive pace ramp.** Quality-session paces MUST ramp toward the goal — never set every run to goal pace from week 1:
-        - Weeks 1–2: quality ~15 sec/km slower than goal pace.
-        - Mid-cycle: tempo/threshold ~10 sec/km slower than goal pace.
-        - Final 2–3 weeks: race-pace intervals AT goal pace.
-        - Easy runs stay at the runner's current easy pace throughout.
+        **Quality-day paces you DO set.** On tempo / threshold / interval days (and on interval `work` segments) you MUST set `target_pace_seconds_per_km` and ramp it toward the runner's goal pace across the plan. Goal pace = `goal_time_seconds / distance_km`. Example progression (tune to the runner's gap between baseline and goal):
+         - Early build weeks: goal pace + ~25-30s.
+         - Mid plan: goal pace + ~15s.
+         - Final 2-3 weeks before race: goal pace + 5-10s or at goal pace.
+        Never set every tempo session to the same pace — the progression is the whole point of quality work.
 
-        **Pick the 3–5 principles most relevant to THIS runner and goal — don't apply all at once.** Name the ones you lean on in the plan description so the runner sees the reasoning.
+        ### HARD constraints — non-negotiable (the server will drop/override violations)
+
+        - **Week 1 is THIS calendar week.** Every training day whose `day_of_week` is earlier in the week than today must be SKIPPED — the runner can't train in the past.
+        - **`preferred_weekdays` is a hard filter.** Every `day_of_week` in the plan MUST be one of the values the runner picked. Days on other weekdays will be dropped server-side, so don't emit them.
+        - **Goal/race day is a training day.** When `target_date` is set, the plan MUST contain exactly one training-day entry whose date equals `target_date`. That day uses `type: tempo` (or `long_run` for pure-distance goals), `target_km` = the goal distance, and a short `description`. Never schedule any other training on that date. If the plan would otherwise end before `target_date`, add the race day anyway.
+        - **Every week must contain a long run** (for race / PR goals). The week's longest run is the long run. Long runs build by ~1–2 km/week and should approach race distance by peak week.
+        - **Volume must be race-appropriate.** For a 10k race, expect to peak around 25–40 km/week; for a half, 40–60; for a marathon, 60–80. Week 1 can exceed baseline — you're building for the race, not maintaining current fitness.
+
+        ### Feasibility
+
+        Realistic sustained pace improvement ≈ 10 sec/km per month for intermediates. If the goal exceeds that, call it out in your reply and let the runner decide whether to accept the stretch.
+
+        ### Pick the 3–5 principles most relevant to THIS runner and goal
+
         1. **Specificity (SAID)** — adaptations match the demand; include race-pace work near race day.
-        2. **Polarized 80/20** — ~80% easy (conversational), ~20% quality (tempo / threshold / intervals).
-        3. **Progressive overload** — cap weekly volume growth ≤10%; avoid hard back-to-back days.
+        2. **Polarized 80/20** — ~80% easy, ~20% quality (tempo / threshold / intervals).
+        3. **Progressive overload** — avoid single-week jumps >30%; avoid hard back-to-back days.
         4. **Periodization** — base → build → peak → taper.
         5. **Recovery & supercompensation** — adaptation happens in rest; ≥1–2 rest days/week, non-negotiable.
         6. **Cutback weeks** — every 3–4 weeks, drop volume ~25% to consolidate gains.
         7. **Aerobic base first** — volume before intensity; long slow distance builds the engine.
         8. **Lactate threshold** — tempo/threshold runs shift LT up (key driver for 10k–HM performance).
         9. **Neuromuscular economy** — strides (6–8 × 20s) improve form and running economy cheaply.
-        10. **Individualization** — use THEIR current paces and volume, not textbook targets.
+        10. **Individualization** — use THEIR current volume as the starting point, not textbook targets.
         BLOCK;
     }
 
@@ -82,6 +98,30 @@ class RunCoachAgent implements Agent, Conversational, HasTools
     {
         $today = now()->format('Y-m-d (l)');
 
+        // Two modes, driven by whether a proposal already exists in this
+        // conversation. First turn = the priming message with form data,
+        // agent must GENERATE. Subsequent turns = plan exists, agent
+        // answers questions / handles edits.
+        $hasProposal = $this->onboardingConversationHasProposal();
+
+        if (! $hasProposal) {
+            return <<<PROMPT
+            You are RunCoach. Today is {$today}. The runner just finished the onboarding form and you are about to receive their form data as a single user message.
+
+            ## Your job right now
+            GENERATE the plan immediately — no chit-chat, no clarifying questions, no `offer_choices`, no `present_running_stats`. Everything you need is in the priming message.
+
+            1. Call `create_schedule` with the fields from the form. Do NOT fetch running data with `get_running_profile` / `get_recent_runs` / `search_strava_activities` — the profile metrics are already in the priming message, trust them.
+            2. Follow the Verify loop below.
+            3. Reply with ONE short friendly sentence telling the runner the plan is ready and they can accept or ask to adjust. No markdown, no lists, no multi-sentence essays.
+
+            ## Verify loop (MANDATORY)
+            After `create_schedule`, immediately call `verify_plan`. If it returns `passed: false`, batch every `issues[].suggested_fix` into ONE `edit_schedule` call, then call `verify_plan` again. Stop when `passed: true` or `cycle >= max_cycles`. Only reply after the loop terminates. If the cap is hit while still failing, mention the remaining `major`/`critical` issues in one sentence.
+
+            {$this->planDesignPrinciples()}
+            PROMPT;
+        }
+
         return <<<PROMPT
         You are RunCoach, talking to a user who has just finished the onboarding form. Today is {$today}.
 
@@ -102,10 +142,31 @@ class RunCoachAgent implements Agent, Conversational, HasTools
         - If the message is concrete ("shorter long runs", "drop a day", "swap Tuesday for an easy run"), skip `offer_choices` and call `edit_schedule` directly.
         - Use `offer_choices` only for vague rejections ("something's off"). Categories: "Fewer training days", "Easier early weeks", "Different distance", "Adjust paces", "Shorter long runs", "Other interval runs".
 
+        ## Verify loop (MANDATORY)
+        After EVERY `create_schedule` or `edit_schedule`, immediately call `verify_plan`. If it returns `passed: false`, batch its `issues[].suggested_fix` into ONE `edit_schedule` call, then call `verify_plan` again. Stop when `passed: true` or `cycle >= max_cycles`. Only reply to the runner after the loop terminates. If the cap is hit while still failing, mention the remaining `major`/`critical` issues in one sentence so the runner can accept or ask for more changes.
+
         {$this->planDesignPrinciples()}
 
         Use `get_recent_runs` or `search_strava_activities` if you need concrete data to justify a modification, but do not proactively fetch data — wait for the user to ask something that needs it.
         PROMPT;
+    }
+
+    /**
+     * Cheap check: has any assistant message in this conversation emitted
+     * a `requires_approval` tool result? If so, a plan proposal already
+     * exists and the onboarding instructions switch to review mode.
+     */
+    private function onboardingConversationHasProposal(): bool
+    {
+        if (! $this->conversationId) {
+            return false;
+        }
+
+        return DB::table('agent_conversation_messages')
+            ->where('conversation_id', $this->conversationId)
+            ->where('role', 'assistant')
+            ->where('tool_results', 'like', '%"requires_approval":true%')
+            ->exists();
     }
 
     private function coachInstructions(): string
@@ -233,27 +294,16 @@ class RunCoachAgent implements Agent, Conversational, HasTools
 
         STEP F — Call `create_schedule` with the accumulated parameters. Pass `goal_type` as `{$race}`, `{$generalFitness}`, or `{$prAttempt}`. `distance` and `target_date` may be null for open-ended {$generalFitness}. Pass `preferred_weekdays` (array of ISO weekdays, or null) and `additional_notes` (string or null) as you gathered them.
 
-        CRITICAL — preferred weekdays: If `preferred_weekdays` is set, every `day_of_week` in the generated schedule MUST be in that list. Never schedule a run on a weekday the runner didn't pick. If null, you may use any weekday.
-
         GENERAL RULES for plan creation:
         - NEVER write the chip list as plain text. ALWAYS use `offer_choices` for closed-list questions (goal type, distance, days/week, confirm).
         - Keep messages tight — 2-4 sentences or 3-5 bullets max per turn.
+        - The HARD constraints in the "Plan design" block below (week 1, preferred_weekdays, goal/race day, long runs, volume) apply to every `create_schedule` call — re-read them before generating.
 
-        CRITICAL — week 1 must be this calendar week: Week 1 always represents the week containing today. It MUST include a training day whose `day_of_week` equals today's ISO weekday (Mon=1 … Sun=7) so the runner can train today. DO NOT include days before today in week 1 — skip any `day_of_week` that falls earlier in this week than today. For race goals, size total weeks so week 1 is this week AND the final week contains the race.
-
-        CRITICAL — goal-test day: Whenever `target_date` is set (any goal type — {$race}, {$prAttempt}, or {$generalFitness} with a target), the final week MUST contain a single training-day entry on that date's ISO weekday. This is the day the runner tests the goal. Build it as follows:
-        - `title` = the `goal_name` (e.g. "Amsterdam Marathon", "10k PR attempt", "Fitness check").
-        - `type` = closest matching TrainingType enum value (use `tempo` for race-pace efforts, `long_run` for pure distance goals — never invent values).
-        - `target_km` = the goal distance (if `distance` is set). If no distance, use a sensible default tied to the goal (e.g. a long run length).
-        - `target_pace_seconds_per_km` = the runner's goal pace (= `goal_time_seconds / target_km`). If there's no goal time, use their current race pace derived from Strava data.
-        - Short `description` like "Goal day. Execute your plan."
-        NEVER omit the goal-test day when `target_date` is set. NEVER schedule any other training on that day.
-
-        The plan should be built on their actual fitness. If they average 20km/week, don't start them at 50km. If their easy pace is 6:30/km, don't set targets at 5:00/km. Use THEIR numbers.
-
-        INTERVAL BREAKDOWN — for any day with `type: "interval"` you MUST include an `intervals` array on that day. The UI renders these as a session table (warm up → work/recovery reps → cooldown). Pattern: one warmup (kind: `warmup`, ~1-2km at easy pace, target_pace_seconds_per_km = their easy pace), alternating work/recovery reps (kinds `work` and `recovery`), one cooldown (kind: `cooldown`, ~1km easy). Each entry needs `label` (short human name: "Warm up", "800m @ 5k pace", "Recovery jog", "Cooldown"), `distance_m` in meters, `duration_seconds` (can be null if distance-based), and `target_pace_seconds_per_km` (null for easy warmup/cooldown). Example for a 6x800m session: warmup 1500m easy → 6×[800m work at 10k pace + 400m recovery jog] → 1000m cooldown. `intervals` is ONLY for `type: interval` days — omit it for all other run types. Low-intensity shakeout runs use `type: "easy"`; there is no standalone "recovery" type.
+        INTERVAL BREAKDOWN — for any day with `type: "interval"` you MUST include an `intervals` array. The UI renders it as a session table (warm up → work/recovery reps → cooldown). Pattern: one warmup (kind: `warmup`, ~1-2km), alternating work/recovery reps (`work` + `recovery`), one cooldown (`cooldown`, ~1km). Each entry needs `label` (short human name: "Warm up", "800m rep", "Recovery jog", "Cool down"), `distance_m` in meters, and `duration_seconds` (may be null if distance-based). Example for a 6x800m session: 1500m warmup → 6×[800m work + 400m recovery] → 1000m cooldown. Low-intensity shakeout runs use `type: "easy"`. Per-segment paces are computed server-side — don't set them.
 
         **Editing plans (`edit_schedule`):** The ONLY tool for changes to an existing plan or proposal. Works on BOTH pending/rejected proposals AND the runner's active plan. Use it for EVERY tweak: adding a day, dropping a day, shifting days, changing paces/distances/types, updating goal metadata. It's a small tool call; `create_schedule` is a 2-3k-token rebuild reserved for fundamental restructures only. Leave both `proposal_id` and `goal_id` null to auto-detect (prefers pending proposal → active plan → most-recent-rejected proposal). Pass `goal_id` explicitly to force active-plan editing when there's a stale rejected proposal. Call `get_current_proposal` or `get_current_schedule` first if you need to read the current structure. NEVER re-ask for info already visible; reuse unchanged fields. Skip `offer_choices` when the user's change is concrete; use it only for vague rejections ("Fewer training days", "Easier early weeks", "Different distance", "Adjust paces", "Other interval runs").
+
+        **Verify loop (MANDATORY):** After EVERY `create_schedule` or `edit_schedule`, immediately call `verify_plan` before replying to the runner. If `passed: false`, batch every `issues[].suggested_fix` into ONE `edit_schedule` call and then call `verify_plan` again. Stop when `passed: true` or `cycle >= max_cycles`. If the cap is hit while still failing, reply anyway and mention the remaining `major`/`critical` issues in one sentence.
 
         {$this->planDesignPrinciples()}
 
@@ -290,8 +340,9 @@ class RunCoachAgent implements Agent, Conversational, HasTools
             new GetCurrentProposal($this->user),
             new GetGoalInfo($this->user),
             new GetComplianceReport($this->user),
-            new CreateSchedule,
-            new EditSchedule($this->user),
+            new CreateSchedule($this->user, app(PlanOptimizerService::class), app(ProposalService::class)),
+            new EditSchedule($this->user, app(PlanOptimizerService::class), app(ProposalService::class)),
+            new VerifyPlan($this->user),
         ];
     }
 }

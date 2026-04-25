@@ -3,11 +3,12 @@
 namespace App\Listeners;
 
 use App\Ai\Agents\ActivityFeedbackAgent;
-use App\Ai\Agents\OnboardingPlanAgent;
+use App\Ai\Agents\PlanVerifierAgent;
 use App\Ai\Agents\RunCoachAgent;
 use App\Ai\Agents\WeeklyInsightAgent;
 use App\Models\TokenUsage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Events\AgentPrompted;
@@ -46,6 +47,22 @@ class RecordAgentTokenUsage
             'reasoning_tokens' => $usage->reasoningTokens,
             'total_tokens' => $totalTokens,
         ]);
+
+        // Compact one-line log per AI call so you can tail laravel.log and
+        // immediately see what's being sent/burned. Useful for spotting
+        // rate-limit risk (large prompt_tokens) and cache hits without
+        // opening the Filament admin.
+        Log::info(sprintf(
+            '[ai:usage] %s ctx=%s model=%s in=%d (cache_read=%d, write=%d) out=%d total=%d',
+            class_basename($agent::class),
+            $this->resolveContext($agent),
+            $event->response->meta->model ?? '?',
+            $usage->promptTokens,
+            $usage->cacheReadInputTokens ?? 0,
+            $usage->cacheWriteInputTokens ?? 0,
+            $usage->completionTokens,
+            $totalTokens,
+        ));
     }
 
     private function resolveUserId(object $agent): ?int
@@ -101,7 +118,7 @@ class RecordAgentTokenUsage
         return match (true) {
             $agent instanceof ActivityFeedbackAgent => 'activity_feedback',
             $agent instanceof WeeklyInsightAgent => 'weekly_insight',
-            $agent instanceof OnboardingPlanAgent => 'onboarding_plan',
+            $agent instanceof PlanVerifierAgent => 'plan_verifier',
             default => Str::snake(class_basename($agent)),
         };
     }

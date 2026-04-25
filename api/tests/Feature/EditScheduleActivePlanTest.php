@@ -75,10 +75,19 @@ class EditScheduleActivePlanTest extends TestCase
      */
     private function invoke(User $user, array $input): array
     {
-        $tool = new EditSchedule($user);
-        $result = $tool->handle(new Request($input));
+        $tool = app(EditSchedule::class, ['user' => $user]);
+        $result = json_decode($tool->handle(new Request($input)), true);
 
-        return json_decode($result, true);
+        // Tool responses intentionally omit the full payload now — splice
+        // the persisted proposal's payload back in for test assertions.
+        if (is_array($result) && isset($result['proposal_id'])) {
+            $proposal = CoachProposal::find($result['proposal_id']);
+            if ($proposal) {
+                $result['payload'] = $proposal->payload;
+            }
+        }
+
+        return $result;
     }
 
     public function test_auto_targets_active_goal_when_no_pending_proposal(): void

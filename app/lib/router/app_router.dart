@@ -332,7 +332,7 @@ class MainShell extends StatelessWidget {
 const _tabRoutes = ['/dashboard', '/schedule', '/coach', '/goals'];
 
 class _RunCoreBottomNav extends StatelessWidget {
-  static const _activeColor = Color(0xFF785600);
+  static const _activeColor = AppColors.secondary;
   static const _inactiveColor = Color(0xFFBBAA80);
   static const _topBorder = Color(0x1F000000);
 

@@ -102,6 +102,8 @@ class CoachController extends Controller
             ignore_user_abort(true);
             set_time_limit(0);
 
+            $promptStartedAt = microtime(true);
+
             try {
                 $stream = RunCoachAgent::make(user: $user)
                     ->continue($conversationId, as: $user)
@@ -153,6 +155,13 @@ class CoachController extends Controller
                     ob_flush();
                     flush();
                 }
+
+                Log::info(sprintf(
+                    '[agent:prompt] ctx=coach user_id=%d duration_ms=%d message_bytes=%d',
+                    $user->id,
+                    (int) round((microtime(true) - $promptStartedAt) * 1000),
+                    strlen($content),
+                ));
             } catch (Throwable $e) {
                 Log::error('[coach stream] '.get_class($e).': '.$e->getMessage(), [
                     'conversation_id' => $conversationId,

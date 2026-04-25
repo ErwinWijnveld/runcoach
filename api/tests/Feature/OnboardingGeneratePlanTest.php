@@ -2,13 +2,15 @@
 
 namespace Tests\Feature;
 
-use App\Ai\Agents\OnboardingPlanAgent;
+use App\Ai\Agents\RunCoachAgent;
 use App\Enums\ProposalStatus;
 use App\Enums\ProposalType;
+use App\Models\CoachProposal;
 use App\Models\User;
 use App\Models\UserRunningProfile;
+use App\Services\ProposalService;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Facades\DB;
+use Mockery;
 use Tests\TestCase;
 
 class OnboardingGeneratePlanTest extends TestCase
@@ -20,28 +22,8 @@ class OnboardingGeneratePlanTest extends TestCase
         $user = User::factory()->create();
         UserRunningProfile::factory()->for($user)->create();
 
-        OnboardingPlanAgent::fake([
-            json_encode([
-                'weeks' => [
-                    [
-                        'week_number' => 1,
-                        'total_km' => 25,
-                        'focus' => 'Base building',
-                        'days' => [
-                            [
-                                'day_of_week' => 6,
-                                'type' => 'easy',
-                                'title' => 'Easy run',
-                                'description' => 'Conversational pace.',
-                                'target_km' => 6,
-                                'target_pace_seconds_per_km' => 360,
-                                'target_heart_rate_zone' => 'Z2',
-                            ],
-                        ],
-                    ],
-                ],
-            ]),
-        ]);
+        RunCoachAgent::fake(['Plan is ready — take a look below.']);
+        $this->stubProposalDetection($user);
 
         $response = $this->actingAs($user)->postJson('/api/v1/onboarding/generate-plan', [
             'goal_type' => 'race',
@@ -54,31 +36,12 @@ class OnboardingGeneratePlanTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertJsonStructure(['conversation_id', 'proposal_id', 'weeks'])
-            ->assertJsonPath('weeks', 1);
-
-        $this->assertDatabaseHas('coach_proposals', [
-            'user_id' => $user->id,
-            'type' => ProposalType::CreateSchedule->value,
-            'status' => ProposalStatus::Pending->value,
-        ]);
+            ->assertJsonStructure(['conversation_id', 'proposal_id', 'weeks']);
 
         $this->assertDatabaseHas('agent_conversations', [
             'user_id' => $user->id,
             'context' => 'onboarding',
         ]);
-
-        $message = DB::table('agent_conversation_messages')
-            ->where('user_id', $user->id)
-            ->where('role', 'assistant')
-            ->first();
-
-        $this->assertNotNull($message);
-        $this->assertStringContainsString('Based on your performance', $message->content);
-
-        $toolResults = json_decode($message->tool_results, true);
-        $this->assertSame('create_schedule', $toolResults[0]['tool_name'] ?? null);
-        $this->assertTrue($toolResults[0]['result']['requires_approval'] ?? false);
     }
 
     public function test_generates_plan_for_fitness_goal(): void
@@ -86,13 +49,8 @@ class OnboardingGeneratePlanTest extends TestCase
         $user = User::factory()->create();
         UserRunningProfile::factory()->for($user)->create();
 
-        OnboardingPlanAgent::fake([
-            json_encode([
-                'weeks' => [
-                    ['week_number' => 1, 'total_km' => 15, 'focus' => 'Build', 'days' => []],
-                ],
-            ]),
-        ]);
+        RunCoachAgent::fake(['Plan is ready.']);
+        $this->stubProposalDetection($user);
 
         $this->actingAs($user)->postJson('/api/v1/onboarding/generate-plan', [
             'goal_type' => 'fitness',
@@ -140,12 +98,20 @@ class OnboardingGeneratePlanTest extends TestCase
         ])->assertUnauthorized();
     }
 
-    public function test_surfaces_error_on_invalid_agent_json(): void
+    public function test_fails_when_agent_produces_no_proposal(): void
     {
         $user = User::factory()->create();
         UserRunningProfile::factory()->for($user)->create();
 
-        OnboardingPlanAgent::fake(['not json at all']);
+        RunCoachAgent::fake(['I gave up.']);
+
+        // ProposalService returns null → onboarding throws → 500.
+        $this->instance(
+            ProposalService::class,
+            Mockery::mock(ProposalService::class, function ($mock): void {
+                $mock->shouldReceive('detectProposalFromConversation')->andReturn(null);
+            })
+        );
 
         $this->actingAs($user)
             ->postJson('/api/v1/onboarding/generate-plan', [
@@ -154,5 +120,39 @@ class OnboardingGeneratePlanTest extends TestCase
                 'coach_style' => 'flexible',
             ])
             ->assertStatus(500);
+    }
+
+    /**
+     * ProposalService inspects the agent's tool_results to find a pending
+     * proposal. With a faked agent the tool_results are empty, so we stub
+     * the service to return a pre-baked CoachProposal instead — the
+     * onboarding flow is agnostic to how the proposal was produced, only
+     * that detectProposalFromConversation surfaces one.
+     */
+    private function stubProposalDetection(User $user): CoachProposal
+    {
+        $proposal = CoachProposal::factory()->create([
+            'user_id' => $user->id,
+            'type' => ProposalType::CreateSchedule,
+            'status' => ProposalStatus::Pending,
+            'payload' => [
+                'goal_type' => 'race',
+                'goal_name' => 'Sample',
+                'schedule' => [
+                    'weeks' => [
+                        ['week_number' => 1, 'focus' => 'base', 'total_km' => 20, 'days' => []],
+                    ],
+                ],
+            ],
+        ]);
+
+        $this->instance(
+            ProposalService::class,
+            Mockery::mock(ProposalService::class, function ($mock) use ($proposal): void {
+                $mock->shouldReceive('detectProposalFromConversation')->andReturn($proposal);
+            })
+        );
+
+        return $proposal;
     }
 }

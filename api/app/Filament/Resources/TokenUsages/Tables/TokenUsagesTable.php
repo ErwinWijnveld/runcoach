@@ -34,6 +34,7 @@ class TokenUsagesTable
                         'success' => 'activity_feedback',
                         'info' => 'weekly_insight',
                         'gray' => 'plan_explanation',
+                        'danger' => 'plan_verifier',
                     ])
                     ->sortable(),
                 TextColumn::make('model')

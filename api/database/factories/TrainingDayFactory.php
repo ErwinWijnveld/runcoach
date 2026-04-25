@@ -23,7 +23,7 @@ class TrainingDayFactory extends Factory
             'training_week_id' => TrainingWeek::factory(),
             'date' => fake()->dateTimeBetween('+1 week', '+4 months'),
             'type' => fake()->randomElement(TrainingType::values()),
-            'title' => fake()->randomElement(['Easy Run', 'Tempo Run', 'Threshold Run', 'Interval Session', 'Long Run', 'Recovery Jog']),
+            'title' => fake()->randomElement(['Easy Run', 'Tempo Run', 'Threshold Run', 'Interval Session', 'Long Run']),
             'description' => fake()->optional()->sentence(),
             'target_km' => fake()->randomFloat(1, 3, 25),
             'target_pace_seconds_per_km' => fake()->numberBetween(240, 420),

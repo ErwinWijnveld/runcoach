@@ -6,14 +6,12 @@ import 'package:google_fonts/google_fonts.dart';
 class ProposalCard extends StatelessWidget {
   final CoachProposal proposal;
   final VoidCallback? onAccept;
-  final VoidCallback? onAdjust;
   final VoidCallback? onViewDetails;
 
   const ProposalCard({
     super.key,
     required this.proposal,
     this.onAccept,
-    this.onAdjust,
     this.onViewDetails,
   });
 
@@ -87,72 +85,88 @@ class ProposalCard extends StatelessWidget {
                 Expanded(child: _summaryItem('WEEKLY RUNS', weeklyRuns)),
               ]),
             ],
-            const SizedBox(height: 16),
-            OutlinedButton(
-              onPressed: onViewDetails,
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                backgroundColor: AppColors.neutralHighlight,
-                side: BorderSide.none,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    isRevision ? Icons.tune_rounded : Icons.visibility_outlined,
-                    size: 20,
-                    color: AppColors.primary,
+            const SizedBox(height: 20),
+            // Primary CTA — biggest, darkest, full-width. Reviewing the
+            // plan is the most useful thing the runner can do before
+            // accepting, so it dominates the hierarchy.
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: onViewDetails,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 18),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    isRevision ? 'VIEW CHANGES' : 'VIEW DETAILS',
-                    style: GoogleFonts.spaceGrotesk(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      isRevision
+                          ? Icons.tune_rounded
+                          : Icons.visibility_outlined,
+                      size: 20,
+                      color: Colors.white,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 10),
+                    Text(
+                      isRevision ? 'VIEW CHANGES' : 'VIEW DETAILS',
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.1,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             if (_isPending) ...[
-              const SizedBox(height: 8),
-              Row(children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: onAccept,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.secondary,
-                      foregroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              const SizedBox(height: 10),
+              // Secondary CTA — gold accent but intentionally slimmer
+              // than the primary. Still obvious, just not the default
+              // eye-path.
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: onAccept,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.secondary,
+                    foregroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Text(
-                      'ACCEPT',
-                      style: GoogleFonts.spaceGrotesk(fontSize: 12, fontWeight: FontWeight.w700),
+                  ),
+                  child: Text(
+                    'ACCEPT',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.0,
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: onAdjust,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    ),
-                    child: Text(
-                      'ADJUST',
-                      style: GoogleFonts.spaceGrotesk(fontSize: 12, fontWeight: FontWeight.w700),
-                    ),
+              ),
+              const SizedBox(height: 12),
+              // Tertiary — not a button. Points the runner to the chat
+              // input below so they can just say what to change.
+              Center(
+                child: Text(
+                  'Tell me what to adjust below',
+                  style: GoogleFonts.inter(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.inkMuted,
+                    height: 1.3,
                   ),
                 ),
-              ]),
+              ),
             ] else ...[
               const SizedBox(height: 8),
               Text(

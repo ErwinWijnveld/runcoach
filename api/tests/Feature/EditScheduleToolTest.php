@@ -3,10 +3,15 @@
 namespace Tests\Feature;
 
 use App\Ai\Tools\EditSchedule;
+use App\Enums\GoalStatus;
 use App\Enums\ProposalStatus;
 use App\Enums\ProposalType;
 use App\Models\CoachProposal;
+use App\Models\Goal;
+use App\Models\TrainingDay;
+use App\Models\TrainingWeek;
 use App\Models\User;
+use App\Models\UserRunningProfile;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Laravel\Ai\Tools\Request;
 use Tests\TestCase;
@@ -26,7 +31,7 @@ class EditScheduleToolTest extends TestCase
             'distance' => '21097',
             'goal_time_seconds' => 6300,
             'target_date' => '2026-09-15',
-            'preferred_weekdays' => [2, 4, 6],
+            'preferred_weekdays' => null,
             'additional_notes' => null,
             'schedule' => [
                 'weeks' => [
@@ -61,10 +66,21 @@ class EditScheduleToolTest extends TestCase
      */
     private function invoke(User $user, array $input): array
     {
-        $tool = new EditSchedule($user);
-        $result = $tool->handle(new Request($input));
+        $tool = app(EditSchedule::class, ['user' => $user]);
+        $result = json_decode($tool->handle(new Request($input)), true);
 
-        return json_decode($result, true);
+        // The tool response intentionally omits the full plan payload to
+        // keep the agent's conversation history small (see comment in
+        // EditSchedule::handle). Tests want to assert shape though — the
+        // persisted proposal is authoritative, so splice its payload in.
+        if (is_array($result) && isset($result['proposal_id'])) {
+            $proposal = CoachProposal::find($result['proposal_id']);
+            if ($proposal) {
+                $result['payload'] = $proposal->payload;
+            }
+        }
+
+        return $result;
     }
 
     public function test_set_day_updates_fields_and_recalculates_week_total(): void
@@ -145,8 +161,10 @@ class EditScheduleToolTest extends TestCase
             ]),
         ]);
 
+        // Added day's 3km is bumped to 4km by enforceMinimumRunLength
+        // (default baseline = 4km), so total is 5 + 6 + 10 + 4 = 25.
         $this->assertCount(4, $result['payload']['schedule']['weeks'][0]['days']);
-        $this->assertEquals(24.0, $result['payload']['schedule']['weeks'][0]['total_km']);
+        $this->assertEquals(25.0, $result['payload']['schedule']['weeks'][0]['total_km']);
     }
 
     public function test_shift_day_moves_to_new_weekday(): void
@@ -235,10 +253,12 @@ class EditScheduleToolTest extends TestCase
         $this->assertSame('Amsterdam Half', $result['payload']['goal_name']);
     }
 
-    public function test_pending_source_is_not_superseded_by_tool_handler(): void
+    public function test_pending_source_is_superseded_when_edit_tool_creates_new_proposal(): void
     {
-        // Supersede now happens in ProposalService when the NEW proposal is persisted,
-        // so a stream failure after the tool returns can't orphan the pending source.
+        // The edit tool now persists its output as a new pending proposal
+        // immediately (so mid-loop verify_plan / edit_schedule auto-target
+        // sees the fresh version, not a stale one). The source proposal
+        // is therefore Rejected as soon as the tool commits.
         $user = User::factory()->create();
         $proposal = CoachProposal::factory()->create([
             'user_id' => $user->id,
@@ -246,14 +266,22 @@ class EditScheduleToolTest extends TestCase
             'payload' => $this->samplePayload(),
         ]);
 
-        $this->invoke($user, [
+        $result = $this->invoke($user, [
             'proposal_id' => $proposal->id,
             'operations' => json_encode([
                 ['op' => 'set_day', 'week' => 1, 'day_of_week' => 6, 'fields' => ['target_km' => 7.0]],
             ]),
         ]);
 
-        $this->assertSame(ProposalStatus::Pending, $proposal->fresh()->status);
+        $this->assertSame(ProposalStatus::Rejected, $proposal->fresh()->status);
+        $this->assertNotNull($result['proposal_id']);
+        $this->assertNotSame($proposal->id, $result['proposal_id']);
+
+        $this->assertDatabaseHas('coach_proposals', [
+            'id' => $result['proposal_id'],
+            'user_id' => $user->id,
+            'status' => ProposalStatus::Pending->value,
+        ]);
     }
 
     public function test_other_users_proposals_are_not_accessible(): void
@@ -623,5 +651,185 @@ class EditScheduleToolTest extends TestCase
         ]);
 
         $this->assertStringContainsString('non-empty JSON', $result['error']);
+    }
+
+    public function test_edit_also_enforces_preferred_weekdays(): void
+    {
+        // Optimizer guardrails run on edits too — if the AI tries to add a
+        // Sunday run to a Mon/Wed/Fri plan, the server drops it.
+        $user = User::factory()->create();
+        $payload = [
+            'goal_type' => 'race',
+            'goal_name' => 'Test',
+            'distance' => '10k',
+            'target_date' => '2026-07-10',
+            'goal_time_seconds' => 2400,
+            'preferred_weekdays' => [1, 3, 5], // Mon/Wed/Fri
+            'schedule' => [
+                'weeks' => [[
+                    'week_number' => 1,
+                    'focus' => 'base',
+                    'total_km' => 15,
+                    'days' => [
+                        ['day_of_week' => 1, 'type' => 'easy', 'title' => 'Easy', 'target_km' => 5.0],
+                        ['day_of_week' => 3, 'type' => 'easy', 'title' => 'Easy', 'target_km' => 5.0],
+                        ['day_of_week' => 5, 'type' => 'easy', 'title' => 'Easy', 'target_km' => 5.0],
+                    ],
+                ]],
+            ],
+        ];
+        $proposal = CoachProposal::factory()->create([
+            'user_id' => $user->id,
+            'status' => ProposalStatus::Pending,
+            'payload' => $payload,
+        ]);
+
+        $result = $this->invoke($user, [
+            'proposal_id' => $proposal->id,
+            'operations' => json_encode([
+                ['op' => 'add_day', 'week' => 1, 'day_of_week' => 7, 'fields' => ['type' => 'easy', 'title' => 'Sneaky Sunday', 'target_km' => 5.0]],
+            ]),
+        ]);
+
+        $dows = array_map(
+            fn ($d) => $d['day_of_week'],
+            $result['payload']['schedule']['weeks'][0]['days'],
+        );
+        $this->assertNotContains(7, $dows);
+        $this->assertEqualsCanonicalizing([1, 3, 5], $dows);
+    }
+
+    public function test_edit_on_pending_proposal_does_not_attach_diff(): void
+    {
+        // Editing a not-yet-accepted proposal (including verify-loop fixups
+        // during onboarding) produces a new pending proposal but MUST NOT
+        // include a `diff` field — the runner never saw the pre-edit
+        // version, so showing a "PLAN REVISION — N changes" card is
+        // confusing. They should see the whole plan as fresh.
+        $user = User::factory()->create();
+        $proposal = CoachProposal::factory()->create([
+            'user_id' => $user->id,
+            'type' => ProposalType::CreateSchedule,
+            'status' => ProposalStatus::Pending,
+            'payload' => $this->samplePayload(),
+        ]);
+
+        $result = $this->invoke($user, [
+            'proposal_id' => $proposal->id,
+            'operations' => json_encode([
+                ['op' => 'set_day', 'week' => 1, 'day_of_week' => 6, 'fields' => ['target_km' => 8.0]],
+            ]),
+        ]);
+
+        $this->assertSame('create_schedule', $result['proposal_type']);
+        $this->assertArrayNotHasKey('diff', $result['payload']);
+    }
+
+    public function test_edit_on_active_plan_attaches_diff_for_revision_ui(): void
+    {
+        // When the runner has an ACTIVE plan (already accepted), editing
+        // it is a genuine revision — attach the diff so the UI can show
+        // "N changes to your plan" and the review sheet.
+        $user = User::factory()->create();
+        $goal = Goal::factory()->create([
+            'user_id' => $user->id,
+            'status' => GoalStatus::Active,
+        ]);
+        $week = TrainingWeek::factory()->for($goal)->create(['week_number' => 1]);
+        TrainingDay::factory()->for($week, 'trainingWeek')->create([
+            'order' => 1,
+            'target_km' => 5.0,
+        ]);
+
+        $result = $this->invoke($user, [
+            'proposal_id' => null,
+            'goal_id' => $goal->id,
+            'operations' => json_encode([
+                ['op' => 'set_day', 'week' => 1, 'day_of_week' => 1, 'fields' => ['target_km' => 7.0]],
+            ]),
+        ]);
+
+        $this->assertSame('edit_active_plan', $result['proposal_type']);
+        $this->assertArrayHasKey('diff', $result['payload']);
+        $this->assertCount(1, $result['payload']['diff']);
+    }
+
+    public function test_set_day_regenerates_title_when_type_changes(): void
+    {
+        // When `set_day` flips a day's type without passing an explicit
+        // title, the stale "{km}km {OldType}" label must be replaced so the
+        // UI doesn't show "5km Tempo" on a day whose type is now `interval`.
+        $user = User::factory()->create();
+        $proposal = CoachProposal::factory()->create([
+            'user_id' => $user->id,
+            'type' => ProposalType::CreateSchedule,
+            'status' => ProposalStatus::Pending,
+            'payload' => $this->samplePayload(),
+        ]);
+
+        $result = $this->invoke($user, [
+            'proposal_id' => $proposal->id,
+            'operations' => json_encode([
+                ['op' => 'set_day', 'week' => 1, 'day_of_week' => 4, 'fields' => ['type' => 'interval', 'target_km' => 5.0]],
+            ]),
+        ]);
+
+        $tuesday = collect($result['payload']['schedule']['weeks'][0]['days'])
+            ->firstWhere('day_of_week', 4);
+        $this->assertSame('interval', $tuesday['type']);
+        $this->assertSame('5km Intervals', $tuesday['title']);
+    }
+
+    public function test_set_day_preserves_explicit_title(): void
+    {
+        // If the op DOES pass a title, that wins — stale-title regen only
+        // kicks in when the AI left title out of the fields blob.
+        $user = User::factory()->create();
+        $proposal = CoachProposal::factory()->create([
+            'user_id' => $user->id,
+            'type' => ProposalType::CreateSchedule,
+            'status' => ProposalStatus::Pending,
+            'payload' => $this->samplePayload(),
+        ]);
+
+        $result = $this->invoke($user, [
+            'proposal_id' => $proposal->id,
+            'operations' => json_encode([
+                ['op' => 'set_day', 'week' => 1, 'day_of_week' => 4, 'fields' => ['type' => 'interval', 'target_km' => 5.0, 'title' => 'Hill Intervals']],
+            ]),
+        ]);
+
+        $tuesday = collect($result['payload']['schedule']['weeks'][0]['days'])
+            ->firstWhere('day_of_week', 4);
+        $this->assertSame('Hill Intervals', $tuesday['title']);
+    }
+
+    public function test_edit_also_bumps_too_short_runs(): void
+    {
+        $user = User::factory()->create();
+        UserRunningProfile::create([
+            'user_id' => $user->id,
+            'metrics' => [
+                'avg_pace_seconds_per_km' => 342,
+                'weekly_avg_km' => 10.0,
+                'weekly_avg_runs' => 1,
+            ],
+        ]);
+        $proposal = CoachProposal::factory()->create([
+            'user_id' => $user->id,
+            'status' => ProposalStatus::Pending,
+            'payload' => $this->samplePayload(),
+        ]);
+
+        $result = $this->invoke($user, [
+            'proposal_id' => $proposal->id,
+            'operations' => json_encode([
+                ['op' => 'set_day', 'week' => 1, 'day_of_week' => 2, 'fields' => ['target_km' => 2.0]],
+            ]),
+        ]);
+
+        $monday = collect($result['payload']['schedule']['weeks'][0]['days'])
+            ->firstWhere('day_of_week', 2);
+        $this->assertSame(4.0, (float) $monday['target_km']);
     }
 }

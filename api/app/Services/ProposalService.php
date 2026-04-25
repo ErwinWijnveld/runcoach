@@ -19,12 +19,48 @@ class ProposalService
     public function __construct(private GoalService $goals) {}
 
     /**
-     * Detect proposals from the SDK's stored tool results after an agent prompt.
-     * The SDK stores tool_calls and tool_results in agent_conversation_messages.
+     * Supersede any existing pending proposals for the user and create a
+     * new one in a single transaction. Called from CreateSchedule /
+     * EditSchedule during the agent loop so downstream tools
+     * (verify_plan auto-target, edit_schedule auto-target) find the
+     * fresh proposal instead of a stale one from a previous turn.
+     *
+     * `agent_message_id` stays null — `detectProposalFromConversation`
+     * backfills it at end-of-prompt when the SDK has persisted the
+     * agent's assistant message.
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public function persistPending(User $user, ProposalType $type, array $payload): CoachProposal
+    {
+        return DB::transaction(function () use ($user, $type, $payload) {
+            CoachProposal::where('user_id', $user->id)
+                ->where('status', ProposalStatus::Pending)
+                ->update(['status' => ProposalStatus::Rejected]);
+
+            return CoachProposal::create([
+                'user_id' => $user->id,
+                'agent_message_id' => null,
+                'type' => $type,
+                'payload' => $payload,
+                'status' => ProposalStatus::Pending,
+            ]);
+        });
+    }
+
+    /**
+     * Link the pending proposal (already persisted mid-loop by the
+     * CreateSchedule / EditSchedule tools) to the agent's latest assistant
+     * message in this conversation. Returns the linked proposal or null
+     * if the agent didn't produce one.
+     *
+     * The tools now own proposal creation + supersession — this method
+     * just backfills the `agent_message_id` FK after the SDK has persisted
+     * the assistant turn, so every proposal row keeps a pointer to the
+     * message whose tool_results emitted it.
      */
     public function detectProposalFromConversation(User $user, string $conversationId): ?CoachProposal
     {
-        // Get the latest assistant message from this conversation
         $message = DB::table('agent_conversation_messages')
             ->where('conversation_id', $conversationId)
             ->where('role', 'assistant')
@@ -35,60 +71,21 @@ class ProposalService
             return null;
         }
 
-        // Parse tool_results — the SDK stores them as JSON
-        $toolResults = json_decode($message->tool_results ?? '[]', true);
+        $proposal = CoachProposal::where('user_id', $user->id)
+            ->where('status', ProposalStatus::Pending)
+            ->latest('id')
+            ->first();
 
-        if (! is_array($toolResults)) {
+        if (! $proposal) {
             return null;
         }
 
-        // Walk the tool_results in order and keep the LAST entry that declares
-        // `requires_approval`. If the agent emitted multiple proposals in one
-        // turn (e.g. called edit_schedule twice), the final one is canonical.
-        $latest = null;
-        foreach ($toolResults as $toolResult) {
-            $resultContent = $toolResult['content'] ?? $toolResult['result'] ?? null;
-
-            if (! $resultContent) {
-                continue;
-            }
-
-            $resultData = is_string($resultContent) ? json_decode($resultContent, true) : $resultContent;
-
-            if (! is_array($resultData) || ! ($resultData['requires_approval'] ?? false)) {
-                continue;
-            }
-
-            $latest = $resultData;
+        if ($proposal->agent_message_id === null) {
+            $proposal->agent_message_id = $message->id;
+            $proposal->save();
         }
 
-        if ($latest === null) {
-            return null;
-        }
-
-        $type = ProposalType::tryFrom((string) ($latest['proposal_type'] ?? ''));
-        if ($type === null) {
-            return null;
-        }
-
-        return DB::transaction(function () use ($user, $message, $latest, $type) {
-            // Supersede any other pending proposals for this user so at most
-            // one pending proposal exists at a time. This is also what makes
-            // the edit_schedule flow safe against mid-stream failures: the
-            // source proposal is only demoted once the new proposal is
-            // actually persisted here.
-            CoachProposal::where('user_id', $user->id)
-                ->where('status', ProposalStatus::Pending)
-                ->update(['status' => ProposalStatus::Rejected]);
-
-            return CoachProposal::create([
-                'agent_message_id' => $message->id,
-                'user_id' => $user->id,
-                'type' => $type,
-                'payload' => $latest['payload'],
-                'status' => ProposalStatus::Pending,
-            ]);
-        });
+        return $proposal;
     }
 
     public function apply(CoachProposal $proposal, User $user): void
