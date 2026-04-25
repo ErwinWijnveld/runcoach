@@ -16,6 +16,7 @@ import 'package:app/features/schedule/data/schedule_coach_suggestions.dart';
 import 'package:app/features/schedule/models/training_day.dart';
 import 'package:app/features/schedule/models/training_week.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
+import 'package:app/features/schedule/widgets/training_day_status.dart';
 
 const _goldAccent = Color(0xFF785600);
 const _labelMuted = Color(0xFF4F4535);
@@ -594,15 +595,34 @@ class _DayTile extends StatelessWidget {
 
   DateTime? get _date => DateTime.tryParse(day.date);
 
-  bool get _isCompleted => day.result != null;
+  TrainingDayStatus get _status => TrainingDayStatus.from(day);
 
-  bool get _isHighlighted => highlight != _DayHighlight.none;
+  bool get _isCompleted => _status == TrainingDayStatus.completed;
 
-  String? get _badgeLabel => switch (highlight) {
-    _DayHighlight.today => 'TODAY',
-    _DayHighlight.upcoming => 'UPCOMING',
-    _DayHighlight.none => null,
-  };
+  bool get _isMissed => _status == TrainingDayStatus.missed;
+
+  /// `true` when this tile gets the gold halo (today / next-upcoming).
+  /// Completed gets its own GREEN halo via `_isCompleted`; missed never glows.
+  bool get _isGoldHaloed => !_isCompleted && highlight != _DayHighlight.none;
+
+  /// Any glow at all? Drives the elevated card shadow + radial gradient.
+  bool get _isHaloed => _isCompleted || _isGoldHaloed;
+
+  String? get _badgeLabel {
+    if (_isCompleted) return 'DONE';
+    if (_isMissed) return 'MISSED';
+    return switch (highlight) {
+      _DayHighlight.today => 'TODAY',
+      _DayHighlight.upcoming => 'UPCOMING',
+      _DayHighlight.none => null,
+    };
+  }
+
+  Color? get _badgeColor {
+    if (_isCompleted) return AppColors.success;
+    if (_isMissed) return AppColors.danger;
+    return null; // null = default gold from GoldBadge
+  }
 
   String get _subtitle {
     final pace = day.targetPaceSecondsPerKm;
@@ -628,23 +648,30 @@ class _DayTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final highlighted = _isHighlighted;
+    final haloed = _isHaloed;
     final isCompleted = _isCompleted;
     final badgeLabel = _badgeLabel;
+    final badgeColor = _badgeColor;
+
+    // Halo accent: green for completed, gold for today / next-upcoming.
+    // Same intensity in both colors so the visual treatment matches.
+    final accent = isCompleted ? AppColors.success : AppColors.secondary;
+    final shadowOuter = isCompleted ? const Color(0x6634C759) : const Color(0x73E9B638);
+    final shadowInner = isCompleted ? const Color(0x3334C759) : const Color(0x38E9B638);
 
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        boxShadow: highlighted
-            ? const [
+        boxShadow: haloed
+            ? [
                 BoxShadow(
-                  color: Color(0x73E9B638),
-                  offset: Offset(0, 6),
+                  color: shadowOuter,
+                  offset: const Offset(0, 6),
                   blurRadius: 18,
                   spreadRadius: -8,
                 ),
                 BoxShadow(
-                  color: Color(0x38E9B638),
+                  color: shadowInner,
                   blurRadius: 0,
                   spreadRadius: 1,
                 ),
@@ -667,13 +694,13 @@ class _DayTile extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              gradient: highlighted
+              gradient: haloed
                   ? RadialGradient(
                       center: Alignment.centerRight,
                       radius: 3.5,
                       colors: [
-                        AppColors.secondary.withValues(alpha: 0.15),
-                        AppColors.secondary.withValues(alpha: 0.0),
+                        accent.withValues(alpha: 0.15),
+                        accent.withValues(alpha: 0.0),
                       ],
                     )
                   : null,
@@ -682,7 +709,7 @@ class _DayTile extends StatelessWidget {
               children: [
                 SizedBox(
                   width: 40,
-                  child: _DayStamp(date: _date, highlighted: highlighted),
+                  child: _DayStamp(date: _date, highlighted: haloed),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -694,10 +721,7 @@ class _DayTile extends StatelessWidget {
                       Row(
                         children: [
                           if (badgeLabel != null) ...[
-                            GoldBadge(
-                              label: badgeLabel,
-                              color: isCompleted ? AppColors.success : null,
-                            ),
+                            GoldBadge(label: badgeLabel, color: badgeColor),
                             const SizedBox(width: 8),
                           ],
                           Flexible(
@@ -731,10 +755,7 @@ class _DayTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                _StatusIcon(
-                  isCompleted: isCompleted,
-                  isHighlighted: highlighted,
-                ),
+                _StatusIcon(status: _status, isHaloed: haloed),
               ],
             ),
           ),
@@ -781,9 +802,9 @@ class _DayStamp extends StatelessWidget {
 }
 
 class _StatusIcon extends StatelessWidget {
-  final bool isCompleted;
-  final bool isHighlighted;
-  const _StatusIcon({required this.isCompleted, required this.isHighlighted});
+  final TrainingDayStatus status;
+  final bool isHaloed;
+  const _StatusIcon({required this.status, required this.isHaloed});
 
   static const _size = 32.0;
   static const _pendingBg = Color(0xFFF1EAD8);
@@ -791,51 +812,62 @@ class _StatusIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (isCompleted) {
-      return Container(
-        width: _size,
-        height: _size,
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          color: AppColors.primaryInk,
-        ),
-        alignment: Alignment.center,
-        child: const Icon(
-          Icons.check_rounded,
-          color: CupertinoColors.white,
-          size: 18,
-        ),
-      );
-    }
-    if (isHighlighted) {
-      return Container(
-        width: _size,
-        height: _size,
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          color: AppColors.secondary,
-        ),
-        alignment: Alignment.center,
-        child: const Icon(
-          Icons.bolt_rounded,
-          color: CupertinoColors.white,
-          size: 18,
-        ),
-      );
-    }
+    return switch (status) {
+      TrainingDayStatus.completed => const _CircleIcon(
+        bg: AppColors.success,
+        icon: Icons.check_rounded,
+        iconColor: CupertinoColors.white,
+        iconSize: 18,
+      ),
+      TrainingDayStatus.missed => const _CircleIcon(
+        bg: AppColors.danger,
+        icon: Icons.close_rounded,
+        iconColor: CupertinoColors.white,
+        iconSize: 18,
+      ),
+      TrainingDayStatus.today => const _CircleIcon(
+        bg: AppColors.secondary,
+        icon: Icons.bolt_rounded,
+        iconColor: CupertinoColors.white,
+        iconSize: 18,
+      ),
+      TrainingDayStatus.upcoming => isHaloed
+          ? const _CircleIcon(
+              bg: AppColors.secondary,
+              icon: Icons.bolt_rounded,
+              iconColor: CupertinoColors.white,
+              iconSize: 18,
+            )
+          : const _CircleIcon(
+              bg: _pendingBg,
+              icon: Icons.schedule_rounded,
+              iconColor: _pendingIcon,
+              iconSize: 16,
+            ),
+    };
+  }
+}
+
+class _CircleIcon extends StatelessWidget {
+  final Color bg;
+  final IconData icon;
+  final Color iconColor;
+  final double iconSize;
+  const _CircleIcon({
+    required this.bg,
+    required this.icon,
+    required this.iconColor,
+    required this.iconSize,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      width: _size,
-      height: _size,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        color: _pendingBg,
-      ),
+      width: _StatusIcon._size,
+      height: _StatusIcon._size,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: bg),
       alignment: Alignment.center,
-      child: const Icon(
-        Icons.schedule_rounded,
-        color: _pendingIcon,
-        size: 16,
-      ),
+      child: Icon(icon, color: iconColor, size: iconSize),
     );
   }
 }

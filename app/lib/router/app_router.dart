@@ -19,6 +19,7 @@ import 'package:app/features/coach/screens/coach_chat_list_screen.dart';
 import 'package:app/features/coach/screens/coach_chat_screen.dart';
 import 'package:app/features/goals/screens/goal_list_screen.dart';
 import 'package:app/features/goals/screens/goal_detail_screen.dart';
+import 'package:app/features/onboarding/models/plan_generation.dart';
 import 'package:app/features/onboarding/screens/onboarding_overview_screen.dart';
 import 'package:app/features/onboarding/screens/onboarding_form_screen.dart';
 import 'package:app/features/onboarding/screens/onboarding_generating_screen.dart';
@@ -28,14 +29,32 @@ part 'app_router.g.dart';
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
-@riverpod
+/// Tiny Listenable bridge between Riverpod (`ref.listen(authProvider)`) and
+/// GoRouter (`refreshListenable`). Ticks once per auth state change so the
+/// router re-runs redirect logic without being rebuilt.
+class _AuthRefresh extends ChangeNotifier {
+  void notify() => notifyListeners();
+}
+
+@Riverpod(keepAlive: true)
 GoRouter appRouter(Ref ref) {
-  final authState = ref.watch(authProvider);
+  // The router itself must be a SINGLETON for the app's lifetime. If the
+  // provider rebuilt on every auth state change, MaterialApp.router would
+  // get a new GoRouter, the top-level _rootNavigatorKey would attach to two
+  // navigators in the same frame, and we'd hit the "Duplicate GlobalKey
+  // detected" assertion. Instead: build the router once, expose a Listenable
+  // that ticks on auth changes, and let GoRouter re-evaluate redirects
+  // through `refreshListenable` without rebuilding the tree.
+  final refresh = _AuthRefresh();
+  ref.listen(authProvider, (_, _) => refresh.notify());
+  ref.onDispose(refresh.dispose);
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/dashboard',
+    refreshListenable: refresh,
     redirect: (context, state) {
+      final authState = ref.read(authProvider);
       final isLoggedIn = authState.value != null;
       final isAuthRoute = state.matchedLocation.startsWith('/auth');
 
@@ -43,8 +62,37 @@ GoRouter appRouter(Ref ref) {
       if (isLoggedIn && isAuthRoute) return '/dashboard';
 
       final user = authState.value;
+
+      // Pending plan generation drives routing during the onboarding window.
+      // It owns the chat-redirect case for completed proposals (so the user
+      // who killed the app while generating can resume on cold start).
+      //
+      // Once on a /coach/chat/ route we never bounce away — local auth state
+      // can briefly disagree with the server during the navigate-then-refresh
+      // window, and bouncing would cause the duplicate-GlobalKey assertion.
+      final pending = user?.pendingPlanGeneration;
+      if (pending != null && !state.matchedLocation.startsWith('/coach/chat/')) {
+        switch (pending.status) {
+          case PlanGenerationStatus.queued:
+          case PlanGenerationStatus.processing:
+          case PlanGenerationStatus.failed:
+            if (state.matchedLocation != '/onboarding/generating') {
+              return '/onboarding/generating';
+            }
+            break;
+          case PlanGenerationStatus.completed:
+            final cid = pending.conversationId;
+            if (cid != null) {
+              return '/coach/chat/$cid';
+            }
+            break;
+        }
+      }
+
+      // No pending generation but onboarding incomplete → form flow.
       if (isLoggedIn &&
           user?.hasCompletedOnboarding == false &&
+          pending == null &&
           !state.matchedLocation.startsWith('/onboarding') &&
           !state.matchedLocation.startsWith('/coach/chat/')) {
         return '/onboarding';

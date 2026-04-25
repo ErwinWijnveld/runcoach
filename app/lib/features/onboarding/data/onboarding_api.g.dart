@@ -118,37 +118,90 @@ final class OnboardingApiProvider
 
 String _$onboardingApiHash() => r'70e4a2d138b8c0db6686f88b1edbc6331304587e';
 
-/// Plan generation routinely takes 30-90s — the Anthropic call streams a
-/// full schedule JSON. Bypasses Retrofit so we can override Dio's 30s
-/// `receiveTimeout` without polluting every request.
-///
-/// Returns the raw decoded JSON body: `{conversation_id, proposal_id, weeks}`.
+/// First call hits the inline Strava sync on the backend (30-90s). Bypasses
+/// Retrofit so we can override Dio's 30s `receiveTimeout`. After the user has
+/// activities cached, the call returns instantly.
+
+@ProviderFor(getProfileCall)
+final getProfileCallProvider = GetProfileCallProvider._();
+
+/// First call hits the inline Strava sync on the backend (30-90s). Bypasses
+/// Retrofit so we can override Dio's 30s `receiveTimeout`. After the user has
+/// activities cached, the call returns instantly.
+
+final class GetProfileCallProvider
+    extends
+        $FunctionalProvider<
+          Future<Map<String, dynamic>> Function(),
+          Future<Map<String, dynamic>> Function(),
+          Future<Map<String, dynamic>> Function()
+        >
+    with $Provider<Future<Map<String, dynamic>> Function()> {
+  /// First call hits the inline Strava sync on the backend (30-90s). Bypasses
+  /// Retrofit so we can override Dio's 30s `receiveTimeout`. After the user has
+  /// activities cached, the call returns instantly.
+  GetProfileCallProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'getProfileCallProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$getProfileCallHash();
+
+  @$internal
+  @override
+  $ProviderElement<Future<Map<String, dynamic>> Function()> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  Future<Map<String, dynamic>> Function() create(Ref ref) {
+    return getProfileCall(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(Future<Map<String, dynamic>> Function() value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride:
+          $SyncValueProvider<Future<Map<String, dynamic>> Function()>(value),
+    );
+  }
+}
+
+String _$getProfileCallHash() => r'43c6b7d6a77d46cea9c7fa1de69369daa66e97ff';
+
+/// Enqueues plan generation. Returns the PlanGeneration row in queued state
+/// (or the existing in-flight row, if there is one). The screen polls
+/// [pollPlanGenerationCall] for status updates. The actual agent loop runs
+/// in the queue worker (~60-110s) so this POST returns in <1s.
 
 @ProviderFor(generatePlanCall)
 final generatePlanCallProvider = GeneratePlanCallProvider._();
 
-/// Plan generation routinely takes 30-90s — the Anthropic call streams a
-/// full schedule JSON. Bypasses Retrofit so we can override Dio's 30s
-/// `receiveTimeout` without polluting every request.
-///
-/// Returns the raw decoded JSON body: `{conversation_id, proposal_id, weeks}`.
+/// Enqueues plan generation. Returns the PlanGeneration row in queued state
+/// (or the existing in-flight row, if there is one). The screen polls
+/// [pollPlanGenerationCall] for status updates. The actual agent loop runs
+/// in the queue worker (~60-110s) so this POST returns in <1s.
 
 final class GeneratePlanCallProvider
     extends
         $FunctionalProvider<
-          Future<Map<String, dynamic>> Function(Map<String, dynamic> body),
-          Future<Map<String, dynamic>> Function(Map<String, dynamic> body),
-          Future<Map<String, dynamic>> Function(Map<String, dynamic> body)
+          Future<PlanGeneration> Function(Map<String, dynamic> body),
+          Future<PlanGeneration> Function(Map<String, dynamic> body),
+          Future<PlanGeneration> Function(Map<String, dynamic> body)
         >
-    with
-        $Provider<
-          Future<Map<String, dynamic>> Function(Map<String, dynamic> body)
-        > {
-  /// Plan generation routinely takes 30-90s — the Anthropic call streams a
-  /// full schedule JSON. Bypasses Retrofit so we can override Dio's 30s
-  /// `receiveTimeout` without polluting every request.
-  ///
-  /// Returns the raw decoded JSON body: `{conversation_id, proposal_id, weeks}`.
+    with $Provider<Future<PlanGeneration> Function(Map<String, dynamic> body)> {
+  /// Enqueues plan generation. Returns the PlanGeneration row in queued state
+  /// (or the existing in-flight row, if there is one). The screen polls
+  /// [pollPlanGenerationCall] for status updates. The actual agent loop runs
+  /// in the queue worker (~60-110s) so this POST returns in <1s.
   GeneratePlanCallProvider._()
     : super(
         from: null,
@@ -165,30 +218,87 @@ final class GeneratePlanCallProvider
 
   @$internal
   @override
-  $ProviderElement<
-    Future<Map<String, dynamic>> Function(Map<String, dynamic> body)
-  >
+  $ProviderElement<Future<PlanGeneration> Function(Map<String, dynamic> body)>
   $createElement($ProviderPointer pointer) => $ProviderElement(pointer);
 
   @override
-  Future<Map<String, dynamic>> Function(Map<String, dynamic> body) create(
-    Ref ref,
-  ) {
+  Future<PlanGeneration> Function(Map<String, dynamic> body) create(Ref ref) {
     return generatePlanCall(ref);
   }
 
   /// {@macro riverpod.override_with_value}
   Override overrideWithValue(
-    Future<Map<String, dynamic>> Function(Map<String, dynamic> body) value,
+    Future<PlanGeneration> Function(Map<String, dynamic> body) value,
   ) {
     return $ProviderOverride(
       origin: this,
       providerOverride:
           $SyncValueProvider<
-            Future<Map<String, dynamic>> Function(Map<String, dynamic> body)
+            Future<PlanGeneration> Function(Map<String, dynamic> body)
           >(value),
     );
   }
 }
 
-String _$generatePlanCallHash() => r'c4ee4a361caf39ba50acccac66707c9df38354ce';
+String _$generatePlanCallHash() => r'0c33ea4c1a4ef5a5aa55bb3a9a9e12b7a35d9c96';
+
+/// Polls the latest user-actionable plan generation. Returns null when the
+/// server responds 204 (nothing pending). The screen interprets null
+/// mid-flight as an error condition (the row was unexpectedly cleared).
+
+@ProviderFor(pollPlanGenerationCall)
+final pollPlanGenerationCallProvider = PollPlanGenerationCallProvider._();
+
+/// Polls the latest user-actionable plan generation. Returns null when the
+/// server responds 204 (nothing pending). The screen interprets null
+/// mid-flight as an error condition (the row was unexpectedly cleared).
+
+final class PollPlanGenerationCallProvider
+    extends
+        $FunctionalProvider<
+          Future<PlanGeneration?> Function(),
+          Future<PlanGeneration?> Function(),
+          Future<PlanGeneration?> Function()
+        >
+    with $Provider<Future<PlanGeneration?> Function()> {
+  /// Polls the latest user-actionable plan generation. Returns null when the
+  /// server responds 204 (nothing pending). The screen interprets null
+  /// mid-flight as an error condition (the row was unexpectedly cleared).
+  PollPlanGenerationCallProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'pollPlanGenerationCallProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$pollPlanGenerationCallHash();
+
+  @$internal
+  @override
+  $ProviderElement<Future<PlanGeneration?> Function()> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  Future<PlanGeneration?> Function() create(Ref ref) {
+    return pollPlanGenerationCall(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(Future<PlanGeneration?> Function() value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<Future<PlanGeneration?> Function()>(
+        value,
+      ),
+    );
+  }
+}
+
+String _$pollPlanGenerationCallHash() =>
+    r'8a2a349b9f07a26ec40d3971e02bed90a5b6759f';

@@ -249,11 +249,22 @@ This is the single most important pipeline in the backend. Read this before touc
 [Flutter onboarding form]
     │
     ▼
-POST /onboarding/finalize → OnboardingPlanGeneratorService::generate()
-    │   1. Reject any stale pending proposals
-    │   2. Insert agent_conversations row with context='onboarding'
-    │   3. Build priming message: form data + 12-month profile metrics
-    │   4. RunCoachAgent::make(user)->continue($cid, as: $user)->prompt($priming)
+POST /onboarding/generate-plan
+    │   1. Reject re-entry if a PlanGeneration row is already in flight
+    │   2. Insert plan_generations row (status=queued, payload=form data)
+    │   3. Dispatch GeneratePlan job
+    │   4. Return 202 {id, status:'queued', conversation_id:null, ...}
+    │
+    ▼
+[Queue worker] GeneratePlan::handle()
+    │   1. Mark row processing, set started_at
+    │   2. OnboardingPlanGeneratorService::generate($user, $row->payload)
+    │       a. Reject any stale pending proposals
+    │       b. Insert agent_conversations row with context='onboarding'
+    │       c. Build priming message: form data + 12-month profile metrics
+    │       d. RunCoachAgent::make(user)->continue($cid, as: $user)->prompt($priming)
+    │   3. Mark row completed with {conversation_id, proposal_id}
+    │      (on Throwable: failed() callback marks row failed + error_message)
     │
     ▼
 [RunCoachAgent.instructions()]
@@ -275,10 +286,21 @@ ProposalService::detectProposalFromConversation()
     `requires_approval:true` row, hydrates a CoachProposal row.
     │
     ▼
-[Flutter shows ProposalCard with VIEW DETAILS / ACCEPT / "tell me what to adjust"]
+[Flutter] OnboardingGeneratingScreen polls GET /onboarding/plan-generation/latest
+    every 3s. completed → /coach/chat/{conversation_id} (ProposalCard).
+    failed → error UI with Try again.
 ```
 
-The same loop runs for follow-up coach chat, just with `coachInstructions()` driving and `CoachController::sendMessage` streaming the SSE.
+The same agent loop runs for follow-up coach chat, just with `coachInstructions()` driving and `CoachController::sendMessage` streaming the SSE — that path stays synchronous (already streams progress, no need to queue).
+
+#### Plan generation lifecycle (async, onboarding only)
+
+`plan_generations` table is the single source of truth for first-time onboarding plan generation. Lifecycle: `queued → processing → completed | failed`.
+
+- **Single in-flight per user**: POST is idempotent — returns the existing row when `User::pendingPlanGeneration()` is non-null and `isInFlight()` is true.
+- **Watchdog**: `User::pendingPlanGeneration()` auto-fails any row stuck in queued/processing for >10 minutes (covers worker death where `failed()` never fires). Read-time check inside the accessor — no scheduled command needed.
+- **Field on /profile + auth responses**: `pending_plan_generation` is non-null only when the user should be redirected to the loading screen or the proposal chat. Once the proposal is accepted/rejected, the field goes back to null and normal routing resumes.
+- **Queue worker timeout**: deploy command must use `--timeout=600` (or higher). 120s was the historical value and would kill plan generation mid-loop.
 
 #### The mandatory verify cycle
 

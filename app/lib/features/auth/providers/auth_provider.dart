@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:app/core/storage/token_storage.dart';
 import 'package:app/features/auth/data/auth_api.dart';
 import 'package:app/features/auth/models/user.dart';
+import 'package:app/features/onboarding/models/plan_generation.dart';
 
 part 'auth_provider.g.dart';
 
@@ -85,6 +86,18 @@ class Auth extends _$Auth {
     await api.deleteAccount();
     await tokenStorage.clearToken();
     state = const AsyncValue.data(null);
+  }
+
+  /// Patch the local pending_plan_generation field without an HTTP roundtrip.
+  /// Lets the onboarding screen update local state synchronously before
+  /// navigating to the chat — without this, the router's redirect would
+  /// see stale `processing` status and bounce the user back to the loading
+  /// screen mid-navigation. The next /profile call (next dashboard load,
+  /// proposal accept, etc.) will reconcile from the server anyway.
+  void patchPendingPlanGeneration(PlanGeneration? row) {
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncValue.data(current.copyWith(pendingPlanGeneration: row));
   }
 
   bool get isLoggedIn => state.value != null;

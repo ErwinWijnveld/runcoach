@@ -45,6 +45,7 @@ runcoach/
 ### Data flow
 - **Auth**: Flutter → `/auth/strava/redirect` → Strava OAuth WebView → callback → Sanctum token stored in secure storage
 - **Activity sync**: Strava webhook → `ProcessStravaActivity` job → stores activity + matches to planned training day + scores compliance → `GenerateActivityFeedback` job generates AI feedback
+- **Onboarding plan generation**: `POST /onboarding/generate-plan` returns 202 + a `plan_generations` row id → `GeneratePlan` job runs the agent loop in the worker (~60-110s) → Flutter `OnboardingGeneratingScreen` polls `GET /onboarding/plan-generation/latest` every 3s → on completion navigates to `/coach/chat/{conversation_id}`. The `pending_plan_generation` field on `/profile` and the auth responses lets the router resume the loading screen on cold start (user can close the app mid-generation and reopen later)
 - **AI Coach**: User message → `RunCoachAgent` (Laravel AI SDK) → agent autonomously calls tools (SearchStravaActivities, GetCurrentSchedule, CreateSchedule, etc.) → response + optional proposal returned
 - **Schedule proposals**: `CreateSchedule`/`ModifySchedule` tools return `requires_approval: true` payloads → detected in `tool_results` of the agent's message → stored as `CoachProposal` → user accepts/rejects → `ProposalService` applies changes
 

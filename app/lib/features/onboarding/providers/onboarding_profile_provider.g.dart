@@ -8,23 +8,23 @@ part of 'onboarding_profile_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Fetches the running profile for the onboarding overview screen. While the
-/// backend is still syncing Strava history it returns `status: 'syncing'` on
-/// HTTP 202 — we poll every 3s up to ~36s before giving up.
+/// Fetches the running profile for the onboarding overview screen. The first
+/// call after Strava auth blocks on a server-side inline Strava history sync
+/// (30-90s) and returns `status: 'ready'` directly — no polling needed.
 
 @ProviderFor(OnboardingProfileController)
 final onboardingProfileControllerProvider =
     OnboardingProfileControllerProvider._();
 
-/// Fetches the running profile for the onboarding overview screen. While the
-/// backend is still syncing Strava history it returns `status: 'syncing'` on
-/// HTTP 202 — we poll every 3s up to ~36s before giving up.
+/// Fetches the running profile for the onboarding overview screen. The first
+/// call after Strava auth blocks on a server-side inline Strava history sync
+/// (30-90s) and returns `status: 'ready'` directly — no polling needed.
 final class OnboardingProfileControllerProvider
     extends
         $AsyncNotifierProvider<OnboardingProfileController, OnboardingProfile> {
-  /// Fetches the running profile for the onboarding overview screen. While the
-  /// backend is still syncing Strava history it returns `status: 'syncing'` on
-  /// HTTP 202 — we poll every 3s up to ~36s before giving up.
+  /// Fetches the running profile for the onboarding overview screen. The first
+  /// call after Strava auth blocks on a server-side inline Strava history sync
+  /// (30-90s) and returns `status: 'ready'` directly — no polling needed.
   OnboardingProfileControllerProvider._()
     : super(
         from: null,
@@ -45,11 +45,11 @@ final class OnboardingProfileControllerProvider
 }
 
 String _$onboardingProfileControllerHash() =>
-    r'bd4ea6ea2ac0d25641d526acb0e97c79ff1f56ee';
+    r'22fbb61a87440662c59fd719cf3bfc454055e4e0';
 
-/// Fetches the running profile for the onboarding overview screen. While the
-/// backend is still syncing Strava history it returns `status: 'syncing'` on
-/// HTTP 202 — we poll every 3s up to ~36s before giving up.
+/// Fetches the running profile for the onboarding overview screen. The first
+/// call after Strava auth blocks on a server-side inline Strava history sync
+/// (30-90s) and returns `status: 'ready'` directly — no polling needed.
 
 abstract class _$OnboardingProfileController
     extends $AsyncNotifier<OnboardingProfile> {

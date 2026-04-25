@@ -14,10 +14,7 @@ class ProfileController extends Controller
     public function show(Request $request): JsonResponse
     {
         return response()->json([
-            'user' => $request->user()->only([
-                'id', 'name', 'email', 'strava_athlete_id', 'strava_profile_url',
-                'coach_style', 'has_completed_onboarding',
-            ]),
+            'user' => $this->serialize($request->user()),
         ]);
     }
 
@@ -26,11 +23,26 @@ class ProfileController extends Controller
         $request->user()->update($request->validated());
 
         return response()->json([
-            'user' => $request->user()->fresh()->only([
+            'user' => $this->serialize($request->user()->fresh()),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function serialize(User $user): array
+    {
+        $pending = $user->pendingPlanGeneration();
+
+        return [
+            ...$user->only([
                 'id', 'name', 'email', 'strava_athlete_id', 'strava_profile_url',
                 'coach_style', 'has_completed_onboarding',
             ]),
-        ]);
+            'pending_plan_generation' => $pending !== null
+                ? OnboardingController::serialize($pending)
+                : null,
+        ];
     }
 
     public function destroy(Request $request): Response

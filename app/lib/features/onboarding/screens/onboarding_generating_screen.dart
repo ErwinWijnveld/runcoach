@@ -1,19 +1,29 @@
-import 'package:dio/dio.dart';
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/runcore_logo.dart';
+import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/onboarding/data/onboarding_api.dart';
-import 'package:app/features/onboarding/models/generate_plan_response.dart';
 import 'package:app/features/onboarding/models/onboarding_form_data.dart';
+import 'package:app/features/onboarding/models/plan_generation.dart';
 import 'package:app/features/onboarding/providers/onboarding_form_provider.dart';
 
-/// Full-screen loader shown while the backend builds the plan. Progress is
-/// animated linearly to 95% over an estimated duration (6s per scheduled
-/// week, floored at 30s); when the API returns we snap to 100% and navigate
-/// to the coach chat that was pre-seeded with the proposal.
+const _pollInterval = Duration(seconds: 3);
+
+/// Full-screen loader shown while the backend builds the plan. The agent
+/// loop runs in the queue worker (~60-110s); we poll the latest
+/// PlanGeneration row every 3s. Progress bar is a local linear animation
+/// (no real per-stage signal from the backend) — purely a UX cue.
+///
+/// Resume safety: if the user closes the app mid-generation and reopens
+/// later, the router redirect spots `user.pendingPlanGeneration` and routes
+/// them back here. On mount we adopt the existing row (no duplicate
+/// dispatch) and continue polling. If generation completed while they were
+/// gone, the very first poll navigates straight to the chat.
 class OnboardingGeneratingScreen extends ConsumerStatefulWidget {
   const OnboardingGeneratingScreen({super.key});
 
@@ -26,9 +36,9 @@ class _OnboardingGeneratingScreenState
     extends ConsumerState<OnboardingGeneratingScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _progress;
-  final CancelToken _cancelToken = CancelToken();
+  Timer? _pollTimer;
   String _stage = 'Analyzing your Strava history…';
-  Object? _error;
+  String? _errorMessage;
   bool _completed = false;
 
   @override
@@ -45,15 +55,13 @@ class _OnboardingGeneratingScreenState
     _progress.addListener(_updateStage);
     _progress.forward();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) => _submit());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _bootstrap());
   }
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
     _progress.dispose();
-    if (!_cancelToken.isCancelled) {
-      _cancelToken.cancel('OnboardingGeneratingScreen disposed');
-    }
     super.dispose();
   }
 
@@ -81,45 +89,117 @@ class _OnboardingGeneratingScreenState
     }
   }
 
-  Future<void> _submit() async {
-    try {
-      final form = ref.read(onboardingFormProvider.notifier);
-      final payload = form.toPayload();
-      final generate = ref.read(generatePlanCallProvider);
+  /// Decide whether to enqueue a new generation or adopt an in-flight one
+  /// the server already knows about. Then start polling.
+  Future<void> _bootstrap() async {
+    final pending = ref.read(authProvider).value?.pendingPlanGeneration;
 
-      final raw = await generate(payload);
-      final response = GeneratePlanResponse.fromJson(raw);
-
-      if (!mounted) return;
-
-      _completed = true;
-      await _progress.animateTo(1.0, duration: const Duration(milliseconds: 350));
-      if (!mounted) return;
-
-      // Small settle so the bar finishes visually.
-      await Future.delayed(const Duration(milliseconds: 400));
-      if (!mounted) return;
-
-      // Reset form so returning to /onboarding starts fresh.
-      form.reset();
-
-      context.go('/coach/chat/${response.conversationId}');
-    } on DioException catch (e) {
-      if (e.type == DioExceptionType.cancel) return;
-      if (mounted) setState(() => _error = e);
-    } catch (e) {
-      if (mounted) setState(() => _error = e);
+    if (pending != null && pending.status != PlanGenerationStatus.failed) {
+      // Adopting a row the server already has (user reopened mid-flight, or
+      // came back after completion to view the proposal). For `completed`
+      // the poll loop will navigate immediately on the first tick.
+      _startPolling();
+      return;
     }
+
+    // No in-flight row (or last attempt failed) — enqueue a fresh one.
+    await _enqueue();
   }
 
-  void _retry() {
+  Future<void> _enqueue() async {
     setState(() {
-      _error = null;
+      _errorMessage = null;
       _completed = false;
     });
     _progress.reset();
     _progress.forward();
-    _submit();
+
+    try {
+      final form = ref.read(onboardingFormProvider.notifier);
+      final payload = form.toPayload();
+      final generate = ref.read(generatePlanCallProvider);
+      final result = await generate(payload);
+
+      if (!mounted) return;
+
+      if (result.status == PlanGenerationStatus.completed) {
+        await _navigateToChat(result);
+        return;
+      }
+
+      _startPolling();
+    } catch (_) {
+      if (mounted) {
+        setState(() => _errorMessage =
+            "Couldn't reach the server. Check your connection.");
+      }
+    }
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
+    // Fire one immediately so a freshly-completed adopt path navigates fast.
+    _poll();
+    _pollTimer = Timer.periodic(_pollInterval, (_) => _poll());
+  }
+
+  Future<void> _poll() async {
+    if (!mounted) return;
+    try {
+      final poll = ref.read(pollPlanGenerationCallProvider);
+      final result = await poll();
+
+      if (!mounted) return;
+
+      if (result == null) {
+        // Server says nothing pending — but we're on the loading screen,
+        // so something went wrong (row deleted, user hopped accounts, etc).
+        setState(() =>
+            _errorMessage = 'Lost track of the generation. Try again?');
+        _pollTimer?.cancel();
+        return;
+      }
+
+      if (result.status == PlanGenerationStatus.completed) {
+        _pollTimer?.cancel();
+        await _navigateToChat(result);
+        return;
+      }
+
+      if (result.status == PlanGenerationStatus.failed) {
+        _pollTimer?.cancel();
+        setState(() =>
+            _errorMessage = result.errorMessage ?? 'Generation failed.');
+      }
+    } catch (_) {
+      // Network blip on a poll — keep polling silently. The next tick will
+      // try again in 3s; surfacing transient failures would flap.
+    }
+  }
+
+  Future<void> _navigateToChat(PlanGeneration row) async {
+    if (row.conversationId == null) {
+      setState(() =>
+          _errorMessage = 'Plan ready but conversation id missing.');
+      return;
+    }
+
+    setState(() => _completed = true);
+    await _progress.animateTo(1.0, duration: const Duration(milliseconds: 350));
+    if (!mounted) return;
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (!mounted) return;
+
+    ref.read(onboardingFormProvider.notifier).reset();
+    // Apply the new pending state locally — synchronously — so the router
+    // redirect doesn't bounce us back to the loading screen on the next
+    // navigation. Avoiding loadProfile() here also dodges the GoRouter
+    // rebuild that races with context.go and triggers
+    // "Duplicate GlobalKey detected" via reparenting.
+    ref.read(authProvider.notifier).patchPendingPlanGeneration(row);
+
+    if (!mounted) return;
+    context.go('/coach/chat/${row.conversationId}');
   }
 
   @override
@@ -129,10 +209,10 @@ class _OnboardingGeneratingScreenState
       child: DecoratedBox(
         decoration: const BoxDecoration(gradient: AppColors.onboardingGradient),
         child: SafeArea(
-          child: _error != null
+          child: _errorMessage != null
               ? _ErrorBody(
-                  error: _error!,
-                  onRetry: _retry,
+                  message: _errorMessage!,
+                  onRetry: _enqueue,
                   onBack: () => context.go('/onboarding/form'),
                 )
               : _LoadingBody(
@@ -211,7 +291,7 @@ class _LoadingBody extends StatelessWidget {
           Text(
             completed
                 ? 'Loading your plan…'
-                : 'Sit tight. This usually takes under a minute.',
+                : "Sit tight. This usually takes under a minute. You can close the app — we'll keep working in the background.",
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 13,
@@ -267,29 +347,15 @@ class _ProgressBar extends StatelessWidget {
 }
 
 class _ErrorBody extends StatelessWidget {
-  final Object error;
+  final String message;
   final VoidCallback onRetry;
   final VoidCallback onBack;
 
   const _ErrorBody({
-    required this.error,
+    required this.message,
     required this.onRetry,
     required this.onBack,
   });
-
-  String _message() {
-    if (error is DioException) {
-      final e = error as DioException;
-      if (e.response?.statusCode == 422) {
-        return "Something was off with your choices. Go back and double-check.";
-      }
-      if (e.response?.statusCode == 500) {
-        return "Our coach hit a snag generating the plan. Try again?";
-      }
-      return "Couldn't reach the server. Check your connection.";
-    }
-    return error.toString();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -299,13 +365,13 @@ class _ErrorBody extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            "Plan generation failed",
+            'Plan generation failed',
             textAlign: TextAlign.center,
             style: RunCoreText.serifTitle(size: 28),
           ),
           const SizedBox(height: 12),
           Text(
-            _message(),
+            message,
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 15,

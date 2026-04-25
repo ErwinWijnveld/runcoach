@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use App\Enums\CoachStyle;
+use App\Enums\PlanGenerationStatus;
+use App\Enums\ProposalStatus;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
@@ -57,6 +59,49 @@ class User extends Authenticatable implements FilamentUser
     public function tokenUsages(): HasMany
     {
         return $this->hasMany(TokenUsage::class);
+    }
+
+    public function planGenerations(): HasMany
+    {
+        return $this->hasMany(PlanGeneration::class);
+    }
+
+    /**
+     * Latest plan generation that requires the user's attention right now,
+     * or null. Includes a read-time watchdog: any row stuck in queued/
+     * processing for >10 minutes is auto-marked failed (covers worker
+     * death where the job's own failed() callback never fires).
+     */
+    public function pendingPlanGeneration(): ?PlanGeneration
+    {
+        $latest = $this->planGenerations()
+            ->with('proposal')
+            ->orderByDesc('id')
+            ->first();
+
+        if ($latest === null) {
+            return null;
+        }
+
+        if ($latest->isInFlight()) {
+            $started = $latest->started_at ?? $latest->created_at;
+            if ($started->lt(now()->subMinutes(10))) {
+                $latest->update([
+                    'status' => PlanGenerationStatus::Failed,
+                    'error_message' => 'Generation timed out',
+                    'completed_at' => now(),
+                ]);
+            }
+        }
+
+        if ($latest->status === PlanGenerationStatus::Completed) {
+            $proposal = $latest->proposal;
+            if ($proposal === null || $proposal->status !== ProposalStatus::Pending) {
+                return null;
+            }
+        }
+
+        return $latest;
     }
 
     public function canAccessPanel(Panel $panel): bool
