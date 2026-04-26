@@ -484,6 +484,96 @@ class PlanOptimizerServiceTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_lenient_mode_keeps_non_preferred_day_and_extends_preferred_weekdays(): void
+    {
+        // Edit-path behavior: when the runner explicitly asks the coach to
+        // schedule a workout on a weekday outside their original preferred
+        // list, the optimizer must HONOR that request rather than silently
+        // dropping the day. preferred_weekdays auto-extends so the next
+        // optimize() call sees the broadened list as the new normal.
+        Carbon::setTestNow('2026-04-24');
+        $user = $this->userWithBaseline(300);
+
+        $payload = [
+            'goal_type' => 'race',
+            'goal_name' => 'Test',
+            'distance' => '10k',
+            'target_date' => '2026-05-15',
+            'preferred_weekdays' => [1, 3, 5], // Mon, Wed, Fri
+            'schedule' => [
+                'weeks' => [[
+                    'week_number' => 1,
+                    'focus' => 'base',
+                    'days' => [
+                        ['day_of_week' => 1, 'type' => 'easy', 'target_km' => 5.0],
+                        ['day_of_week' => 2, 'type' => 'long_run', 'target_km' => 8.0], // Tue — not in original prefs
+                        ['day_of_week' => 3, 'type' => 'tempo', 'target_km' => 6.0],
+                    ],
+                ]],
+            ],
+        ];
+
+        $result = $this->optimizer->optimize(
+            $payload,
+            $user,
+            alignRaceDay: false,
+            strictPreferredWeekdays: false,
+        );
+
+        $days = $result['schedule']['weeks'][0]['days'];
+        $dows = array_map(fn ($d) => $d['day_of_week'], $days);
+
+        $this->assertContains(2, $dows, 'Tuesday should be kept under lenient mode.');
+        $this->assertContains(1, $dows);
+        $this->assertContains(3, $dows);
+        $this->assertSame(
+            [1, 2, 3, 5],
+            $result['preferred_weekdays'],
+            'preferred_weekdays should auto-extend to include the user-added Tuesday.'
+        );
+
+        Carbon::setTestNow();
+    }
+
+    public function test_strict_mode_is_still_default(): void
+    {
+        // Defending the create-path contract: by default the optimizer drops
+        // non-preferred days (the agent silently violating preferred_weekdays
+        // on a fresh create_schedule was the original bug enforcePreferred
+        // existed to catch). Don't regress this when adding the lenient
+        // edit-path mode.
+        Carbon::setTestNow('2026-04-24');
+        $user = $this->userWithBaseline(300);
+
+        $payload = [
+            'goal_type' => 'race',
+            'goal_name' => 'Test',
+            'distance' => '10k',
+            'target_date' => '2026-05-15',
+            'preferred_weekdays' => [1, 3, 5],
+            'schedule' => [
+                'weeks' => [[
+                    'week_number' => 1,
+                    'focus' => 'base',
+                    'days' => [
+                        ['day_of_week' => 1, 'type' => 'easy', 'target_km' => 5.0],
+                        ['day_of_week' => 7, 'type' => 'long_run', 'target_km' => 8.0],
+                    ],
+                ]],
+            ],
+        ];
+
+        $result = $this->optimizer->optimize($payload, $user); // defaults
+        $dows = array_map(
+            fn ($d) => $d['day_of_week'],
+            $result['schedule']['weeks'][0]['days']
+        );
+        $this->assertNotContains(7, $dows, 'Sunday should be dropped under default (strict) mode.');
+        $this->assertSame([1, 3, 5], $result['preferred_weekdays'], 'preferred_weekdays should NOT be modified under strict mode.');
+
+        Carbon::setTestNow();
+    }
+
     public function test_adds_race_day_entry_when_plan_ends_before_target(): void
     {
         Carbon::setTestNow('2026-04-24'); // Friday

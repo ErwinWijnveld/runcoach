@@ -114,7 +114,20 @@ class EditSchedule implements Tool
         // user-set target_date changes (set_goal op) or rename the final
         // day to the goal name — both of those are CreateSchedule-only
         // behaviours. Explicit user paces/titles survive.
-        $payload = $this->optimizer->optimize($payload, $this->user, alignRaceDay: false);
+        //
+        // `strictPreferredWeekdays`: lenient by default so user-driven
+        // day additions on non-preferred weekdays are honored (the optimizer
+        // auto-extends `preferred_weekdays` to include them). EXCEPT when
+        // this very edit explicitly updated `preferred_weekdays` via
+        // set_goal — in that case the user said "these are my days now",
+        // so use strict to drop any plan days that don't match the new pref.
+        $strictPrefs = $this->editTouchedPreferredWeekdays($ops);
+        $payload = $this->optimizer->optimize(
+            $payload,
+            $this->user,
+            alignRaceDay: false,
+            strictPreferredWeekdays: $strictPrefs,
+        );
 
         // Only attach a `diff` when editing a plan the runner has already
         // ACCEPTED (active goal). That's the only case where "N changes to
@@ -218,6 +231,34 @@ class EditSchedule implements Tool
         }
 
         return [$proposal->payload, ProposalType::CreateSchedule];
+    }
+
+    /**
+     * Returns true when the agent's ops include a `set_goal` that explicitly
+     * updates `preferred_weekdays`. In that case the optimizer should run
+     * strict-mode preferred-weekday enforcement so the new pref takes effect
+     * (existing days on now-non-preferred weekdays get dropped). Otherwise
+     * lenient — user-added days on non-preferred weekdays are kept and the
+     * pref list auto-extends.
+     *
+     * @param  array<int, mixed>  $ops
+     */
+    private function editTouchedPreferredWeekdays(array $ops): bool
+    {
+        foreach ($ops as $op) {
+            if (! is_array($op)) {
+                continue;
+            }
+            if (($op['op'] ?? null) !== 'set_goal') {
+                continue;
+            }
+            $fields = $op['fields'] ?? null;
+            if (is_array($fields) && array_key_exists('preferred_weekdays', $fields)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

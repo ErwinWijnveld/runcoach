@@ -57,7 +57,7 @@ class PlanOptimizerService
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
-    public function optimize(array $payload, User $user, bool $alignRaceDay = true): array
+    public function optimize(array $payload, User $user, bool $alignRaceDay = true, bool $strictPreferredWeekdays = true): array
     {
         if (! isset($payload['schedule']['weeks']) || ! is_array($payload['schedule']['weeks'])) {
             return $payload;
@@ -81,7 +81,7 @@ class PlanOptimizerService
         // critical: the agent sometimes removes the race entry during
         // verify-loop cleanup (thinking it's a duplicate) and without
         // re-adding it, the plan has no entry on target_date.
-        $payload = $this->enforcePreferredWeekdays($payload);
+        $payload = $this->enforcePreferredWeekdays($payload, $strictPreferredWeekdays);
         $payload = $this->enforceMinimumRunLength($payload, $user);
         $payload = $this->deduplicateDaysPerWeek($payload);
         // ensureRaceDayEntry runs BEFORE dropDaysPastTarget so it can
@@ -153,16 +153,28 @@ class PlanOptimizerService
     }
 
     /**
-     * If the payload carries a `preferred_weekdays` list, drop any training
-     * day whose `day_of_week` isn't in it. The AI has been observed to
-     * silently violate this constraint (user picks Mon/Tue/Wed/Fri and the
-     * agent schedules on Sat/Sun anyway) — server-side enforcement makes
-     * it non-negotiable. Weeks that empty out as a result are dropped.
+     * If the payload carries a `preferred_weekdays` list, reconcile the
+     * scheduled days against it. Two modes:
+     *
+     * - **Strict** (create path): drop any training day whose `day_of_week`
+     *   isn't in the list. The AI has been observed to silently violate
+     *   this constraint (user picks Mon/Tue/Wed/Fri and the agent schedules
+     *   on Sat/Sun anyway) — server-side enforcement makes it non-negotiable.
+     *   Weeks that empty out are dropped.
+     *
+     * - **Lenient** (edit path): when the user explicitly asks the coach
+     *   to move/add a workout to a non-preferred day, the agent's edit
+     *   should be honored. Instead of dropping, EXTEND `preferred_weekdays`
+     *   to include every DOW used in the plan. Subsequent calls then see
+     *   the broadened list as the new normal.
+     *
+     * Race-day entry is exempt from the filter under both modes — the
+     * runner races on that date regardless of normal training weekdays.
      *
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
-    private function enforcePreferredWeekdays(array $payload): array
+    private function enforcePreferredWeekdays(array $payload, bool $strict = true): array
     {
         $preferred = $payload['preferred_weekdays'] ?? null;
         if (! is_array($preferred) || empty($preferred)) {
@@ -181,6 +193,26 @@ class PlanOptimizerService
             ? Carbon::parse($stated)->startOfDay()
             : null;
         $planStart = Carbon::now()->startOfWeek();
+
+        // Lenient pass: collect every DOW the (post-edit) plan uses and
+        // merge into the allowed list. The user-driven edit becomes the
+        // new source of truth for what days they train on.
+        if (! $strict) {
+            $usedDows = [];
+            foreach (($payload['schedule']['weeks'] ?? []) as $week) {
+                foreach (($week['days'] ?? []) as $day) {
+                    $dow = (int) ($day['day_of_week'] ?? 0);
+                    if ($dow >= 1 && $dow <= 7) {
+                        $usedDows[$dow] = true;
+                    }
+                }
+            }
+            $merged = array_unique(array_merge($allowed, array_keys($usedDows)));
+            sort($merged);
+            $payload['preferred_weekdays'] = array_values($merged);
+
+            return $payload;
+        }
 
         $weeks = [];
         foreach (($payload['schedule']['weeks'] ?? []) as $week) {

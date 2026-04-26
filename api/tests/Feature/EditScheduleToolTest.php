@@ -682,10 +682,14 @@ class EditScheduleToolTest extends TestCase
         $this->assertStringContainsString('non-empty JSON', $result['error']);
     }
 
-    public function test_edit_also_enforces_preferred_weekdays(): void
+    public function test_edit_honors_user_added_day_outside_preferred_weekdays(): void
     {
-        // Optimizer guardrails run on edits too — if the AI tries to add a
-        // Sunday run to a Mon/Wed/Fri plan, the server drops it.
+        // Edits are user-driven. When the runner asks the coach to add a
+        // workout on a weekday outside their original preferred list, the
+        // optimizer must honor it (and auto-extend preferred_weekdays so
+        // subsequent passes treat the broadened list as the new normal).
+        // Strict enforcement only applies to fresh `create_schedule` calls
+        // where the agent could be silently violating the runner's intent.
         $user = User::factory()->create();
         $payload = [
             'goal_type' => 'race',
@@ -716,7 +720,7 @@ class EditScheduleToolTest extends TestCase
         $result = $this->invoke($user, [
             'proposal_id' => $proposal->id,
             'operations' => json_encode([
-                ['op' => 'add_day', 'week' => 1, 'day_of_week' => 7, 'fields' => ['type' => 'easy', 'title' => 'Sneaky Sunday', 'target_km' => 5.0]],
+                ['op' => 'add_day', 'week' => 1, 'day_of_week' => 7, 'fields' => ['type' => 'easy', 'title' => 'New Sunday', 'target_km' => 5.0]],
             ]),
         ]);
 
@@ -724,8 +728,13 @@ class EditScheduleToolTest extends TestCase
             fn ($d) => $d['day_of_week'],
             $result['payload']['schedule']['weeks'][0]['days'],
         );
-        $this->assertNotContains(7, $dows);
-        $this->assertEqualsCanonicalizing([1, 3, 5], $dows);
+        $this->assertContains(7, $dows, 'User-added Sunday should be kept on edit.');
+        $this->assertEqualsCanonicalizing([1, 3, 5, 7], $dows);
+        $this->assertSame(
+            [1, 3, 5, 7],
+            $result['payload']['preferred_weekdays'],
+            'preferred_weekdays should auto-extend to include the user-added Sunday.'
+        );
     }
 
     public function test_edit_on_pending_proposal_does_not_attach_diff(): void
