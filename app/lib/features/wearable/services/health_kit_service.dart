@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:health/health.dart';
 
@@ -21,22 +23,30 @@ class HealthKitService {
 
   static const _workoutType = HealthDataType.WORKOUT;
   static const _hrType = HealthDataType.HEART_RATE;
-  static const _readTypes = <HealthDataType>[_workoutType, _hrType];
 
-  /// Request HealthKit read access. Returns true when at least the workout
-  /// type was granted — Apple's `hasPermissions` for READ is unreliable, so
-  /// we treat a successful prompt + nonzero workout count as "granted".
+  /// Request HealthKit read access. WORKOUT is required (no workouts =
+  /// nothing to sync); HEART_RATE is requested separately as a best-effort
+  /// extra so that a user who denies HR alone doesn't get blocked. Apple's
+  /// system permission sheet only appears once per type per app install,
+  /// so the second request is a no-op the next time around — but it keeps
+  /// the failure modes clean.
   Future<bool> requestPermissions() async {
     await _health.configure();
 
-    final granted = await _health.requestAuthorization(
-      _readTypes,
-      permissions: const [
-        HealthDataAccess.READ,
-        HealthDataAccess.READ,
-      ],
+    final workoutGranted = await _health.requestAuthorization(
+      const [_workoutType],
+      permissions: const [HealthDataAccess.READ],
     );
-    return granted;
+
+    // Best-effort HR grant. Failing this is fine — `_fetchHeartRateForWorkout`
+    // returns null for runs without HR samples. Don't await its result on
+    // the gating path.
+    unawaited(_health.requestAuthorization(
+      const [_hrType],
+      permissions: const [HealthDataAccess.READ],
+    ));
+
+    return workoutGranted;
   }
 
   /// Pull workouts in the given window and shape them for the backend.
@@ -65,9 +75,9 @@ class HealthKitService {
 
     int skippedNonRun = 0;
     int skippedZeroDistance = 0;
-    int hrAttached = 0;
 
-    final workouts = <Map<String, dynamic>>[];
+    // First pass: shape + filter. No HR queries yet — we batch those next.
+    final pending = <(HealthDataPoint, Map<String, dynamic>)>[];
     for (final point in samples) {
       if (point.value is! WorkoutHealthValue) continue;
       final shaped = _shape(point);
@@ -82,16 +92,32 @@ class HealthKitService {
         skippedZeroDistance++;
         continue;
       }
-
-      final hr = await _fetchHeartRateForWorkout(point.dateFrom, point.dateTo);
-      if (hr != null) {
-        shaped['average_heartrate'] = hr.average;
-        shaped['max_heartrate'] = hr.max;
-        hrAttached++;
-      }
-
-      workouts.add(shaped);
+      pending.add((point, shaped));
     }
+
+    // HR queries used to run sequentially per workout — 200 runs = 200
+    // round-trips ≈ 30s of perceived "stuck on Pulling your runs…". Run
+    // them in parallel batches of 10 so HealthKit isn't slammed but we
+    // also don't wait on a single slow query.
+    int hrAttached = 0;
+    const hrBatchSize = 10;
+    for (var i = 0; i < pending.length; i += hrBatchSize) {
+      final end =
+          (i + hrBatchSize < pending.length) ? i + hrBatchSize : pending.length;
+      final batch = pending.sublist(i, end);
+      final hrs = await Future.wait(batch.map((entry) =>
+          _fetchHeartRateForWorkout(entry.$1.dateFrom, entry.$1.dateTo)));
+      for (var j = 0; j < batch.length; j++) {
+        final hr = hrs[j];
+        if (hr != null) {
+          batch[j].$2['average_heartrate'] = hr.average;
+          batch[j].$2['max_heartrate'] = hr.max;
+          hrAttached++;
+        }
+      }
+    }
+
+    final workouts = pending.map((e) => e.$2).toList();
 
     // ignore: avoid_print
     print('[HealthKit] window=${window.inDays}d found ${workouts.length} runs '
@@ -209,13 +235,21 @@ class HealthKitService {
     if (distancesMeters.isEmpty) return const {};
 
     try {
-      final raw = await _prChannel.invokeMethod<Map<Object?, Object?>>(
-        'getPersonalRecords',
-        {
-          'distances': distancesMeters.map((d) => d.toDouble()).toList(),
-          'toleranceFraction': toleranceFraction,
-        },
-      );
+      // Hard cap on the native call. The Swift side fires N parallel
+      // HKSampleQueries via DispatchGroup; if any one's callback never
+      // fires (very rare HealthKit edge case on permission revocation
+      // mid-flight) the group never notifies and the await would hang
+      // the entire onboarding screen. 15s is generous for hundreds of
+      // queries against a fully-indexed HealthKit store.
+      final raw = await _prChannel
+          .invokeMethod<Map<Object?, Object?>>(
+            'getPersonalRecords',
+            {
+              'distances': distancesMeters.map((d) => d.toDouble()).toList(),
+              'toleranceFraction': toleranceFraction,
+            },
+          )
+          .timeout(const Duration(seconds: 15), onTimeout: () => null);
       if (raw == null) return const {};
 
       final out = <String, Map<String, dynamic>?>{};

@@ -39,6 +39,7 @@ class OnboardingOverviewScreen extends ConsumerWidget {
                   onRetry: () => ref
                       .read(onboardingProfileControllerProvider.notifier)
                       .refresh(),
+                  onSkip: () => context.go('/onboarding/form'),
                 ),
               ),
             ),
@@ -212,7 +213,12 @@ class _SyncingState extends StatelessWidget {
 class _ErrorState extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
-  const _ErrorState({required this.message, required this.onRetry});
+  final VoidCallback onSkip;
+  const _ErrorState({
+    required this.message,
+    required this.onRetry,
+    required this.onSkip,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -239,6 +245,14 @@ class _ErrorState extends StatelessWidget {
           CupertinoButton.filled(
             onPressed: onRetry,
             child: const Text('Try again'),
+          ),
+          const SizedBox(height: 8),
+          CupertinoButton(
+            onPressed: onSkip,
+            child: Text(
+              'Skip for now',
+              style: GoogleFonts.inter(color: AppColors.inkMuted),
+            ),
           ),
         ],
       ),

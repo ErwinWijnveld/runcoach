@@ -64,6 +64,11 @@ class OnboardingController extends Controller
 
         $profile = $profiles->getOrAnalyze($user);
 
+        // Empty PHP array would JSON-encode as `[]` and break the Flutter
+        // Map<String, dynamic>? parse. Force null so the field round-trips
+        // as JSON null (which Flutter handles cleanly).
+        $personalRecords = $user->personal_records ?: null;
+
         if ($profile === null) {
             // No activities synced yet (HealthKit push hasn't happened or
             // returned zero runs). Return ready+empty so the UI can proceed.
@@ -74,7 +79,7 @@ class OnboardingController extends Controller
                 'data_end_date' => null,
                 'metrics' => [],
                 'narrative_summary' => null,
-                'personal_records' => $user->personal_records,
+                'personal_records' => $personalRecords,
             ]);
         }
 
@@ -85,7 +90,7 @@ class OnboardingController extends Controller
             'data_end_date' => $profile->data_end_date,
             'metrics' => $profile->metrics,
             'narrative_summary' => $profile->narrative_summary,
-            'personal_records' => $user->personal_records,
+            'personal_records' => $personalRecords,
         ]);
     }
 

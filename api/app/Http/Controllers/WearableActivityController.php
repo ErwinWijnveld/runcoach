@@ -176,27 +176,32 @@ class WearableActivityController extends Controller
             'records' => 'required|array',
             'records.*.duration_seconds' => 'required|integer|min:1',
             'records.*.distance_meters' => 'required|integer|min:1',
-            'records.*.date' => 'required|date',
+            'records.*.date' => 'nullable|date',
             'records.*.source_activity_id' => 'nullable|string|max:255',
         ]);
 
         // Keys are stringified integer meters ("5000", "10000", "21097",
-        // "42195", or any custom distance the user picked). Validate keys
-        // are numeric strings so we don't accept arbitrary garbage that
-        // would later break GoalDistance lookups in CreateSchedule.
+        // "42195", or any custom distance the user picked). PHP auto-promotes
+        // numeric string array keys to ints when iterating, so we cast back
+        // to string and validate the digit shape.
         $records = [];
         foreach ($request->input('records', []) as $key => $value) {
-            if (! is_string($key) || ! ctype_digit($key)) {
+            $stringKey = (string) $key;
+            if (! ctype_digit($stringKey) || $stringKey === '0') {
                 continue;
             }
-            $records[$key] = $value;
+            $records[$stringKey] = $value;
         }
 
+        // Store null (not empty []) when nothing valid came through, so the
+        // profile response stays JSON-null instead of becoming an empty PHP
+        // array which json_encode would emit as `[]` — and Flutter parses
+        // the column as a Map, not a List.
         $user = $request->user();
-        $user->forceFill(['personal_records' => $records])->save();
+        $user->forceFill(['personal_records' => $records === [] ? null : $records])->save();
 
         return response()->json([
-            'records' => $records,
+            'records' => (object) $records,
         ]);
     }
 }
