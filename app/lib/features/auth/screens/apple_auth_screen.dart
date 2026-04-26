@@ -53,9 +53,23 @@ class _AppleAuthScreenState extends ConsumerState<AppleAuthScreen> {
           );
 
       if (!mounted) return;
-      // Router redirect will move us onto onboarding or dashboard once the
-      // auth state lands. Fall back to /dashboard explicitly so we don't sit
-      // on this screen if the redirect listener is slow.
+
+      // loginWithApple swallows backend errors into AsyncValue.error — if
+      // the POST /auth/apple call failed (bad token verification, network,
+      // etc.) we'd otherwise navigate to /dashboard with no logged-in user
+      // and the router would silently bounce back to /auth/welcome. Surface
+      // the real error here instead.
+      final auth = ref.read(authProvider);
+      if (auth.hasError) {
+        final err = auth.error;
+        setState(() => _error = err?.toString() ?? 'Backend rejected the Apple identity token.');
+        return;
+      }
+      if (auth.value == null) {
+        setState(() => _error = 'Auth state is empty after successful sign-in. Check the API base URL and backend logs.');
+        return;
+      }
+
       context.go('/dashboard');
     } on SignInWithAppleAuthorizationException catch (e) {
       if (e.code == AuthorizationErrorCode.canceled) {
