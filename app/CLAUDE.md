@@ -292,6 +292,32 @@ Canonical examples: `training_day_detail_screen.dart`, `goal_detail_screen.dart`
 
 **Full-height gradient.** `GradientScaffold` paints the cream→gold gradient edge-to-edge. Do NOT wrap it in a `Scaffold` or `CupertinoPageScaffold` that has its own background — the shell's `CupertinoPageScaffold` is `CupertinoColors.transparent` precisely so this gradient can show through on every route.
 
+### 10. Push notifications (APNs, iOS-only)
+
+Native MethodChannel bridge instead of `firebase_messaging` — keeps Firebase out of the project. Spec: `../docs/superpowers/specs/2026-04-26-push-notifications.md`.
+
+**Pieces:**
+- `ios/Runner/PushNotifications.swift` — singleton `PushNotifications.shared` that owns the `nl.runcoach/push` MethodChannel + acts as `UNUserNotificationCenterDelegate`. Methods Dart→Native: `requestPermission`, `registerForRemoteNotifications`, `getInitialPayload`. Methods Native→Dart: `onToken`, `onTokenError`, `onPushTapped`.
+- `ios/Runner/AppDelegate.swift` — overrides `didRegisterForRemoteNotificationsWithDeviceToken` / `didFailToRegister...` and forwards to the singleton. Stashes `launchOptions[.remoteNotification]` for cold-launch tap routing.
+- `ios/Runner/Runner.entitlements` — `aps-environment = development` (Apple substitutes the prod environment server-side for App Store builds, so the dev value covers both).
+- `lib/features/push/services/push_service.dart` — Dart wrapper. Riverpod-provided (`pushServiceProvider`, `keepAlive: true`). API: `requestPermissionAndRegister()`, `registerIfPermitted()`, `unregister()`, `consumeInitialPayload()`. Static `routeFromPayload({type, conversation_id, ...})` returns the deep-link path for a payload type — extend this when new push types are added on the backend.
+- `lib/features/push/data/devices_api.dart` — Retrofit client for `POST /devices` + `DELETE /devices`.
+
+**Wire-in points (don't move these without thinking through opt-in rate / signed-out-device safety):**
+- Onboarding form submit (`onboarding_form_screen.dart::_submit`) — fires `requestPermissionAndRegister()` right before `context.go('/onboarding/generating')`. Apple's prompt is one-shot, so we ask AFTER the user has experienced enough value to want it (the prompt comes ~30s after sign-in). Asking on first launch tanks opt-in to ~30%.
+- Cold-start re-register (`auth_provider.dart::loadProfile`) — `registerIfPermitted()` runs after the profile loads. No-op if the user previously denied; otherwise refreshes `last_seen_at` server-side.
+- Logout (`auth_provider.dart::logout`) — `unregister()` runs BEFORE `api.logout()` so the bearer is still valid for the `DELETE /devices` call.
+- Tap routing (`app.dart`) — sets `pushService.onTap` on first build to call `router.go(PushService.routeFromPayload(payload))`. Cold-launch payload is drained in a post-frame callback after the auth state finishes loading (the router redirect would otherwise fight the deep link).
+
+**iOS Developer Portal one-time setup:** the App ID `com.erwinwijnveld.runcoach` must have the **Push Notifications** capability enabled at developer.apple.com → Identifiers. The SSL Certificate buttons in the same panel are NOT used (we authenticate with a `.p8` token, not a `.p12` certificate).
+
+**Cannot be tested on the iOS Simulator.** The simulator never receives real APNs pushes. iOS 16+ supports a local-only `xcrun simctl push <udid> <bundle-id> <payload.json>` for routing testing, but that bypasses the entire APNs / .p8 / Pushok stack — it only tests `userNotificationCenter(_:willPresent:)` and tap handling. End-to-end testing requires a physical iPhone with a sandbox build.
+
+**Adding a new push type:**
+1. Backend side per `../api/CLAUDE.md` → "Push notifications" (new `Notification` class + dispatcher).
+2. Add the routing case to `PushService.routeFromPayload()` so taps on the new type land on the right screen.
+3. (Optional) Suppress in-app banner when the user is already on the destination — handle in the `onTap` setter in `app.dart` (compare current location with target route).
+
 ## Running and building
 
 ```bash

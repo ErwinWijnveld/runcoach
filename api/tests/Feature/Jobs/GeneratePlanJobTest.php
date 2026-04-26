@@ -11,9 +11,12 @@ use App\Models\CoachProposal;
 use App\Models\PlanGeneration;
 use App\Models\User;
 use App\Models\UserRunningProfile;
+use App\Notifications\PlanGenerationCompleted;
+use App\Notifications\PlanGenerationFailed;
 use App\Services\OnboardingPlanGeneratorService;
 use App\Services\ProposalService;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Mockery;
 use RuntimeException;
 use Tests\TestCase;
@@ -21,6 +24,15 @@ use Tests\TestCase;
 class GeneratePlanJobTest extends TestCase
 {
     use LazilyRefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // GeneratePlan emits push notifications via APNs on success/failure;
+        // tests must fake them to avoid touching the (absent) .p8 key.
+        Notification::fake();
+    }
 
     public function test_marks_processing_then_completed_on_success(): void
     {
@@ -57,6 +69,27 @@ class GeneratePlanJobTest extends TestCase
         $this->assertNotNull($row->completed_at);
         $this->assertSame($proposal->id, $row->proposal_id);
         $this->assertNotNull($row->conversation_id);
+
+        Notification::assertSentTo(
+            $user,
+            PlanGenerationCompleted::class,
+            fn (PlanGenerationCompleted $n) => $n->conversationId === $row->conversation_id,
+        );
+    }
+
+    public function test_failed_callback_dispatches_failure_notification(): void
+    {
+        Notification::fake();
+
+        $user = User::factory()->create();
+        $row = PlanGeneration::factory()->for($user)->create([
+            'status' => PlanGenerationStatus::Queued,
+            'started_at' => null,
+        ]);
+
+        (new GeneratePlan($row->id))->failed(new RuntimeException('worker died'));
+
+        Notification::assertSentTo($user, PlanGenerationFailed::class);
     }
 
     public function test_marks_failed_when_service_throws(): void

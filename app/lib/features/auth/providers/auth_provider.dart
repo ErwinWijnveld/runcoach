@@ -1,10 +1,13 @@
 // ignore: unused_import
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:app/core/storage/token_storage.dart';
 import 'package:app/features/auth/data/auth_api.dart';
 import 'package:app/features/auth/models/user.dart';
 import 'package:app/features/onboarding/models/plan_generation.dart';
+import 'package:app/features/push/services/push_service.dart';
 
 part 'auth_provider.g.dart';
 
@@ -76,6 +79,9 @@ class Auth extends _$Auth {
       final data = await api.getProfile();
       final user = User.fromJson(data['user'] as Map<String, dynamic>);
       state = AsyncValue.data(user);
+      // Refresh the device-token row server-side. No-op (returns null) if
+      // the user previously denied the iOS permission prompt.
+      unawaited(ref.read(pushServiceProvider).registerIfPermitted());
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
@@ -84,6 +90,11 @@ class Auth extends _$Auth {
   Future<void> logout() async {
     final api = ref.read(authApiProvider);
     final tokenStorage = ref.read(tokenStorageProvider);
+    // Drop the device-token row before clearing the bearer — the unregister
+    // call needs auth to scope to this user.
+    try {
+      await ref.read(pushServiceProvider).unregister();
+    } catch (_) {}
     try {
       await api.logout();
     } catch (_) {}

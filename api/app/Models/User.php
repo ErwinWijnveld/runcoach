@@ -73,6 +73,22 @@ class User extends Authenticatable implements FilamentUser
         return $this->hasMany(PlanGeneration::class);
     }
 
+    public function deviceTokens(): HasMany
+    {
+        return $this->hasMany(DeviceToken::class);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function routeNotificationForApn(): array
+    {
+        return $this->deviceTokens()
+            ->where('platform', DeviceToken::PLATFORM_IOS)
+            ->pluck('token')
+            ->all();
+    }
+
     public function memberships(): HasMany
     {
         return $this->hasMany(OrganizationMembership::class);

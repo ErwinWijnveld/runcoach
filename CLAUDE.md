@@ -212,6 +212,7 @@ Fully functional MVP on the `apple-health` branch:
 - Plan proposal with AI-generated explanation modal (`PlanExplanationAgent` + `/coach/proposals/{id}/explanation`, cached 7 days per proposal)
 - Past-dated training days in week 1 are dropped in `ProposalService::applyCreateSchedule` (safety rail)
 - Filament admin with token-usage dashboard
+- Push notifications via APNs-direct (`laravel-notification-channels/apn` + native iOS MethodChannel, NO Firebase). Triggers: plan generation completion + failure. Spec: `docs/superpowers/specs/2026-04-26-push-notifications.md`. See `api/CLAUDE.md` → "Push notifications" and `app/CLAUDE.md` → section 10.
 - Flutter app: Dashboard, Schedule, AI Coach, Goals tabs
 
 **Branch state:** `main` is the legacy Strava implementation, preserved. `strava` (remote) is the snapshot of pre-migration state. `apple-health` contains the migration to Apple Sign-In + HealthKit + wearable-agnostic schema.
@@ -221,4 +222,4 @@ Fully functional MVP on the `apple-health` branch:
 - `HKQuery.predicateForObjects(from: workout)` for workout-scoped HR samples (today the `health` package's time-window query is used; over-counts samples that overlap a workout but were recorded by other apps)
 - `HKWorkoutRouteQuery` for GPS polylines (we don't render maps)
 - Open Wearables integration for Garmin/Polar/Strava (per `docs/superpowers/specs/2026-04-26-...` if a spec exists)
-- Weekly credit quotas, push notifications, Dutch i18n, Reverb WebSocket streaming, provider tests for Flutter.
+- Weekly credit quotas, Dutch i18n, Reverb WebSocket streaming, provider tests for Flutter, Android port (HealthConnect + Sign-in alternative + FCM channel — push schema/code is already cross-platform-ready).

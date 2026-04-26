@@ -288,7 +288,7 @@ class _LoadingBody extends StatelessWidget {
           Text(
             completed
                 ? 'Loading your plan…'
-                : "Sit tight. This usually takes under a minute. You can close the app — we'll keep working in the background.",
+                : "This can take a few minutes. Feel free to close the app — we'll send you a notification when your plan is ready.",
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 13,

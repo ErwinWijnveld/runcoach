@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CoachController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DeviceTokenController;
 use App\Http\Controllers\GoalController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ProfileController;
@@ -43,6 +44,10 @@ Route::prefix('v1')->group(function () {
         Route::post('wearable/activities', [WearableActivityController::class, 'store']);
         Route::get('wearable/activities', [WearableActivityController::class, 'index']);
         Route::post('wearable/personal-records', [WearableActivityController::class, 'storePersonalRecords']);
+
+        // Push notification device tokens
+        Route::post('devices', [DeviceTokenController::class, 'store']);
+        Route::delete('devices', [DeviceTokenController::class, 'destroy']);
 
         // Dashboard
         Route::get('dashboard', DashboardController::class);

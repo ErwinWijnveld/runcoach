@@ -387,6 +387,39 @@ TTL is ~5 minutes. Within onboarding (3-4 turns in 1-2 min) the cache hits hard:
 - `app/Http/Controllers/AuthController.php::appleSignIn` — accepts `{identity_token, email?, name?}`, verifies, upserts a User on `apple_sub`, returns `{token, user}`. Apple only includes `email`/`name` on the *first* sign-in per user — subsequent sign-ins return only the `sub`, so the controller falls back to the JWT's `email` claim or a synthesized `<sub>@privaterelay.appleid.com` placeholder.
 - **Mockable in tests**: `AppleIdentityTokenVerifier` is constructor-injected, so tests bind a Mockery instance via `$this->app->instance(AppleIdentityTokenVerifier::class, $mock)` — no need to generate real Apple-signed JWTs. See `tests/Feature/AuthTest.php`.
 
+### Push notifications (APNs, iOS-only for now)
+
+User-visible push pipeline. Spec: `docs/superpowers/specs/2026-04-26-push-notifications.md`. Currently the only triggers are plan-generation completion + failure, but the building blocks are reusable.
+
+**Stack:** `laravel-notification-channels/apn` v6 → Pushok HTTP/2 → APNs (sandbox or prod).
+
+**Auth:** Token-based with a `.p8` from Apple Developer → Keys → APNs. NOT certificate-based. One key per team, no expiry, same key for sandbox + prod (only the server endpoint flips).
+
+**Config:** `config/broadcasting.php` → `connections.apn` (the package reads that exact path, NOT `services.apn`). Env vars: `APN_KEY_ID`, `APN_TEAM_ID`, `APN_BUNDLE_ID`, `APN_PRIVATE_KEY_PATH` (relative to `base_path()`, defaults to `storage/app/apns/AuthKey.p8`), `APN_PRODUCTION` (false for local + TestFlight, true for App Store builds — sandbox vs prod APNs server). The `.p8` file lives at `api/storage/app/apns/AuthKey.p8`, gitignored.
+
+**Pieces:**
+- `app/Models/DeviceToken.php` (`device_tokens` table) — one row per `(user_id, token)`, columns: `platform` (`ios`/`android`), `app_version` nullable, `last_seen_at`. Bumped on every register call.
+- `app/Http/Controllers/DeviceTokenController.php` — `POST /api/v1/devices` (idempotent upsert, refreshes `last_seen_at`) + `DELETE /api/v1/devices` (signed-out cleanup).
+- `App\Models\User::routeNotificationForApn()` — returns the user's iOS tokens. The package reads this magic-named method automatically when the channel is `ApnChannel`.
+- `app/Notifications/PlanGenerationCompleted.php` — title + body + `expiresAt = now+4h` + custom payload `{type, conversation_id}`. `ShouldQueue` so APNs round-trip doesn't stall the job.
+- `app/Notifications/PlanGenerationFailed.php` — same shape, `type=plan_generation_failed`.
+- `app/Jobs/GeneratePlan::handle()` calls `$row->user->notify(new PlanGenerationCompleted($cid))` after a successful run; `failed()` dispatches `PlanGenerationFailed`.
+- `app/Listeners/PruneInvalidApnsToken.php` — auto-discovered listener for `Illuminate\Notifications\Events\NotificationFailed`. When the channel is `ApnChannel` AND reason is `Unregistered` or `BadDeviceToken`, drops the row from `device_tokens`. APNs surfaces these reasons when the app was uninstalled or the token was never valid for this team.
+
+**Test caveat:** `Notification::fake()` MUST be set up in any test that exercises `GeneratePlan::handle()` or `failed()`, otherwise the job tries the real APNs round-trip and fails on the missing `.p8` (especially in CI). `tests/Feature/Jobs/GeneratePlanJobTest.php` does this in `setUp()`.
+
+**Adding a new push trigger:**
+1. `php artisan make:notification YourEvent` — make it `ShouldQueue`, `via()` returns `[ApnChannel::class]`, `toApn()` returns an `ApnMessage` with title/body/`custom('type', 'your_event')`/`custom(<routing key>, …)`.
+2. `$user->notify(new YourEvent(...))` from wherever the event happens.
+3. Add the routing case to Flutter `PushService.routeFromPayload()` (returns the deep-link path for the new `type`).
+
+**Scheduled push (daily training-day reminder):**
+- `app/Console/Commands/SendTrainingDayReminders.php` (`plan:remind-today`) — queries today's `training_days` for users with active goals, skipping days that already have a `TrainingResult`. Title `"Today: {km}km {Type label}"`, body includes target pace + custom title (used for race day = goal name).
+- `routes/console.php` schedules it `dailyAt('07:00')->timezone(config('app.reminder_timezone'))->withoutOverlapping()->onOneServer()`.
+- `config/app.php` → `reminder_timezone` (env `REMINDER_TIMEZONE`, default `Europe/Amsterdam`). Single market default for v1 — when the userbase spans multiple regions, hash users by tz and run one scheduled task per tz, OR add `users.timezone` and shard the query.
+- Manual run: `php artisan plan:remind-today` (uses today) or `--date=2026-04-27` to backfill / dry-run a different day.
+- Tap routing: `training_day_reminder` with `training_day_id` payload → Flutter routes to `/schedule/day/{id}`.
+
 ### Wearable ingestion
 
 - `app/Models/WearableActivity.php` (`wearable_activities` table) — provider-agnostic activity row. Key columns: `source` (string enum: `apple_health`, `strava`, `garmin`, `polar`, ...), `source_activity_id` (string — HKWorkout uuid, Open Wearables workout uuid, Strava activity id), `source_user_id` (for dedup), `distance_meters`, `duration_seconds`, `elapsed_seconds`, `average_pace_seconds_per_km`, `average_heartrate`, `max_heartrate`, `elevation_gain_meters`, `calories_kcal`, `start_date`, `end_date`, `raw_data` (JSON, source-specific extras like Apple Health splits). Unique index on `(source, source_activity_id)` makes ingestion idempotent. Constants: `WearableActivity::RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun']`.

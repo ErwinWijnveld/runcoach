@@ -71,6 +71,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Reminder Timezone
+    |--------------------------------------------------------------------------
+    |
+    | The timezone used when scheduling user-facing reminder pushes (e.g. the
+    | daily "today's run" notification). Distinct from `timezone` above so
+    | the rest of the app keeps storing UTC. Switch to a per-user column when
+    | the userbase spans multiple regions.
+    |
+    */
+
+    'reminder_timezone' => env('REMINDER_TIMEZONE', 'Europe/Amsterdam'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Locale Configuration
     |--------------------------------------------------------------------------
     |

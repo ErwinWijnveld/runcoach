@@ -4,6 +4,8 @@ namespace App\Jobs;
 
 use App\Enums\PlanGenerationStatus;
 use App\Models\PlanGeneration;
+use App\Notifications\PlanGenerationCompleted;
+use App\Notifications\PlanGenerationFailed;
 use App\Services\OnboardingPlanGeneratorService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -43,11 +45,13 @@ class GeneratePlan implements ShouldQueue
             'proposal_id' => $result['proposal_id'],
             'completed_at' => now(),
         ]);
+
+        $row->user->notify(new PlanGenerationCompleted($result['conversation_id']));
     }
 
     public function failed(Throwable $e): void
     {
-        $row = PlanGeneration::find($this->planGenerationId);
+        $row = PlanGeneration::with('user')->find($this->planGenerationId);
 
         if ($row === null) {
             return;
@@ -58,5 +62,7 @@ class GeneratePlan implements ShouldQueue
             'error_message' => $e->getMessage(),
             'completed_at' => now(),
         ]);
+
+        $row->user?->notify(new PlanGenerationFailed);
     }
 }

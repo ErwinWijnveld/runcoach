@@ -9,6 +9,7 @@ import 'package:app/features/onboarding/models/onboarding_form_data.dart';
 import 'package:app/features/onboarding/providers/onboarding_form_provider.dart';
 import 'package:app/features/onboarding/widgets/choice_group.dart';
 import 'package:app/features/onboarding/widgets/step_scaffold.dart';
+import 'package:app/features/push/services/push_service.dart';
 import 'package:app/features/wearable/data/wearable_api.dart';
 
 /// Logical step identifiers. The concrete list shown to the user is
@@ -87,6 +88,12 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
   }
 
   void _submit() {
+    // Ask for push permission at the moment the user commits to generating
+    // a plan. Apple's prompt is one-shot — asking earlier (e.g. on first
+    // launch) tanks opt-in, asking now lines up with a clear value: getting
+    // notified when the plan is ready ~60–110s later.
+    // Fire-and-forget; we navigate immediately.
+    ref.read(pushServiceProvider).requestPermissionAndRegister();
     context.go('/onboarding/generating');
   }
 
