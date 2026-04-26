@@ -1,18 +1,19 @@
 # RunCoach Flutter App
 
-Mobile app for **RunCoach** — personal AI running coach with Strava integration. See `../CLAUDE.md` for the monorepo overview and `../api/CLAUDE.md` for the backend.
+Mobile app for **RunCoach** — personal AI running coach. iOS-only at the moment because activity data comes from Apple HealthKit and auth uses Sign in with Apple. See `../CLAUDE.md` for the monorepo overview and `../api/CLAUDE.md` for the backend.
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Framework | Flutter (iOS + Android, web is not configured by default) |
+| Framework | Flutter (iOS-only in production — Android requires HealthConnect work + Sign in with Apple alternative) |
 | State management | Riverpod with `@riverpod` code generation |
 | Models | Freezed 3.x with `sealed class` syntax, JSON serialization |
 | API client | Dio + Retrofit (code-generated per feature) |
 | Routing | GoRouter with auth redirect guards |
 | Secure storage | `flutter_secure_storage` (Sanctum token) |
-| Strava OAuth | `webview_flutter` |
+| Auth | `sign_in_with_apple` (native iOS dialog → identity-token JWT → backend) |
+| Wearable data | `health` (Apple HealthKit reads, Android Health Connect later), `permission_handler` |
 
 **Important:** This project does NOT use `riverpod_lint` or `custom_lint` (version conflicts with Freezed 3.x). Don't add them.
 
@@ -35,11 +36,16 @@ app/lib/
 ├── router/
 │   └── app_router.dart            — GoRouter with auth redirect + bottom nav shell
 └── features/
-    ├── auth/                      — Welcome, Strava OAuth, onboarding
+    ├── auth/                      — Welcome, Apple Sign-In, profile
+    ├── wearable/                  — HealthKit reads + ingestion API
+    │   ├── data/wearable_api.dart           — POST /wearable/activities
+    │   └── services/health_kit_service.dart — `health` package wrapper
+    ├── onboarding/                — Connect-health, overview, form, generating
     ├── dashboard/                 — Home tab with weekly summary
     ├── schedule/                  — Weekly plan, day detail, compliance result
     ├── coach/                     — AI chat list, chat UI, message bubbles, proposals
-    └── races/                     — Race list, create, detail
+    ├── goals/                     — Goal list, create, detail
+    └── organization/              — Connections, find org, invite detail
 ```
 
 Each feature folder has this internal structure:
@@ -131,17 +137,29 @@ The AI coach conversation IDs come from the Laravel AI SDK and are UUIDs (36-cha
 
 `CoachMessage.fromShowJson` normalizes historic `tool_results`: it accepts BOTH the list shape (older/OpenAI) and the map-keyed-by-step-index shape (Anthropic), and decodes `result` when it arrives as a JSON-encoded string.
 
-### 6. Auth flow
+### 6. Auth + onboarding flow
 
-1. User taps "Connect with Strava" on `WelcomeScreen`
-2. `StravaAuthScreen` fetches authorize URL from backend, opens WebView
-3. WebView intercepts the callback URL with `?code=xxx`
-4. `authProvider.loginWithStrava(code)` exchanges for Sanctum token
-5. Token stored in `flutter_secure_storage` via `TokenStorage`
-6. `AuthInterceptor` attaches `Authorization: Bearer $token` to every request
-7. Router redirects to `/auth/onboarding` if `user.coachStyle == null`, else `/dashboard`
+1. User taps "Sign in with Apple" on `WelcomeScreen` → routes to `/auth/apple`
+2. `AppleAuthScreen` calls `SignInWithApple.getAppleIDCredential(scopes: [email, fullName])` — native iOS dialog
+3. Apple returns an `identityToken` (JWT). The screen also captures `givenName`/`familyName`/`email` IF this is the first sign-in for this user (Apple omits them on subsequent sign-ins)
+4. `authProvider.loginWithApple(identityToken, email, name)` posts to `/auth/apple` and stores the returned Sanctum bearer in `flutter_secure_storage`
+5. **Error surfacing:** `loginWithApple` swallows backend errors into `AsyncValue.error(...)` and returns. `AppleAuthScreen` reads the auth state AFTER the call — if `hasError` it surfaces the message instead of navigating, otherwise the router takes over
+6. `AuthInterceptor` attaches `Authorization: Bearer $token` to every subsequent request
+7. Router redirect rules:
+   - Not logged in → `/auth/welcome`
+   - Logged in + `!hasCompletedOnboarding` + no pending plan → `/onboarding` (which redirects to `/onboarding/connect-health`)
+   - Pending plan generation queued/processing/failed → `/onboarding/generating`
+   - Pending plan generation completed → `/coach/chat/{conversation_id}`
+   - Otherwise → whatever was requested
 
-Note: Level and weekly km capacity are determined by the backend from Strava data — onboarding only asks for coach style (motivational/analytical/balanced).
+**Onboarding flow (new user):**
+1. `/onboarding/connect-health` — `OnboardingConnectHealthScreen` requests Apple Health read permission via `HealthKitService.requestPermissions()`, pulls the last 90 days of running workouts, batches to `POST /wearable/activities`, then advances to overview
+2. `/onboarding/overview` — `OnboardingOverviewScreen` shows 4 stat cards + a one-line AI narrative computed from the freshly ingested activities
+3. `/onboarding/form` — multi-step form (goal type/distance/race-name/race-date/goal-time/days-per-week/preferred-weekdays/coach-style)
+4. `/onboarding/generating` — polls `GET /onboarding/plan-generation/latest` every 3s while the queue worker runs the agent loop (~60-110s)
+5. `/coach/chat/{conversation_id}` — final destination, `ProposalCard` rendered inside the agent chat
+
+Note: Level and weekly km capacity are derived by the backend from the synced run history — onboarding only asks for coach style (motivational/analytical/balanced) plus race specifics.
 
 ### 7. Design system
 
@@ -152,7 +170,7 @@ Warm earth-tone palette in `core/theme/app_theme.dart`:
 - `AppColors.cardBg` (#FFF9F0) — card background
 - `AppColors.lightTan` (#F5F0E8) — input backgrounds, dividers
 
-Bottom nav has 4 tabs: Dashboard, Schedule, AI Coach, Races.
+Bottom nav has 4 tabs: Dashboard, Schedule, AI Coach, Goals.
 
 ### 8. Floating bottom nav + floating CoachPromptBar — scroll bottom padding
 
@@ -301,25 +319,48 @@ flutter test
 
 ### Physical device setup
 
-The base URL is read from a `--dart-define` in `lib/core/api/dio_client.dart`, falling back to a hardcoded LAN IP for `flutter run`:
-```dart
-const String baseUrl = String.fromEnvironment(
-  'API_BASE_URL',
-  defaultValue: 'http://192.168.178.31:8000/api/v1',
-);
+The base URL is read from a `--dart-define` in `lib/core/api/dio_client.dart`. Default is `http://localhost:8001/api/v1` — fine for the simulator, useless on a physical iPhone (the iPhone's `localhost` is the iPhone, not your Mac).
+
+**Use `bash scripts/run-dev.sh`** instead of plain `flutter run` for physical-device testing. It auto-detects the Mac's LAN IP via `ipconfig getifaddr en0` (then `en1` for Ethernet), injects `--dart-define=API_BASE_URL=http://<ip>:8001/api/v1`, and forwards any extra flags to `flutter run`. Override the port with `PORT=8000 bash scripts/run-dev.sh` or the URL entirely with `API_BASE_URL=https://... bash scripts/run-dev.sh`.
+
+Make sure Laravel binds to all interfaces:
+```bash
+cd ../api
+php artisan serve --host=0.0.0.0 --port=8001
 ```
-Update the fallback to your Mac's LAN IP (`ipconfig getifaddr en0`) when testing on a physical iPhone. Also ensure Laravel is serving on all interfaces: `php artisan serve --host=0.0.0.0 --port=8000`. Simulator works with the LAN IP too.
 
-### Bundle identifier
+If the iPhone shows `Connection refused` even with the script, check (a) you're on the same Wi-Fi network and (b) the Mac's firewall isn't blocking incoming connections on port 8001.
 
-iOS bundle ID is `com.erwinwijnveld.runcoach` in `ios/Runner.xcodeproj/project.pbxproj`. This matches the developer team signing and must stay unique across the App Store.
+### Bundle identifier + Apple capabilities
+
+iOS bundle ID is `com.erwinwijnveld.runcoach` in `ios/Runner.xcodeproj/project.pbxproj`. This matches the developer team signing AND the `aud` claim the backend expects on Apple identity tokens (`config('services.apple.bundle_id')`).
+
+Two capabilities are baked into the project:
+- **Sign in with Apple** — `com.apple.developer.applesignin` (Default scope) in `ios/Runner/Runner.entitlements`
+- **HealthKit** — `com.apple.developer.healthkit` (with empty `healthkit.access` array meaning "all granted types") in the same file
+
+Both are referenced by `CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;` on all 3 Runner build configs (Debug/Release/Profile). The `SystemCapabilities` flags in `TargetAttributes` are cosmetic (Xcode UI only).
+
+**One-time Apple Developer portal setup:** the same two capabilities must ALSO be enabled on the App ID `com.erwinwijnveld.runcoach` at [developer.apple.com/account/resources/identifiers](https://developer.apple.com/account/resources/identifiers). Without that, code signing fails with "provisioning profile doesn't include the entitlement". With Automatic Signing, Xcode regenerates the profile automatically once the App ID is updated.
+
+Required Info.plist usage strings (already set):
+- `NSHealthShareUsageDescription` — copy shown in the iOS read-permission prompt
+- `NSHealthUpdateUsageDescription` — required even though we don't write to HealthKit
+
+**Deferred capabilities** (when adding background HealthKit delivery):
+- `com.apple.developer.healthkit.background-delivery` entitlement
+- `Background Modes` capability + check `Background fetch` + `Background processing`
+- App Store Review will ask for justification — describe the use case in the submission notes
 
 ### Release builds + TestFlight
 
-Two scripts in `app/scripts/` handle the release pipeline. Full flow + prereqs are documented in `../CLAUDE.md` → Deployment.
+Three scripts in `app/scripts/` handle dev + release:
 
+- **`bash scripts/run-dev.sh`** — auto-injects the Mac's LAN IP for `flutter run` against the local backend on a physical iPhone. See "Physical device setup" above.
 - **`bash scripts/build-ios.sh`** — runs `flutter build ipa --release --dart-define=API_BASE_URL=https://runcoach.free.laravel.cloud/api/v1`. Override the URL with `API_BASE_URL=... bash scripts/build-ios.sh`.
 - **`bash scripts/upload-ios.sh`** — validates + uploads to App Store Connect via `xcrun altool`. Credentials already configured on this machine (`APP_STORE_CONNECT_API_KEY_ID` + `APP_STORE_CONNECT_ISSUER_ID` in `~/.zshrc`, `.p8` key in `~/.appstoreconnect/private_keys/`). Just run the script.
+
+Full release flow + prereqs are documented in `../CLAUDE.md` → Deployment.
 
 Before every upload, bump the `+N` build number in `pubspec.yaml` — App Store Connect rejects duplicate build numbers.
 
@@ -351,5 +392,9 @@ dart run flutter_native_splash:create
 - **"View Details" / modal button does nothing** → `showModalBottomSheet` requires `DefaultMaterialLocalizations.delegate` in `app.dart`. Missing delegate = silent no-op.
 - **"`_Map<String, dynamic>` is not a subtype of `List<dynamic>?`"** when opening an old conversation → Anthropic stores `tool_results` keyed by step index (JSON object), not as an array. Use/update `CoachMessage.fromShowJson`-style normalization.
 - **Code gen not working** → run `dart run build_runner build --delete-conflicting-outputs` (the `--delete-conflicting-outputs` part matters)
-- **Tab bar visible / its shadow lingers on a detail screen** → the detail route's builder isn't wrapped in `HidesBottomNav`. See section 9 for the pattern. The underlying cause is the native `CNTabBar` UiKitView — its shadow bleeds through the iOS push transition unless the widget is removed from the tree before the animation starts.
-- **Gradient background doesn't reach the bottom on a detail screen** → you're using `Stack + Positioned` for the prompt bar instead of `Column + Expanded + docked SafeArea`. Switch to the Column pattern (section 9). Tab roots can use the floating `Positioned` pattern because they reserve scroll padding via `kBottomStackedReservedHeight`; detail screens can't because they have no tab bar beneath the prompt bar.
+- **Tab bar visible / its shadow lingers on a detail screen** → the detail route's builder isn't wrapped in `HidesBottomNav`. See section 9 for the pattern.
+- **Gradient background doesn't reach the bottom on a detail screen** → using `Stack + Positioned` for the prompt bar instead of `Column + Expanded + docked SafeArea`. Switch to the Column pattern (section 9).
+- **Sign-in flow ends up back on `/auth/welcome` with no error visible** → `loginWithApple` swallows backend errors into `AsyncValue.error(...)` and returns; without an error guard the screen would navigate to `/dashboard` and the router silently bounces to welcome. `AppleAuthScreen` now reads the auth state after the call and surfaces the error inline. If you see this regress, check `apple_auth_screen.dart`.
+- **`DioException [connection error]: Connection refused, address = localhost, port = …`** on a physical iPhone → you ran `flutter run` instead of `bash scripts/run-dev.sh`. The default URL points at `localhost:8001`, which on the iPhone means *the iPhone itself*. Use the wrapper script to inject the Mac's LAN IP.
+- **Apple Sign-In dialog opens but returns a 401 from the backend** → check (a) `services.apple.bundle_id` in the API matches the iOS bundle id `com.erwinwijnveld.runcoach`, (b) the device clock is correct (Apple JWTs have tight expiry), (c) `tail -f api/storage/logs/laravel.log` for the `InvalidAppleIdentityTokenException` message (it spells out which validation step failed: signature/issuer/audience/expiry).
+- **HealthKit permission prompt never appears** → first check Info.plist has `NSHealthShareUsageDescription`. Then check the App ID has the HealthKit capability enabled at developer.apple.com — if not, the system silently no-ops the request. Apple's `hasPermissions(READ)` always returns null/false for privacy reasons even after grant; don't rely on it as a check.
