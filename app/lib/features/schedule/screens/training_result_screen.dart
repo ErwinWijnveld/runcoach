@@ -103,7 +103,7 @@ class TrainingResultScreen extends ConsumerWidget {
                   const SizedBox(height: 24),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _UnlinkStravaButton(dayId: dayId),
+                    child: _UnlinkActivityButton(dayId: dayId),
                   ),
                 ],
               ),
@@ -528,20 +528,19 @@ Color _scoreColor(double score01) {
   return AppColors.danger;
 }
 
-/// Danger-style button that unlinks the Strava run from this training day.
-/// On success pops the result screen (since there's no longer a result to
-/// show) and invalidates the schedule providers so the detail screen and
-/// weekly list refresh to their unmatched state.
-class _UnlinkStravaButton extends ConsumerStatefulWidget {
+/// Danger-style button that unlinks the wearable activity from this training
+/// day. On success pops the result screen (since there's no longer a result
+/// to show) and invalidates the schedule providers.
+class _UnlinkActivityButton extends ConsumerStatefulWidget {
   final int dayId;
-  const _UnlinkStravaButton({required this.dayId});
+  const _UnlinkActivityButton({required this.dayId});
 
   @override
-  ConsumerState<_UnlinkStravaButton> createState() =>
-      _UnlinkStravaButtonState();
+  ConsumerState<_UnlinkActivityButton> createState() =>
+      _UnlinkActivityButtonState();
 }
 
-class _UnlinkStravaButtonState extends ConsumerState<_UnlinkStravaButton> {
+class _UnlinkActivityButtonState extends ConsumerState<_UnlinkActivityButton> {
   bool _busy = false;
 
   Future<void> _confirmAndUnlink() async {
@@ -550,9 +549,9 @@ class _UnlinkStravaButtonState extends ConsumerState<_UnlinkStravaButton> {
     final confirmed = await showCupertinoDialog<bool>(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
-        title: const Text('Unlink Strava run?'),
+        title: const Text('Unlink activity?'),
         content: const Text(
-            'The run stays in your Strava history; it just stops being matched to this training day.'),
+            'The run stays in Apple Health; it just stops being matched to this training day.'),
         actions: [
           CupertinoDialogAction(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -572,7 +571,7 @@ class _UnlinkStravaButtonState extends ConsumerState<_UnlinkStravaButton> {
     setState(() => _busy = true);
     try {
       await ref
-          .read(manualMatchStravaActivityProvider.notifier)
+          .read(manualMatchActivityProvider.notifier)
           .unlink(dayId: widget.dayId);
 
       if (!mounted) return;
@@ -580,10 +579,8 @@ class _UnlinkStravaButtonState extends ConsumerState<_UnlinkStravaButton> {
       ref.invalidate(trainingDayResultProvider(widget.dayId));
       ref.invalidate(scheduleProvider);
       ref.invalidate(currentWeekProvider);
-      ref.invalidate(availableStravaActivitiesProvider(widget.dayId));
+      ref.invalidate(availableActivitiesProvider(widget.dayId));
 
-      // The result screen has nothing to show anymore — pop back to the day
-      // detail. Fallback to the schedule tab if we're the root.
       if (context.canPop()) {
         context.pop();
       } else {
@@ -611,7 +608,7 @@ class _UnlinkStravaButtonState extends ConsumerState<_UnlinkStravaButton> {
   @override
   Widget build(BuildContext context) {
     return AppFilledButton(
-      label: 'Unlink Strava run',
+      label: 'Unlink activity',
       icon: CupertinoIcons.link,
       color: AppColors.danger,
       loading: _busy,

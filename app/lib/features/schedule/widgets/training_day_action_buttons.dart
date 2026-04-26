@@ -5,18 +5,18 @@ import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/schedule/widgets/training_day_status.dart';
 
 /// State-aware action row under the stat tiles.
-/// - missed / today / upcoming: Send to watch + Select Strava run (side by side)
+/// - missed / today / upcoming: Send to watch + Pick activity (side by side)
 /// - completed: Send to watch (full-width)
 class TrainingDayActionButtons extends StatelessWidget {
   final TrainingDayStatus status;
   final VoidCallback? onSendToWatch;
-  final VoidCallback? onSelectStravaRun;
+  final VoidCallback? onSelectActivity;
 
   const TrainingDayActionButtons({
     super.key,
     required this.status,
     required this.onSendToWatch,
-    required this.onSelectStravaRun,
+    required this.onSelectActivity,
   });
 
   @override
@@ -26,7 +26,7 @@ class TrainingDayActionButtons extends StatelessWidget {
       onPressed: onSendToWatch,
     );
 
-    if (!status.showSelectStravaRun) {
+    if (!status.showSelectActivity) {
       return SizedBox(width: double.infinity, child: sendToWatch);
     }
 
@@ -36,8 +36,8 @@ class TrainingDayActionButtons extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: _PrimaryButton(
-            label: 'SELECT STRAVA RUN',
-            onPressed: onSelectStravaRun,
+            label: 'PICK ACTIVITY',
+            onPressed: onSelectActivity,
           ),
         ),
       ],

@@ -6,6 +6,10 @@
 		<true/>
 		<key>ITSAppUsesNonExemptEncryption</key>
 		<false/>
+		<key>NSHealthShareUsageDescription</key>
+		<string>RunCoach reads your running workouts and heart-rate data from Apple Health to score your training, give per-run feedback and adapt your plan.</string>
+		<key>NSHealthUpdateUsageDescription</key>
+		<string>RunCoach does not write data to Apple Health.</string>
 		<key>CFBundleDevelopmentRegion</key>
 		<string>$(DEVELOPMENT_LANGUAGE)</string>
 		<key>CFBundleDisplayName</key>

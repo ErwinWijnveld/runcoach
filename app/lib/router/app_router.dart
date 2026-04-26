@@ -10,7 +10,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/auth/screens/welcome_screen.dart';
-import 'package:app/features/auth/screens/strava_auth_screen.dart';
+import 'package:app/features/auth/screens/apple_auth_screen.dart';
 import 'package:app/features/dashboard/screens/dashboard_screen.dart';
 import 'package:app/features/schedule/screens/weekly_plan_screen.dart';
 import 'package:app/features/schedule/screens/training_day_detail_screen.dart';
@@ -20,6 +20,7 @@ import 'package:app/features/coach/screens/coach_chat_screen.dart';
 import 'package:app/features/goals/screens/goal_list_screen.dart';
 import 'package:app/features/goals/screens/goal_detail_screen.dart';
 import 'package:app/features/onboarding/models/plan_generation.dart';
+import 'package:app/features/onboarding/screens/onboarding_connect_health_screen.dart';
 import 'package:app/features/onboarding/screens/onboarding_overview_screen.dart';
 import 'package:app/features/onboarding/screens/onboarding_form_screen.dart';
 import 'package:app/features/onboarding/screens/onboarding_generating_screen.dart';
@@ -109,13 +110,18 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) => const WelcomeScreen(),
       ),
       GoRoute(
-        path: '/auth/strava',
-        builder: (context, state) => const StravaAuthScreen(),
+        path: '/auth/apple',
+        builder: (context, state) => const AppleAuthScreen(),
       ),
       GoRoute(
         path: '/onboarding',
-        redirect: (context, state) =>
-            state.matchedLocation == '/onboarding' ? '/onboarding/overview' : null,
+        redirect: (context, state) => state.matchedLocation == '/onboarding'
+            ? '/onboarding/connect-health'
+            : null,
+      ),
+      GoRoute(
+        path: '/onboarding/connect-health',
+        builder: (context, state) => const OnboardingConnectHealthScreen(),
       ),
       GoRoute(
         path: '/onboarding/overview',

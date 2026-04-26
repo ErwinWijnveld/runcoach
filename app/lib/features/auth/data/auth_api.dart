@@ -10,11 +10,8 @@ part 'auth_api.g.dart';
 abstract class AuthApi {
   factory AuthApi(Dio dio) = _AuthApi;
 
-  @GET('/auth/strava/redirect')
-  Future<dynamic> getRedirectUrl();
-
-  @GET('/auth/strava/callback')
-  Future<AuthResponse> callback(@Query('code') String code);
+  @POST('/auth/apple')
+  Future<AuthResponse> appleSignIn(@Body() Map<String, dynamic> body);
 
   @POST('/auth/dev-login')
   Future<AuthResponse> devLogin();
@@ -30,7 +27,6 @@ abstract class AuthApi {
 
   @PUT('/profile')
   Future<dynamic> updateProfile(@Body() Map<String, dynamic> body);
-
 }
 
 @riverpod

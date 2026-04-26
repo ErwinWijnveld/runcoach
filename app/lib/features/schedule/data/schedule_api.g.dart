@@ -104,7 +104,7 @@ class _ScheduleApi implements ScheduleApi {
   }
 
   @override
-  Future<dynamic> getAvailableStravaActivities(int dayId) async {
+  Future<dynamic> getAvailableActivities(int dayId) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
@@ -125,10 +125,7 @@ class _ScheduleApi implements ScheduleApi {
   }
 
   @override
-  Future<dynamic> matchStravaActivity(
-    int dayId,
-    Map<String, dynamic> body,
-  ) async {
+  Future<dynamic> matchActivity(int dayId, Map<String, dynamic> body) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};
@@ -150,7 +147,7 @@ class _ScheduleApi implements ScheduleApi {
   }
 
   @override
-  Future<void> unlinkStravaActivity(int dayId) async {
+  Future<void> unlinkActivity(int dayId) async {
     final _extra = <String, dynamic>{};
     final queryParameters = <String, dynamic>{};
     final _headers = <String, dynamic>{};

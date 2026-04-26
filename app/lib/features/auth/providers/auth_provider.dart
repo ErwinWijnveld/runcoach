@@ -44,11 +44,22 @@ class Auth extends _$Auth {
     }
   }
 
-  Future<void> loginWithStrava(String code) async {
+  /// Exchange an Apple identity token (from sign_in_with_apple) for a Sanctum
+  /// bearer. `email` and `name` are only present on the *first* Apple sign-in
+  /// per user; subsequent sign-ins return only the `sub`.
+  Future<void> loginWithApple({
+    required String identityToken,
+    String? email,
+    String? name,
+  }) async {
     state = const AsyncValue.loading();
     try {
       final api = ref.read(authApiProvider);
-      final response = await api.callback(code);
+      final response = await api.appleSignIn({
+        'identity_token': identityToken,
+        if (email != null && email.isNotEmpty) 'email': email,
+        if (name != null && name.isNotEmpty) 'name': name,
+      });
 
       final tokenStorage = ref.read(tokenStorageProvider);
       await tokenStorage.setToken(response.token);
@@ -92,8 +103,7 @@ class Auth extends _$Auth {
   /// Lets the onboarding screen update local state synchronously before
   /// navigating to the chat — without this, the router's redirect would
   /// see stale `processing` status and bounce the user back to the loading
-  /// screen mid-navigation. The next /profile call (next dashboard load,
-  /// proposal accept, etc.) will reconcile from the server anyway.
+  /// screen mid-navigation.
   void patchPendingPlanGeneration(PlanGeneration? row) {
     final current = state.value;
     if (current == null) return;

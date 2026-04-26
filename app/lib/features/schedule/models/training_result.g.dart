@@ -17,10 +17,10 @@ _TrainingResult _$TrainingResultFromJson(Map<String, dynamic> json) =>
       distanceScore: toDouble(json['distance_score']),
       heartRateScore: toDoubleOrNull(json['heart_rate_score']),
       aiFeedback: json['ai_feedback'] as String?,
-      stravaActivity: json['strava_activity'] == null
+      wearableActivity: json['wearable_activity'] == null
           ? null
-          : StravaActivitySummary.fromJson(
-              json['strava_activity'] as Map<String, dynamic>,
+          : WearableActivitySummary.fromJson(
+              json['wearable_activity'] as Map<String, dynamic>,
             ),
     );
 
@@ -35,5 +35,5 @@ Map<String, dynamic> _$TrainingResultToJson(_TrainingResult instance) =>
       'distance_score': instance.distanceScore,
       'heart_rate_score': instance.heartRateScore,
       'ai_feedback': instance.aiFeedback,
-      'strava_activity': instance.stravaActivity,
+      'wearable_activity': instance.wearableActivity,
     };
