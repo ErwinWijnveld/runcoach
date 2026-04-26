@@ -1,9 +1,15 @@
 import 'package:flutter/cupertino.dart';
-import 'package:app/core/theme/app_theme.dart';
 
-/// Standard scaffold with the warm cream-to-gold onboarding gradient applied
-/// across the whole screen. Used as the default background for every primary
-/// route so the app has a single coherent look.
+/// Thin wrapper around `CupertinoPageScaffold` for screens that want the
+/// app's cream → gold gradient background. The gradient itself is now
+/// applied globally in `RunCoachApp.builder` (app.dart) — this widget just
+/// keeps the scaffold transparent so the gradient shows through, and
+/// exists as a stable callsite for the dozens of screens that already
+/// use it.
+///
+/// New screens can use `CupertinoPageScaffold` directly (its transparent
+/// theme background means the global gradient already shows through);
+/// `GradientScaffold` is kept around for backwards compatibility.
 class GradientScaffold extends StatelessWidget {
   final Widget child;
 
@@ -13,10 +19,7 @@ class GradientScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       backgroundColor: CupertinoColors.transparent,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(gradient: AppColors.onboardingGradient),
-        child: child,
-      ),
+      child: child,
     );
   }
 }

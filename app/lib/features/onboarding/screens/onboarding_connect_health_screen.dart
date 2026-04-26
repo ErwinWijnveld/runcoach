@@ -101,25 +101,22 @@ class _OnboardingConnectHealthScreenState
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       backgroundColor: CupertinoColors.transparent,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(gradient: AppColors.onboardingGradient),
-        child: SafeArea(
-          child: Column(
-            children: [
-              const SizedBox(
-                height: 56,
-                child: Center(
-                  child: RunCoreLogo(starSize: 22, textSize: 22, gap: 8),
-                ),
+      child: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(
+              height: 56,
+              child: Center(
+                child: RunCoreLogo(starSize: 22, textSize: 22, gap: 8),
               ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                  child: _body(),
-                ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                child: _body(),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

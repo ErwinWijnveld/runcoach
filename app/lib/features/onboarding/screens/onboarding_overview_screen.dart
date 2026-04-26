@@ -20,32 +20,30 @@ class OnboardingOverviewScreen extends ConsumerWidget {
     final profileAsync = ref.watch(onboardingProfileControllerProvider);
 
     return CupertinoPageScaffold(
+      // Background gradient applied globally via RunCoachApp.builder.
       backgroundColor: CupertinoColors.transparent,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(gradient: AppColors.onboardingGradient),
-        child: SafeArea(
-          child: Column(
-            children: [
-              const SizedBox(
-                height: 56,
-                child: Center(
-                  child: RunCoreLogo(starSize: 22, textSize: 22, gap: 8),
+      child: SafeArea(
+        child: Column(
+          children: [
+            const SizedBox(
+              height: 56,
+              child: Center(
+                child: RunCoreLogo(starSize: 22, textSize: 22, gap: 8),
+              ),
+            ),
+            Expanded(
+              child: profileAsync.when(
+                data: (profile) => _OverviewBody(profile: profile),
+                loading: () => const _SyncingState(),
+                error: (e, _) => _ErrorState(
+                  message: e.toString(),
+                  onRetry: () => ref
+                      .read(onboardingProfileControllerProvider.notifier)
+                      .refresh(),
                 ),
               ),
-              Expanded(
-                child: profileAsync.when(
-                  data: (profile) => _OverviewBody(profile: profile),
-                  loading: () => const _SyncingState(),
-                  error: (e, _) => _ErrorState(
-                    message: e.toString(),
-                    onRetry: () => ref
-                        .read(onboardingProfileControllerProvider.notifier)
-                        .refresh(),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

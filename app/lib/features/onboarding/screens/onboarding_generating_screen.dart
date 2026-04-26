@@ -206,21 +206,18 @@ class _OnboardingGeneratingScreenState
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       backgroundColor: CupertinoColors.transparent,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(gradient: AppColors.onboardingGradient),
-        child: SafeArea(
-          child: _errorMessage != null
-              ? _ErrorBody(
-                  message: _errorMessage!,
-                  onRetry: _enqueue,
-                  onBack: () => context.go('/onboarding/form'),
-                )
-              : _LoadingBody(
-                  progress: _progress,
-                  stage: _stage,
-                  completed: _completed,
-                ),
-        ),
+      child: SafeArea(
+        child: _errorMessage != null
+            ? _ErrorBody(
+                message: _errorMessage!,
+                onRetry: _enqueue,
+                onBack: () => context.go('/onboarding/form'),
+              )
+            : _LoadingBody(
+                progress: _progress,
+                stage: _stage,
+                completed: _completed,
+              ),
       ),
     );
   }

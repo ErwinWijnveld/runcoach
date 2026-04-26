@@ -36,81 +36,78 @@ class StepScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
       backgroundColor: CupertinoColors.transparent,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(gradient: AppColors.onboardingGradient),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(
-                  height: 44,
-                  child: Row(
-                    children: [
-                      _BackChevron(onTap: onBack),
-                      Expanded(
-                        child: Center(
-                          child: ProgressDots(total: stepCount, current: stepIndex),
-                        ),
-                      ),
-                      const SizedBox(width: 36),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  title,
-                  style: RunCoreText.serifTitle(size: 32).copyWith(height: 1.15),
-                ),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    subtitle!,
-                    style: GoogleFonts.inter(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w400,
-                      color: AppColors.inkMuted,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 20),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: child,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                height: 44,
+                child: Row(
                   children: [
-                    if (onSkip != null)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 12),
-                        child: CupertinoButton(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          onPressed: onSkip,
-                          child: Text(
-                            'Skip',
-                            style: GoogleFonts.inter(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.inkMuted,
-                            ),
+                    _BackChevron(onTap: onBack),
+                    Expanded(
+                      child: Center(
+                        child: ProgressDots(total: stepCount, current: stepIndex),
+                      ),
+                    ),
+                    const SizedBox(width: 36),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                style: RunCoreText.serifTitle(size: 32).copyWith(height: 1.15),
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  subtitle!,
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w400,
+                    color: AppColors.inkMuted,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 20),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: child,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  if (onSkip != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: CupertinoButton(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        onPressed: onSkip,
+                        child: Text(
+                          'Skip',
+                          style: GoogleFonts.inter(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.inkMuted,
                           ),
                         ),
                       ),
-                    Expanded(
-                      child: _PrimaryButton(
-                        label: continueLabel,
-                        enabled: canContinue,
-                        onTap: onContinue,
-                      ),
                     ),
-                  ],
-                ),
-              ],
-            ),
+                  Expanded(
+                    child: _PrimaryButton(
+                      label: continueLabel,
+                      enabled: canContinue,
+                      onTap: onContinue,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),

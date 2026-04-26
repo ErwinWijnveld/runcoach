@@ -10,7 +10,10 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      backgroundColor: AppColors.neutral,
+      // backgroundColor inherited from CupertinoTheme.scaffoldBackgroundColor
+      // (transparent), so the global cream → gold gradient set in
+      // RunCoachApp.builder shows through. Glow blobs sit on top.
+      backgroundColor: CupertinoColors.transparent,
       child: Stack(
         children: [
           const _BackgroundGlow(),
