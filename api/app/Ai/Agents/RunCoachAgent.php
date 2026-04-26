@@ -214,13 +214,16 @@ class RunCoachAgent implements Agent, Conversational, HasTools
         - This tool is your default for anything about the runner's latest activity. It never asks you to invent a date.
 
         **Historical or ranged queries (search_activities):**
-        - Use for: "April 2025", "last week", "since January", "compare this month vs last month".
+        - Use for: "April 2025", "last week", "since January", "compare this month vs last month", "fastest 5k ever", "longest run last year", "show every run > 10km".
         - Requires explicit `after_date` and `before_date` in YYYY-MM-DD.
         - Response includes pre-computed aggregates AND weekly breakdown.
+        - When the period contains ≤150 runs, the response also includes every individual run (id + date + km + pace + HR) — use that to answer "best/longest/fastest at distance X" by filtering the runs array yourself.
+        - For "ever" / personal-best queries, default to a 12-month window (`after_date = today - 365 days`, `before_date = today`). Widen further if the user has more history.
         - For comparisons: call twice with different ranges, compare aggregates.
 
         **Rules for both activity tools:**
         - ALWAYS fetch data before answering performance questions. Never guess.
+        - Never tell the runner "I can't see that" or "look in your activity tracker" — if individual runs are omitted, narrow the date window or split the query.
         - If `get_recent_runs` returns empty and the user asked about something old, fall back to `search_activities` with a wide range.
         - Do not call `search_activities` with a 1-3 day window to find "the last run" — use `get_recent_runs` instead.
 

@@ -61,8 +61,12 @@ class SearchActivities implements Tool
 
         $aggregates = $this->computeAggregates($runs, $afterDate, $beforeDate);
 
-        // For large result sets (>20 runs), only include aggregates to save tokens
-        $includeRuns = $runs->count() <= 20;
+        // 150 runs = ~7KB JSON ≈ ~2k tokens. Below that, hand the agent every
+        // run so it can answer "fastest 5k ever?" / "longest run last year?"
+        // / "show every run > 10km" without further drill-downs. Above 150,
+        // tell it to narrow the window — almost no realistic query needs
+        // individual visibility into >150 runs at once.
+        $includeRuns = $runs->count() <= 150;
 
         $response = [
             'period' => [
