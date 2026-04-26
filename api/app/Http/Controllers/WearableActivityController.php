@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\GoalStatus;
 use App\Jobs\ProcessWearableActivity;
 use App\Models\WearableActivity;
 use Illuminate\Http\JsonResponse;
@@ -66,6 +67,14 @@ class WearableActivityController extends Controller
         $created = 0;
         $updated = 0;
 
+        // Matching needs an active goal. During onboarding (and for users
+        // who haven't accepted a plan yet) every dispatched job would no-op
+        // inside ComplianceScoringService — 75 historical workouts on first
+        // sign-in spawned 75 worthless jobs. Compute once per request.
+        $hasActiveGoal = $user->goals()
+            ->where('status', GoalStatus::Active)
+            ->exists();
+
         foreach ($request->input('activities', []) as $payload) {
             $distance = (int) $payload['distance_meters'];
             $duration = (int) $payload['duration_seconds'];
@@ -98,11 +107,16 @@ class WearableActivityController extends Controller
 
             if ($activity->wasRecentlyCreated) {
                 $created++;
-                // Only dispatch on create — re-pushes (user reopens the
-                // connect-health screen) shouldn't spawn N no-op jobs that
-                // re-walk the matching+scoring pipeline for activities that
-                // already have a TrainingResult.
-                ProcessWearableActivity::dispatch($activity->id);
+                // Only dispatch on create AND when there's a schedule the
+                // activity could possibly match. Re-pushes already match
+                // their result; new activities pushed before the user has
+                // an active plan can't match anything (and once a plan is
+                // accepted later, only newly-arriving activities matter —
+                // historical activities are already past the plan's date
+                // window).
+                if ($hasActiveGoal) {
+                    ProcessWearableActivity::dispatch($activity->id);
+                }
             } else {
                 $updated++;
             }

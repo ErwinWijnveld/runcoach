@@ -48,6 +48,19 @@ class WearableActivityIngestionTest extends TestCase
         ], $overrides);
     }
 
+    /**
+     * Seed an active goal so the controller's "skip dispatch when no plan"
+     * guard doesn't suppress the ProcessWearableActivity jobs the dispatch
+     * tests need to assert on.
+     */
+    private function giveUserAnActivePlan(User $user): void
+    {
+        Goal::factory()->create([
+            'user_id' => $user->id,
+            'status' => GoalStatus::Active,
+        ]);
+    }
+
     public function test_unauthenticated_request_is_rejected(): void
     {
         $this->postJson('/api/v1/wearable/activities', ['activities' => [$this->payload()]])
@@ -58,6 +71,7 @@ class WearableActivityIngestionTest extends TestCase
     {
         Queue::fake();
         [$user, $headers] = $this->authUser();
+        $this->giveUserAnActivePlan($user);
 
         $response = $this->postJson(
             '/api/v1/wearable/activities',
@@ -79,6 +93,25 @@ class WearableActivityIngestionTest extends TestCase
         $this->assertSame(360, WearableActivity::first()->average_pace_seconds_per_km);
 
         Queue::assertPushed(ProcessWearableActivity::class);
+    }
+
+    public function test_skips_processing_jobs_when_user_has_no_active_plan(): void
+    {
+        // 75 historical workouts on first sign-in used to spawn 75 no-op
+        // jobs (no plan exists yet to match against). Skip dispatch entirely
+        // until the user has an active goal.
+        Queue::fake();
+        [, $headers] = $this->authUser();
+
+        $this->postJson('/api/v1/wearable/activities', [
+            'activities' => [
+                $this->payload(['source_activity_id' => 'a']),
+                $this->payload(['source_activity_id' => 'b']),
+                $this->payload(['source_activity_id' => 'c']),
+            ],
+        ], $headers)->assertStatus(201)->assertJson(['created' => 3]);
+
+        Queue::assertNotPushed(ProcessWearableActivity::class);
     }
 
     public function test_is_idempotent_on_source_activity_id(): void
@@ -111,10 +144,11 @@ class WearableActivityIngestionTest extends TestCase
         )->assertStatus(422);
     }
 
-    public function test_dispatches_processing_job_per_activity(): void
+    public function test_dispatches_processing_job_per_new_activity(): void
     {
         Queue::fake();
-        [, $headers] = $this->authUser();
+        [$user, $headers] = $this->authUser();
+        $this->giveUserAnActivePlan($user);
 
         $this->postJson('/api/v1/wearable/activities', [
             'activities' => [
@@ -179,7 +213,8 @@ class WearableActivityIngestionTest extends TestCase
     public function test_re_pushing_same_activity_does_not_dispatch_a_second_job(): void
     {
         Queue::fake();
-        [, $headers] = $this->authUser();
+        [$user, $headers] = $this->authUser();
+        $this->giveUserAnActivePlan($user);
 
         $payload = $this->payload();
 
