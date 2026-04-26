@@ -537,7 +537,6 @@ class _GoalTimeStepState extends ConsumerState<_GoalTimeStep> {
         ? ''
         : _formatSecondsToHuman(widget.form.goalTimeSeconds!),
   );
-  bool _prefillApplied = false;
 
   @override
   void dispose() {
@@ -550,41 +549,11 @@ class _GoalTimeStepState extends ConsumerState<_GoalTimeStep> {
     final notifier = ref.read(onboardingFormProvider.notifier);
     final parsed = parseGoalTimeInput(_ctrl.text, widget.form.distanceMeters);
 
-    // Auto-prefill the field with the runner's PR at the chosen distance
-    // (HealthKit query, cached per-distance). Only when the field is empty
-    // and the user hasn't already typed anything — never overwrite user
-    // input. Triggers once per distance change.
-    final distanceMeters = widget.form.distanceMeters;
-    if (distanceMeters != null && !_prefillApplied && _ctrl.text.trim().isEmpty) {
-      ref.listen(personalRecordForDistanceProvider(distanceMeters), (_, next) {
-        next.whenData((pr) {
-          if (!mounted || _prefillApplied) return;
-          if (_ctrl.text.trim().isNotEmpty) return;
-          if (pr == null) return;
-          final seconds = pr['duration_seconds'] as int?;
-          if (seconds == null) return;
-          setState(() {
-            _ctrl.text = _formatSecondsToHuman(seconds);
-            _prefillApplied = true;
-          });
-        });
-      });
-      // Kick off the query (also primes the family cache).
-      ref.watch(personalRecordForDistanceProvider(distanceMeters));
-    }
-
-    final prAsync = distanceMeters == null
-        ? null
-        : ref.watch(personalRecordForDistanceProvider(distanceMeters));
-    final prSeconds = prAsync?.value?['duration_seconds'] as int?;
-
     return StepScaffold(
       stepIndex: widget.stepIndex,
       stepCount: widget.stepCount,
       title: 'What goal time or pace are you aiming for?',
-      subtitle: prSeconds != null
-          ? 'Pre-filled from your fastest matching run in Apple Health. Adjust if you want to push past it.'
-          : 'Enter it however feels natural, we parse it.',
+      subtitle: 'Enter it however feels natural, we parse it.',
       canContinue: parsed != null,
       onSkip: () {
         widget.onContinue();
@@ -601,6 +570,17 @@ class _GoalTimeStepState extends ConsumerState<_GoalTimeStep> {
             controller: _ctrl,
             hint: 'e.g. 1:45:00, 25:30, or 5:30/km',
             onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 12),
+          _SuggestionChips(
+            distanceMeters: widget.form.distanceMeters,
+            currentText: _ctrl.text,
+            onTap: (s) {
+              setState(() {
+                _ctrl.text = s;
+                _ctrl.selection = TextSelection.collapsed(offset: s.length);
+              });
+            },
           ),
           const SizedBox(height: 10),
           _GoalTimePreview(
@@ -704,6 +684,17 @@ class _PrCurrentStepState extends ConsumerState<_PrCurrentStep> {
             controller: _ctrl,
             hint: 'e.g. 1:52:00 or 5:45/km',
             onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 12),
+          _SuggestionChips(
+            distanceMeters: widget.form.distanceMeters,
+            currentText: _ctrl.text,
+            onTap: (s) {
+              setState(() {
+                _ctrl.text = s;
+                _ctrl.selection = TextSelection.collapsed(offset: s.length);
+              });
+            },
           ),
           const SizedBox(height: 10),
           _GoalTimePreview(
@@ -1494,6 +1485,121 @@ class _GoalTimePreview extends StatelessWidget {
         style: GoogleFonts.inter(
           fontSize: 13,
           color: AppColors.inkMuted,
+        ),
+      ),
+    );
+  }
+}
+
+/// Horizontally-scrolling suggestion chips for goal time / PR inputs.
+///
+/// For canonical race distances we show common goal times (e.g. sub-20 5K,
+/// sub-4 marathon). For "Other" custom distances we fall back to pace chips
+/// (e.g. `5:30/km`) — the existing input parser handles both formats and
+/// converts pace × distance to total seconds.
+class _SuggestionChips extends StatelessWidget {
+  final int? distanceMeters;
+  final String currentText;
+  final ValueChanged<String> onTap;
+
+  const _SuggestionChips({
+    required this.distanceMeters,
+    required this.currentText,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final suggestions = _suggestionsFor(distanceMeters);
+    if (suggestions.isEmpty) return const SizedBox.shrink();
+
+    final cleaned = currentText.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final s in suggestions)
+            _SuggestionChip(
+              label: s,
+              selected: s.toLowerCase() == cleaned,
+              onTap: () => onTap(s),
+            ),
+        ],
+      ),
+    );
+  }
+
+  static List<String> _suggestionsFor(int? meters) {
+    if (meters == null) return const [];
+    switch (meters) {
+      case 5000:
+        return const ['18:00', '20:00', '22:30', '25:00', '27:30', '30:00', '35:00'];
+      case 10000:
+        return const ['40:00', '45:00', '50:00', '55:00', '1:00:00', '1:05:00', '1:10:00'];
+      case 21097:
+        return const ['1:30:00', '1:45:00', '2:00:00', '2:15:00', '2:30:00', '2:45:00'];
+      case 42195:
+        return const ['3:00:00', '3:30:00', '4:00:00', '4:30:00', '5:00:00', '5:30:00'];
+    }
+    // "Other" — paces scale to any custom distance via parseGoalTimeInput.
+    // 3:00/km (elite) → 9:00/km (walk-jog) in 30-second steps.
+    return const [
+      '3:00/km',
+      '3:30/km',
+      '4:00/km',
+      '4:30/km',
+      '5:00/km',
+      '5:30/km',
+      '6:00/km',
+      '6:30/km',
+      '7:00/km',
+      '7:30/km',
+      '8:00/km',
+      '8:30/km',
+      '9:00/km',
+    ];
+  }
+}
+
+class _SuggestionChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _SuggestionChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = selected ? AppColors.primaryInk : Colors.white;
+    final fg = selected ? AppColors.neutral : AppColors.primaryInk;
+    final borderColor = selected ? AppColors.primaryInk : AppColors.inputBorder;
+
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: borderColor, width: selected ? 1.5 : 1),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: fg,
+          ),
         ),
       ),
     );
