@@ -44,7 +44,7 @@ class RunningProfileService
             return $existing;
         }
 
-        if (! $user->stravaActivities()->exists()) {
+        if (! $user->wearableActivities()->exists()) {
             return null;
         }
 

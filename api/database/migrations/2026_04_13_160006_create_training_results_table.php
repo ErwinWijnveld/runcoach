@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('training_results', function (Blueprint $table) {
             $table->id();
             $table->foreignId('training_day_id')->unique()->constrained()->cascadeOnDelete();
-            $table->foreignId('strava_activity_id')->nullable()->constrained()->nullOnDelete();
+            $table->foreignId('wearable_activity_id')->nullable()->constrained()->nullOnDelete();
             $table->decimal('compliance_score', 3, 1);
             $table->decimal('actual_km', 5, 1);
             $table->unsignedInteger('actual_pace_seconds_per_km');

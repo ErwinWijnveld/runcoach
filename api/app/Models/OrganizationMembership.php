@@ -54,9 +54,9 @@ class OrganizationMembership extends Model
         return $this->hasMany(Goal::class, 'user_id', 'user_id');
     }
 
-    public function stravaActivities(): HasMany
+    public function wearableActivities(): HasMany
     {
-        return $this->hasMany(StravaActivity::class, 'user_id', 'user_id');
+        return $this->hasMany(WearableActivity::class, 'user_id', 'user_id');
     }
 
     public function coach(): BelongsTo

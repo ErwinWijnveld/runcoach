@@ -5,10 +5,10 @@ namespace Tests\Feature;
 use App\Enums\GoalStatus;
 use App\Enums\TrainingType;
 use App\Models\Goal;
-use App\Models\StravaActivity;
 use App\Models\TrainingDay;
 use App\Models\TrainingWeek;
 use App\Models\User;
+use App\Models\WearableActivity;
 use App\Services\ComplianceScoringService;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
@@ -52,10 +52,11 @@ class ComplianceScoringTest extends TestCase
     {
         [$user, $day] = $this->createUserWithPlan();
 
-        $activity = StravaActivity::factory()->create([
+        $activity = WearableActivity::factory()->create([
             'user_id' => $user->id,
             'distance_meters' => 8000,
-            'moving_time_seconds' => 2280,
+            'duration_seconds' => 2280,
+            'average_pace_seconds_per_km' => 285,
             'average_heartrate' => 160,
             'start_date' => now(),
         ]);
@@ -71,7 +72,7 @@ class ComplianceScoringTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $activity = StravaActivity::factory()->create([
+        $activity = WearableActivity::factory()->create([
             'user_id' => $user->id,
             'start_date' => now(),
         ]);
@@ -85,10 +86,11 @@ class ComplianceScoringTest extends TestCase
     {
         [$user, $day] = $this->createUserWithPlan();
 
-        $activity = StravaActivity::factory()->create([
+        $activity = WearableActivity::factory()->create([
             'user_id' => $user->id,
             'distance_meters' => 8000,
-            'moving_time_seconds' => 2280,
+            'duration_seconds' => 2280,
+            'average_pace_seconds_per_km' => 285,
             'average_heartrate' => null,
             'start_date' => now(),
         ]);
@@ -118,10 +120,11 @@ class ComplianceScoringTest extends TestCase
         ]);
 
         // 140 bpm — squarely within user's Z2 [120, 145]
-        $activity = StravaActivity::factory()->create([
+        $activity = WearableActivity::factory()->create([
             'user_id' => $user->id,
             'distance_meters' => 8000,
-            'moving_time_seconds' => 2280,
+            'duration_seconds' => 2280,
+            'average_pace_seconds_per_km' => 285,
             'average_heartrate' => 140,
             'start_date' => now(),
         ]);
@@ -150,10 +153,11 @@ class ComplianceScoringTest extends TestCase
         ]);
 
         // 160 bpm — 15 bpm above zone max → 10 - 15/5 = 7.0
-        $activity = StravaActivity::factory()->create([
+        $activity = WearableActivity::factory()->create([
             'user_id' => $user->id,
             'distance_meters' => 8000,
-            'moving_time_seconds' => 2280,
+            'duration_seconds' => 2280,
+            'average_pace_seconds_per_km' => 285,
             'average_heartrate' => 160,
             'start_date' => now(),
         ]);
@@ -172,10 +176,11 @@ class ComplianceScoringTest extends TestCase
             'target_heart_rate_zone' => 2, // default Z2: [115, 152]
         ]);
 
-        $activity = StravaActivity::factory()->create([
+        $activity = WearableActivity::factory()->create([
             'user_id' => $user->id,
             'distance_meters' => 8000,
-            'moving_time_seconds' => 2280,
+            'duration_seconds' => 2280,
+            'average_pace_seconds_per_km' => 285,
             'average_heartrate' => 140, // inside default Z2
             'start_date' => now(),
         ]);

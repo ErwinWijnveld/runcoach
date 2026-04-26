@@ -2,9 +2,9 @@
 
 namespace Database\Factories;
 
-use App\Models\StravaActivity;
 use App\Models\TrainingDay;
 use App\Models\TrainingResult;
+use App\Models\WearableActivity;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -21,7 +21,7 @@ class TrainingResultFactory extends Factory
     {
         return [
             'training_day_id' => TrainingDay::factory(),
-            'strava_activity_id' => StravaActivity::factory(),
+            'wearable_activity_id' => WearableActivity::factory(),
             'compliance_score' => fake()->randomFloat(1, 1, 10),
             'actual_km' => fake()->randomFloat(1, 2, 30),
             'actual_pace_seconds_per_km' => fake()->numberBetween(240, 420),

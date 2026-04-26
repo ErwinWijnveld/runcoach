@@ -17,7 +17,7 @@ class StravaController extends Controller
 
     public function activities(Request $request): JsonResponse
     {
-        $activities = $request->user()->stravaActivities()
+        $activities = $request->user()->wearableActivities()
             ->orderByDesc('start_date')
             ->paginate(30);
 
@@ -28,7 +28,7 @@ class StravaController extends Controller
     {
         $user = $request->user();
         $token = $user->stravaToken;
-        $lastActivity = $user->stravaActivities()->orderByDesc('synced_at')->first();
+        $lastActivity = $user->wearableActivities()->orderByDesc('synced_at')->first();
 
         return response()->json([
             'connected' => $token !== null,

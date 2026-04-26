@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\StravaActivity;
 use App\Models\User;
 use App\Models\UserRunningProfile;
+use App\Models\WearableActivity;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
@@ -58,7 +58,7 @@ class OnboardingProfileTest extends TestCase
         $owner = User::factory()->create();
         $viewer = User::factory()->create();
         UserRunningProfile::factory()->for($owner)->create();
-        StravaActivity::factory()->for($owner)->count(2)->create();
+        WearableActivity::factory()->for($owner)->count(2)->create();
 
         // Viewer has no own activities and no Strava token, so the inline
         // sync no-ops and the endpoint returns ready+empty rather than

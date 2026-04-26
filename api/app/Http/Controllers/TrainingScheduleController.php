@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Jobs\GenerateActivityFeedback;
 use App\Models\Goal;
-use App\Models\StravaActivity;
 use App\Models\TrainingDay;
 use App\Models\TrainingResult;
+use App\Models\WearableActivity;
 use App\Services\ComplianceScoringService;
 use App\Services\StravaSyncService;
 use Illuminate\Http\Client\RequestException;
@@ -46,7 +46,7 @@ class TrainingScheduleController extends Controller
         $day = TrainingDay::whereHas('trainingWeek.goal', function ($query) use ($request) {
             $query->where('user_id', $request->user()->id);
         })
-            ->with(['trainingWeek', 'result.stravaActivity'])
+            ->with(['trainingWeek', 'result.wearableActivity'])
             ->findOrFail($dayId);
 
         return response()->json(['data' => $day]);
@@ -58,7 +58,7 @@ class TrainingScheduleController extends Controller
             $query->where('user_id', $request->user()->id);
         })->findOrFail($dayId);
 
-        $result = $day->result?->load('stravaActivity');
+        $result = $day->result?->load('wearableActivity');
 
         return response()->json(['data' => $result]);
     }
@@ -115,21 +115,21 @@ class TrainingScheduleController extends Controller
 
         $runs = array_values(array_filter(
             $raw,
-            fn ($a) => in_array($a['type'] ?? null, StravaActivity::RUN_TYPES, true),
+            fn ($a) => in_array($a['type'] ?? null, WearableActivity::RUN_TYPES, true),
         ));
 
-        // Which of these are already synced (matched to any training day for this user)?
-        $stravaIds = array_map(fn ($a) => (int) $a['id'], $runs);
+        $sourceIds = array_map(fn ($a) => (string) $a['id'], $runs);
 
-        $matchedByStravaId = StravaActivity::query()
+        $matchedBySourceId = WearableActivity::query()
             ->where('user_id', $user->id)
-            ->whereIn('strava_id', $stravaIds)
-            ->with(['trainingResults:id,training_day_id,strava_activity_id'])
+            ->where('source', 'strava')
+            ->whereIn('source_activity_id', $sourceIds)
+            ->with(['trainingResults:id,training_day_id,wearable_activity_id'])
             ->get()
-            ->keyBy('strava_id');
+            ->keyBy('source_activity_id');
 
-        $payload = array_map(function (array $a) use ($matchedByStravaId) {
-            $activity = $matchedByStravaId->get($a['id']);
+        $payload = array_map(function (array $a) use ($matchedBySourceId) {
+            $activity = $matchedBySourceId->get((string) $a['id']);
             $matchedDayId = $activity?->trainingResults->first()?->training_day_id;
 
             return [
@@ -187,7 +187,7 @@ class TrainingScheduleController extends Controller
             abort(502, "Couldn't reach Strava. Please try again.");
         }
 
-        if (! in_array($activityData['type'] ?? null, StravaActivity::RUN_TYPES, true)) {
+        if (! in_array($activityData['type'] ?? null, WearableActivity::RUN_TYPES, true)) {
             abort(422, 'Only running activities can be matched to a training day.');
         }
 
@@ -201,32 +201,44 @@ class TrainingScheduleController extends Controller
             abort(403, 'That Strava activity belongs to another account.');
         }
 
+        $sourceActivityId = (string) $activityData['id'];
+
         // Refuse to clobber a local mirror row owned by someone else.
-        $existingActivity = StravaActivity::where('strava_id', $activityData['id'])->first();
+        $existingActivity = WearableActivity::where('source', 'strava')
+            ->where('source_activity_id', $sourceActivityId)
+            ->first();
         if ($existingActivity && $existingActivity->user_id !== $user->id) {
             abort(403, 'That Strava activity belongs to another account.');
         }
 
-        $activity = StravaActivity::updateOrCreate(
-            ['strava_id' => $activityData['id']],
+        $activity = WearableActivity::updateOrCreate(
+            [
+                'source' => 'strava',
+                'source_activity_id' => $sourceActivityId,
+            ],
             [
                 'user_id' => $user->id,
+                'source_user_id' => isset($activityData['athlete']['id']) ? (string) $activityData['athlete']['id'] : null,
                 'type' => $activityData['type'],
-                'name' => $activityData['name'],
+                'name' => $activityData['name'] ?? null,
                 'distance_meters' => (int) $activityData['distance'],
-                'moving_time_seconds' => $activityData['moving_time'],
-                'elapsed_time_seconds' => $activityData['elapsed_time'],
+                'duration_seconds' => (int) $activityData['moving_time'],
+                'elapsed_seconds' => (int) $activityData['elapsed_time'],
+                'average_pace_seconds_per_km' => $activityData['distance'] > 0
+                    ? (int) round($activityData['moving_time'] / ($activityData['distance'] / 1000))
+                    : 0,
                 'average_heartrate' => $activityData['average_heartrate'] ?? null,
-                'average_speed' => $activityData['average_speed'],
+                'max_heartrate' => $activityData['max_heartrate'] ?? null,
+                'elevation_gain_meters' => isset($activityData['total_elevation_gain']) ? (int) round($activityData['total_elevation_gain']) : null,
+                'calories_kcal' => isset($activityData['calories']) ? (int) round($activityData['calories']) : null,
                 'start_date' => $activityData['start_date'],
-                'summary_polyline' => $activityData['map']['summary_polyline'] ?? null,
                 'raw_data' => $activityData,
                 'synced_at' => now(),
             ],
         );
 
         // Refuse if this activity is already bound to a DIFFERENT day.
-        $existing = TrainingResult::where('strava_activity_id', $activity->id)->first();
+        $existing = TrainingResult::where('wearable_activity_id', $activity->id)->first();
         if ($existing && $existing->training_day_id !== $day->id) {
             abort(409, 'This Strava run is already matched to a different training day.');
         }
@@ -236,14 +248,14 @@ class TrainingScheduleController extends Controller
         GenerateActivityFeedback::dispatch($result->id);
 
         return response()->json([
-            'data' => $result->load('stravaActivity'),
+            'data' => $result->load('wearableActivity'),
         ]);
     }
 
     /**
-     * Remove the TrainingResult linking a Strava run to this day so the day
-     * goes back to "unmatched" state. The StravaActivity itself is kept —
-     * the user can re-match it (or a different run) from the modal.
+     * Remove the TrainingResult linking a wearable activity to this day so
+     * the day goes back to "unmatched" state. The WearableActivity itself is
+     * kept — the user can re-match it (or a different run) from the modal.
      */
     public function unlinkActivityFromDay(Request $request, int $dayId): JsonResponse
     {

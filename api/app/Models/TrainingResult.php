@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['training_day_id', 'strava_activity_id', 'compliance_score', 'actual_km', 'actual_pace_seconds_per_km', 'actual_avg_heart_rate', 'pace_score', 'distance_score', 'heart_rate_score', 'ai_feedback', 'matched_at'])]
+#[Fillable(['training_day_id', 'wearable_activity_id', 'compliance_score', 'actual_km', 'actual_pace_seconds_per_km', 'actual_avg_heart_rate', 'pace_score', 'distance_score', 'heart_rate_score', 'ai_feedback', 'matched_at'])]
 class TrainingResult extends Model
 {
     /** @use HasFactory<TrainingResultFactory> */
@@ -32,8 +32,8 @@ class TrainingResult extends Model
         return $this->belongsTo(TrainingDay::class);
     }
 
-    public function stravaActivity(): BelongsTo
+    public function wearableActivity(): BelongsTo
     {
-        return $this->belongsTo(StravaActivity::class);
+        return $this->belongsTo(WearableActivity::class);
     }
 }

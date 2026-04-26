@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\StravaActivity;
 use App\Models\StravaToken;
 use App\Models\User;
+use App\Models\WearableActivity;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
@@ -25,7 +25,7 @@ class StravaSyncTest extends TestCase
     public function test_manual_sync_dispatches_job(): void
     {
         Queue::fake();
-        [$user, $headers] = $this->authUser();
+        [, $headers] = $this->authUser();
 
         $response = $this->postJson('/api/v1/strava/sync', [], $headers);
 
@@ -35,7 +35,7 @@ class StravaSyncTest extends TestCase
     public function test_list_synced_activities(): void
     {
         [$user, $headers] = $this->authUser();
-        StravaActivity::factory()->count(3)->create(['user_id' => $user->id]);
+        WearableActivity::factory()->count(3)->create(['user_id' => $user->id]);
 
         $response = $this->getJson('/api/v1/strava/activities', $headers);
 
@@ -45,7 +45,7 @@ class StravaSyncTest extends TestCase
 
     public function test_strava_status(): void
     {
-        [$user, $headers] = $this->authUser();
+        [, $headers] = $this->authUser();
 
         $response = $this->getJson('/api/v1/strava/status', $headers);
 

@@ -3,19 +3,19 @@
 namespace App\Services;
 
 use App\Enums\GoalStatus;
-use App\Models\StravaActivity;
 use App\Models\TrainingDay;
 use App\Models\TrainingResult;
 use App\Models\User;
+use App\Models\WearableActivity;
 
 class ComplianceScoringService
 {
-    public function matchAndScore(User $user, StravaActivity $activity): ?TrainingResult
+    public function matchAndScore(User $user, WearableActivity $activity): ?TrainingResult
     {
         // If this activity is already matched to any training day (e.g. the
         // user manually matched before the webhook landed), don't create a
         // second result on a different day.
-        if (TrainingResult::where('strava_activity_id', $activity->id)->exists()) {
+        if (TrainingResult::where('wearable_activity_id', $activity->id)->exists()) {
             return null;
         }
 
@@ -29,14 +29,14 @@ class ComplianceScoringService
     }
 
     /**
-     * Score a Strava activity against an explicitly chosen training day and
-     * persist the TrainingResult. Used by the webhook path (via matchAndScore)
-     * AND by the manual "Select Strava run" endpoint.
+     * Score a wearable activity against an explicitly chosen training day and
+     * persist the TrainingResult. Used by the ingestion path (via matchAndScore)
+     * AND by the manual "Select activity" endpoint.
      *
      * Enforces that the activity belongs to the same user as the training
      * day — cheap runtime guard against programming errors in future callers.
      */
-    public function scoreDay(TrainingDay $day, StravaActivity $activity): TrainingResult
+    public function scoreDay(TrainingDay $day, WearableActivity $activity): TrainingResult
     {
         $dayUserId = $day->trainingWeek?->goal?->user_id;
         if ($dayUserId !== null && $activity->user_id !== $dayUserId) {
@@ -58,7 +58,7 @@ class ComplianceScoringService
         return TrainingResult::updateOrCreate(
             ['training_day_id' => $day->id],
             [
-                'strava_activity_id' => $activity->id,
+                'wearable_activity_id' => $activity->id,
                 'compliance_score' => round($overallScore, 1),
                 'actual_km' => $activity->distanceInKm(),
                 'actual_pace_seconds_per_km' => $activity->paceSecondsPerKm(),
@@ -71,7 +71,7 @@ class ComplianceScoringService
         );
     }
 
-    private function findMatchingDay(User $user, StravaActivity $activity): ?TrainingDay
+    private function findMatchingDay(User $user, WearableActivity $activity): ?TrainingDay
     {
         $candidates = TrainingDay::whereHas('trainingWeek.goal', function ($query) use ($user) {
             $query->where('user_id', $user->id)
@@ -103,7 +103,7 @@ class ComplianceScoringService
         })->first();
     }
 
-    private function calculatePaceScore(TrainingDay $day, StravaActivity $activity): float
+    private function calculatePaceScore(TrainingDay $day, WearableActivity $activity): float
     {
         if (! $day->target_pace_seconds_per_km) {
             return 7.0;
@@ -116,7 +116,7 @@ class ComplianceScoringService
         return max(1.0, min(10.0, 10.0 - ($deviationPercent / 2.2)));
     }
 
-    private function calculateDistanceScore(TrainingDay $day, StravaActivity $activity): float
+    private function calculateDistanceScore(TrainingDay $day, WearableActivity $activity): float
     {
         if (! $day->target_km) {
             return 7.0;
@@ -129,7 +129,7 @@ class ComplianceScoringService
         return max(1.0, min(10.0, 10.0 - ($deviation * 15)));
     }
 
-    private function calculateHeartRateScore(TrainingDay $day, StravaActivity $activity): ?float
+    private function calculateHeartRateScore(TrainingDay $day, WearableActivity $activity): ?float
     {
         if (! $activity->average_heartrate || ! $day->target_heart_rate_zone) {
             return null;
@@ -145,7 +145,7 @@ class ComplianceScoringService
         $min = (float) $zones[$targetIndex]['min'];
         $max = (float) $zones[$targetIndex]['max'];
 
-        // Zone 5's upper bound is -1 (open-ended) in Strava's representation.
+        // Zone 5's upper bound is -1 (open-ended) by convention.
         $insideZone = $avgHr >= $min && ($max < 0 || $avgHr <= $max);
         if ($insideZone) {
             return 10.0;
@@ -159,9 +159,9 @@ class ComplianceScoringService
     }
 
     /**
-     * Standard Strava-style HR zones used when the runner hasn't connected
-     * Strava yet or we couldn't fetch their custom zones. Matches Strava's
-     * default thresholds for an untrained athlete.
+     * Standard HR zones used when the runner hasn't connected a wearable yet
+     * or we couldn't derive their custom zones. Matches Strava's default
+     * thresholds for an untrained athlete.
      */
     private const DEFAULT_HR_ZONES = [
         ['min' => 0, 'max' => 115],
@@ -172,8 +172,8 @@ class ComplianceScoringService
     ];
 
     /**
-     * Resolve the zone table for a user. Prefers their Strava-fetched zones
-     * (stored on `users.heart_rate_zones`), falls back to defaults.
+     * Resolve the zone table for a user. Prefers their stored zones
+     * (`users.heart_rate_zones`), falls back to defaults.
      *
      * @return array<int, array{min:int|float, max:int|float}>
      */

@@ -3,8 +3,8 @@
 namespace App\Jobs;
 
 use App\Ai\Agents\ActivityFeedbackAgent;
-use App\Models\StravaActivity;
 use App\Models\TrainingResult;
+use App\Models\WearableActivity;
 use App\Services\StravaStreamSplits;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -20,7 +20,7 @@ class GenerateActivityFeedback implements ShouldQueue
 
     public function handle(StravaStreamSplits $splits): void
     {
-        $result = TrainingResult::with('trainingDay', 'stravaActivity.user.stravaToken')->find($this->trainingResultId);
+        $result = TrainingResult::with('trainingDay', 'wearableActivity.user.stravaToken')->find($this->trainingResultId);
 
         if (! $result || $result->ai_feedback) {
             return;
@@ -34,7 +34,7 @@ class GenerateActivityFeedback implements ShouldQueue
     private function buildPrompt(TrainingResult $result, StravaStreamSplits $splitsService): string
     {
         $day = $result->trainingDay;
-        $activity = $result->stravaActivity;
+        $activity = $result->wearableActivity;
 
         $target = collect([
             $day->target_km !== null ? "{$day->target_km}km" : null,
@@ -56,14 +56,26 @@ class GenerateActivityFeedback implements ShouldQueue
         ])->filter()->implode("\n");
     }
 
-    private function finegrainedSplitsLine(?StravaActivity $activity, StravaStreamSplits $splitsService): ?string
+    private function finegrainedSplitsLine(?WearableActivity $activity, StravaStreamSplits $splitsService): ?string
     {
-        $token = $activity?->user?->stravaToken;
-        if (! $activity || ! $token) {
+        // Splits via Strava's streams API only work for source='strava'
+        // activities (we have the user's OAuth token). Other sources (Apple
+        // HealthKit, Open Wearables) carry their own pre-computed splits in
+        // raw_data and will be handled separately when those paths land.
+        if (! $activity || $activity->source !== 'strava') {
             return null;
         }
 
-        $segments = $splitsService->compute($token, $activity->strava_id, $activity->distance_meters);
+        $token = $activity->user?->stravaToken;
+        if (! $token) {
+            return null;
+        }
+
+        $segments = $splitsService->compute(
+            $token,
+            (int) $activity->source_activity_id,
+            $activity->distance_meters,
+        );
         if (empty($segments)) {
             return null;
         }
@@ -93,12 +105,12 @@ class GenerateActivityFeedback implements ShouldQueue
 
     private function recentRuns(TrainingResult $result): ?string
     {
-        $activity = $result->stravaActivity;
+        $activity = $result->wearableActivity;
         if (! $activity) {
             return null;
         }
 
-        $runs = StravaActivity::query()
+        $runs = WearableActivity::query()
             ->where('user_id', $activity->user_id)
             ->where('id', '!=', $activity->id)
             ->orderByDesc('start_date')
@@ -109,7 +121,7 @@ class GenerateActivityFeedback implements ShouldQueue
             return null;
         }
 
-        $summary = $runs->map(function (StravaActivity $r) {
+        $summary = $runs->map(function (WearableActivity $r) {
             $km = round($r->distance_meters / 1000, 1);
             $line = "{$km}km @ {$this->pace($r->paceSecondsPerKm())}/km";
             if ($r->average_heartrate !== null) {

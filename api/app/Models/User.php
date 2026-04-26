@@ -57,9 +57,9 @@ class User extends Authenticatable implements FilamentUser
             ->latestOfMany('target_date');
     }
 
-    public function stravaActivities(): HasMany
+    public function wearableActivities(): HasMany
     {
-        return $this->hasMany(StravaActivity::class);
+        return $this->hasMany(WearableActivity::class);
     }
 
     public function runningProfile(): HasOne

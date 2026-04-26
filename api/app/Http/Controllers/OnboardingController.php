@@ -73,7 +73,7 @@ class OnboardingController extends Controller
     ): JsonResponse {
         $user = $request->user();
 
-        if (! $user->stravaActivities()->exists()) {
+        if (! $user->wearableActivities()->exists()) {
             (new SyncStravaHistory($user->id))->handle($stravaSyncService);
         }
 
