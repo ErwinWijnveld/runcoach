@@ -69,4 +69,70 @@ class RunningProfileServiceTest extends TestCase
         $this->assertSame('cached', $profile->narrative_summary);
         $this->assertEquals(99.9, $profile->metrics['weekly_avg_km']);
     }
+
+    public function test_aggregates_heart_rate_and_derives_personalized_zones(): void
+    {
+        $user = User::factory()->create(['heart_rate_zones' => null]);
+        $now = now();
+
+        // 5 runs with HR samples, 2 without — averages should ignore the
+        // null-HR runs and personalized zones should derive from observed
+        // max HR (185).
+        for ($i = 0; $i < 5; $i++) {
+            WearableActivity::factory()->create([
+                'user_id' => $user->id,
+                'type' => 'Run',
+                'distance_meters' => 5000,
+                'duration_seconds' => 1500,
+                'average_pace_seconds_per_km' => 300,
+                'average_heartrate' => 150 + $i,
+                'max_heartrate' => 175 + ($i * 2),
+                'start_date' => $now->copy()->subDays($i + 1),
+            ]);
+        }
+        // Manual / third-party imports without HR — must not skew averages.
+        WearableActivity::factory()->count(2)->create([
+            'user_id' => $user->id,
+            'average_heartrate' => null,
+            'max_heartrate' => null,
+            'start_date' => $now->copy()->subDays(60),
+        ]);
+
+        $profile = app(RunningProfileService::class)->analyze($user);
+
+        $this->assertSame(152, $profile->metrics['avg_heart_rate']);
+        $this->assertSame(183, $profile->metrics['max_heart_rate']);
+        $this->assertSame(5, $profile->metrics['hr_runs_count']);
+
+        // Zones: 60/70/80/90% of 183 = 110/128/146/165, Z5 max = -1.
+        $zones = $user->fresh()->heart_rate_zones;
+        $this->assertNotNull($zones);
+        $this->assertCount(5, $zones);
+        $this->assertSame(110, $zones[0]['max']);
+        $this->assertSame(165, $zones[3]['max']);
+        $this->assertSame(-1, $zones[4]['max']);
+    }
+
+    public function test_skips_zone_derivation_when_user_has_manual_zones(): void
+    {
+        $manual = [
+            ['min' => 0, 'max' => 100],
+            ['min' => 100, 'max' => 130],
+            ['min' => 130, 'max' => 150],
+            ['min' => 150, 'max' => 170],
+            ['min' => 170, 'max' => -1],
+        ];
+        $user = User::factory()->create(['heart_rate_zones' => $manual]);
+
+        WearableActivity::factory()->count(5)->create([
+            'user_id' => $user->id,
+            'average_heartrate' => 150,
+            'max_heartrate' => 200,
+        ]);
+
+        app(RunningProfileService::class)->analyze($user);
+
+        $this->assertSame($manual, $user->fresh()->heart_rate_zones,
+            "Don't clobber zones the user (or a future settings UI) set explicitly");
+    }
 }

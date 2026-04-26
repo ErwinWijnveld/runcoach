@@ -28,7 +28,35 @@ class RunningProfileService
         $profile->data_end_date = $end;
         $profile->save();
 
+        // Personalize HR zones from observed max HR. Apple Health doesn't
+        // expose HR zones the way Strava did — derive them from the runner's
+        // own data so compliance scoring stops falling back to generic
+        // defaults. Only update when we have enough HR samples and the user
+        // hasn't already set zones manually.
+        $maxHr = (int) ($profile->metrics['max_heart_rate'] ?? 0);
+        $hrRuns = (int) ($profile->metrics['hr_runs_count'] ?? 0);
+        if ($maxHr > 0 && $hrRuns >= 3 && empty($user->heart_rate_zones)) {
+            $user->forceFill(['heart_rate_zones' => $this->deriveZonesFromMaxHr($maxHr)])->save();
+        }
+
         return $profile;
+    }
+
+    /**
+     * Standard 5-zone split as percentages of max HR. Zone 5 max is -1
+     * (open-ended) to match the convention ComplianceScoringService uses.
+     *
+     * @return array<int, array{min:int, max:int}>
+     */
+    private function deriveZonesFromMaxHr(int $maxHr): array
+    {
+        return [
+            ['min' => 0, 'max' => (int) round($maxHr * 0.60)],
+            ['min' => (int) round($maxHr * 0.60), 'max' => (int) round($maxHr * 0.70)],
+            ['min' => (int) round($maxHr * 0.70), 'max' => (int) round($maxHr * 0.80)],
+            ['min' => (int) round($maxHr * 0.80), 'max' => (int) round($maxHr * 0.90)],
+            ['min' => (int) round($maxHr * 0.90), 'max' => -1],
+        ];
     }
 
     /**
@@ -90,6 +118,16 @@ class RunningProfileService
         }
         $consistency = (int) round(count($weeksWithRuns) / $weeks * 100);
 
+        // HR aggregates over the runs that actually have HR. Apple Health
+        // sometimes ships workouts without HR (manual entries, third-party
+        // imports, runs done without a watch) — exclude those rather than
+        // averaging in zeros. The agent uses these to reason about easy
+        // vs tempo zone targets in CreateSchedule.
+        $hrAvgs = $runs->pluck('average_heartrate')->filter(fn ($v) => $v !== null);
+        $hrMaxes = $runs->pluck('max_heartrate')->filter(fn ($v) => $v !== null);
+        $avgHeartRate = $hrAvgs->isNotEmpty() ? (int) round($hrAvgs->avg()) : null;
+        $maxHeartRate = $hrMaxes->isNotEmpty() ? (int) round($hrMaxes->max()) : null;
+
         return [
             'weekly_avg_km' => $weeklyAvgKm,
             'weekly_avg_runs' => $weeklyAvgRuns,
@@ -98,6 +136,9 @@ class RunningProfileService
             'total_runs_12mo' => $totalRuns,
             'total_distance_km_12mo' => $totalKm,
             'consistency_score' => $consistency,
+            'avg_heart_rate' => $avgHeartRate,
+            'max_heart_rate' => $maxHeartRate,
+            'hr_runs_count' => $hrAvgs->count(),
             'long_run_trend' => $this->trend($runs, fn (WearableActivity $r) => $r->distance_meters),
             'pace_trend' => $this->paceTrend($runs),
         ];
@@ -183,6 +224,12 @@ class RunningProfileService
             default => "Running has been sporadic lately, with a consistency score of {$consistency}.",
         };
 
+        $avgHr = (int) ($metrics['avg_heart_rate'] ?? 0);
+        $maxHr = (int) ($metrics['max_heart_rate'] ?? 0);
+        $hrLine = ($avgHr > 0 && $maxHr > 0)
+            ? "Your typical run heart rate is around {$avgHr} bpm with a peak of {$maxHr} — useful for calibrating easy vs hard efforts."
+            : null;
+
         $lines = [
             sprintf(
                 "Over the past 12 months you've logged %d runs covering %s km at a typical pace of %s/km.",
@@ -202,6 +249,10 @@ class RunningProfileService
         $trendLine = $this->buildTrendLine($longRunTrend, $paceTrend);
         if ($trendLine !== null) {
             $lines[] = $trendLine;
+        }
+
+        if ($hrLine !== null) {
+            $lines[] = $hrLine;
         }
 
         return implode(' ', $lines);

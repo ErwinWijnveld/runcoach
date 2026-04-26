@@ -158,6 +158,8 @@ class OnboardingPlanGeneratorService
             '- avg_pace_seconds_per_km: '.($metrics['avg_pace_seconds_per_km'] ?? 'unknown'),
             '- weekly_avg_runs: '.($metrics['weekly_avg_runs'] ?? 'unknown'),
             '- consistency_score: '.($metrics['consistency_score'] ?? 'unknown').'/100',
+            '- avg_heart_rate: '.($metrics['avg_heart_rate'] ?? 'unknown').' bpm',
+            '- max_heart_rate: '.($metrics['max_heart_rate'] ?? 'unknown').' bpm',
             '- long_run_trend: '.($metrics['long_run_trend'] ?? 'unknown'),
             '- pace_trend: '.($metrics['pace_trend'] ?? 'unknown'),
         ];
