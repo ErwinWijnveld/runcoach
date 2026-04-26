@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('strava_profile_url')->nullable();
             $table->string('coach_style')->default('balanced');
             $table->boolean('has_completed_onboarding')->default(false);
+            $table->boolean('is_superadmin')->default(false)->index();
             // Heart-rate zones fetched from Strava's /athlete/zones endpoint.
             // Shape: [{ "min": int, "max": int } ...] — zone N is index N-1.
             // Null until the user connects Strava and we fetch them.

@@ -19,6 +19,19 @@ _User _$UserFromJson(Map<String, dynamic> json) => _User(
       : PlanGeneration.fromJson(
           json['pending_plan_generation'] as Map<String, dynamic>,
         ),
+  currentMembership: json['current_membership'] == null
+      ? null
+      : Membership.fromJson(json['current_membership'] as Map<String, dynamic>),
+  pendingInvites:
+      (json['pending_invites'] as List<dynamic>?)
+          ?.map((e) => Membership.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  pendingRequests:
+      (json['pending_requests'] as List<dynamic>?)
+          ?.map((e) => Membership.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
 );
 
 Map<String, dynamic> _$UserToJson(_User instance) => <String, dynamic>{
@@ -30,4 +43,7 @@ Map<String, dynamic> _$UserToJson(_User instance) => <String, dynamic>{
   'coach_style': instance.coachStyle,
   'has_completed_onboarding': instance.hasCompletedOnboarding,
   'pending_plan_generation': instance.pendingPlanGeneration,
+  'current_membership': instance.currentMembership,
+  'pending_invites': instance.pendingInvites,
+  'pending_requests': instance.pendingRequests,
 };

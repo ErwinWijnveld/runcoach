@@ -23,6 +23,9 @@ import 'package:app/features/onboarding/models/plan_generation.dart';
 import 'package:app/features/onboarding/screens/onboarding_overview_screen.dart';
 import 'package:app/features/onboarding/screens/onboarding_form_screen.dart';
 import 'package:app/features/onboarding/screens/onboarding_generating_screen.dart';
+import 'package:app/features/organization/screens/connections_screen.dart';
+import 'package:app/features/organization/screens/find_organization_screen.dart';
+import 'package:app/features/organization/screens/invite_detail_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -125,6 +128,21 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: '/onboarding/generating',
         builder: (context, state) => const OnboardingGeneratingScreen(),
+      ),
+      GoRoute(
+        path: '/connections',
+        builder: (context, state) => const ConnectionsScreen(),
+        routes: [
+          GoRoute(
+            path: 'find',
+            builder: (context, state) => const FindOrganizationScreen(),
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/invites/:token',
+        builder: (context, state) =>
+            InviteDetailScreen(token: state.pathParameters['token']!),
       ),
       ShellRoute(
         navigatorKey: _shellNavigatorKey,

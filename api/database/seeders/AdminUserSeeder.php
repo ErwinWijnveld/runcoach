@@ -20,6 +20,7 @@ class AdminUserSeeder extends Seeder
                 'password' => Hash::make($password),
                 'has_completed_onboarding' => true,
                 'email_verified_at' => now(),
+                'is_superadmin' => true,
             ],
         );
 

@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
@@ -48,12 +49,20 @@ class ProfileMenuSheet extends ConsumerWidget {
               profileUrl: user?.stravaProfileUrl,
             ),
             const SizedBox(height: 24),
-            const _SettingsSection(
+            _SettingsSection(
               children: [
-                _SettingRow(icon: CupertinoIcons.person_circle, label: 'Account'),
-                _SettingRow(icon: CupertinoIcons.bell, label: 'Notificaties'),
-                _SettingRow(icon: CupertinoIcons.lock, label: 'Privacy'),
-                _SettingRow(icon: CupertinoIcons.info_circle, label: 'Over'),
+                _SettingRow(
+                  icon: CupertinoIcons.person_2,
+                  label: 'Connections',
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    context.push('/connections');
+                  },
+                ),
+                const _SettingRow(icon: CupertinoIcons.person_circle, label: 'Account'),
+                const _SettingRow(icon: CupertinoIcons.bell, label: 'Notificaties'),
+                const _SettingRow(icon: CupertinoIcons.lock, label: 'Privacy'),
+                const _SettingRow(icon: CupertinoIcons.info_circle, label: 'Over'),
               ],
             ),
             const SizedBox(height: 24),
@@ -168,15 +177,14 @@ class _SettingsSection extends StatelessWidget {
 class _SettingRow extends StatelessWidget {
   final IconData icon;
   final String label;
-  const _SettingRow({required this.icon, required this.label});
+  final VoidCallback? onTap;
+  const _SettingRow({required this.icon, required this.label, this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return CupertinoButton(
       padding: EdgeInsets.zero,
-      onPressed: () {
-        // Filler — not wired yet.
-      },
+      onPressed: onTap ?? () {},
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(

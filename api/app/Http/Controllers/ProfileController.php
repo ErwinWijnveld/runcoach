@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\MembershipStatus;
 use App\Http\Requests\UpdateProfileRequest;
+use App\Http\Resources\OrganizationMembershipResource;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -34,6 +36,21 @@ class ProfileController extends Controller
     {
         $pending = $user->pendingPlanGeneration();
 
+        $active = $user->activeMembership;
+        if ($active) {
+            $active->load(['organization', 'coach']);
+        }
+
+        $invites = $user->memberships()
+            ->with('organization')
+            ->where('status', MembershipStatus::Invited)
+            ->get();
+
+        $requests = $user->memberships()
+            ->with('organization')
+            ->where('status', MembershipStatus::Requested)
+            ->get();
+
         return [
             ...$user->only([
                 'id', 'name', 'email', 'strava_athlete_id', 'strava_profile_url',
@@ -42,6 +59,11 @@ class ProfileController extends Controller
             'pending_plan_generation' => $pending !== null
                 ? OnboardingController::serialize($pending)
                 : null,
+            'current_membership' => $active
+                ? OrganizationMembershipResource::make($active)
+                : null,
+            'pending_invites' => OrganizationMembershipResource::collection($invites),
+            'pending_requests' => OrganizationMembershipResource::collection($requests),
         ];
     }
 

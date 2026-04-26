@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\MembershipController;
+use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CoachController;
 use App\Http\Controllers\DashboardController;
@@ -57,6 +59,19 @@ Route::prefix('v1')->group(function () {
             Route::post('/generate-plan', [OnboardingController::class, 'generatePlan']);
             Route::get('/plan-generation/latest', [OnboardingController::class, 'latestPlanGeneration']);
             Route::post('/start', [OnboardingController::class, 'start']); // DEPRECATED
+        });
+
+        // Organizations / memberships (mobile)
+        Route::get('organizations/search', [OrganizationController::class, 'search']);
+
+        Route::prefix('me/memberships')->group(function () {
+            Route::get('/', [MembershipController::class, 'index']);
+            Route::post('invites/token/{token}/accept', [MembershipController::class, 'acceptByToken']);
+            Route::post('invites/{membership}/accept', [MembershipController::class, 'accept']);
+            Route::post('invites/{membership}/reject', [MembershipController::class, 'reject']);
+            Route::post('requests', [MembershipController::class, 'requestJoin']);
+            Route::delete('requests/{membership}', [MembershipController::class, 'cancelRequest']);
+            Route::post('leave', [MembershipController::class, 'leave']);
         });
 
         // AI Coach

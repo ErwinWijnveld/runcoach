@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$User {
 
- int get id; String get name; String get email;@JsonKey(name: 'strava_athlete_id') int? get stravaAthleteId;@JsonKey(name: 'strava_profile_url') String? get stravaProfileUrl;@JsonKey(name: 'coach_style') String? get coachStyle;@JsonKey(name: 'has_completed_onboarding') bool get hasCompletedOnboarding;@JsonKey(name: 'pending_plan_generation') PlanGeneration? get pendingPlanGeneration;
+ int get id; String get name; String get email;@JsonKey(name: 'strava_athlete_id') int? get stravaAthleteId;@JsonKey(name: 'strava_profile_url') String? get stravaProfileUrl;@JsonKey(name: 'coach_style') String? get coachStyle;@JsonKey(name: 'has_completed_onboarding') bool get hasCompletedOnboarding;@JsonKey(name: 'pending_plan_generation') PlanGeneration? get pendingPlanGeneration;@JsonKey(name: 'current_membership') Membership? get currentMembership;@JsonKey(name: 'pending_invites') List<Membership> get pendingInvites;@JsonKey(name: 'pending_requests') List<Membership> get pendingRequests;
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $UserCopyWith<User> get copyWith => _$UserCopyWithImpl<User>(this as User, _$ide
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is User&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.stravaAthleteId, stravaAthleteId) || other.stravaAthleteId == stravaAthleteId)&&(identical(other.stravaProfileUrl, stravaProfileUrl) || other.stravaProfileUrl == stravaProfileUrl)&&(identical(other.coachStyle, coachStyle) || other.coachStyle == coachStyle)&&(identical(other.hasCompletedOnboarding, hasCompletedOnboarding) || other.hasCompletedOnboarding == hasCompletedOnboarding)&&(identical(other.pendingPlanGeneration, pendingPlanGeneration) || other.pendingPlanGeneration == pendingPlanGeneration));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is User&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.stravaAthleteId, stravaAthleteId) || other.stravaAthleteId == stravaAthleteId)&&(identical(other.stravaProfileUrl, stravaProfileUrl) || other.stravaProfileUrl == stravaProfileUrl)&&(identical(other.coachStyle, coachStyle) || other.coachStyle == coachStyle)&&(identical(other.hasCompletedOnboarding, hasCompletedOnboarding) || other.hasCompletedOnboarding == hasCompletedOnboarding)&&(identical(other.pendingPlanGeneration, pendingPlanGeneration) || other.pendingPlanGeneration == pendingPlanGeneration)&&(identical(other.currentMembership, currentMembership) || other.currentMembership == currentMembership)&&const DeepCollectionEquality().equals(other.pendingInvites, pendingInvites)&&const DeepCollectionEquality().equals(other.pendingRequests, pendingRequests));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,email,stravaAthleteId,stravaProfileUrl,coachStyle,hasCompletedOnboarding,pendingPlanGeneration);
+int get hashCode => Object.hash(runtimeType,id,name,email,stravaAthleteId,stravaProfileUrl,coachStyle,hasCompletedOnboarding,pendingPlanGeneration,currentMembership,const DeepCollectionEquality().hash(pendingInvites),const DeepCollectionEquality().hash(pendingRequests));
 
 @override
 String toString() {
-  return 'User(id: $id, name: $name, email: $email, stravaAthleteId: $stravaAthleteId, stravaProfileUrl: $stravaProfileUrl, coachStyle: $coachStyle, hasCompletedOnboarding: $hasCompletedOnboarding, pendingPlanGeneration: $pendingPlanGeneration)';
+  return 'User(id: $id, name: $name, email: $email, stravaAthleteId: $stravaAthleteId, stravaProfileUrl: $stravaProfileUrl, coachStyle: $coachStyle, hasCompletedOnboarding: $hasCompletedOnboarding, pendingPlanGeneration: $pendingPlanGeneration, currentMembership: $currentMembership, pendingInvites: $pendingInvites, pendingRequests: $pendingRequests)';
 }
 
 
@@ -48,11 +48,11 @@ abstract mixin class $UserCopyWith<$Res>  {
   factory $UserCopyWith(User value, $Res Function(User) _then) = _$UserCopyWithImpl;
 @useResult
 $Res call({
- int id, String name, String email,@JsonKey(name: 'strava_athlete_id') int? stravaAthleteId,@JsonKey(name: 'strava_profile_url') String? stravaProfileUrl,@JsonKey(name: 'coach_style') String? coachStyle,@JsonKey(name: 'has_completed_onboarding') bool hasCompletedOnboarding,@JsonKey(name: 'pending_plan_generation') PlanGeneration? pendingPlanGeneration
+ int id, String name, String email,@JsonKey(name: 'strava_athlete_id') int? stravaAthleteId,@JsonKey(name: 'strava_profile_url') String? stravaProfileUrl,@JsonKey(name: 'coach_style') String? coachStyle,@JsonKey(name: 'has_completed_onboarding') bool hasCompletedOnboarding,@JsonKey(name: 'pending_plan_generation') PlanGeneration? pendingPlanGeneration,@JsonKey(name: 'current_membership') Membership? currentMembership,@JsonKey(name: 'pending_invites') List<Membership> pendingInvites,@JsonKey(name: 'pending_requests') List<Membership> pendingRequests
 });
 
 
-$PlanGenerationCopyWith<$Res>? get pendingPlanGeneration;
+$PlanGenerationCopyWith<$Res>? get pendingPlanGeneration;$MembershipCopyWith<$Res>? get currentMembership;
 
 }
 /// @nodoc
@@ -65,7 +65,7 @@ class _$UserCopyWithImpl<$Res>
 
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? email = null,Object? stravaAthleteId = freezed,Object? stravaProfileUrl = freezed,Object? coachStyle = freezed,Object? hasCompletedOnboarding = null,Object? pendingPlanGeneration = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? email = null,Object? stravaAthleteId = freezed,Object? stravaProfileUrl = freezed,Object? coachStyle = freezed,Object? hasCompletedOnboarding = null,Object? pendingPlanGeneration = freezed,Object? currentMembership = freezed,Object? pendingInvites = null,Object? pendingRequests = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -75,7 +75,10 @@ as int?,stravaProfileUrl: freezed == stravaProfileUrl ? _self.stravaProfileUrl :
 as String?,coachStyle: freezed == coachStyle ? _self.coachStyle : coachStyle // ignore: cast_nullable_to_non_nullable
 as String?,hasCompletedOnboarding: null == hasCompletedOnboarding ? _self.hasCompletedOnboarding : hasCompletedOnboarding // ignore: cast_nullable_to_non_nullable
 as bool,pendingPlanGeneration: freezed == pendingPlanGeneration ? _self.pendingPlanGeneration : pendingPlanGeneration // ignore: cast_nullable_to_non_nullable
-as PlanGeneration?,
+as PlanGeneration?,currentMembership: freezed == currentMembership ? _self.currentMembership : currentMembership // ignore: cast_nullable_to_non_nullable
+as Membership?,pendingInvites: null == pendingInvites ? _self.pendingInvites : pendingInvites // ignore: cast_nullable_to_non_nullable
+as List<Membership>,pendingRequests: null == pendingRequests ? _self.pendingRequests : pendingRequests // ignore: cast_nullable_to_non_nullable
+as List<Membership>,
   ));
 }
 /// Create a copy of User
@@ -89,6 +92,18 @@ $PlanGenerationCopyWith<$Res>? get pendingPlanGeneration {
 
   return $PlanGenerationCopyWith<$Res>(_self.pendingPlanGeneration!, (value) {
     return _then(_self.copyWith(pendingPlanGeneration: value));
+  });
+}/// Create a copy of User
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MembershipCopyWith<$Res>? get currentMembership {
+    if (_self.currentMembership == null) {
+    return null;
+  }
+
+  return $MembershipCopyWith<$Res>(_self.currentMembership!, (value) {
+    return _then(_self.copyWith(currentMembership: value));
   });
 }
 }
@@ -169,10 +184,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name,  String email, @JsonKey(name: 'strava_athlete_id')  int? stravaAthleteId, @JsonKey(name: 'strava_profile_url')  String? stravaProfileUrl, @JsonKey(name: 'coach_style')  String? coachStyle, @JsonKey(name: 'has_completed_onboarding')  bool hasCompletedOnboarding, @JsonKey(name: 'pending_plan_generation')  PlanGeneration? pendingPlanGeneration)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name,  String email, @JsonKey(name: 'strava_athlete_id')  int? stravaAthleteId, @JsonKey(name: 'strava_profile_url')  String? stravaProfileUrl, @JsonKey(name: 'coach_style')  String? coachStyle, @JsonKey(name: 'has_completed_onboarding')  bool hasCompletedOnboarding, @JsonKey(name: 'pending_plan_generation')  PlanGeneration? pendingPlanGeneration, @JsonKey(name: 'current_membership')  Membership? currentMembership, @JsonKey(name: 'pending_invites')  List<Membership> pendingInvites, @JsonKey(name: 'pending_requests')  List<Membership> pendingRequests)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _User() when $default != null:
-return $default(_that.id,_that.name,_that.email,_that.stravaAthleteId,_that.stravaProfileUrl,_that.coachStyle,_that.hasCompletedOnboarding,_that.pendingPlanGeneration);case _:
+return $default(_that.id,_that.name,_that.email,_that.stravaAthleteId,_that.stravaProfileUrl,_that.coachStyle,_that.hasCompletedOnboarding,_that.pendingPlanGeneration,_that.currentMembership,_that.pendingInvites,_that.pendingRequests);case _:
   return orElse();
 
 }
@@ -190,10 +205,10 @@ return $default(_that.id,_that.name,_that.email,_that.stravaAthleteId,_that.stra
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name,  String email, @JsonKey(name: 'strava_athlete_id')  int? stravaAthleteId, @JsonKey(name: 'strava_profile_url')  String? stravaProfileUrl, @JsonKey(name: 'coach_style')  String? coachStyle, @JsonKey(name: 'has_completed_onboarding')  bool hasCompletedOnboarding, @JsonKey(name: 'pending_plan_generation')  PlanGeneration? pendingPlanGeneration)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name,  String email, @JsonKey(name: 'strava_athlete_id')  int? stravaAthleteId, @JsonKey(name: 'strava_profile_url')  String? stravaProfileUrl, @JsonKey(name: 'coach_style')  String? coachStyle, @JsonKey(name: 'has_completed_onboarding')  bool hasCompletedOnboarding, @JsonKey(name: 'pending_plan_generation')  PlanGeneration? pendingPlanGeneration, @JsonKey(name: 'current_membership')  Membership? currentMembership, @JsonKey(name: 'pending_invites')  List<Membership> pendingInvites, @JsonKey(name: 'pending_requests')  List<Membership> pendingRequests)  $default,) {final _that = this;
 switch (_that) {
 case _User():
-return $default(_that.id,_that.name,_that.email,_that.stravaAthleteId,_that.stravaProfileUrl,_that.coachStyle,_that.hasCompletedOnboarding,_that.pendingPlanGeneration);}
+return $default(_that.id,_that.name,_that.email,_that.stravaAthleteId,_that.stravaProfileUrl,_that.coachStyle,_that.hasCompletedOnboarding,_that.pendingPlanGeneration,_that.currentMembership,_that.pendingInvites,_that.pendingRequests);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -207,10 +222,10 @@ return $default(_that.id,_that.name,_that.email,_that.stravaAthleteId,_that.stra
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name,  String email, @JsonKey(name: 'strava_athlete_id')  int? stravaAthleteId, @JsonKey(name: 'strava_profile_url')  String? stravaProfileUrl, @JsonKey(name: 'coach_style')  String? coachStyle, @JsonKey(name: 'has_completed_onboarding')  bool hasCompletedOnboarding, @JsonKey(name: 'pending_plan_generation')  PlanGeneration? pendingPlanGeneration)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name,  String email, @JsonKey(name: 'strava_athlete_id')  int? stravaAthleteId, @JsonKey(name: 'strava_profile_url')  String? stravaProfileUrl, @JsonKey(name: 'coach_style')  String? coachStyle, @JsonKey(name: 'has_completed_onboarding')  bool hasCompletedOnboarding, @JsonKey(name: 'pending_plan_generation')  PlanGeneration? pendingPlanGeneration, @JsonKey(name: 'current_membership')  Membership? currentMembership, @JsonKey(name: 'pending_invites')  List<Membership> pendingInvites, @JsonKey(name: 'pending_requests')  List<Membership> pendingRequests)?  $default,) {final _that = this;
 switch (_that) {
 case _User() when $default != null:
-return $default(_that.id,_that.name,_that.email,_that.stravaAthleteId,_that.stravaProfileUrl,_that.coachStyle,_that.hasCompletedOnboarding,_that.pendingPlanGeneration);case _:
+return $default(_that.id,_that.name,_that.email,_that.stravaAthleteId,_that.stravaProfileUrl,_that.coachStyle,_that.hasCompletedOnboarding,_that.pendingPlanGeneration,_that.currentMembership,_that.pendingInvites,_that.pendingRequests);case _:
   return null;
 
 }
@@ -222,7 +237,7 @@ return $default(_that.id,_that.name,_that.email,_that.stravaAthleteId,_that.stra
 @JsonSerializable()
 
 class _User implements User {
-  const _User({required this.id, required this.name, required this.email, @JsonKey(name: 'strava_athlete_id') this.stravaAthleteId, @JsonKey(name: 'strava_profile_url') this.stravaProfileUrl, @JsonKey(name: 'coach_style') this.coachStyle, @JsonKey(name: 'has_completed_onboarding') this.hasCompletedOnboarding = false, @JsonKey(name: 'pending_plan_generation') this.pendingPlanGeneration});
+  const _User({required this.id, required this.name, required this.email, @JsonKey(name: 'strava_athlete_id') this.stravaAthleteId, @JsonKey(name: 'strava_profile_url') this.stravaProfileUrl, @JsonKey(name: 'coach_style') this.coachStyle, @JsonKey(name: 'has_completed_onboarding') this.hasCompletedOnboarding = false, @JsonKey(name: 'pending_plan_generation') this.pendingPlanGeneration, @JsonKey(name: 'current_membership') this.currentMembership, @JsonKey(name: 'pending_invites') final  List<Membership> pendingInvites = const [], @JsonKey(name: 'pending_requests') final  List<Membership> pendingRequests = const []}): _pendingInvites = pendingInvites,_pendingRequests = pendingRequests;
   factory _User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
 
 @override final  int id;
@@ -233,6 +248,21 @@ class _User implements User {
 @override@JsonKey(name: 'coach_style') final  String? coachStyle;
 @override@JsonKey(name: 'has_completed_onboarding') final  bool hasCompletedOnboarding;
 @override@JsonKey(name: 'pending_plan_generation') final  PlanGeneration? pendingPlanGeneration;
+@override@JsonKey(name: 'current_membership') final  Membership? currentMembership;
+ final  List<Membership> _pendingInvites;
+@override@JsonKey(name: 'pending_invites') List<Membership> get pendingInvites {
+  if (_pendingInvites is EqualUnmodifiableListView) return _pendingInvites;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_pendingInvites);
+}
+
+ final  List<Membership> _pendingRequests;
+@override@JsonKey(name: 'pending_requests') List<Membership> get pendingRequests {
+  if (_pendingRequests is EqualUnmodifiableListView) return _pendingRequests;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_pendingRequests);
+}
+
 
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
@@ -247,16 +277,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _User&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.stravaAthleteId, stravaAthleteId) || other.stravaAthleteId == stravaAthleteId)&&(identical(other.stravaProfileUrl, stravaProfileUrl) || other.stravaProfileUrl == stravaProfileUrl)&&(identical(other.coachStyle, coachStyle) || other.coachStyle == coachStyle)&&(identical(other.hasCompletedOnboarding, hasCompletedOnboarding) || other.hasCompletedOnboarding == hasCompletedOnboarding)&&(identical(other.pendingPlanGeneration, pendingPlanGeneration) || other.pendingPlanGeneration == pendingPlanGeneration));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _User&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.stravaAthleteId, stravaAthleteId) || other.stravaAthleteId == stravaAthleteId)&&(identical(other.stravaProfileUrl, stravaProfileUrl) || other.stravaProfileUrl == stravaProfileUrl)&&(identical(other.coachStyle, coachStyle) || other.coachStyle == coachStyle)&&(identical(other.hasCompletedOnboarding, hasCompletedOnboarding) || other.hasCompletedOnboarding == hasCompletedOnboarding)&&(identical(other.pendingPlanGeneration, pendingPlanGeneration) || other.pendingPlanGeneration == pendingPlanGeneration)&&(identical(other.currentMembership, currentMembership) || other.currentMembership == currentMembership)&&const DeepCollectionEquality().equals(other._pendingInvites, _pendingInvites)&&const DeepCollectionEquality().equals(other._pendingRequests, _pendingRequests));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,email,stravaAthleteId,stravaProfileUrl,coachStyle,hasCompletedOnboarding,pendingPlanGeneration);
+int get hashCode => Object.hash(runtimeType,id,name,email,stravaAthleteId,stravaProfileUrl,coachStyle,hasCompletedOnboarding,pendingPlanGeneration,currentMembership,const DeepCollectionEquality().hash(_pendingInvites),const DeepCollectionEquality().hash(_pendingRequests));
 
 @override
 String toString() {
-  return 'User(id: $id, name: $name, email: $email, stravaAthleteId: $stravaAthleteId, stravaProfileUrl: $stravaProfileUrl, coachStyle: $coachStyle, hasCompletedOnboarding: $hasCompletedOnboarding, pendingPlanGeneration: $pendingPlanGeneration)';
+  return 'User(id: $id, name: $name, email: $email, stravaAthleteId: $stravaAthleteId, stravaProfileUrl: $stravaProfileUrl, coachStyle: $coachStyle, hasCompletedOnboarding: $hasCompletedOnboarding, pendingPlanGeneration: $pendingPlanGeneration, currentMembership: $currentMembership, pendingInvites: $pendingInvites, pendingRequests: $pendingRequests)';
 }
 
 
@@ -267,11 +297,11 @@ abstract mixin class _$UserCopyWith<$Res> implements $UserCopyWith<$Res> {
   factory _$UserCopyWith(_User value, $Res Function(_User) _then) = __$UserCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String name, String email,@JsonKey(name: 'strava_athlete_id') int? stravaAthleteId,@JsonKey(name: 'strava_profile_url') String? stravaProfileUrl,@JsonKey(name: 'coach_style') String? coachStyle,@JsonKey(name: 'has_completed_onboarding') bool hasCompletedOnboarding,@JsonKey(name: 'pending_plan_generation') PlanGeneration? pendingPlanGeneration
+ int id, String name, String email,@JsonKey(name: 'strava_athlete_id') int? stravaAthleteId,@JsonKey(name: 'strava_profile_url') String? stravaProfileUrl,@JsonKey(name: 'coach_style') String? coachStyle,@JsonKey(name: 'has_completed_onboarding') bool hasCompletedOnboarding,@JsonKey(name: 'pending_plan_generation') PlanGeneration? pendingPlanGeneration,@JsonKey(name: 'current_membership') Membership? currentMembership,@JsonKey(name: 'pending_invites') List<Membership> pendingInvites,@JsonKey(name: 'pending_requests') List<Membership> pendingRequests
 });
 
 
-@override $PlanGenerationCopyWith<$Res>? get pendingPlanGeneration;
+@override $PlanGenerationCopyWith<$Res>? get pendingPlanGeneration;@override $MembershipCopyWith<$Res>? get currentMembership;
 
 }
 /// @nodoc
@@ -284,7 +314,7 @@ class __$UserCopyWithImpl<$Res>
 
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? email = null,Object? stravaAthleteId = freezed,Object? stravaProfileUrl = freezed,Object? coachStyle = freezed,Object? hasCompletedOnboarding = null,Object? pendingPlanGeneration = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? email = null,Object? stravaAthleteId = freezed,Object? stravaProfileUrl = freezed,Object? coachStyle = freezed,Object? hasCompletedOnboarding = null,Object? pendingPlanGeneration = freezed,Object? currentMembership = freezed,Object? pendingInvites = null,Object? pendingRequests = null,}) {
   return _then(_User(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -294,7 +324,10 @@ as int?,stravaProfileUrl: freezed == stravaProfileUrl ? _self.stravaProfileUrl :
 as String?,coachStyle: freezed == coachStyle ? _self.coachStyle : coachStyle // ignore: cast_nullable_to_non_nullable
 as String?,hasCompletedOnboarding: null == hasCompletedOnboarding ? _self.hasCompletedOnboarding : hasCompletedOnboarding // ignore: cast_nullable_to_non_nullable
 as bool,pendingPlanGeneration: freezed == pendingPlanGeneration ? _self.pendingPlanGeneration : pendingPlanGeneration // ignore: cast_nullable_to_non_nullable
-as PlanGeneration?,
+as PlanGeneration?,currentMembership: freezed == currentMembership ? _self.currentMembership : currentMembership // ignore: cast_nullable_to_non_nullable
+as Membership?,pendingInvites: null == pendingInvites ? _self._pendingInvites : pendingInvites // ignore: cast_nullable_to_non_nullable
+as List<Membership>,pendingRequests: null == pendingRequests ? _self._pendingRequests : pendingRequests // ignore: cast_nullable_to_non_nullable
+as List<Membership>,
   ));
 }
 
@@ -309,6 +342,18 @@ $PlanGenerationCopyWith<$Res>? get pendingPlanGeneration {
 
   return $PlanGenerationCopyWith<$Res>(_self.pendingPlanGeneration!, (value) {
     return _then(_self.copyWith(pendingPlanGeneration: value));
+  });
+}/// Create a copy of User
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MembershipCopyWith<$Res>? get currentMembership {
+    if (_self.currentMembership == null) {
+    return null;
+  }
+
+  return $MembershipCopyWith<$Res>(_self.currentMembership!, (value) {
+    return _then(_self.copyWith(currentMembership: value));
   });
 }
 }

@@ -329,7 +329,7 @@ class RunCoachAgent implements Agent, Conversational, HasTools
 
     public function tools(): iterable
     {
-        return [
+        $tools = [
             new GetRunningProfile($this->user),
             new PresentRunningStats($this->user),
             new OfferChoices($this->user),
@@ -340,9 +340,37 @@ class RunCoachAgent implements Agent, Conversational, HasTools
             new GetCurrentProposal($this->user),
             new GetGoalInfo($this->user),
             new GetComplianceReport($this->user),
+        ];
+
+        // When the user belongs to a coach-managed organization, strip the
+        // plan-mutation tools. The human coach is the source of truth for the
+        // training plan; the AI should be advisory only.
+        if (! $this->planMutationsAllowed()) {
+            return $tools;
+        }
+
+        return [
+            ...$tools,
             new CreateSchedule($this->user, app(PlanOptimizerService::class), app(ProposalService::class)),
             new EditSchedule($this->user, app(PlanOptimizerService::class), app(ProposalService::class)),
             new VerifyPlan($this->user),
         ];
+    }
+
+    /**
+     * False when the user is an active client of an organization that has
+     * `coaches_own_plans = true`. In that case the AI should never call
+     * CreateSchedule / EditSchedule / VerifyPlan.
+     */
+    private function planMutationsAllowed(): bool
+    {
+        $membership = $this->user->activeMembership;
+        if ($membership === null || ! $membership->isClient()) {
+            return true;
+        }
+
+        $organization = $membership->organization;
+
+        return $organization === null || $organization->coaches_own_plans !== true;
     }
 }
