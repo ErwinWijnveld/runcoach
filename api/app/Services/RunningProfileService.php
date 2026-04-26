@@ -77,7 +77,9 @@ class RunningProfileService
 
         $weeks = 52;
         $weeklyAvgKm = $totalRuns === 0 ? 0.0 : round($totalKm / $weeks, 1);
-        $weeklyAvgRuns = $totalRuns === 0 ? 0 : (int) round($totalRuns / $weeks);
+        // 1-decimal float so users with <1 run/week don't see "0 runs/week"
+        // (a runner with 20 runs/year ≈ 0.4/week, not 0).
+        $weeklyAvgRuns = $totalRuns === 0 ? 0.0 : round($totalRuns / $weeks, 1);
 
         $avgPace = $totalMeters === 0 ? 0 : (int) round($totalSeconds / ($totalMeters / 1000));
         $avgDuration = $totalRuns === 0 ? 0 : (int) round($totalSeconds / $totalRuns);

@@ -35,9 +35,12 @@ class HealthKitService {
   }
 
   /// Pull workouts in the given window and shape them for the backend.
-  /// Default window is the last 90 days (matches what Strava sync used to do).
+  /// Default window is **the last 12 months** so the runner's profile (which
+  /// the backend analyzes over 52 weeks) reflects their full year of running.
+  /// HealthKit has no real upper bound on past dates — 365 days returns in
+  /// well under a second even for runners with hundreds of workouts.
   Future<List<Map<String, dynamic>>> fetchWorkouts({
-    Duration window = const Duration(days: 90),
+    Duration window = const Duration(days: 365),
   }) async {
     final now = DateTime.now();
     final start = now.subtract(window);
@@ -48,11 +51,37 @@ class HealthKitService {
       endTime: now,
     );
 
-    final workouts = samples
-        .where((s) => s.value is WorkoutHealthValue)
-        .map(_shape)
-        .whereType<Map<String, dynamic>>()
-        .toList();
+    int skippedNonRun = 0;
+    int skippedZeroDistance = 0;
+
+    final workouts = <Map<String, dynamic>>[];
+    for (final point in samples) {
+      if (point.value is! WorkoutHealthValue) continue;
+      final shaped = _shape(point);
+      if (shaped == null) {
+        skippedNonRun++;
+        continue;
+      }
+      if ((shaped['distance_meters'] as int) <= 0) {
+        // Treadmill runs the watch couldn't track come back as
+        // distance=null/0. They're noise for pace + km aggregates so we
+        // drop them — the user can still see them in Apple Health itself.
+        skippedZeroDistance++;
+        continue;
+      }
+      workouts.add(shaped);
+    }
+
+    if (workouts.isEmpty) {
+      // ignore: avoid_print
+      print('[HealthKit] window=${window.inDays}d found 0 runs '
+          '(samples=${samples.length}, skipped non-run=$skippedNonRun, '
+          'zero-distance=$skippedZeroDistance)');
+    } else {
+      // ignore: avoid_print
+      print('[HealthKit] window=${window.inDays}d found ${workouts.length} runs '
+          '(skipped non-run=$skippedNonRun, zero-distance=$skippedZeroDistance)');
+    }
 
     return workouts;
   }

@@ -38,19 +38,22 @@ class AuthController extends Controller
             abort(401, $e->getMessage());
         }
 
-        $user = User::where('apple_sub', $payload['sub'])->first();
+        // firstOrCreate is atomic per the underlying INSERT ... ON DUPLICATE
+        // KEY semantics (MySQL) — protects against the race where two
+        // concurrent sign-ins with the same Apple sub both pass a `where`
+        // null check and try to INSERT, with the second hitting the unique
+        // constraint and 500ing.
+        $email = $request->string('email')->toString()
+            ?: $payload['email']
+            ?? sprintf('%s@privaterelay.appleid.com', $payload['sub']);
 
-        if ($user === null) {
-            $email = $request->string('email')->toString()
-                ?: $payload['email']
-                ?? sprintf('%s@privaterelay.appleid.com', $payload['sub']);
-
-            $user = User::create([
-                'apple_sub' => $payload['sub'],
+        $user = User::firstOrCreate(
+            ['apple_sub' => $payload['sub']],
+            [
                 'email' => $email,
                 'name' => $request->string('name')->toString() ?: 'Runner',
-            ]);
-        }
+            ],
+        );
 
         $token = $user->createToken('api')->plainTextToken;
 

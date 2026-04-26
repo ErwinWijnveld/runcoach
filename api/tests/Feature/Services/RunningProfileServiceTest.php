@@ -42,7 +42,9 @@ class RunningProfileServiceTest extends TestCase
         $this->assertEquals(3000, $profile->metrics['session_avg_duration_seconds']);
         // 1500 km / 52 analysis weeks ≈ 28.8
         $this->assertEqualsWithDelta(28.8, $profile->metrics['weekly_avg_km'], 0.1);
-        $this->assertEquals(3, $profile->metrics['weekly_avg_runs']);
+        // 150 runs / 52 weeks ≈ 2.9 — float now (was int-rounded which hid
+        // sub-1-run/week values like "0" for casual runners with 20 runs/yr).
+        $this->assertEqualsWithDelta(2.9, $profile->metrics['weekly_avg_runs'], 0.1);
     }
 
     public function test_get_or_analyze_returns_null_when_no_activities(): void

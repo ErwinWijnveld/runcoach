@@ -39,16 +39,7 @@ class AppleIdentityTokenVerifier
             throw new \LogicException('services.apple.bundle_id is not configured.');
         }
 
-        $keys = $this->loadJwks();
-
-        try {
-            $payload = (array) JWT::decode($identityToken, $keys);
-        } catch (\Throwable $e) {
-            throw new InvalidAppleIdentityTokenException(
-                'Apple identity token failed signature/expiry validation.',
-                previous: $e,
-            );
-        }
+        $payload = $this->decodeWithKeyRotationRetry($identityToken);
 
         if (($payload['iss'] ?? null) !== self::ISSUER) {
             throw new InvalidAppleIdentityTokenException('Wrong issuer in Apple identity token.');
@@ -74,15 +65,48 @@ class AppleIdentityTokenVerifier
     }
 
     /**
+     * Try decoding with the cached JWKS first; on failure, refetch the JWKS
+     * once and retry. Apple rotates signing keys (rarely, but it happens) —
+     * stale cached keys would otherwise fail every sign-in until our 1h TTL
+     * expires.
+     *
+     * @return array<string, mixed>
+     */
+    private function decodeWithKeyRotationRetry(string $identityToken): array
+    {
+        try {
+            return (array) JWT::decode($identityToken, $this->loadJwks());
+        } catch (\Throwable $first) {
+            // Bust the cache and try again with a freshly-fetched JWKS.
+            Cache::forget('apple:jwks');
+            try {
+                return (array) JWT::decode($identityToken, $this->loadJwks());
+            } catch (\Throwable $second) {
+                throw new InvalidAppleIdentityTokenException(
+                    'Apple identity token failed signature/expiry validation.',
+                    previous: $second,
+                );
+            }
+        }
+    }
+
+    /**
      * @return array<string, Key>
      */
     private function loadJwks(): array
     {
-        $jwks = Cache::remember(
-            'apple:jwks',
-            self::JWKS_CACHE_TTL_SECONDS,
-            fn () => Http::get(self::JWKS_URL)->throw()->json(),
-        );
+        try {
+            $jwks = Cache::remember(
+                'apple:jwks',
+                self::JWKS_CACHE_TTL_SECONDS,
+                fn () => Http::timeout(5)->get(self::JWKS_URL)->throw()->json(),
+            );
+        } catch (\Throwable $e) {
+            throw new InvalidAppleIdentityTokenException(
+                "Couldn't fetch Apple's JWKS to verify the identity token.",
+                previous: $e,
+            );
+        }
 
         if (! is_array($jwks) || ! isset($jwks['keys']) || ! is_array($jwks['keys'])) {
             throw new UnexpectedValueException('Apple JWKS response is malformed.');

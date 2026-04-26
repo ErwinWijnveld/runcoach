@@ -8,7 +8,7 @@ import 'package:app/core/widgets/runcore_logo.dart';
 import 'package:app/features/wearable/data/wearable_api.dart';
 
 /// Asks the user to grant Apple Health read access, then pulls the last
-/// 90 days of running workouts and pushes them to the backend before
+/// 12 months of running workouts and pushes them to the backend before
 /// continuing into the onboarding overview screen.
 class OnboardingConnectHealthScreen extends ConsumerStatefulWidget {
   const OnboardingConnectHealthScreen({super.key});
@@ -45,8 +45,15 @@ class _OnboardingConnectHealthScreenState
 
       final workouts = await hk.fetchWorkouts();
 
-      if (workouts.isNotEmpty) {
-        await ref.read(wearableApiProvider).ingest({'activities': workouts});
+      // Backend caps each ingest call at 200 activities. Heavy runners
+      // (>4 runs/wk for a year) blow past that easily, so chunk client-side.
+      const chunkSize = 100;
+      final api = ref.read(wearableApiProvider);
+      for (var i = 0; i < workouts.length; i += chunkSize) {
+        final end =
+            (i + chunkSize < workouts.length) ? i + chunkSize : workouts.length;
+        final chunk = workouts.sublist(i, end);
+        await api.ingest({'activities': chunk});
       }
 
       if (!mounted) return;
@@ -111,7 +118,7 @@ class _OnboardingConnectHealthScreenState
       case _Stage.syncing:
         return const _StatusBody(
           title: 'Pulling your runs…',
-          subtitle: "Reading the last 90 days from Apple Health.",
+          subtitle: 'Reading the last 12 months from Apple Health.',
         );
       case _Stage.done:
         return _StatusBody(

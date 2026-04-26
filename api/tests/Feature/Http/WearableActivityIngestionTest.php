@@ -9,6 +9,7 @@ use App\Models\Goal;
 use App\Models\TrainingDay;
 use App\Models\TrainingWeek;
 use App\Models\User;
+use App\Models\UserRunningProfile;
 use App\Models\WearableActivity;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -173,5 +174,116 @@ class WearableActivityIngestionTest extends TestCase
 
         $response->assertOk();
         $this->assertCount(3, $response->json('data'));
+    }
+
+    public function test_re_pushing_same_activity_does_not_dispatch_a_second_job(): void
+    {
+        Queue::fake();
+        [, $headers] = $this->authUser();
+
+        $payload = $this->payload();
+
+        $this->postJson('/api/v1/wearable/activities', ['activities' => [$payload]], $headers);
+        Queue::assertPushed(ProcessWearableActivity::class, 1);
+
+        // Re-push: row updates, but no new job — match+score is idempotent
+        // and the work was already done on the first push.
+        Queue::fake();
+        $this->postJson('/api/v1/wearable/activities', ['activities' => [$payload]], $headers);
+        Queue::assertNotPushed(ProcessWearableActivity::class);
+    }
+
+    public function test_two_users_can_have_the_same_source_activity_id(): void
+    {
+        // The unique constraint is per-user, so HKWorkout uuid collisions
+        // (theoretical with HealthKit, possible with manually-crafted ids)
+        // don't let user A's row get overwritten by user B's push.
+        Queue::fake();
+        $victim = User::factory()->create();
+        $attacker = User::factory()->create();
+        $this->assertNotSame($victim->id, $attacker->id);
+
+        $sharedId = 'collision-uuid-007';
+        $this->actingAs($victim, 'sanctum')
+            ->postJson('/api/v1/wearable/activities', [
+                'activities' => [$this->payload([
+                    'source_activity_id' => $sharedId,
+                    'distance_meters' => 5050,
+                    'name' => "Victim's run",
+                ])],
+            ])
+            ->assertStatus(201)
+            ->assertJson(['created' => 1]);
+
+        $this->actingAs($attacker, 'sanctum')
+            ->postJson('/api/v1/wearable/activities', [
+                'activities' => [$this->payload([
+                    'source_activity_id' => $sharedId,
+                    'distance_meters' => 9999,
+                    'name' => "Attacker's run",
+                ])],
+            ])
+            ->assertStatus(201)
+            ->assertJson(['created' => 1]);
+
+        $this->assertSame(2, WearableActivity::count());
+        $this->assertDatabaseHas('wearable_activities', [
+            'user_id' => $victim->id,
+            'source_activity_id' => $sharedId,
+            'name' => "Victim's run",
+            'distance_meters' => 5050,
+        ]);
+        $this->assertDatabaseHas('wearable_activities', [
+            'user_id' => $attacker->id,
+            'source_activity_id' => $sharedId,
+            'distance_meters' => 9999,
+        ]);
+    }
+
+    public function test_pushing_new_activities_invalidates_cached_running_profile(): void
+    {
+        Queue::fake();
+        [$user, $headers] = $this->authUser();
+
+        // Pretend the profile was analyzed at some earlier point.
+        UserRunningProfile::factory()->for($user)->create([
+            'metrics' => ['weekly_avg_km' => 1.8],
+            'narrative_summary' => 'stale',
+        ]);
+
+        $this->postJson(
+            '/api/v1/wearable/activities',
+            ['activities' => [$this->payload()]],
+            $headers,
+        )->assertStatus(201);
+
+        $this->assertNull($user->runningProfile()->first());
+    }
+
+    public function test_re_pushing_existing_activities_keeps_running_profile_cache(): void
+    {
+        // No new rows = no profile re-analysis, since regenerating the
+        // narrative costs ~1k LLM tokens and adds latency.
+        Queue::fake();
+        [$user, $headers] = $this->authUser();
+
+        $this->postJson(
+            '/api/v1/wearable/activities',
+            ['activities' => [$this->payload()]],
+            $headers,
+        );
+
+        $profile = UserRunningProfile::factory()->for($user)->create([
+            'metrics' => ['weekly_avg_km' => 1.8],
+            'narrative_summary' => 'should-survive',
+        ]);
+
+        $this->postJson(
+            '/api/v1/wearable/activities',
+            ['activities' => [$this->payload()]], // same id → update only
+            $headers,
+        )->assertStatus(201)->assertJson(['created' => 0, 'updated' => 1]);
+
+        $this->assertSame('should-survive', $profile->fresh()->narrative_summary);
     }
 }

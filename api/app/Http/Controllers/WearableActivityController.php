@@ -73,11 +73,11 @@ class WearableActivityController extends Controller
 
             $activity = WearableActivity::updateOrCreate(
                 [
+                    'user_id' => $user->id,
                     'source' => $payload['source'],
                     'source_activity_id' => $payload['source_activity_id'],
                 ],
                 [
-                    'user_id' => $user->id,
                     'source_user_id' => $payload['source_user_id'] ?? null,
                     'type' => $payload['type'],
                     'name' => $payload['name'] ?? null,
@@ -98,11 +98,23 @@ class WearableActivityController extends Controller
 
             if ($activity->wasRecentlyCreated) {
                 $created++;
+                // Only dispatch on create — re-pushes (user reopens the
+                // connect-health screen) shouldn't spawn N no-op jobs that
+                // re-walk the matching+scoring pipeline for activities that
+                // already have a TrainingResult.
+                ProcessWearableActivity::dispatch($activity->id);
             } else {
                 $updated++;
             }
+        }
 
-            ProcessWearableActivity::dispatch($activity->id);
+        // When new rows arrived, the cached running profile is now stale —
+        // its metrics were computed against fewer activities. Drop the cache
+        // so the next /onboarding/profile call recomputes from the fresh set.
+        // (RunningProfileService::analyze costs ~1k tokens for the narrative,
+        // so we only invalidate when there's actually something new.)
+        if ($created > 0) {
+            $user->runningProfile()->delete();
         }
 
         return response()->json([

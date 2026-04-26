@@ -47,7 +47,15 @@ return new class extends Migration
             $table->timestamp('synced_at');
             $table->timestamps();
 
-            $table->unique(['source', 'source_activity_id']);
+            // Per-user uniqueness, NOT global. A global unique on
+            // (source, source_activity_id) would let an attacker with a valid
+            // Sanctum token overwrite another user's activity by guessing
+            // their HKWorkout uuid (the ingestion controller's
+            // updateOrCreate would `find` the victim's row and update its
+            // user_id). Scoping to user_id closes that hole and is also
+            // semantically correct — each user's HealthKit issues UUIDs
+            // independently of other users'.
+            $table->unique(['user_id', 'source', 'source_activity_id']);
             $table->index(['user_id', 'start_date']);
         });
     }
