@@ -149,4 +149,54 @@ class WearableActivityController extends Controller
 
         return response()->json($activities);
     }
+
+    /**
+     * Receive all-time personal records computed natively from HealthKit
+     * (Swift `HealthKitPersonalRecords.swift` via MethodChannel — uses
+     * `HKQuery.predicateForWorkouts(operatorType:totalDistance:)` so we
+     * don't need to ingest years of historical workouts just to find PRs).
+     *
+     * Payload:
+     *  {
+     *    "records": {
+     *      "5k":       {"duration_seconds": 1685, "distance_meters": 5023, "date": "...", "source_activity_id": "..."},
+     *      "10k":      {...} | null,
+     *      "half":     {...} | null,
+     *      "marathon": {...} | null
+     *    }
+     *  }
+     *
+     * Stored as a JSON column on `users.personal_records`. The onboarding
+     * form pre-fills its goal-time / current-PR fields from this data
+     * when the user picks a distance.
+     */
+    public function storePersonalRecords(Request $request): JsonResponse
+    {
+        $request->validate([
+            'records' => 'required|array',
+            'records.*.duration_seconds' => 'required|integer|min:1',
+            'records.*.distance_meters' => 'required|integer|min:1',
+            'records.*.date' => 'required|date',
+            'records.*.source_activity_id' => 'nullable|string|max:255',
+        ]);
+
+        // Keys are stringified integer meters ("5000", "10000", "21097",
+        // "42195", or any custom distance the user picked). Validate keys
+        // are numeric strings so we don't accept arbitrary garbage that
+        // would later break GoalDistance lookups in CreateSchedule.
+        $records = [];
+        foreach ($request->input('records', []) as $key => $value) {
+            if (! is_string($key) || ! ctype_digit($key)) {
+                continue;
+            }
+            $records[$key] = $value;
+        }
+
+        $user = $request->user();
+        $user->forceFill(['personal_records' => $records])->save();
+
+        return response()->json([
+            'records' => $records,
+        ]);
+    }
 }

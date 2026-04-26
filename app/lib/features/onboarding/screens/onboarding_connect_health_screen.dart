@@ -43,7 +43,18 @@ class _OnboardingConnectHealthScreenState
 
       setState(() => _stage = _Stage.syncing);
 
-      final workouts = await hk.fetchWorkouts();
+      // Run the workout pull and the all-time PR query in parallel — they
+      // hit independent HealthKit code paths and the PR query is fast
+      // (native HKSampleQuery with limit:1 sort by duration). Prefetch the
+      // standard race distances so the form has them ready without a
+      // device round-trip; custom distances ("Other → 26km") are looked up
+      // on demand from the form via personalRecordForDistanceProvider.
+      final results = await Future.wait([
+        hk.fetchWorkouts(),
+        hk.fetchPersonalRecords(distancesMeters: const [5000, 10000, 21097, 42195]),
+      ]);
+      final workouts = results[0] as List<Map<String, dynamic>>;
+      final prs = results[1] as Map<String, Map<String, dynamic>?>;
 
       // Backend caps each ingest call at 200 activities. Heavy runners
       // (>4 runs/wk for a year) blow past that easily, so chunk client-side.
@@ -54,6 +65,17 @@ class _OnboardingConnectHealthScreenState
             (i + chunkSize < workouts.length) ? i + chunkSize : workouts.length;
         final chunk = workouts.sublist(i, end);
         await api.ingest({'activities': chunk});
+      }
+
+      // Push PRs in a separate call so they're stored on the user record
+      // independently of the activity rows. Drop null entries so the
+      // backend doesn't have to defend against them in validation.
+      final nonNullPrs = <String, Map<String, dynamic>>{};
+      prs.forEach((k, v) {
+        if (v != null) nonNullPrs[k] = v;
+      });
+      if (nonNullPrs.isNotEmpty) {
+        await api.ingestPersonalRecords({'records': nonNullPrs});
       }
 
       if (!mounted) return;

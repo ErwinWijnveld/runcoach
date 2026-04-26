@@ -279,10 +279,275 @@ as int?,
 
 
 /// @nodoc
+mixin _$PersonalRecord {
+
+@JsonKey(name: 'duration_seconds', fromJson: toInt) int get durationSeconds;@JsonKey(name: 'distance_meters', fromJson: toInt) int get distanceMeters; String? get date;
+/// Create a copy of PersonalRecord
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$PersonalRecordCopyWith<PersonalRecord> get copyWith => _$PersonalRecordCopyWithImpl<PersonalRecord>(this as PersonalRecord, _$identity);
+
+  /// Serializes this PersonalRecord to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PersonalRecord&&(identical(other.durationSeconds, durationSeconds) || other.durationSeconds == durationSeconds)&&(identical(other.distanceMeters, distanceMeters) || other.distanceMeters == distanceMeters)&&(identical(other.date, date) || other.date == date));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,durationSeconds,distanceMeters,date);
+
+@override
+String toString() {
+  return 'PersonalRecord(durationSeconds: $durationSeconds, distanceMeters: $distanceMeters, date: $date)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $PersonalRecordCopyWith<$Res>  {
+  factory $PersonalRecordCopyWith(PersonalRecord value, $Res Function(PersonalRecord) _then) = _$PersonalRecordCopyWithImpl;
+@useResult
+$Res call({
+@JsonKey(name: 'duration_seconds', fromJson: toInt) int durationSeconds,@JsonKey(name: 'distance_meters', fromJson: toInt) int distanceMeters, String? date
+});
+
+
+
+
+}
+/// @nodoc
+class _$PersonalRecordCopyWithImpl<$Res>
+    implements $PersonalRecordCopyWith<$Res> {
+  _$PersonalRecordCopyWithImpl(this._self, this._then);
+
+  final PersonalRecord _self;
+  final $Res Function(PersonalRecord) _then;
+
+/// Create a copy of PersonalRecord
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? durationSeconds = null,Object? distanceMeters = null,Object? date = freezed,}) {
+  return _then(_self.copyWith(
+durationSeconds: null == durationSeconds ? _self.durationSeconds : durationSeconds // ignore: cast_nullable_to_non_nullable
+as int,distanceMeters: null == distanceMeters ? _self.distanceMeters : distanceMeters // ignore: cast_nullable_to_non_nullable
+as int,date: freezed == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [PersonalRecord].
+extension PersonalRecordPatterns on PersonalRecord {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _PersonalRecord value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _PersonalRecord() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _PersonalRecord value)  $default,){
+final _that = this;
+switch (_that) {
+case _PersonalRecord():
+return $default(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _PersonalRecord value)?  $default,){
+final _that = this;
+switch (_that) {
+case _PersonalRecord() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'duration_seconds', fromJson: toInt)  int durationSeconds, @JsonKey(name: 'distance_meters', fromJson: toInt)  int distanceMeters,  String? date)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _PersonalRecord() when $default != null:
+return $default(_that.durationSeconds,_that.distanceMeters,_that.date);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'duration_seconds', fromJson: toInt)  int durationSeconds, @JsonKey(name: 'distance_meters', fromJson: toInt)  int distanceMeters,  String? date)  $default,) {final _that = this;
+switch (_that) {
+case _PersonalRecord():
+return $default(_that.durationSeconds,_that.distanceMeters,_that.date);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'duration_seconds', fromJson: toInt)  int durationSeconds, @JsonKey(name: 'distance_meters', fromJson: toInt)  int distanceMeters,  String? date)?  $default,) {final _that = this;
+switch (_that) {
+case _PersonalRecord() when $default != null:
+return $default(_that.durationSeconds,_that.distanceMeters,_that.date);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _PersonalRecord implements PersonalRecord {
+  const _PersonalRecord({@JsonKey(name: 'duration_seconds', fromJson: toInt) required this.durationSeconds, @JsonKey(name: 'distance_meters', fromJson: toInt) required this.distanceMeters, this.date});
+  factory _PersonalRecord.fromJson(Map<String, dynamic> json) => _$PersonalRecordFromJson(json);
+
+@override@JsonKey(name: 'duration_seconds', fromJson: toInt) final  int durationSeconds;
+@override@JsonKey(name: 'distance_meters', fromJson: toInt) final  int distanceMeters;
+@override final  String? date;
+
+/// Create a copy of PersonalRecord
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$PersonalRecordCopyWith<_PersonalRecord> get copyWith => __$PersonalRecordCopyWithImpl<_PersonalRecord>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$PersonalRecordToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PersonalRecord&&(identical(other.durationSeconds, durationSeconds) || other.durationSeconds == durationSeconds)&&(identical(other.distanceMeters, distanceMeters) || other.distanceMeters == distanceMeters)&&(identical(other.date, date) || other.date == date));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,durationSeconds,distanceMeters,date);
+
+@override
+String toString() {
+  return 'PersonalRecord(durationSeconds: $durationSeconds, distanceMeters: $distanceMeters, date: $date)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$PersonalRecordCopyWith<$Res> implements $PersonalRecordCopyWith<$Res> {
+  factory _$PersonalRecordCopyWith(_PersonalRecord value, $Res Function(_PersonalRecord) _then) = __$PersonalRecordCopyWithImpl;
+@override @useResult
+$Res call({
+@JsonKey(name: 'duration_seconds', fromJson: toInt) int durationSeconds,@JsonKey(name: 'distance_meters', fromJson: toInt) int distanceMeters, String? date
+});
+
+
+
+
+}
+/// @nodoc
+class __$PersonalRecordCopyWithImpl<$Res>
+    implements _$PersonalRecordCopyWith<$Res> {
+  __$PersonalRecordCopyWithImpl(this._self, this._then);
+
+  final _PersonalRecord _self;
+  final $Res Function(_PersonalRecord) _then;
+
+/// Create a copy of PersonalRecord
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? durationSeconds = null,Object? distanceMeters = null,Object? date = freezed,}) {
+  return _then(_PersonalRecord(
+durationSeconds: null == durationSeconds ? _self.durationSeconds : durationSeconds // ignore: cast_nullable_to_non_nullable
+as int,distanceMeters: null == distanceMeters ? _self.distanceMeters : distanceMeters // ignore: cast_nullable_to_non_nullable
+as int,date: freezed == date ? _self.date : date // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$OnboardingProfile {
 
  String get status;// 'ready' | 'syncing'
- OnboardingProfileMetrics? get metrics;@JsonKey(name: 'narrative_summary') String? get narrativeSummary;@JsonKey(name: 'analyzed_at') DateTime? get analyzedAt;
+ OnboardingProfileMetrics? get metrics;@JsonKey(name: 'narrative_summary') String? get narrativeSummary;@JsonKey(name: 'analyzed_at') DateTime? get analyzedAt;/// All-time PRs keyed by '5k' | '10k' | 'half' | 'marathon'. Map values
+/// can be null when no qualifying workout exists for that distance.
+@JsonKey(name: 'personal_records') Map<String, PersonalRecord?>? get personalRecords;
 /// Create a copy of OnboardingProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -295,16 +560,16 @@ $OnboardingProfileCopyWith<OnboardingProfile> get copyWith => _$OnboardingProfil
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OnboardingProfile&&(identical(other.status, status) || other.status == status)&&(identical(other.metrics, metrics) || other.metrics == metrics)&&(identical(other.narrativeSummary, narrativeSummary) || other.narrativeSummary == narrativeSummary)&&(identical(other.analyzedAt, analyzedAt) || other.analyzedAt == analyzedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OnboardingProfile&&(identical(other.status, status) || other.status == status)&&(identical(other.metrics, metrics) || other.metrics == metrics)&&(identical(other.narrativeSummary, narrativeSummary) || other.narrativeSummary == narrativeSummary)&&(identical(other.analyzedAt, analyzedAt) || other.analyzedAt == analyzedAt)&&const DeepCollectionEquality().equals(other.personalRecords, personalRecords));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,status,metrics,narrativeSummary,analyzedAt);
+int get hashCode => Object.hash(runtimeType,status,metrics,narrativeSummary,analyzedAt,const DeepCollectionEquality().hash(personalRecords));
 
 @override
 String toString() {
-  return 'OnboardingProfile(status: $status, metrics: $metrics, narrativeSummary: $narrativeSummary, analyzedAt: $analyzedAt)';
+  return 'OnboardingProfile(status: $status, metrics: $metrics, narrativeSummary: $narrativeSummary, analyzedAt: $analyzedAt, personalRecords: $personalRecords)';
 }
 
 
@@ -315,7 +580,7 @@ abstract mixin class $OnboardingProfileCopyWith<$Res>  {
   factory $OnboardingProfileCopyWith(OnboardingProfile value, $Res Function(OnboardingProfile) _then) = _$OnboardingProfileCopyWithImpl;
 @useResult
 $Res call({
- String status, OnboardingProfileMetrics? metrics,@JsonKey(name: 'narrative_summary') String? narrativeSummary,@JsonKey(name: 'analyzed_at') DateTime? analyzedAt
+ String status, OnboardingProfileMetrics? metrics,@JsonKey(name: 'narrative_summary') String? narrativeSummary,@JsonKey(name: 'analyzed_at') DateTime? analyzedAt,@JsonKey(name: 'personal_records') Map<String, PersonalRecord?>? personalRecords
 });
 
 
@@ -332,13 +597,14 @@ class _$OnboardingProfileCopyWithImpl<$Res>
 
 /// Create a copy of OnboardingProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? status = null,Object? metrics = freezed,Object? narrativeSummary = freezed,Object? analyzedAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? status = null,Object? metrics = freezed,Object? narrativeSummary = freezed,Object? analyzedAt = freezed,Object? personalRecords = freezed,}) {
   return _then(_self.copyWith(
 status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,metrics: freezed == metrics ? _self.metrics : metrics // ignore: cast_nullable_to_non_nullable
 as OnboardingProfileMetrics?,narrativeSummary: freezed == narrativeSummary ? _self.narrativeSummary : narrativeSummary // ignore: cast_nullable_to_non_nullable
 as String?,analyzedAt: freezed == analyzedAt ? _self.analyzedAt : analyzedAt // ignore: cast_nullable_to_non_nullable
-as DateTime?,
+as DateTime?,personalRecords: freezed == personalRecords ? _self.personalRecords : personalRecords // ignore: cast_nullable_to_non_nullable
+as Map<String, PersonalRecord?>?,
   ));
 }
 /// Create a copy of OnboardingProfile
@@ -432,10 +698,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String status,  OnboardingProfileMetrics? metrics, @JsonKey(name: 'narrative_summary')  String? narrativeSummary, @JsonKey(name: 'analyzed_at')  DateTime? analyzedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String status,  OnboardingProfileMetrics? metrics, @JsonKey(name: 'narrative_summary')  String? narrativeSummary, @JsonKey(name: 'analyzed_at')  DateTime? analyzedAt, @JsonKey(name: 'personal_records')  Map<String, PersonalRecord?>? personalRecords)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OnboardingProfile() when $default != null:
-return $default(_that.status,_that.metrics,_that.narrativeSummary,_that.analyzedAt);case _:
+return $default(_that.status,_that.metrics,_that.narrativeSummary,_that.analyzedAt,_that.personalRecords);case _:
   return orElse();
 
 }
@@ -453,10 +719,10 @@ return $default(_that.status,_that.metrics,_that.narrativeSummary,_that.analyzed
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String status,  OnboardingProfileMetrics? metrics, @JsonKey(name: 'narrative_summary')  String? narrativeSummary, @JsonKey(name: 'analyzed_at')  DateTime? analyzedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String status,  OnboardingProfileMetrics? metrics, @JsonKey(name: 'narrative_summary')  String? narrativeSummary, @JsonKey(name: 'analyzed_at')  DateTime? analyzedAt, @JsonKey(name: 'personal_records')  Map<String, PersonalRecord?>? personalRecords)  $default,) {final _that = this;
 switch (_that) {
 case _OnboardingProfile():
-return $default(_that.status,_that.metrics,_that.narrativeSummary,_that.analyzedAt);}
+return $default(_that.status,_that.metrics,_that.narrativeSummary,_that.analyzedAt,_that.personalRecords);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -470,10 +736,10 @@ return $default(_that.status,_that.metrics,_that.narrativeSummary,_that.analyzed
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String status,  OnboardingProfileMetrics? metrics, @JsonKey(name: 'narrative_summary')  String? narrativeSummary, @JsonKey(name: 'analyzed_at')  DateTime? analyzedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String status,  OnboardingProfileMetrics? metrics, @JsonKey(name: 'narrative_summary')  String? narrativeSummary, @JsonKey(name: 'analyzed_at')  DateTime? analyzedAt, @JsonKey(name: 'personal_records')  Map<String, PersonalRecord?>? personalRecords)?  $default,) {final _that = this;
 switch (_that) {
 case _OnboardingProfile() when $default != null:
-return $default(_that.status,_that.metrics,_that.narrativeSummary,_that.analyzedAt);case _:
+return $default(_that.status,_that.metrics,_that.narrativeSummary,_that.analyzedAt,_that.personalRecords);case _:
   return null;
 
 }
@@ -485,7 +751,7 @@ return $default(_that.status,_that.metrics,_that.narrativeSummary,_that.analyzed
 @JsonSerializable()
 
 class _OnboardingProfile implements OnboardingProfile {
-  const _OnboardingProfile({required this.status, this.metrics, @JsonKey(name: 'narrative_summary') this.narrativeSummary, @JsonKey(name: 'analyzed_at') this.analyzedAt});
+  const _OnboardingProfile({required this.status, this.metrics, @JsonKey(name: 'narrative_summary') this.narrativeSummary, @JsonKey(name: 'analyzed_at') this.analyzedAt, @JsonKey(name: 'personal_records') final  Map<String, PersonalRecord?>? personalRecords}): _personalRecords = personalRecords;
   factory _OnboardingProfile.fromJson(Map<String, dynamic> json) => _$OnboardingProfileFromJson(json);
 
 @override final  String status;
@@ -493,6 +759,19 @@ class _OnboardingProfile implements OnboardingProfile {
 @override final  OnboardingProfileMetrics? metrics;
 @override@JsonKey(name: 'narrative_summary') final  String? narrativeSummary;
 @override@JsonKey(name: 'analyzed_at') final  DateTime? analyzedAt;
+/// All-time PRs keyed by '5k' | '10k' | 'half' | 'marathon'. Map values
+/// can be null when no qualifying workout exists for that distance.
+ final  Map<String, PersonalRecord?>? _personalRecords;
+/// All-time PRs keyed by '5k' | '10k' | 'half' | 'marathon'. Map values
+/// can be null when no qualifying workout exists for that distance.
+@override@JsonKey(name: 'personal_records') Map<String, PersonalRecord?>? get personalRecords {
+  final value = _personalRecords;
+  if (value == null) return null;
+  if (_personalRecords is EqualUnmodifiableMapView) return _personalRecords;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(value);
+}
+
 
 /// Create a copy of OnboardingProfile
 /// with the given fields replaced by the non-null parameter values.
@@ -507,16 +786,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OnboardingProfile&&(identical(other.status, status) || other.status == status)&&(identical(other.metrics, metrics) || other.metrics == metrics)&&(identical(other.narrativeSummary, narrativeSummary) || other.narrativeSummary == narrativeSummary)&&(identical(other.analyzedAt, analyzedAt) || other.analyzedAt == analyzedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OnboardingProfile&&(identical(other.status, status) || other.status == status)&&(identical(other.metrics, metrics) || other.metrics == metrics)&&(identical(other.narrativeSummary, narrativeSummary) || other.narrativeSummary == narrativeSummary)&&(identical(other.analyzedAt, analyzedAt) || other.analyzedAt == analyzedAt)&&const DeepCollectionEquality().equals(other._personalRecords, _personalRecords));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,status,metrics,narrativeSummary,analyzedAt);
+int get hashCode => Object.hash(runtimeType,status,metrics,narrativeSummary,analyzedAt,const DeepCollectionEquality().hash(_personalRecords));
 
 @override
 String toString() {
-  return 'OnboardingProfile(status: $status, metrics: $metrics, narrativeSummary: $narrativeSummary, analyzedAt: $analyzedAt)';
+  return 'OnboardingProfile(status: $status, metrics: $metrics, narrativeSummary: $narrativeSummary, analyzedAt: $analyzedAt, personalRecords: $personalRecords)';
 }
 
 
@@ -527,7 +806,7 @@ abstract mixin class _$OnboardingProfileCopyWith<$Res> implements $OnboardingPro
   factory _$OnboardingProfileCopyWith(_OnboardingProfile value, $Res Function(_OnboardingProfile) _then) = __$OnboardingProfileCopyWithImpl;
 @override @useResult
 $Res call({
- String status, OnboardingProfileMetrics? metrics,@JsonKey(name: 'narrative_summary') String? narrativeSummary,@JsonKey(name: 'analyzed_at') DateTime? analyzedAt
+ String status, OnboardingProfileMetrics? metrics,@JsonKey(name: 'narrative_summary') String? narrativeSummary,@JsonKey(name: 'analyzed_at') DateTime? analyzedAt,@JsonKey(name: 'personal_records') Map<String, PersonalRecord?>? personalRecords
 });
 
 
@@ -544,13 +823,14 @@ class __$OnboardingProfileCopyWithImpl<$Res>
 
 /// Create a copy of OnboardingProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? status = null,Object? metrics = freezed,Object? narrativeSummary = freezed,Object? analyzedAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? status = null,Object? metrics = freezed,Object? narrativeSummary = freezed,Object? analyzedAt = freezed,Object? personalRecords = freezed,}) {
   return _then(_OnboardingProfile(
 status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,metrics: freezed == metrics ? _self.metrics : metrics // ignore: cast_nullable_to_non_nullable
 as OnboardingProfileMetrics?,narrativeSummary: freezed == narrativeSummary ? _self.narrativeSummary : narrativeSummary // ignore: cast_nullable_to_non_nullable
 as String?,analyzedAt: freezed == analyzedAt ? _self.analyzedAt : analyzedAt // ignore: cast_nullable_to_non_nullable
-as DateTime?,
+as DateTime?,personalRecords: freezed == personalRecords ? _self._personalRecords : personalRecords // ignore: cast_nullable_to_non_nullable
+as Map<String, PersonalRecord?>?,
   ));
 }
 

@@ -24,6 +24,20 @@ Map<String, dynamic> _$OnboardingProfileMetricsToJson(
   'session_avg_duration_seconds': instance.sessionAvgDurationSeconds,
 };
 
+_PersonalRecord _$PersonalRecordFromJson(Map<String, dynamic> json) =>
+    _PersonalRecord(
+      durationSeconds: toInt(json['duration_seconds']),
+      distanceMeters: toInt(json['distance_meters']),
+      date: json['date'] as String?,
+    );
+
+Map<String, dynamic> _$PersonalRecordToJson(_PersonalRecord instance) =>
+    <String, dynamic>{
+      'duration_seconds': instance.durationSeconds,
+      'distance_meters': instance.distanceMeters,
+      'date': instance.date,
+    };
+
 _OnboardingProfile _$OnboardingProfileFromJson(Map<String, dynamic> json) =>
     _OnboardingProfile(
       status: json['status'] as String,
@@ -36,6 +50,12 @@ _OnboardingProfile _$OnboardingProfileFromJson(Map<String, dynamic> json) =>
       analyzedAt: json['analyzed_at'] == null
           ? null
           : DateTime.parse(json['analyzed_at'] as String),
+      personalRecords: (json['personal_records'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(
+          k,
+          e == null ? null : PersonalRecord.fromJson(e as Map<String, dynamic>),
+        ),
+      ),
     );
 
 Map<String, dynamic> _$OnboardingProfileToJson(_OnboardingProfile instance) =>
@@ -44,4 +64,5 @@ Map<String, dynamic> _$OnboardingProfileToJson(_OnboardingProfile instance) =>
       'metrics': instance.metrics,
       'narrative_summary': instance.narrativeSummary,
       'analyzed_at': instance.analyzedAt?.toIso8601String(),
+      'personal_records': instance.personalRecords,
     };

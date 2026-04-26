@@ -25,6 +25,14 @@ return new class extends Migration
             // HR zones (5 entries, ordered Z1..Z5, each `{min, max}`; Z5 max is -1).
             // Null until we have data to derive them from.
             $table->json('heart_rate_zones')->nullable();
+            // All-time personal records keyed by distance code (5k, 10k,
+            // half, marathon). Each entry: {duration_seconds, distance_meters,
+            // date, source_activity_id}. Computed natively from HealthKit
+            // (HKQuery.predicateForWorkouts(operatorType:totalDistance:))
+            // because pulling all-time runs into the local DB just to find
+            // the fastest is wasteful. Pre-fills the onboarding form's
+            // goal-time / current-PR fields when the user picks a distance.
+            $table->json('personal_records')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable();
             $table->rememberToken();

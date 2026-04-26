@@ -74,6 +74,7 @@ class OnboardingController extends Controller
                 'data_end_date' => null,
                 'metrics' => [],
                 'narrative_summary' => null,
+                'personal_records' => $user->personal_records,
             ]);
         }
 
@@ -84,6 +85,7 @@ class OnboardingController extends Controller
             'data_end_date' => $profile->data_end_date,
             'metrics' => $profile->metrics,
             'narrative_summary' => $profile->narrative_summary,
+            'personal_records' => $user->personal_records,
         ]);
     }
 

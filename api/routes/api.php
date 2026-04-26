@@ -42,6 +42,7 @@ Route::prefix('v1')->group(function () {
         // Wearable activities (HealthKit ingestion from the app)
         Route::post('wearable/activities', [WearableActivityController::class, 'store']);
         Route::get('wearable/activities', [WearableActivityController::class, 'index']);
+        Route::post('wearable/personal-records', [WearableActivityController::class, 'storePersonalRecords']);
 
         // Dashboard
         Route::get('dashboard', DashboardController::class);

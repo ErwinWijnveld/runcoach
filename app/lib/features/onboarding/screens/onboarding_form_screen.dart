@@ -9,6 +9,7 @@ import 'package:app/features/onboarding/models/onboarding_form_data.dart';
 import 'package:app/features/onboarding/providers/onboarding_form_provider.dart';
 import 'package:app/features/onboarding/widgets/choice_group.dart';
 import 'package:app/features/onboarding/widgets/step_scaffold.dart';
+import 'package:app/features/wearable/data/wearable_api.dart';
 
 /// Logical step identifiers. The concrete list shown to the user is
 /// computed from `goalType` (see `_flowFor`).
@@ -532,13 +533,11 @@ class _GoalTimeStep extends ConsumerStatefulWidget {
 
 class _GoalTimeStepState extends ConsumerState<_GoalTimeStep> {
   late final TextEditingController _ctrl = TextEditingController(
-    text: _prefill(widget.form.goalTimeSeconds, widget.form.distanceMeters),
+    text: widget.form.goalTimeSeconds == null
+        ? ''
+        : _formatSecondsToHuman(widget.form.goalTimeSeconds!),
   );
-
-  String _prefill(int? seconds, int? distanceMeters) {
-    if (seconds == null) return '';
-    return _formatSecondsToHuman(seconds);
-  }
+  bool _prefillApplied = false;
 
   @override
   void dispose() {
@@ -551,11 +550,41 @@ class _GoalTimeStepState extends ConsumerState<_GoalTimeStep> {
     final notifier = ref.read(onboardingFormProvider.notifier);
     final parsed = parseGoalTimeInput(_ctrl.text, widget.form.distanceMeters);
 
+    // Auto-prefill the field with the runner's PR at the chosen distance
+    // (HealthKit query, cached per-distance). Only when the field is empty
+    // and the user hasn't already typed anything — never overwrite user
+    // input. Triggers once per distance change.
+    final distanceMeters = widget.form.distanceMeters;
+    if (distanceMeters != null && !_prefillApplied && _ctrl.text.trim().isEmpty) {
+      ref.listen(personalRecordForDistanceProvider(distanceMeters), (_, next) {
+        next.whenData((pr) {
+          if (!mounted || _prefillApplied) return;
+          if (_ctrl.text.trim().isNotEmpty) return;
+          if (pr == null) return;
+          final seconds = pr['duration_seconds'] as int?;
+          if (seconds == null) return;
+          setState(() {
+            _ctrl.text = _formatSecondsToHuman(seconds);
+            _prefillApplied = true;
+          });
+        });
+      });
+      // Kick off the query (also primes the family cache).
+      ref.watch(personalRecordForDistanceProvider(distanceMeters));
+    }
+
+    final prAsync = distanceMeters == null
+        ? null
+        : ref.watch(personalRecordForDistanceProvider(distanceMeters));
+    final prSeconds = prAsync?.value?['duration_seconds'] as int?;
+
     return StepScaffold(
       stepIndex: widget.stepIndex,
       stepCount: widget.stepCount,
       title: 'What goal time or pace are you aiming for?',
-      subtitle: 'Enter it however feels natural, we parse it.',
+      subtitle: prSeconds != null
+          ? 'Pre-filled from your fastest matching run in Apple Health. Adjust if you want to push past it.'
+          : 'Enter it however feels natural, we parse it.',
       canContinue: parsed != null,
       onSkip: () {
         widget.onContinue();
@@ -612,6 +641,7 @@ class _PrCurrentStepState extends ConsumerState<_PrCurrentStep> {
         ? ''
         : _formatSecondsToHuman(widget.form.prCurrentSeconds!),
   );
+  bool _prefillApplied = false;
 
   @override
   void dispose() {
@@ -624,11 +654,39 @@ class _PrCurrentStepState extends ConsumerState<_PrCurrentStep> {
     final notifier = ref.read(onboardingFormProvider.notifier);
     final parsed = parseGoalTimeInput(_ctrl.text, widget.form.distanceMeters);
 
+    // Pre-fill with HealthKit PR at the chosen distance. Same one-shot
+    // pattern as _GoalTimeStep — never clobber user input.
+    final distanceMeters = widget.form.distanceMeters;
+    if (distanceMeters != null && !_prefillApplied && _ctrl.text.trim().isEmpty) {
+      ref.listen(personalRecordForDistanceProvider(distanceMeters), (_, next) {
+        next.whenData((pr) {
+          if (!mounted || _prefillApplied) return;
+          if (_ctrl.text.trim().isNotEmpty) return;
+          if (pr == null) return;
+          final seconds = pr['duration_seconds'] as int?;
+          if (seconds == null) return;
+          setState(() {
+            _ctrl.text = _formatSecondsToHuman(seconds);
+            _prefillApplied = true;
+            notifier.setPrCurrent(seconds);
+          });
+        });
+      });
+      ref.watch(personalRecordForDistanceProvider(distanceMeters));
+    }
+
+    final prAsync = distanceMeters == null
+        ? null
+        : ref.watch(personalRecordForDistanceProvider(distanceMeters));
+    final prSeconds = prAsync?.value?['duration_seconds'] as int?;
+
     return StepScaffold(
       stepIndex: widget.stepIndex,
       stepCount: widget.stepCount,
       title: "What's your current PR?",
-      subtitle: 'Optional, helps us gauge a realistic target.',
+      subtitle: prSeconds != null
+          ? 'Pre-filled from your fastest matching run in Apple Health. Adjust if needed.'
+          : 'Optional, helps us gauge a realistic target.',
       canContinue: _ctrl.text.trim().isEmpty || parsed != null,
       onSkip: () {
         notifier.setPrCurrent(null);

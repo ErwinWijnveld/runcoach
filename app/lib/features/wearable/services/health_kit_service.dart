@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:health/health.dart';
 
 /// Reads workouts and HR samples from Apple HealthKit and shapes them into
@@ -11,9 +12,12 @@ import 'package:health/health.dart';
 /// any HR samples that overlap the workout window, which usually means
 /// workout HR but can include resting watch readings on either side).
 class HealthKitService {
-  HealthKitService([Health? health]) : _health = health ?? Health();
+  HealthKitService([Health? health, MethodChannel? prChannel])
+      : _health = health ?? Health(),
+        _prChannel = prChannel ?? const MethodChannel('nl.runcoach/healthkit_prs');
 
   final Health _health;
+  final MethodChannel _prChannel;
 
   static const _workoutType = HealthDataType.WORKOUT;
   static const _hrType = HealthDataType.HEART_RATE;
@@ -174,5 +178,86 @@ class HealthKitService {
       default:
         return null;
     }
+  }
+
+  /// All-time personal records for an arbitrary set of distances. Bridges
+  /// to native Swift (`HealthKitPersonalRecords.swift`) which uses
+  /// `HKQuery.predicateForWorkouts(operatorType:totalDistance:)` + sort by
+  /// duration ASC + limit 1 to find each fastest matching workout in
+  /// milliseconds, regardless of how many years of HealthKit history the
+  /// runner has. Pulling the equivalent into Dart and filtering would mean
+  /// loading hundreds of HKWorkout objects per query.
+  ///
+  /// Returns a map keyed by **stringified integer meters** so the caller
+  /// can mix standard distances (5000, 10000, 21097, 42195) with any
+  /// custom distance (e.g. 26000 when the user picks "Other → 26km" in
+  /// the onboarding form):
+  ///   {
+  ///     '5000':  {duration_seconds: 1685, distance_meters: 5023, date: '2024-09-12T...', source_activity_id: '...'},
+  ///     '10000': {duration_seconds: 3620, ...},
+  ///     '21097': null,    // no qualifying workout
+  ///     '42195': null,
+  ///   }
+  ///
+  /// Tolerance: ±[toleranceFraction] on distance (default 2%, so a
+  /// 4900-5100m run counts as a 5k). Both `.running` and
+  /// `.runningTreadmill` workouts qualify.
+  Future<Map<String, Map<String, dynamic>?>> fetchPersonalRecords({
+    required List<num> distancesMeters,
+    double toleranceFraction = 0.02,
+  }) async {
+    if (distancesMeters.isEmpty) return const {};
+
+    try {
+      final raw = await _prChannel.invokeMethod<Map<Object?, Object?>>(
+        'getPersonalRecords',
+        {
+          'distances': distancesMeters.map((d) => d.toDouble()).toList(),
+          'toleranceFraction': toleranceFraction,
+        },
+      );
+      if (raw == null) return const {};
+
+      final out = <String, Map<String, dynamic>?>{};
+      raw.forEach((key, value) {
+        if (key is! String) return;
+        if (value == null) {
+          out[key] = null;
+          return;
+        }
+        if (value is Map) {
+          out[key] = Map<String, dynamic>.from(value);
+        }
+      });
+
+      // ignore: avoid_print
+      print('[HealthKit] PRs: ${out.entries.where((e) => e.value != null).length} of ${out.length} distances');
+
+      return out;
+    } on PlatformException catch (e) {
+      // ignore: avoid_print
+      print('[HealthKit] PR query failed: ${e.code} ${e.message}');
+      return const {};
+    } on MissingPluginException {
+      // Running on simulator without the native bridge wired up, or in a
+      // unit test without a method-channel mock. Don't crash the flow.
+      return const {};
+    }
+  }
+
+  /// Convenience: lookup the PR for a single distance. Returns null when
+  /// no qualifying workout exists. Used by the onboarding form's
+  /// `personalRecordForDistanceProvider` when the user picks a distance —
+  /// caches in Riverpod so going back+forward through the form doesn't
+  /// re-query HealthKit.
+  Future<Map<String, dynamic>?> fetchPersonalRecord({
+    required int distanceMeters,
+    double toleranceFraction = 0.02,
+  }) async {
+    final result = await fetchPersonalRecords(
+      distancesMeters: [distanceMeters],
+      toleranceFraction: toleranceFraction,
+    );
+    return result[distanceMeters.toString()];
   }
 }

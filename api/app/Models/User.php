@@ -21,7 +21,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'apple_sub', 'coach_style', 'has_completed_onboarding', 'heart_rate_zones', 'is_superadmin'])]
+#[Fillable(['name', 'email', 'password', 'apple_sub', 'coach_style', 'has_completed_onboarding', 'heart_rate_zones', 'personal_records', 'is_superadmin'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
@@ -36,6 +36,7 @@ class User extends Authenticatable implements FilamentUser
             'coach_style' => CoachStyle::class,
             'has_completed_onboarding' => 'boolean',
             'heart_rate_zones' => 'array',
+            'personal_records' => 'array',
             'is_superadmin' => 'boolean',
         ];
     }

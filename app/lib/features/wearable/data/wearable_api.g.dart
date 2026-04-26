@@ -62,6 +62,28 @@ class _WearableApi implements WearableApi {
     return _value;
   }
 
+  @override
+  Future<dynamic> ingestPersonalRecords(Map<String, dynamic> body) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    final _data = <String, dynamic>{};
+    _data.addAll(body);
+    final _options = _setStreamType<dynamic>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/wearable/personal-records',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
   RequestOptions _setStreamType<T>(RequestOptions requestOptions) {
     if (T != dynamic &&
         !(requestOptions.responseType == ResponseType.bytes ||
@@ -185,3 +207,131 @@ final class HealthKitServiceProvider
 }
 
 String _$healthKitServiceHash() => r'13d4817577f6dc7109717adb93acb90a9e672016';
+
+/// On-demand HealthKit PR lookup for a single distance, cached per-distance
+/// by Riverpod's family auto-caching. Used by the onboarding form's goal
+/// time + current-PR steps so the field pre-fills the moment the user
+/// picks a distance — including custom "Other → 26km" picks the standard
+/// connect-health prefetch doesn't cover.
+///
+/// Returns the raw map from the MethodChannel (durationSeconds,
+/// distanceMeters, date, sourceActivityId) or null when no qualifying
+/// workout exists. The form converts to a parsed seconds value itself.
+
+@ProviderFor(personalRecordForDistance)
+final personalRecordForDistanceProvider = PersonalRecordForDistanceFamily._();
+
+/// On-demand HealthKit PR lookup for a single distance, cached per-distance
+/// by Riverpod's family auto-caching. Used by the onboarding form's goal
+/// time + current-PR steps so the field pre-fills the moment the user
+/// picks a distance — including custom "Other → 26km" picks the standard
+/// connect-health prefetch doesn't cover.
+///
+/// Returns the raw map from the MethodChannel (durationSeconds,
+/// distanceMeters, date, sourceActivityId) or null when no qualifying
+/// workout exists. The form converts to a parsed seconds value itself.
+
+final class PersonalRecordForDistanceProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<Map<String, dynamic>?>,
+          Map<String, dynamic>?,
+          FutureOr<Map<String, dynamic>?>
+        >
+    with
+        $FutureModifier<Map<String, dynamic>?>,
+        $FutureProvider<Map<String, dynamic>?> {
+  /// On-demand HealthKit PR lookup for a single distance, cached per-distance
+  /// by Riverpod's family auto-caching. Used by the onboarding form's goal
+  /// time + current-PR steps so the field pre-fills the moment the user
+  /// picks a distance — including custom "Other → 26km" picks the standard
+  /// connect-health prefetch doesn't cover.
+  ///
+  /// Returns the raw map from the MethodChannel (durationSeconds,
+  /// distanceMeters, date, sourceActivityId) or null when no qualifying
+  /// workout exists. The form converts to a parsed seconds value itself.
+  PersonalRecordForDistanceProvider._({
+    required PersonalRecordForDistanceFamily super.from,
+    required int super.argument,
+  }) : super(
+         retry: null,
+         name: r'personalRecordForDistanceProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$personalRecordForDistanceHash();
+
+  @override
+  String toString() {
+    return r'personalRecordForDistanceProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<Map<String, dynamic>?> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<Map<String, dynamic>?> create(Ref ref) {
+    final argument = this.argument as int;
+    return personalRecordForDistance(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is PersonalRecordForDistanceProvider &&
+        other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$personalRecordForDistanceHash() =>
+    r'8132c0408cd99692bd9fab6f766a5d8425e3287a';
+
+/// On-demand HealthKit PR lookup for a single distance, cached per-distance
+/// by Riverpod's family auto-caching. Used by the onboarding form's goal
+/// time + current-PR steps so the field pre-fills the moment the user
+/// picks a distance — including custom "Other → 26km" picks the standard
+/// connect-health prefetch doesn't cover.
+///
+/// Returns the raw map from the MethodChannel (durationSeconds,
+/// distanceMeters, date, sourceActivityId) or null when no qualifying
+/// workout exists. The form converts to a parsed seconds value itself.
+
+final class PersonalRecordForDistanceFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<Map<String, dynamic>?>, int> {
+  PersonalRecordForDistanceFamily._()
+    : super(
+        retry: null,
+        name: r'personalRecordForDistanceProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// On-demand HealthKit PR lookup for a single distance, cached per-distance
+  /// by Riverpod's family auto-caching. Used by the onboarding form's goal
+  /// time + current-PR steps so the field pre-fills the moment the user
+  /// picks a distance — including custom "Other → 26km" picks the standard
+  /// connect-health prefetch doesn't cover.
+  ///
+  /// Returns the raw map from the MethodChannel (durationSeconds,
+  /// distanceMeters, date, sourceActivityId) or null when no qualifying
+  /// workout exists. The form converts to a parsed seconds value itself.
+
+  PersonalRecordForDistanceProvider call(int distanceMeters) =>
+      PersonalRecordForDistanceProvider._(argument: distanceMeters, from: this);
+
+  @override
+  String toString() => r'personalRecordForDistanceProvider';
+}
