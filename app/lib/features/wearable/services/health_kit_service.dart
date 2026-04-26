@@ -7,8 +7,9 @@ import 'package:health/health.dart';
 /// fetch on app launch + when the connect-health screen completes. A future
 /// follow-up can add a Swift `HKObserverQuery` MethodChannel for true
 /// background delivery, plus `predicateForObjects(from: workout)` for
-/// workout-scoped HR samples (the time-window query here over-counts samples
-/// that overlap the workout but were recorded by other apps).
+/// strictly workout-scoped HR samples (the time-window query here picks up
+/// any HR samples that overlap the workout window, which usually means
+/// workout HR but can include resting watch readings on either side).
 class HealthKitService {
   HealthKitService([Health? health]) : _health = health ?? Health();
 
@@ -39,6 +40,13 @@ class HealthKitService {
   /// the backend analyzes over 52 weeks) reflects their full year of running.
   /// HealthKit has no real upper bound on past dates — 365 days returns in
   /// well under a second even for runners with hundreds of workouts.
+  ///
+  /// For each surviving workout, also queries HR samples in its time window
+  /// to surface `average_heartrate` / `max_heartrate`. These come back as
+  /// SEPARATE HealthKit samples (HR is a quantity stream, not a workout
+  /// summary field), so without this extra pass the backend would see
+  /// every Apple Health workout as HR-less and the coach would say
+  /// "I don't have heart-rate data for these runs".
   Future<List<Map<String, dynamic>>> fetchWorkouts({
     Duration window = const Duration(days: 365),
   }) async {
@@ -53,6 +61,7 @@ class HealthKitService {
 
     int skippedNonRun = 0;
     int skippedZeroDistance = 0;
+    int hrAttached = 0;
 
     final workouts = <Map<String, dynamic>>[];
     for (final point in samples) {
@@ -69,21 +78,61 @@ class HealthKitService {
         skippedZeroDistance++;
         continue;
       }
+
+      final hr = await _fetchHeartRateForWorkout(point.dateFrom, point.dateTo);
+      if (hr != null) {
+        shaped['average_heartrate'] = hr.average;
+        shaped['max_heartrate'] = hr.max;
+        hrAttached++;
+      }
+
       workouts.add(shaped);
     }
 
-    if (workouts.isEmpty) {
-      // ignore: avoid_print
-      print('[HealthKit] window=${window.inDays}d found 0 runs '
-          '(samples=${samples.length}, skipped non-run=$skippedNonRun, '
-          'zero-distance=$skippedZeroDistance)');
-    } else {
-      // ignore: avoid_print
-      print('[HealthKit] window=${window.inDays}d found ${workouts.length} runs '
-          '(skipped non-run=$skippedNonRun, zero-distance=$skippedZeroDistance)');
-    }
+    // ignore: avoid_print
+    print('[HealthKit] window=${window.inDays}d found ${workouts.length} runs '
+        '(hr_attached=$hrAttached, skipped non-run=$skippedNonRun, '
+        'zero-distance=$skippedZeroDistance)');
 
     return workouts;
+  }
+
+  /// Pull HR samples bounded by [start]–[end], compute avg + max. Returns
+  /// null when there are no samples in the window (manually-logged runs,
+  /// runs done without an Apple Watch, etc.) so the backend keeps the
+  /// columns null instead of writing 0.
+  Future<({double average, double max})?> _fetchHeartRateForWorkout(
+    DateTime start,
+    DateTime end,
+  ) async {
+    if (!end.isAfter(start)) return null;
+
+    try {
+      final samples = await _health.getHealthDataFromTypes(
+        types: const [_hrType],
+        startTime: start,
+        endTime: end,
+      );
+
+      final values = <double>[];
+      for (final s in samples) {
+        if (s.value is! NumericHealthValue) continue;
+        final v = (s.value as NumericHealthValue).numericValue.toDouble();
+        // HealthKit BPM range. Anything outside is bad data (watch glitch,
+        // simulator junk) — drop it instead of letting it skew the average.
+        if (v >= 30 && v <= 250) values.add(v);
+      }
+
+      if (values.isEmpty) return null;
+
+      final avg = values.reduce((a, b) => a + b) / values.length;
+      final max = values.reduce((a, b) => a > b ? a : b);
+      return (average: avg, max: max);
+    } catch (_) {
+      // HealthKit denies HR access for some runs (e.g. third-party imports).
+      // Don't fail the whole sync — just leave HR null on this row.
+      return null;
+    }
   }
 
   Map<String, dynamic>? _shape(HealthDataPoint point) {
