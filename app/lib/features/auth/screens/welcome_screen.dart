@@ -10,89 +10,27 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CupertinoPageScaffold(
-      // backgroundColor inherited from CupertinoTheme.scaffoldBackgroundColor
-      // (transparent), so the global cream → gold gradient set in
-      // RunCoachApp.builder shows through. Glow blobs sit on top.
+      // Background is the global cream → gold gradient set in
+      // RunCoachApp.builder; CupertinoTheme.scaffoldBackgroundColor is
+      // transparent so it shows through.
       backgroundColor: CupertinoColors.transparent,
-      child: Stack(
-        children: [
-          const _BackgroundGlow(),
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 48,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const _Branding(),
-                  const SizedBox(height: 72),
-                  const _Headline(),
-                  const SizedBox(height: 72),
-                  _SignInWithAppleButton(
-                    onPressed: () => context.go('/auth/apple'),
-                  ),
-                ],
-              ),
-            ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 24,
+            vertical: 48,
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _BackgroundGlow extends StatelessWidget {
-  const _BackgroundGlow();
-
-  @override
-  Widget build(BuildContext context) {
-    return const IgnorePointer(
-      child: Stack(
-        children: [
-          _GlowBlob(left: -60, top: -80, size: 340, alpha: 0.55),
-          _GlowBlob(right: -120, top: 220, size: 360, alpha: 0.4),
-          _GlowBlob(right: -90, bottom: -120, size: 420, alpha: 0.5),
-        ],
-      ),
-    );
-  }
-}
-
-class _GlowBlob extends StatelessWidget {
-  final double? left;
-  final double? top;
-  final double? right;
-  final double? bottom;
-  final double size;
-  final double alpha;
-
-  const _GlowBlob({
-    this.left,
-    this.top,
-    this.right,
-    this.bottom,
-    required this.size,
-    required this.alpha,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      left: left,
-      top: top,
-      right: right,
-      bottom: bottom,
-      width: size,
-      height: size,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: RadialGradient(
-            colors: [
-              AppColors.goldGlow.withValues(alpha: alpha),
-              AppColors.goldGlow.withValues(alpha: 0.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const _Branding(),
+              const SizedBox(height: 72),
+              const _Headline(),
+              const SizedBox(height: 72),
+              _SignInWithAppleButton(
+                onPressed: () => context.go('/auth/apple'),
+              ),
             ],
           ),
         ),
