@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Enums\GoalStatus;
-use App\Jobs\SyncStravaHistory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -12,12 +11,6 @@ class DashboardController extends Controller
     public function __invoke(Request $request): JsonResponse
     {
         $user = $request->user();
-
-        // Lightweight background sync — only recent activities (1 week)
-        if ($user->stravaToken) {
-            SyncStravaHistory::dispatch($user->id, months: 1);
-        }
-
         $goal = $user->goals()->where('status', GoalStatus::Active)->latest()->first();
 
         if (! $goal) {

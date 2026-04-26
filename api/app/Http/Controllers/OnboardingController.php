@@ -4,10 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\GeneratePlanRequest;
 use App\Jobs\GeneratePlan;
-use App\Jobs\SyncStravaHistory;
 use App\Models\PlanGeneration;
 use App\Services\RunningProfileService;
-use App\Services\StravaSyncService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -19,10 +17,6 @@ class OnboardingController extends Controller
     /**
      * Ensure an onboarding conversation exists for the user. Returns its id.
      * Idempotent: returns the existing onboarding conversation if one is open.
-     *
-     * The frontend then mounts CoachChatView pointed at this conversation and
-     * sends its first message via the regular /coach/chat endpoint. The agent,
-     * reading `context='onboarding'`, follows the onboarding script.
      *
      * @deprecated Replaced by the form-based onboarding flow
      *             (GET /onboarding/profile + POST /onboarding/generate-plan).
@@ -59,30 +53,20 @@ class OnboardingController extends Controller
     /**
      * Returns the user's running profile for the onboarding overview screen.
      *
-     * If no Strava activities are synced yet, runs the sync INLINE (synchronous)
-     * before returning. The user is already blocked on a spinner during onboarding
-     * so the async-job + poll pattern only adds 3-6s of wakeup/poll lag without
-     * any UX benefit. After onboarding (manual sync, dashboard pulls) the queued
-     * `SyncStravaHistory::dispatch()` path is still used — see `StravaController`
-     * and `DashboardController`.
+     * Activities arrive via POST /wearable/activities (HealthKit push from
+     * the app) before this endpoint is called, so we never trigger any sync
+     * here — we just check whether the user has any activities locally and
+     * either compute the profile from them or return ready+empty.
      */
-    public function profile(
-        Request $request,
-        RunningProfileService $profiles,
-        StravaSyncService $stravaSyncService,
-    ): JsonResponse {
+    public function profile(Request $request, RunningProfileService $profiles): JsonResponse
+    {
         $user = $request->user();
-
-        if (! $user->wearableActivities()->exists()) {
-            (new SyncStravaHistory($user->id))->handle($stravaSyncService);
-        }
 
         $profile = $profiles->getOrAnalyze($user);
 
         if ($profile === null) {
-            // Sync ran but produced zero runs (e.g. user has no run activities
-            // in the last 3 months). Treat as ready with empty metrics so the
-            // UI can proceed instead of polling forever.
+            // No activities synced yet (HealthKit push hasn't happened or
+            // returned zero runs). Return ready+empty so the UI can proceed.
             return response()->json([
                 'status' => 'ready',
                 'analyzed_at' => null,

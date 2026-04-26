@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Goal;
-use App\Models\StravaToken;
 use App\Models\TrainingDay;
 use App\Models\TrainingResult;
 use App\Models\TrainingWeek;
@@ -15,15 +14,6 @@ use Tests\TestCase;
 class ModelRelationshipsTest extends TestCase
 {
     use LazilyRefreshDatabase;
-
-    public function test_user_has_one_strava_token(): void
-    {
-        $user = User::factory()->create();
-        $token = StravaToken::factory()->create(['user_id' => $user->id]);
-
-        $this->assertTrue($user->stravaToken->is($token));
-        $this->assertTrue($token->user->is($user));
-    }
 
     public function test_user_has_many_goals(): void
     {

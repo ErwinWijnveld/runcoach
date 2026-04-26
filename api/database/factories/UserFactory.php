@@ -27,7 +27,7 @@ class UserFactory extends Factory
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
-            'strava_athlete_id' => fake()->unique()->randomNumber(8),
+            'apple_sub' => fake()->optional(0.5)->uuid(),
             'coach_style' => 'balanced',
             'has_completed_onboarding' => false,
             'email_verified_at' => now(),

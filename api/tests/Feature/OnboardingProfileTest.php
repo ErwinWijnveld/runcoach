@@ -12,11 +12,11 @@ class OnboardingProfileTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
-    public function test_returns_ready_with_empty_metrics_when_user_has_no_strava_token(): void
+    public function test_returns_ready_with_empty_metrics_when_user_has_no_activities(): void
     {
-        // Without a Strava token the inline SyncStravaHistory job no-ops
-        // (early return). The endpoint now returns ready with empty metrics
-        // instead of 202 syncing — Flutter no longer polls.
+        // Activities are pushed by the app via POST /wearable/activities.
+        // Until that happens the endpoint returns ready+empty so the UI can
+        // proceed without polling.
         $user = User::factory()->create();
 
         $this->actingAs($user)
@@ -60,9 +60,8 @@ class OnboardingProfileTest extends TestCase
         UserRunningProfile::factory()->for($owner)->create();
         WearableActivity::factory()->for($owner)->count(2)->create();
 
-        // Viewer has no own activities and no Strava token, so the inline
-        // sync no-ops and the endpoint returns ready+empty rather than
-        // surfacing the owner's data.
+        // Viewer has no own activities, so the endpoint returns ready+empty
+        // rather than surfacing the owner's data.
         $this->actingAs($viewer)
             ->getJson('/api/v1/onboarding/profile')
             ->assertOk()

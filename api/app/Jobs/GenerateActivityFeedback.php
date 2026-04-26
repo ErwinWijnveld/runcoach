@@ -5,7 +5,6 @@ namespace App\Jobs;
 use App\Ai\Agents\ActivityFeedbackAgent;
 use App\Models\TrainingResult;
 use App\Models\WearableActivity;
-use App\Services\StravaStreamSplits;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -18,20 +17,20 @@ class GenerateActivityFeedback implements ShouldQueue
 
     public function __construct(public int $trainingResultId) {}
 
-    public function handle(StravaStreamSplits $splits): void
+    public function handle(): void
     {
-        $result = TrainingResult::with('trainingDay', 'wearableActivity.user.stravaToken')->find($this->trainingResultId);
+        $result = TrainingResult::with('trainingDay', 'wearableActivity')->find($this->trainingResultId);
 
         if (! $result || $result->ai_feedback) {
             return;
         }
 
-        $response = ActivityFeedbackAgent::make()->prompt($this->buildPrompt($result, $splits));
+        $response = ActivityFeedbackAgent::make()->prompt($this->buildPrompt($result));
 
         $result->update(['ai_feedback' => $response->text]);
     }
 
-    private function buildPrompt(TrainingResult $result, StravaStreamSplits $splitsService): string
+    private function buildPrompt(TrainingResult $result): string
     {
         $day = $result->trainingDay;
         $activity = $result->wearableActivity;
@@ -44,63 +43,14 @@ class GenerateActivityFeedback implements ShouldQueue
 
         $actualHr = $result->actual_avg_heart_rate !== null ? ", avg HR {$result->actual_avg_heart_rate}" : '';
         $hrScore = $result->heart_rate_score !== null ? ", HR {$result->heart_rate_score}/10" : '';
-        $splitsLine = $this->finegrainedSplitsLine($activity, $splitsService);
 
         return collect([
             "Training: {$day->title} ({$day->type->value}).",
             $target !== '' ? "Target: {$target}." : null,
             "Actual: {$result->actual_km}km at {$this->pace($result->actual_pace_seconds_per_km)}/km{$actualHr}.",
             "Scores: compliance {$result->compliance_score}/10, pace {$result->pace_score}/10, distance {$result->distance_score}/10{$hrScore}.",
-            $splitsLine,
             $this->recentRuns($result),
         ])->filter()->implode("\n");
-    }
-
-    private function finegrainedSplitsLine(?WearableActivity $activity, StravaStreamSplits $splitsService): ?string
-    {
-        // Splits via Strava's streams API only work for source='strava'
-        // activities (we have the user's OAuth token). Other sources (Apple
-        // HealthKit, Open Wearables) carry their own pre-computed splits in
-        // raw_data and will be handled separately when those paths land.
-        if (! $activity || $activity->source !== 'strava') {
-            return null;
-        }
-
-        $token = $activity->user?->stravaToken;
-        if (! $token) {
-            return null;
-        }
-
-        $segments = $splitsService->compute(
-            $token,
-            (int) $activity->source_activity_id,
-            $activity->distance_meters,
-        );
-        if (empty($segments)) {
-            return null;
-        }
-
-        $rendered = collect($segments)->map(function (array $s) {
-            $duration = $this->duration($s['duration_seconds']);
-            $pace = $this->pace($s['pace_seconds_per_km']);
-            $hr = $s['average_heart_rate'] !== null ? " HR {$s['average_heart_rate']}" : '';
-
-            return "{$duration} @ {$pace}/km{$hr}";
-        })->implode('; ');
-
-        return "Splits: {$rendered}.";
-    }
-
-    private function duration(int $seconds): string
-    {
-        if ($seconds <= 0) {
-            return '0s';
-        }
-
-        $mm = intdiv($seconds, 60);
-        $ss = $seconds % 60;
-
-        return $mm > 0 ? sprintf('%dm%02ds', $mm, $ss) : sprintf('%ds', $ss);
     }
 
     private function recentRuns(TrainingResult $result): ?string

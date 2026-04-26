@@ -5,26 +5,23 @@ namespace Tests\Feature\Jobs;
 use App\Ai\Agents\ActivityFeedbackAgent;
 use App\Jobs\GenerateActivityFeedback;
 use App\Models\Goal;
-use App\Models\StravaToken;
 use App\Models\TrainingDay;
 use App\Models\TrainingResult;
 use App\Models\TrainingWeek;
 use App\Models\User;
 use App\Models\WearableActivity;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class GenerateActivityFeedbackTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
-    public function test_builds_rich_prompt_and_stores_feedback(): void
+    public function test_builds_prompt_and_stores_feedback(): void
     {
         ActivityFeedbackAgent::fake(['Generated feedback prose.']);
 
         $user = User::factory()->create();
-        StravaToken::factory()->create(['user_id' => $user->id]);
         $goal = Goal::factory()->create(['user_id' => $user->id]);
         $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
         $day = TrainingDay::factory()->create([
@@ -45,20 +42,7 @@ class GenerateActivityFeedbackTest extends TestCase
         $activity = WearableActivity::factory()->create([
             'user_id' => $user->id,
             'name' => 'Current run',
-            'source' => 'strava',
-            'source_activity_id' => '42',
-            'distance_meters' => 5050,   // <10 km → 50 m buckets
-            'raw_data' => [],
-        ]);
-
-        // Fake Strava streams — dense enough that each 50m bucket has
-        // multiple samples (Strava samples ~1/sec in reality).
-        Http::fake([
-            'strava.com/api/v3/activities/42/streams*' => Http::response([
-                'time' => ['data' => [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]],
-                'distance' => ['data' => [0.0, 15.0, 30.0, 45.0, 60.0, 75.0, 90.0, 105.0, 120.0, 135.0, 150.0, 165.0, 180.0]],
-                'heartrate' => ['data' => [140, 142, 145, 148, 150, 152, 155, 157, 158, 159, 160, 160, 160]],
-            ], 200),
+            'distance_meters' => 5050,
         ]);
 
         $result = TrainingResult::factory()->create([
@@ -76,17 +60,16 @@ class GenerateActivityFeedbackTest extends TestCase
         ActivityFeedbackAgent::assertPrompted(
             fn ($prompt) => $prompt->contains('Easy 5k')
                 && $prompt->contains('Actual: 5.1km')              // decimal:1 cast rounds 5.05
-                && $prompt->contains('Splits:')                    // pace segments label
                 && $prompt->contains('Recent runs')
                 && ! $prompt->contains('Current run')              // current activity excluded
         );
     }
 
-    public function test_skips_splits_when_no_strava_token_and_early_returns_when_done(): void
+    public function test_early_returns_when_feedback_already_present(): void
     {
         ActivityFeedbackAgent::fake(['x']);
 
-        $user = User::factory()->create(); // no StravaToken
+        $user = User::factory()->create();
         $goal = Goal::factory()->create(['user_id' => $user->id]);
         $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
         $day = TrainingDay::factory()->create(['training_week_id' => $week->id]);
@@ -98,12 +81,10 @@ class GenerateActivityFeedbackTest extends TestCase
         ]);
 
         app()->call([new GenerateActivityFeedback($result->id), 'handle']);
-
-        ActivityFeedbackAgent::assertPrompted(fn ($p) => ! $p->contains('Splits'));
         $this->assertSame('x', $result->fresh()->ai_feedback);
 
-        // Second run with feedback already present — early-returns without
-        // touching the agent or overwriting the stored text.
+        // Second invocation with feedback already present — early-returns
+        // without overwriting.
         app()->call([new GenerateActivityFeedback($result->id), 'handle']);
         $this->assertSame('x', $result->fresh()->ai_feedback);
     }

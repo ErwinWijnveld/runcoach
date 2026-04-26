@@ -53,7 +53,7 @@ class ProfileController extends Controller
 
         return [
             ...$user->only([
-                'id', 'name', 'email', 'strava_athlete_id', 'strava_profile_url',
+                'id', 'name', 'email',
                 'coach_style', 'has_completed_onboarding',
             ]),
             'pending_plan_generation' => $pending !== null

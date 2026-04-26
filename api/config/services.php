@@ -35,11 +35,11 @@ return [
         ],
     ],
 
-    'strava' => [
-        'client_id' => env('STRAVA_CLIENT_ID'),
-        'client_secret' => env('STRAVA_CLIENT_SECRET'),
-        'redirect_uri' => env('STRAVA_REDIRECT_URI'),
-        'webhook_verify_token' => env('STRAVA_WEBHOOK_VERIFY_TOKEN'),
+    'apple' => [
+        // Bundle id of the iOS app — must match the `aud` claim on every
+        // Sign-in-with-Apple identity token issued for this app. Defaults to
+        // the production bundle id; tests override with services.apple.bundle_id.
+        'bundle_id' => env('APPLE_BUNDLE_ID', 'com.erwinwijnveld.runcoach'),
     ],
 
 ];

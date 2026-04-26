@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\Goal;
-use App\Models\StravaToken;
 use App\Models\TrainingDay;
 use App\Models\TrainingResult;
 use App\Models\TrainingWeek;
@@ -27,7 +26,6 @@ class DeleteAccountTest extends TestCase
     {
         $user = User::factory()->create();
 
-        StravaToken::factory()->create(['user_id' => $user->id]);
         WearableActivity::factory()->create(['user_id' => $user->id]);
         UserRunningProfile::factory()->create(['user_id' => $user->id]);
         $goal = Goal::factory()->create(['user_id' => $user->id]);
@@ -64,7 +62,6 @@ class DeleteAccountTest extends TestCase
             ->assertStatus(204);
 
         $this->assertNull(User::find($user->id));
-        $this->assertSame(0, StravaToken::where('user_id', $user->id)->count());
         $this->assertSame(0, WearableActivity::where('user_id', $user->id)->count());
         $this->assertSame(0, UserRunningProfile::where('user_id', $user->id)->count());
         $this->assertSame(0, Goal::where('user_id', $user->id)->count());

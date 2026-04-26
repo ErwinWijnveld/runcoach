@@ -13,7 +13,7 @@ use App\Ai\Tools\GetRecentRuns;
 use App\Ai\Tools\GetRunningProfile;
 use App\Ai\Tools\OfferChoices;
 use App\Ai\Tools\PresentRunningStats;
-use App\Ai\Tools\SearchStravaActivities;
+use App\Ai\Tools\SearchActivities;
 use App\Ai\Tools\VerifyPlan;
 use App\Enums\CoachStyle;
 use App\Enums\GoalDistance;
@@ -21,8 +21,6 @@ use App\Enums\GoalType;
 use App\Models\User;
 use App\Services\PlanOptimizerService;
 use App\Services\ProposalService;
-use App\Services\StravaStreamSplits;
-use App\Services\StravaSyncService;
 use Illuminate\Support\Facades\DB;
 use Laravel\Ai\Attributes\Timeout;
 use Laravel\Ai\Concerns\RemembersConversations;
@@ -43,7 +41,7 @@ class RunCoachAgent implements Agent, Conversational, HasTools
         return <<<'BLOCK'
         ## Plan design — HARD constraints + coaching principles
 
-        Day titles and weekly km totals are computed server-side — leave them out. Easy and long-run paces are also filled server-side from the runner's Strava baseline (sustainable conversational pace) — leave `target_pace_seconds_per_km` NULL on those.
+        Day titles and weekly km totals are computed server-side — leave them out. Easy and long-run paces are also filled server-side from the runner's pace baseline (sustainable conversational pace, derived from their synced history) — leave `target_pace_seconds_per_km` NULL on those.
 
         **Quality-day paces you DO set.** On tempo / threshold / interval days (and on interval `work` segments) you MUST set `target_pace_seconds_per_km` and ramp it toward the runner's goal pace across the plan. Goal pace = `goal_time_seconds / distance_km`. Example progression (tune to the runner's gap between baseline and goal):
          - Early build weeks: goal pace + ~25-30s.
@@ -111,7 +109,7 @@ class RunCoachAgent implements Agent, Conversational, HasTools
             ## Your job right now
             GENERATE the plan immediately — no chit-chat, no clarifying questions, no `offer_choices`, no `present_running_stats`. Everything you need is in the priming message.
 
-            1. Call `create_schedule` with the fields from the form. Do NOT fetch running data with `get_running_profile` / `get_recent_runs` / `search_strava_activities` — the profile metrics are already in the priming message, trust them.
+            1. Call `create_schedule` with the fields from the form. Do NOT fetch running data with `get_running_profile` / `get_recent_runs` / `search_activities` — the profile metrics are already in the priming message, trust them.
             2. Follow the Verify loop below.
             3. Reply with ONE short friendly sentence telling the runner the plan is ready and they can accept or ask to adjust. No markdown, no lists, no multi-sentence essays.
 
@@ -147,7 +145,7 @@ class RunCoachAgent implements Agent, Conversational, HasTools
 
         {$this->planDesignPrinciples()}
 
-        Use `get_recent_runs` or `search_strava_activities` if you need concrete data to justify a modification, but do not proactively fetch data — wait for the user to ask something that needs it.
+        Use `get_recent_runs` or `search_activities` if you need concrete data to justify a modification, but do not proactively fetch data — wait for the user to ask something that needs it.
         PROMPT;
     }
 
@@ -189,7 +187,7 @@ class RunCoachAgent implements Agent, Conversational, HasTools
 
         ## Your runner
         - Coach style preference: {$style}
-        - Fitness level and weekly volume: derive these from the runner's Strava history — call get_recent_runs or search_strava_activities before giving advice.
+        - Fitness level and weekly volume: derive these from the runner's synced activity history — call get_recent_runs or search_activities before giving advice.
 
         ## Your coaching style
         Adapt your tone to "{$style}":
@@ -202,12 +200,12 @@ class RunCoachAgent implements Agent, Conversational, HasTools
 
         ## How to use your tools
 
-        Pick the right Strava tool for the question — don't guess dates for simple cases.
+        Pick the right activity tool for the question — don't guess dates for simple cases.
 
         **Running profile snapshot (get_running_profile):**
         - Use for: "What's my running profile?", "How fit am I?", "What's my typical mileage?", initial fitness assessment before building a plan.
-        - Fast cached lookup — no Strava API call. Returns weekly averages, typical pace, consistency score, trends, and a narrative summary over the last 12 months.
-        - DO NOT use for date-range queries like "how was last April?" — use search_strava_activities for those.
+        - Fast cached lookup — pulls from local DB. Returns weekly averages, typical pace, consistency score, trends, and a narrative summary over the last 12 months.
+        - DO NOT use for date-range queries like "how was last April?" — use search_activities for those.
         - If no profile is cached, this triggers a fresh analysis inline.
 
         **Recent runs (get_recent_runs):**
@@ -215,20 +213,20 @@ class RunCoachAgent implements Agent, Conversational, HasTools
         - Parameter: `limit` (null = 10 runs, max 50).
         - This tool is your default for anything about the runner's latest activity. It never asks you to invent a date.
 
-        **Historical or ranged queries (search_strava_activities):**
+        **Historical or ranged queries (search_activities):**
         - Use for: "April 2025", "last week", "since January", "compare this month vs last month".
         - Requires explicit `after_date` and `before_date` in YYYY-MM-DD.
         - Response includes pre-computed aggregates AND weekly breakdown.
         - For comparisons: call twice with different ranges, compare aggregates.
 
-        **Rules for both Strava tools:**
+        **Rules for both activity tools:**
         - ALWAYS fetch data before answering performance questions. Never guess.
-        - If `get_recent_runs` returns empty and the user asked about something old, fall back to `search_strava_activities` with a wide range.
-        - Do not call `search_strava_activities` with a 1-3 day window to find "the last run" — use `get_recent_runs` instead.
+        - If `get_recent_runs` returns empty and the user asked about something old, fall back to `search_activities` with a wide range.
+        - Do not call `search_activities` with a 1-3 day window to find "the last run" — use `get_recent_runs` instead.
 
         **Per-kilometer splits & HR curves (get_activity_details):**
         - Use for: "pace progression", "per-km splits", "HR curve", "did I negative split?", "break down the laps".
-        - Required workflow: FIRST call `get_recent_runs` or `search_strava_activities` to find the run's `id`. THEN call `get_activity_details(activity_id=<id>)`.
+        - Required workflow: FIRST call `get_recent_runs` or `search_activities` to find the run's `id`. THEN call `get_activity_details(activity_id=<id>)`.
         - Every listed run in those tools' responses includes an `id` field — use that.
         - Returns `splits_metric` (auto 1km splits with pace + HR + elevation per km), `laps` (if the athlete recorded them), and summary stats.
         - DO NOT call `get_activity_details` without a valid id — it needs a specific run to look up.
@@ -281,7 +279,7 @@ class RunCoachAgent implements Agent, Conversational, HasTools
           Then ask B.R6 + B.R7 (preferred weekdays + notes) before moving on.
           Set goal_name = "Get faster at {distance}", target_date = null.
 
-        STEP C — Gather fitness data: call `search_strava_activities` for the last 8-12 weeks (after_date = today minus 84 days, before_date = today).
+        STEP C — Gather fitness data: call `search_activities` for the last 8-12 weeks (after_date = today minus 84 days, before_date = today).
 
         STEP D — Present a tight analysis (2-4 sentences): "Based on your last 12 weeks you're averaging X km/week at Y pace. Your longest run is Z km. For {goal} I'd build {approach}."
 
@@ -333,9 +331,9 @@ class RunCoachAgent implements Agent, Conversational, HasTools
             new GetRunningProfile($this->user),
             new PresentRunningStats($this->user),
             new OfferChoices($this->user),
-            new GetRecentRuns($this->user, app(StravaSyncService::class)),
-            new SearchStravaActivities($this->user, app(StravaSyncService::class)),
-            new GetActivityDetails($this->user, app(StravaSyncService::class), app(StravaStreamSplits::class)),
+            new GetRecentRuns($this->user),
+            new SearchActivities($this->user),
+            new GetActivityDetails($this->user),
             new GetCurrentSchedule($this->user),
             new GetCurrentProposal($this->user),
             new GetGoalInfo($this->user),
