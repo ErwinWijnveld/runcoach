@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/core/widgets/runcore_logo.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/onboarding/data/onboarding_api.dart';
@@ -204,8 +205,7 @@ class _OnboardingGeneratingScreenState
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
-      backgroundColor: CupertinoColors.transparent,
+    return GradientScaffold(
       child: SafeArea(
         child: _errorMessage != null
             ? _ErrorBody(

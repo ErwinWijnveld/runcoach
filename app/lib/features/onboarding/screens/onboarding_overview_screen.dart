@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/core/widgets/runcore_logo.dart';
 import 'package:app/features/coach/widgets/stats_card_bubble.dart';
 import 'package:app/features/onboarding/models/onboarding_profile.dart';
@@ -19,9 +20,7 @@ class OnboardingOverviewScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profileAsync = ref.watch(onboardingProfileControllerProvider);
 
-    return CupertinoPageScaffold(
-      // Background gradient applied globally via RunCoachApp.builder.
-      backgroundColor: CupertinoColors.transparent,
+    return GradientScaffold(
       child: SafeArea(
         child: Column(
           children: [

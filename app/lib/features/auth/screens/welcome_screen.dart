@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Icons;
 import 'package:go_router/go_router.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/core/widgets/runcore_logo.dart';
 
 class WelcomeScreen extends StatelessWidget {
@@ -9,11 +10,7 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
-      // Background is the global cream → gold gradient set in
-      // RunCoachApp.builder; CupertinoTheme.scaffoldBackgroundColor is
-      // transparent so it shows through.
-      backgroundColor: CupertinoColors.transparent,
+    return GradientScaffold(
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(

@@ -181,11 +181,7 @@ class AppTheme {
       brightness: Brightness.light,
       primaryColor: AppColors.warmBrown,
       primaryContrastingColor: CupertinoColors.white,
-      // Transparent so the global gradient set in CupertinoApp.builder
-      // (see app.dart) shows through every CupertinoPageScaffold without
-      // needing a per-screen wrapper. Individual screens that NEED an
-      // opaque surface (modals, cards) still set their own backgrounds.
-      scaffoldBackgroundColor: CupertinoColors.transparent,
+      scaffoldBackgroundColor: AppColors.cream,
       barBackgroundColor: Color(0xE6FAF8F4),
       textTheme: CupertinoTextThemeData(
         primaryColor: AppColors.textPrimary,

@@ -21,17 +21,6 @@ class RunCoachApp extends ConsumerWidget {
         DefaultCupertinoLocalizations.delegate,
         DefaultWidgetsLocalizations.delegate,
       ],
-      // Single source of truth for the cream → gold app background. Wraps
-      // every route the router renders so individual screens don't have to
-      // re-apply it (the old per-screen `GradientScaffold` + DecoratedBox
-      // pattern). Cupertino theme's scaffoldBackgroundColor is transparent
-      // so the gradient shows through every CupertinoPageScaffold.
-      builder: (context, child) {
-        return DecoratedBox(
-          decoration: const BoxDecoration(gradient: AppColors.onboardingGradient),
-          child: child ?? const SizedBox.shrink(),
-        );
-      },
     );
   }
 }

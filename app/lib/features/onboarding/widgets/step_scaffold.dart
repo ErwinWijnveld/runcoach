@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/features/onboarding/widgets/progress_dots.dart';
 
 /// Layout used by every step of the onboarding form: back arrow + progress
@@ -34,8 +35,7 @@ class StepScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
-      backgroundColor: CupertinoColors.transparent,
+    return GradientScaffold(
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
