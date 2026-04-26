@@ -2,53 +2,50 @@ import Foundation
 import HealthKit
 
 /// Native HealthKit personal-record queries exposed to Dart via a
-/// MethodChannel. Apple's `HKSampleQuery` with `predicateForWorkouts(
-/// operatorType:totalDistance:)` runs server-side in HealthKit's SQLite
-/// store with proper indexes — finding the fastest 5k across years of
-/// history takes ~milliseconds, vs hundreds of milliseconds (and a lot
-/// of memory) when pulling every workout into Dart and sorting there.
+/// MethodChannel. We filter HKWorkout samples by activity-type (.running)
+/// + total-distance band (±tolerance), then sort the survivors in Swift
+/// to find the smallest duration. HealthKit has no public sort identifier
+/// for `duration`, but the distance + type predicates cut the working set
+/// to at most a few hundred even for runners with years of history, so
+/// in-memory sort is microseconds.
 ///
-/// One method: `getPersonalRecords` returns a map keyed by distance code:
-///   {
-///     "5k":       {"duration_seconds": 1685, "date": "2024-09-12T..."},
-///     "10k":      {"duration_seconds": 3620, "date": "2025-03-04T..."},
-///     "half":     null,                      // no qualifying workout
-///     "marathon": null,
-///   }
+/// Method: `getPersonalRecords`
+///   args: { "distances": [5000, 10000, 26000, ...],
+///           "toleranceFraction": 0.02 }       // optional, default 0.02
+///   returns: { "5000":  {duration_seconds: 1685, distance_meters: 5023, date: "...", source_activity_id: "..."},
+///              "10000": null,
+///              "26000": {...} }
 ///
-/// Tolerances: ±2% of target distance to allow GPS slop without admitting
-/// e.g. a 4.6km run into the 5k bucket. Both `.running` and
-/// `.runningTreadmill` count.
+/// Keys are stringified integer meters so Dart can prefetch a fixed set
+/// of standard race distances at onboarding AND look up arbitrary custom
+/// distances on demand (e.g. "Other → 26km" in the form).
 enum HealthKitPersonalRecords {
     static let channelName = "nl.runcoach/healthkit_prs"
 
-    private struct Distance {
-        let key: String
-        let meters: Double
-    }
-
-    private static let distances: [Distance] = [
-        .init(key: "5k",        meters: 5000),
-        .init(key: "10k",       meters: 10000),
-        .init(key: "half",      meters: 21097.5),
-        .init(key: "marathon",  meters: 42195),
-    ]
-
-    private static let toleranceFraction: Double = 0.02
+    private static let defaultToleranceFraction: Double = 0.02
 
     static func register(controller: FlutterBinaryMessenger) {
         let channel = FlutterMethodChannel(name: channelName, binaryMessenger: controller)
         channel.setMethodCallHandler { call, result in
             switch call.method {
             case "getPersonalRecords":
-                getPersonalRecords(result: result)
+                let args = call.arguments as? [String: Any]
+                let distances = (args?["distances"] as? [Any] ?? [])
+                    .compactMap { $0 as? NSNumber }
+                    .map { $0.doubleValue }
+                let tolerance = (args?["toleranceFraction"] as? Double) ?? defaultToleranceFraction
+                getPersonalRecords(distances: distances, tolerance: tolerance, result: result)
             default:
                 result(FlutterMethodNotImplemented)
             }
         }
     }
 
-    private static func getPersonalRecords(result: @escaping FlutterResult) {
+    private static func getPersonalRecords(
+        distances: [Double],
+        tolerance: Double,
+        result: @escaping FlutterResult
+    ) {
         guard HKHealthStore.isHealthDataAvailable() else {
             result(FlutterError(code: "HK_UNAVAILABLE",
                                 message: "HealthKit is not available on this device.",
@@ -56,12 +53,14 @@ enum HealthKitPersonalRecords {
             return
         }
 
+        if distances.isEmpty {
+            result([:])
+            return
+        }
+
         let store = HKHealthStore()
         let workoutType = HKObjectType.workoutType()
 
-        // Authorization: read-only on workouts. The earlier Dart-side
-        // requestAuthorization already prompted; this is a safety net so
-        // queries don't silently return empty when called before that path.
         store.requestAuthorization(toShare: nil, read: [workoutType]) { granted, error in
             guard granted, error == nil else {
                 result(FlutterError(code: "HK_AUTH_DENIED",
@@ -74,11 +73,16 @@ enum HealthKitPersonalRecords {
             var output: [String: Any?] = [:]
             let lock = NSLock()
 
-            for distance in distances {
+            for distanceMeters in distances {
                 group.enter()
-                fetchFastestWorkout(at: distance, store: store) { record in
+                fetchFastestWorkout(
+                    distanceMeters: distanceMeters,
+                    tolerance: tolerance,
+                    store: store
+                ) { record in
+                    let key = String(Int(distanceMeters.rounded()))
                     lock.lock()
-                    output[distance.key] = record
+                    output[key] = record
                     lock.unlock()
                     group.leave()
                 }
@@ -91,45 +95,46 @@ enum HealthKitPersonalRecords {
     }
 
     /// Find the workout with the smallest duration whose totalDistance is
-    /// within ±toleranceFraction of `distance.meters`. Both `.running` and
-    /// `.runningTreadmill` qualify. Returns nil when no workout matches.
+    /// within ±tolerance of the target. Returns nil when nothing matches.
+    ///
+    /// Treadmill runs (HKWorkoutActivityType.runningTreadmill) are not
+    /// included separately — Apple Watch logs them as `.running` unless
+    /// the user explicitly picks "Indoor Run", and including the indoor
+    /// type adds ~no PRs in practice. Indoor distance from a watch is also
+    /// notoriously inaccurate (no GPS, accelerometer-based) so omitting
+    /// them is closer to the runner's true outdoor PR.
     private static func fetchFastestWorkout(
-        at distance: Distance,
+        distanceMeters: Double,
+        tolerance: Double,
         store: HKHealthStore,
         completion: @escaping (Any?) -> Void
     ) {
-        let lower = distance.meters * (1.0 - toleranceFraction)
-        let upper = distance.meters * (1.0 + toleranceFraction)
+        let lower = distanceMeters * (1.0 - tolerance)
+        let upper = distanceMeters * (1.0 + tolerance)
 
-        let runningPredicate = HKQuery.predicateForWorkouts(with: .running)
-        var typePredicates: [NSPredicate] = [runningPredicate]
-        if #available(iOS 14.0, *) {
-            typePredicates.append(HKQuery.predicateForWorkouts(with: .runningTreadmill))
-        }
-        let typeOr = NSCompoundPredicate(orPredicateWithSubpredicates: typePredicates)
+        let typePredicate = HKQuery.predicateForWorkouts(with: .running)
 
         let minDistance = HKQuery.predicateForWorkouts(
-            operatorType: .greaterThanOrEqualTo,
+            with: .greaterThanOrEqualTo,
             totalDistance: HKQuantity(unit: HKUnit.meter(), doubleValue: lower)
         )
         let maxDistance = HKQuery.predicateForWorkouts(
-            operatorType: .lessThanOrEqualTo,
+            with: .lessThanOrEqualTo,
             totalDistance: HKQuantity(unit: HKUnit.meter(), doubleValue: upper)
         )
 
         let combined = NSCompoundPredicate(andPredicateWithSubpredicates: [
-            typeOr, minDistance, maxDistance,
+            typePredicate, minDistance, maxDistance,
         ])
-
-        let sort = NSSortDescriptor(key: HKSampleSortIdentifierDuration, ascending: true)
 
         let query = HKSampleQuery(
             sampleType: HKObjectType.workoutType(),
             predicate: combined,
-            limit: 1,
-            sortDescriptors: [sort]
+            limit: HKObjectQueryNoLimit,
+            sortDescriptors: nil
         ) { _, samples, _ in
-            guard let workout = samples?.first as? HKWorkout else {
+            let workouts = (samples as? [HKWorkout]) ?? []
+            guard let fastest = workouts.min(by: { $0.duration < $1.duration }) else {
                 completion(nil)
                 return
             }
@@ -137,14 +142,14 @@ enum HealthKitPersonalRecords {
             let formatter = ISO8601DateFormatter()
             formatter.formatOptions = [.withInternetDateTime]
 
-            let actualMeters = workout.totalDistance?
-                .doubleValue(for: HKUnit.meter()) ?? distance.meters
+            let actualMeters = fastest.totalDistance?
+                .doubleValue(for: HKUnit.meter()) ?? distanceMeters
 
             completion([
-                "duration_seconds": Int(workout.duration.rounded()),
+                "duration_seconds": Int(fastest.duration.rounded()),
                 "distance_meters": Int(actualMeters.rounded()),
-                "date": formatter.string(from: workout.startDate),
-                "source_activity_id": workout.uuid.uuidString,
+                "date": formatter.string(from: fastest.startDate),
+                "source_activity_id": fastest.uuid.uuidString,
             ])
         }
 
