@@ -16,7 +16,7 @@ class GetRunningProfile implements Tool
     public function description(): string
     {
         return <<<'DESC'
-        Get the user's 12-month running profile (weekly averages, pace, consistency, narrative). Fast cached lookup. If no cache exists (first onboarding call), this triggers a fresh Strava fetch + analysis — takes 5–15 seconds but happens inline. Always returns a profile.
+        Get the user's 12-month running profile (weekly averages, pace, consistency, narrative). Fast cached lookup over the local activity history. If no cache exists, this triggers a fresh analysis from `wearable_activities` — takes 1-3 seconds. Always returns a profile.
 
         USE THIS for queries like:
         - "What's my running profile?"
@@ -25,7 +25,7 @@ class GetRunningProfile implements Tool
         - "Give me an overview of my training history"
         - Assessing current fitness before building a training plan
 
-        DO NOT use for date-range queries like "how was last April?" or "compare this month vs last" — use search_strava_activities for those.
+        DO NOT use for date-range queries like "how was last April?" or "compare this month vs last" — use search_activities for those.
         DESC;
     }
 

@@ -46,7 +46,6 @@ class ProfileMenuSheet extends ConsumerWidget {
             _UserHeader(
               name: user?.name ?? 'Runner',
               email: user?.email ?? '',
-              profileUrl: user?.stravaProfileUrl,
             ),
             const SizedBox(height: 24),
             _SettingsSection(
@@ -80,12 +79,10 @@ class ProfileMenuSheet extends ConsumerWidget {
 class _UserHeader extends StatelessWidget {
   final String name;
   final String email;
-  final String? profileUrl;
 
   const _UserHeader({
     required this.name,
     required this.email,
-    this.profileUrl,
   });
 
   @override
@@ -100,13 +97,7 @@ class _UserHeader extends StatelessWidget {
             borderRadius: BorderRadius.circular(22),
           ),
           clipBehavior: Clip.antiAlias,
-          child: profileUrl != null
-              ? Image.network(
-                  profileUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => const _FallbackAvatar(size: 32),
-                )
-              : const _FallbackAvatar(size: 32),
+          child: const _FallbackAvatar(size: 32),
         ),
         const SizedBox(height: 12),
         Text(

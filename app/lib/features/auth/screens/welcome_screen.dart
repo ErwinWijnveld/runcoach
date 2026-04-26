@@ -28,8 +28,8 @@ class WelcomeScreen extends StatelessWidget {
                   const SizedBox(height: 72),
                   const _Headline(),
                   const SizedBox(height: 72),
-                  _ConnectStravaButton(
-                    onPressed: () => context.go('/auth/strava'),
+                  _SignInWithAppleButton(
+                    onPressed: () => context.go('/auth/apple'),
                   ),
                 ],
               ),
@@ -49,24 +49,9 @@ class _BackgroundGlow extends StatelessWidget {
     return const IgnorePointer(
       child: Stack(
         children: [
-          _GlowBlob(
-            left: -60,
-            top: -80,
-            size: 340,
-            alpha: 0.55,
-          ),
-          _GlowBlob(
-            right: -120,
-            top: 220,
-            size: 360,
-            alpha: 0.4,
-          ),
-          _GlowBlob(
-            right: -90,
-            bottom: -120,
-            size: 420,
-            alpha: 0.5,
-          ),
+          _GlowBlob(left: -60, top: -80, size: 340, alpha: 0.55),
+          _GlowBlob(right: -120, top: 220, size: 360, alpha: 0.4),
+          _GlowBlob(right: -90, bottom: -120, size: 420, alpha: 0.5),
         ],
       ),
     );
@@ -159,10 +144,10 @@ class _Headline extends StatelessWidget {
   }
 }
 
-class _ConnectStravaButton extends StatelessWidget {
+class _SignInWithAppleButton extends StatelessWidget {
   final VoidCallback onPressed;
 
-  const _ConnectStravaButton({required this.onPressed});
+  const _SignInWithAppleButton({required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -179,12 +164,12 @@ class _ConnectStravaButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(
-                Icons.directions_run,
+                Icons.apple,
                 color: AppColors.neutral,
                 size: 24,
               ),
               const SizedBox(width: 16),
-              Text('CONNECT TO STRAVA', style: RunCoreText.buttonCaps()),
+              Text('SIGN IN WITH APPLE', style: RunCoreText.buttonCaps()),
             ],
           ),
           const Icon(

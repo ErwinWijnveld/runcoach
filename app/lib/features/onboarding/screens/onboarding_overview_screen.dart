@@ -10,8 +10,8 @@ import 'package:app/features/onboarding/models/onboarding_profile.dart';
 import 'package:app/features/onboarding/providers/onboarding_profile_provider.dart';
 
 /// Step 1 of the form-based onboarding: shows the user their last 12 months
-/// on Strava as 4 stat cards + a one-line AI narrative, then gates progress
-/// to the multi-step form via a Continue CTA.
+/// of running data as 4 stat cards + a one-line AI narrative, then gates
+/// progress to the multi-step form via a Continue CTA.
 class OnboardingOverviewScreen extends ConsumerWidget {
   const OnboardingOverviewScreen({super.key});
 
@@ -84,7 +84,7 @@ class _OverviewBody extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    "A quick snapshot from your Strava history",
+                    "A quick snapshot from your synced runs",
                     style: GoogleFonts.inter(
                       fontSize: 15,
                       fontWeight: FontWeight.w400,
@@ -193,7 +193,7 @@ class _SyncingState extends StatelessWidget {
           const CupertinoActivityIndicator(radius: 16),
           const SizedBox(height: 20),
           Text(
-            'Syncing your Strava history…',
+            'Syncing your runs…',
             textAlign: TextAlign.center,
             style: RunCoreText.serifTitle(size: 24),
           ),

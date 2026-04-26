@@ -3,18 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
-import 'package:app/features/schedule/models/available_strava_activity.dart';
+import 'package:app/features/schedule/models/available_activity.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
 
-/// Bottom sheet that lists recent Strava runs so the user can manually match
-/// one to the training day when the webhook didn't auto-sync. Runs already
-/// matched to any training day (this one or another) render with a "synced"
-/// badge and are non-tappable.
-class SelectStravaRunSheet extends ConsumerStatefulWidget {
+/// Bottom sheet that lists nearby synced wearable runs so the user can
+/// manually match one to a training day. Runs already matched to any
+/// training day render with a "synced" badge and are non-tappable.
+class SelectActivitySheet extends ConsumerStatefulWidget {
   final int dayId;
   final VoidCallback onMatched;
 
-  const SelectStravaRunSheet({
+  const SelectActivitySheet({
     super.key,
     required this.dayId,
     required this.onMatched,
@@ -30,7 +29,7 @@ class SelectStravaRunSheet extends ConsumerStatefulWidget {
       isScrollControlled: true,
       useRootNavigator: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => SelectStravaRunSheet(
+      builder: (_) => SelectActivitySheet(
         dayId: dayId,
         onMatched: onMatched,
       ),
@@ -38,18 +37,17 @@ class SelectStravaRunSheet extends ConsumerStatefulWidget {
   }
 
   @override
-  ConsumerState<SelectStravaRunSheet> createState() =>
-      _SelectStravaRunSheetState();
+  ConsumerState<SelectActivitySheet> createState() => _SelectActivitySheetState();
 }
 
-class _SelectStravaRunSheetState extends ConsumerState<SelectStravaRunSheet> {
-  /// Strava activity id currently being matched. While non-null, all row
+class _SelectActivitySheetState extends ConsumerState<SelectActivitySheet> {
+  /// Wearable activity id currently being matched. While non-null, all row
   /// taps are disabled to prevent double-tap races.
   int? _matchingId;
 
   @override
   Widget build(BuildContext context) {
-    final async = ref.watch(availableStravaActivitiesProvider(widget.dayId));
+    final async = ref.watch(availableActivitiesProvider(widget.dayId));
 
     return DraggableScrollableSheet(
       initialChildSize: 0.75,
@@ -83,7 +81,7 @@ class _SelectStravaRunSheetState extends ConsumerState<SelectStravaRunSheet> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Pick a Strava run',
+                            'Pick an activity',
                             style: GoogleFonts.ebGaramond(
                               fontSize: 26,
                               fontWeight: FontWeight.w400,
@@ -93,7 +91,7 @@ class _SelectStravaRunSheetState extends ConsumerState<SelectStravaRunSheet> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            "Runs from the last week, fetched live from Strava.",
+                            'Runs from the last week, synced from Apple Health.',
                             style: GoogleFonts.publicSans(
                               fontSize: 13,
                               color: AppColors.tertiary,
@@ -122,42 +120,36 @@ class _SelectStravaRunSheetState extends ConsumerState<SelectStravaRunSheet> {
                     child: CupertinoActivityIndicator(radius: 14),
                   ),
                   error: (err, _) => _ErrorState(
-                    message: "Couldn't load your Strava runs.",
+                    message: "Couldn't load your activities.",
                     detail: '$err',
                   ),
-                  data: (result) {
-                    if (result.hasError) {
-                      return _ErrorState(
-                        message: _errorTitle(result.errorCode!),
-                        detail: _errorDetail(result.errorCode!),
-                      );
-                    }
-                    if (result.activities.isEmpty) {
+                  data: (activities) {
+                    if (activities.isEmpty) {
                       return const _ErrorState(
-                        message: 'No recent Strava runs',
+                        message: 'No recent activities',
                         detail:
-                            "Nothing logged in Strava in the past week. Go run!",
+                            "Nothing synced from Apple Health in the past week.",
                       );
                     }
                     return ListView.separated(
                       controller: scrollController,
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-                      itemCount: result.activities.length,
+                      itemCount: activities.length,
                       separatorBuilder: (_, _) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {
-                        final run = result.activities[index];
+                        final run = activities[index];
                         final isMatchingThis =
-                            _matchingId == run.stravaActivityId;
+                            _matchingId == run.wearableActivityId;
                         final disabled = run.matchedTrainingDayId != null ||
                             (_matchingId != null && !isMatchingThis);
 
-                        return _RunRow(
+                        return _ActivityRow(
                           run: run,
                           currentDayId: widget.dayId,
                           isMatching: isMatchingThis,
                           onTap: disabled
                               ? null
-                              : () => _pickAndMatch(run.stravaActivityId),
+                              : () => _pickAndMatch(run.wearableActivityId),
                         );
                       },
                     );
@@ -171,19 +163,19 @@ class _SelectStravaRunSheetState extends ConsumerState<SelectStravaRunSheet> {
     );
   }
 
-  Future<void> _pickAndMatch(int stravaActivityId) async {
+  Future<void> _pickAndMatch(int wearableActivityId) async {
     if (_matchingId != null) return;
 
-    setState(() => _matchingId = stravaActivityId);
+    setState(() => _matchingId = wearableActivityId);
 
     try {
-      await ref
-          .read(manualMatchStravaActivityProvider.notifier)
-          .match(dayId: widget.dayId, stravaActivityId: stravaActivityId);
+      await ref.read(manualMatchActivityProvider.notifier).match(
+            dayId: widget.dayId,
+            wearableActivityId: wearableActivityId,
+          );
 
       if (!mounted) return;
-      // Make a future reopening of the sheet show the run as now-synced.
-      ref.invalidate(availableStravaActivitiesProvider(widget.dayId));
+      ref.invalidate(availableActivitiesProvider(widget.dayId));
 
       Navigator.of(context).pop();
       widget.onMatched();
@@ -192,7 +184,7 @@ class _SelectStravaRunSheetState extends ConsumerState<SelectStravaRunSheet> {
       await showCupertinoDialog<void>(
         context: context,
         builder: (ctx) => CupertinoAlertDialog(
-          title: const Text("Couldn't sync that run"),
+          title: const Text("Couldn't match that run"),
           content: Text('$e'),
           actions: [
             CupertinoDialogAction(
@@ -205,20 +197,6 @@ class _SelectStravaRunSheetState extends ConsumerState<SelectStravaRunSheet> {
       if (mounted) setState(() => _matchingId = null);
     }
   }
-
-  String _errorTitle(String code) => switch (code) {
-        'strava_disconnected' => 'Strava not connected',
-        'rate_limited' => 'Slow down a sec',
-        _ => "Couldn't reach Strava",
-      };
-
-  String _errorDetail(String code) => switch (code) {
-        'strava_disconnected' =>
-          'Reconnect your Strava account in Settings to pick a run.',
-        'rate_limited' =>
-          "You've hit Strava's rate limit. Try again in a couple of minutes.",
-        _ => 'Strava is unreachable right now. Try again in a moment.',
-      };
 }
 
 class _ErrorState extends StatelessWidget {
@@ -260,13 +238,13 @@ class _ErrorState extends StatelessWidget {
   }
 }
 
-class _RunRow extends StatelessWidget {
-  final AvailableStravaActivity run;
+class _ActivityRow extends StatelessWidget {
+  final AvailableActivity run;
   final int currentDayId;
   final bool isMatching;
   final VoidCallback? onTap;
 
-  const _RunRow({
+  const _ActivityRow({
     required this.run,
     required this.currentDayId,
     required this.isMatching,

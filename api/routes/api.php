@@ -8,20 +8,14 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GoalController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\StravaController;
-use App\Http\Controllers\StravaWebhookController;
 use App\Http\Controllers\TrainingScheduleController;
+use App\Http\Controllers\WearableActivityController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     // Auth (public)
-    Route::get('auth/strava/redirect', [AuthController::class, 'redirect']);
-    Route::get('auth/strava/callback', [AuthController::class, 'callback']);
+    Route::post('auth/apple', [AuthController::class, 'appleSignIn']);
     Route::post('auth/dev-login', [AuthController::class, 'devLogin']);
-
-    // Strava webhook (public, Strava-signed)
-    Route::get('webhook/strava', [StravaWebhookController::class, 'verify']);
-    Route::post('webhook/strava', [StravaWebhookController::class, 'handle']);
 
     // Authenticated routes
     Route::middleware('auth:sanctum')->group(function () {
@@ -45,10 +39,9 @@ Route::prefix('v1')->group(function () {
         Route::post('training-days/{day}/match-activity', [TrainingScheduleController::class, 'matchActivityToDay']);
         Route::delete('training-days/{day}/match-activity', [TrainingScheduleController::class, 'unlinkActivityFromDay']);
 
-        // Strava
-        Route::post('strava/sync', [StravaController::class, 'sync']);
-        Route::get('strava/activities', [StravaController::class, 'activities']);
-        Route::get('strava/status', [StravaController::class, 'status']);
+        // Wearable activities (HealthKit ingestion from the app)
+        Route::post('wearable/activities', [WearableActivityController::class, 'store']);
+        Route::get('wearable/activities', [WearableActivityController::class, 'index']);
 
         // Dashboard
         Route::get('dashboard', DashboardController::class);

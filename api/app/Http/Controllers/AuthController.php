@@ -3,34 +3,57 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use App\Services\StravaSyncService;
+use App\Services\Auth\AppleIdentityTokenVerifier;
+use App\Services\Auth\InvalidAppleIdentityTokenException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
     public function __construct(
-        private StravaSyncService $stravaSyncService,
+        private AppleIdentityTokenVerifier $appleVerifier,
     ) {}
 
-    public function redirect(): JsonResponse
+    /**
+     * Exchange an Apple "Sign in with Apple" identity token for a Sanctum
+     * bearer. The Flutter app obtains the identity token via the native iOS
+     * dialog (`sign_in_with_apple` package) and posts it here.
+     *
+     * Apple only includes `email` / `name` on the *first* sign-in for a user;
+     * subsequent sign-ins return only the `sub`. We therefore accept optional
+     * `email` and `name` fields from the client, falling back to the JWT's
+     * `email` claim or a synthesized placeholder.
+     */
+    public function appleSignIn(Request $request): JsonResponse
     {
-        return response()->json([
-            'url' => $this->stravaSyncService->getAuthorizeUrl(),
+        $request->validate([
+            'identity_token' => 'required|string',
+            'email' => 'nullable|email',
+            'name' => 'nullable|string|max:255',
         ]);
-    }
 
-    public function callback(Request $request): JsonResponse
-    {
-        $request->validate(['code' => 'required|string']);
+        try {
+            $payload = $this->appleVerifier->verify($request->string('identity_token'));
+        } catch (InvalidAppleIdentityTokenException $e) {
+            abort(401, $e->getMessage());
+        }
 
-        $stravaData = $this->stravaSyncService->exchangeCode($request->code);
-        $user = $this->stravaSyncService->createOrUpdateUser($stravaData);
+        // firstOrCreate is atomic per the underlying INSERT ... ON DUPLICATE
+        // KEY semantics (MySQL) — protects against the race where two
+        // concurrent sign-ins with the same Apple sub both pass a `where`
+        // null check and try to INSERT, with the second hitting the unique
+        // constraint and 500ing.
+        $email = $request->string('email')->toString()
+            ?: $payload['email']
+            ?? sprintf('%s@privaterelay.appleid.com', $payload['sub']);
 
-        // Strava history sync is now run inline by `OnboardingController::profile()`
-        // on first hit (~30-90s), and incrementally by `DashboardController` /
-        // `StravaController::sync()` thereafter. Dispatching here would race with
-        // the inline sync during onboarding without saving any wall-clock time.
+        $user = User::firstOrCreate(
+            ['apple_sub' => $payload['sub']],
+            [
+                'email' => $email,
+                'name' => $request->string('name')->toString() ?: 'Runner',
+            ],
+        );
 
         $token = $user->createToken('api')->plainTextToken;
 
@@ -47,11 +70,16 @@ class AuthController extends Controller
         return response()->json(['message' => 'Logged out']);
     }
 
+    /**
+     * Local-only shortcut for signing in as the first seeded user without
+     * the Apple OAuth round-trip. Use only when developing the iOS app
+     * against a real backend on a physical device.
+     */
     public function devLogin(): JsonResponse
     {
         abort_unless(app()->environment('local'), 404);
 
-        $user = User::whereNotNull('strava_athlete_id')->orderBy('id')->firstOrFail();
+        $user = User::orderBy('id')->firstOrFail();
         $token = $user->createToken('dev')->plainTextToken;
 
         return response()->json([

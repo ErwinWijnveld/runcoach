@@ -3,13 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\Goal;
-use App\Models\StravaActivity;
-use App\Models\StravaToken;
 use App\Models\TrainingDay;
 use App\Models\TrainingResult;
 use App\Models\TrainingWeek;
 use App\Models\User;
 use App\Models\UserRunningProfile;
+use App\Models\WearableActivity;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -27,8 +26,7 @@ class DeleteAccountTest extends TestCase
     {
         $user = User::factory()->create();
 
-        StravaToken::factory()->create(['user_id' => $user->id]);
-        StravaActivity::factory()->create(['user_id' => $user->id]);
+        WearableActivity::factory()->create(['user_id' => $user->id]);
         UserRunningProfile::factory()->create(['user_id' => $user->id]);
         $goal = Goal::factory()->create(['user_id' => $user->id]);
         $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
@@ -64,8 +62,7 @@ class DeleteAccountTest extends TestCase
             ->assertStatus(204);
 
         $this->assertNull(User::find($user->id));
-        $this->assertSame(0, StravaToken::where('user_id', $user->id)->count());
-        $this->assertSame(0, StravaActivity::where('user_id', $user->id)->count());
+        $this->assertSame(0, WearableActivity::where('user_id', $user->id)->count());
         $this->assertSame(0, UserRunningProfile::where('user_id', $user->id)->count());
         $this->assertSame(0, Goal::where('user_id', $user->id)->count());
         $this->assertSame(0, TrainingWeek::where('goal_id', $goal->id)->count());

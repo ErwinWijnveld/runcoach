@@ -150,26 +150,43 @@ class ProposalService
 
         $weeks = $payload['schedule']['weeks'] ?? [];
         $today = now()->startOfDay();
+        $persistedWeekNumber = 0;
 
         foreach ($weeks as $weekData) {
             $startsAt = $this->resolveWeekStart($weekData['week_number']);
 
+            // Pre-filter days that survive the past-date drop. If the week
+            // ends up empty (e.g. user accepts the plan on Sunday and Sunday
+            // isn't a preferred weekday — Mon-Sat are past, no Sunday day
+            // exists, week 1 ends up at 0 days), don't persist the week at
+            // all so the schedule UI starts on the first non-empty week.
+            // Renumber surviving weeks to a contiguous 1..N so the schedule
+            // page header reads "Week 1, Week 2, …".
+            $validDays = [];
+            foreach ($weekData['days'] ?? [] as $dayData) {
+                $date = $startsAt->copy()->addDays($dayData['day_of_week'] - 1);
+                if ($date->lt($today)) {
+                    continue;
+                }
+                $validDays[] = ['date' => $date, 'data' => $dayData];
+            }
+
+            if ($validDays === []) {
+                continue;
+            }
+
+            $persistedWeekNumber++;
             $week = $goal->trainingWeeks()->create([
-                'week_number' => $weekData['week_number'],
+                'week_number' => $persistedWeekNumber,
                 'starts_at' => $startsAt,
                 'total_km' => $weekData['total_km'],
                 'focus' => $weekData['focus'],
             ]);
 
-            foreach ($weekData['days'] ?? [] as $dayData) {
-                $date = $startsAt->copy()->addDays($dayData['day_of_week'] - 1);
-
-                if ($date->lt($today)) {
-                    continue;
-                }
-
+            foreach ($validDays as $entry) {
+                $dayData = $entry['data'];
                 $week->trainingDays()->create([
-                    'date' => $date,
+                    'date' => $entry['date'],
                     'type' => $dayData['type'],
                     'title' => $dayData['title'],
                     'description' => $dayData['description'] ?? null,

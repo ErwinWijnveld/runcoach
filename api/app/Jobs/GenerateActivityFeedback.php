@@ -3,9 +3,8 @@
 namespace App\Jobs;
 
 use App\Ai\Agents\ActivityFeedbackAgent;
-use App\Models\StravaActivity;
 use App\Models\TrainingResult;
-use App\Services\StravaStreamSplits;
+use App\Models\WearableActivity;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -18,23 +17,23 @@ class GenerateActivityFeedback implements ShouldQueue
 
     public function __construct(public int $trainingResultId) {}
 
-    public function handle(StravaStreamSplits $splits): void
+    public function handle(): void
     {
-        $result = TrainingResult::with('trainingDay', 'stravaActivity.user.stravaToken')->find($this->trainingResultId);
+        $result = TrainingResult::with('trainingDay', 'wearableActivity')->find($this->trainingResultId);
 
         if (! $result || $result->ai_feedback) {
             return;
         }
 
-        $response = ActivityFeedbackAgent::make()->prompt($this->buildPrompt($result, $splits));
+        $response = ActivityFeedbackAgent::make()->prompt($this->buildPrompt($result));
 
         $result->update(['ai_feedback' => $response->text]);
     }
 
-    private function buildPrompt(TrainingResult $result, StravaStreamSplits $splitsService): string
+    private function buildPrompt(TrainingResult $result): string
     {
         $day = $result->trainingDay;
-        $activity = $result->stravaActivity;
+        $activity = $result->wearableActivity;
 
         $target = collect([
             $day->target_km !== null ? "{$day->target_km}km" : null,
@@ -44,61 +43,24 @@ class GenerateActivityFeedback implements ShouldQueue
 
         $actualHr = $result->actual_avg_heart_rate !== null ? ", avg HR {$result->actual_avg_heart_rate}" : '';
         $hrScore = $result->heart_rate_score !== null ? ", HR {$result->heart_rate_score}/10" : '';
-        $splitsLine = $this->finegrainedSplitsLine($activity, $splitsService);
 
         return collect([
             "Training: {$day->title} ({$day->type->value}).",
             $target !== '' ? "Target: {$target}." : null,
             "Actual: {$result->actual_km}km at {$this->pace($result->actual_pace_seconds_per_km)}/km{$actualHr}.",
             "Scores: compliance {$result->compliance_score}/10, pace {$result->pace_score}/10, distance {$result->distance_score}/10{$hrScore}.",
-            $splitsLine,
             $this->recentRuns($result),
         ])->filter()->implode("\n");
     }
 
-    private function finegrainedSplitsLine(?StravaActivity $activity, StravaStreamSplits $splitsService): ?string
-    {
-        $token = $activity?->user?->stravaToken;
-        if (! $activity || ! $token) {
-            return null;
-        }
-
-        $segments = $splitsService->compute($token, $activity->strava_id, $activity->distance_meters);
-        if (empty($segments)) {
-            return null;
-        }
-
-        $rendered = collect($segments)->map(function (array $s) {
-            $duration = $this->duration($s['duration_seconds']);
-            $pace = $this->pace($s['pace_seconds_per_km']);
-            $hr = $s['average_heart_rate'] !== null ? " HR {$s['average_heart_rate']}" : '';
-
-            return "{$duration} @ {$pace}/km{$hr}";
-        })->implode('; ');
-
-        return "Splits: {$rendered}.";
-    }
-
-    private function duration(int $seconds): string
-    {
-        if ($seconds <= 0) {
-            return '0s';
-        }
-
-        $mm = intdiv($seconds, 60);
-        $ss = $seconds % 60;
-
-        return $mm > 0 ? sprintf('%dm%02ds', $mm, $ss) : sprintf('%ds', $ss);
-    }
-
     private function recentRuns(TrainingResult $result): ?string
     {
-        $activity = $result->stravaActivity;
+        $activity = $result->wearableActivity;
         if (! $activity) {
             return null;
         }
 
-        $runs = StravaActivity::query()
+        $runs = WearableActivity::query()
             ->where('user_id', $activity->user_id)
             ->where('id', '!=', $activity->id)
             ->orderByDesc('start_date')
@@ -109,7 +71,7 @@ class GenerateActivityFeedback implements ShouldQueue
             return null;
         }
 
-        $summary = $runs->map(function (StravaActivity $r) {
+        $summary = $runs->map(function (WearableActivity $r) {
             $km = round($r->distance_meters / 1000, 1);
             $line = "{$km}km @ {$this->pace($r->paceSecondsPerKm())}/km";
             if ($r->average_heartrate !== null) {

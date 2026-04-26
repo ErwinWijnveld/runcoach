@@ -9,10 +9,10 @@ enum TrainingDayStatus {
   /// Date is in the past, no result was ever recorded → user missed it.
   missed,
 
-  /// Any day with a `TrainingResult` (matched Strava run).
+  /// Any day with a `TrainingResult` (matched wearable run).
   completed,
 
-  /// Date == today, no result yet → awaiting the Strava sync webhook.
+  /// Date == today, no result yet → awaiting the next wearable sync.
   today,
 
   /// Date is in the future, nothing done yet.
@@ -61,8 +61,8 @@ enum TrainingDayStatus {
 
   String get subtitle => switch (this) {
         TrainingDayStatus.missed => 'MARKED AS MISSED',
-        TrainingDayStatus.completed => 'STRAVA RUN SYNCED',
-        TrainingDayStatus.today => 'AWAITING STRAVA SYNC',
+        TrainingDayStatus.completed => 'ACTIVITY SYNCED',
+        TrainingDayStatus.today => 'AWAITING SYNC',
         TrainingDayStatus.upcoming => 'RUN IS UPCOMING',
       };
 
@@ -73,7 +73,7 @@ enum TrainingDayStatus {
         TrainingDayStatus.upcoming => AppColors.tertiary,
       };
 
-  bool get showSelectStravaRun =>
+  bool get showSelectActivity =>
       this == TrainingDayStatus.missed ||
       this == TrainingDayStatus.today ||
       this == TrainingDayStatus.upcoming;

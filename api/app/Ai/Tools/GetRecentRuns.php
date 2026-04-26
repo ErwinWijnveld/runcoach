@@ -3,8 +3,7 @@
 namespace App\Ai\Tools;
 
 use App\Models\User;
-use App\Services\StravaSyncService;
-use Carbon\Carbon;
+use App\Models\WearableActivity;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
 use Illuminate\Support\Collection;
 use Laravel\Ai\Contracts\Tool;
@@ -16,16 +15,12 @@ class GetRecentRuns implements Tool
 
     private const MAX_LIMIT = 50;
 
-    private const FETCH_PAGE_SIZE = 30;
-
-    private const MAX_PAGES = 3;
-
-    public function __construct(private User $user, private StravaSyncService $stravaSyncService) {}
+    public function __construct(private User $user) {}
 
     public function description(): string
     {
         return <<<'DESC'
-        Fetch the runner's most recent runs from Strava, ordered newest-first. No date input required.
+        Fetch the runner's most recent runs from their synced activity history, ordered newest-first. No date input required.
 
         USE THIS for queries like:
         - "How was my last run?"
@@ -33,7 +28,7 @@ class GetRecentRuns implements Tool
         - "Show me my last 5 runs"
         - "What did I run this morning?" (still just "most recent")
 
-        DO NOT use for date-range queries like "last week", "April 2025", "since January" — use search_strava_activities instead.
+        DO NOT use for date-range queries like "last week", "April 2025", "since January" — use search_activities instead.
 
         Returns individual run details plus lightweight aggregates (total_km, avg_pace).
         DESC;
@@ -51,101 +46,60 @@ class GetRecentRuns implements Tool
 
     public function handle(Request $request): string
     {
-        $token = $this->user->stravaToken;
-
-        if (! $token) {
-            return json_encode(['message' => 'No Strava connection found. The runner needs to connect their Strava account.']);
-        }
-
         $limit = (int) ($request['limit'] ?? self::DEFAULT_LIMIT);
         $limit = max(1, min($limit, self::MAX_LIMIT));
 
-        try {
-            $runs = $this->collectRecentRuns($token, $limit);
-        } catch (\Exception $e) {
-            return json_encode(['error' => 'Failed to fetch from Strava: '.$e->getMessage()]);
-        }
+        $runs = WearableActivity::query()
+            ->where('user_id', $this->user->id)
+            ->whereIn('type', WearableActivity::RUN_TYPES)
+            ->orderByDesc('start_date')
+            ->limit($limit)
+            ->get();
 
         if ($runs->isEmpty()) {
             return json_encode([
-                'message' => 'No running activities found in the last '.self::MAX_PAGES * self::FETCH_PAGE_SIZE.' Strava activities. The runner may be doing other sports (cycling, strength, etc.) lately. Try search_strava_activities with a wider date range to find older runs.',
+                'message' => 'No running activities synced yet. The runner needs to connect Apple Health (or another wearable) and complete a few runs first.',
             ]);
         }
 
         return json_encode([
             'count' => $runs->count(),
             'aggregates' => $this->computeAggregates($runs),
-            'runs' => $runs->map(fn ($run) => $this->formatRun($run))->values()->toArray(),
+            'runs' => $runs->map(fn (WearableActivity $r) => $this->formatRun($r))->values()->toArray(),
         ]);
-    }
-
-    private function collectRecentRuns(mixed $token, int $limit): Collection
-    {
-        $runs = collect();
-
-        for ($page = 1; $page <= self::MAX_PAGES; $page++) {
-            $activities = $this->stravaSyncService->fetchActivities($token, $page, self::FETCH_PAGE_SIZE);
-
-            if (empty($activities)) {
-                break;
-            }
-
-            $runs = $runs->concat(
-                collect($activities)->filter(fn ($a) => ($a['type'] ?? '') === 'Run')
-            );
-
-            if ($runs->count() >= $limit) {
-                break;
-            }
-
-            if (count($activities) < self::FETCH_PAGE_SIZE) {
-                break;
-            }
-        }
-
-        return $runs->take($limit)->values();
     }
 
     private function computeAggregates(Collection $runs): array
     {
-        $distances = $runs->map(fn ($r) => ($r['distance'] ?? 0) / 1000);
-        $paces = $runs->map(function ($r) {
-            $km = ($r['distance'] ?? 0) / 1000;
-
-            return $km > 0 ? ($r['moving_time'] ?? 0) / $km : 0;
-        })->filter(fn ($p) => $p > 0);
-
+        $distancesKm = $runs->map(fn (WearableActivity $r) => $r->distance_meters / 1000);
+        $paces = $runs->pluck('average_pace_seconds_per_km')->filter(fn ($p) => $p > 0);
         $avgPace = $paces->isNotEmpty() ? (int) round($paces->avg()) : null;
 
         return [
-            'total_km' => round($distances->sum(), 1),
-            'avg_km_per_run' => round($distances->avg(), 1),
+            'total_km' => round($distancesKm->sum(), 1),
+            'avg_km_per_run' => round($distancesKm->avg(), 1),
             'avg_pace' => $avgPace ? $this->formatPace($avgPace) : null,
-            'longest_run_km' => round($distances->max(), 1),
+            'longest_run_km' => round($distancesKm->max(), 1),
         ];
     }
 
-    private function formatRun(array $activity): array
+    private function formatRun(WearableActivity $run): array
     {
-        $distanceKm = round(($activity['distance'] ?? 0) / 1000, 1);
-        $movingTime = $activity['moving_time'] ?? 0;
-        $paceSeconds = $distanceKm > 0 ? (int) round($movingTime / $distanceKm) : 0;
-
         return [
-            'id' => $activity['id'] ?? null,
-            'date' => Carbon::parse($activity['start_date'])->format('Y-m-d'),
-            'day' => Carbon::parse($activity['start_date'])->format('l'),
-            'name' => $activity['name'] ?? 'Unknown',
-            'distance_km' => $distanceKm,
-            'pace' => $this->formatPace($paceSeconds),
-            'duration_minutes' => round($movingTime / 60, 1),
-            'avg_heart_rate' => isset($activity['average_heartrate']) ? round($activity['average_heartrate'], 0) : null,
-            'elevation_gain_m' => $activity['total_elevation_gain'] ?? null,
+            'id' => $run->id,
+            'date' => $run->start_date->format('Y-m-d'),
+            'day' => $run->start_date->format('l'),
+            'name' => $run->name ?? 'Run',
+            'distance_km' => round($run->distance_meters / 1000, 1),
+            'pace' => $this->formatPace($run->average_pace_seconds_per_km),
+            'duration_minutes' => round($run->duration_seconds / 60, 1),
+            'avg_heart_rate' => $run->average_heartrate !== null ? round((float) $run->average_heartrate) : null,
+            'elevation_gain_m' => $run->elevation_gain_meters,
         ];
     }
 
     private function formatPace(int $seconds): string
     {
-        return floor($seconds / 60).':'.str_pad($seconds % 60, 2, '0', STR_PAD_LEFT).'/km';
+        return floor($seconds / 60).':'.str_pad((string) ($seconds % 60), 2, '0', STR_PAD_LEFT).'/km';
     }
 }

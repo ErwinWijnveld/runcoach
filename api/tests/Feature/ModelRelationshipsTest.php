@@ -3,27 +3,17 @@
 namespace Tests\Feature;
 
 use App\Models\Goal;
-use App\Models\StravaActivity;
-use App\Models\StravaToken;
 use App\Models\TrainingDay;
 use App\Models\TrainingResult;
 use App\Models\TrainingWeek;
 use App\Models\User;
+use App\Models\WearableActivity;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
 class ModelRelationshipsTest extends TestCase
 {
     use LazilyRefreshDatabase;
-
-    public function test_user_has_one_strava_token(): void
-    {
-        $user = User::factory()->create();
-        $token = StravaToken::factory()->create(['user_id' => $user->id]);
-
-        $this->assertTrue($user->stravaToken->is($token));
-        $this->assertTrue($token->user->is($user));
-    }
 
     public function test_user_has_many_goals(): void
     {
@@ -61,21 +51,21 @@ class ModelRelationshipsTest extends TestCase
         $this->assertTrue($result->trainingDay->is($day));
     }
 
-    public function test_user_has_many_strava_activities(): void
+    public function test_user_has_many_wearable_activities(): void
     {
         $user = User::factory()->create();
-        $activity = StravaActivity::factory()->create(['user_id' => $user->id]);
+        $activity = WearableActivity::factory()->create(['user_id' => $user->id]);
 
-        $this->assertTrue($user->stravaActivities->contains($activity));
+        $this->assertTrue($user->wearableActivities->contains($activity));
         $this->assertTrue($activity->user->is($user));
     }
 
-    public function test_training_result_belongs_to_strava_activity(): void
+    public function test_training_result_belongs_to_wearable_activity(): void
     {
-        $activity = StravaActivity::factory()->create();
-        $result = TrainingResult::factory()->create(['strava_activity_id' => $activity->id]);
+        $activity = WearableActivity::factory()->create();
+        $result = TrainingResult::factory()->create(['wearable_activity_id' => $activity->id]);
 
-        $this->assertTrue($result->stravaActivity->is($activity));
+        $this->assertTrue($result->wearableActivity->is($activity));
         $this->assertTrue($activity->trainingResults->contains($result));
     }
 }

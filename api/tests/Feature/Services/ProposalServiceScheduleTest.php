@@ -65,6 +65,73 @@ class ProposalServiceScheduleTest extends TestCase
         $this->assertSame(['Today Thu', 'Future Sat'], $days);
     }
 
+    public function test_apply_create_schedule_skips_empty_week_and_renumbers_subsequent_weeks(): void
+    {
+        // User accepts a plan on Sunday with preferred_weekdays = Mon/Wed/Fri.
+        // Week 1's three days are all in the past (this week's Mon/Wed/Fri).
+        // Week 2 has Mon/Wed/Fri NEXT week. The schedule UI should open on
+        // what the user thinks of as "Week 1" (the first week with actual
+        // training), not on an empty placeholder for the past week.
+        Carbon::setTestNow(Carbon::parse('2026-04-26')); // Sunday
+
+        $user = User::factory()->create(['has_completed_onboarding' => true]);
+
+        $proposal = CoachProposal::create([
+            'agent_message_id' => Str::uuid()->toString(),
+            'user_id' => $user->id,
+            'type' => ProposalType::CreateSchedule,
+            'payload' => [
+                'goal_type' => 'general_fitness',
+                'goal_name' => 'Test Plan',
+                'target_date' => null,
+                'distance' => null,
+                'goal_time_seconds' => null,
+                'preferred_weekdays' => [1, 3, 5],
+                'schedule' => [
+                    'weeks' => [
+                        [
+                            'week_number' => 1,
+                            'total_km' => 12,
+                            'focus' => 'base',
+                            'days' => [
+                                ['day_of_week' => 1, 'type' => 'easy', 'title' => 'Past Mon'],
+                                ['day_of_week' => 3, 'type' => 'easy', 'title' => 'Past Wed'],
+                                ['day_of_week' => 5, 'type' => 'easy', 'title' => 'Past Fri'],
+                            ],
+                        ],
+                        [
+                            'week_number' => 2,
+                            'total_km' => 18,
+                            'focus' => 'build',
+                            'days' => [
+                                ['day_of_week' => 1, 'type' => 'easy', 'title' => 'Future Mon'],
+                                ['day_of_week' => 3, 'type' => 'tempo', 'title' => 'Future Wed'],
+                                ['day_of_week' => 5, 'type' => 'long_run', 'title' => 'Future Fri'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+            'status' => ProposalStatus::Pending,
+            'applied_at' => null,
+        ]);
+
+        app(ProposalService::class)->apply($proposal, $user);
+
+        $weeks = $user->goals()->first()
+            ->trainingWeeks()
+            ->orderBy('week_number')
+            ->get();
+
+        $this->assertCount(1, $weeks, 'Empty past-only week 1 should not be persisted');
+        $this->assertSame(1, $weeks->first()->week_number,
+            'Surviving original-week-2 should renumber to week_number=1');
+        $this->assertSame('build', $weeks->first()->focus);
+
+        $titles = $weeks->first()->trainingDays()->orderBy('order')->pluck('title')->all();
+        $this->assertSame(['Future Mon', 'Future Wed', 'Future Fri'], $titles);
+    }
+
     public function test_apply_create_schedule_persists_interval_splits_for_interval_days(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-04-13')); // Monday

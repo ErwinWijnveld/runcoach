@@ -15,14 +15,15 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
-            $table->bigInteger('strava_athlete_id')->unique()->nullable();
-            $table->string('strava_profile_url')->nullable();
+            // Apple Sign-In identifier: the `sub` claim from the verified
+            // identity token. Stable per-user across sign-ins, opaque (no
+            // email leak). Null for legacy/seeded users without Apple auth.
+            $table->string('apple_sub')->unique()->nullable();
             $table->string('coach_style')->default('balanced');
             $table->boolean('has_completed_onboarding')->default(false);
             $table->boolean('is_superadmin')->default(false)->index();
-            // Heart-rate zones fetched from Strava's /athlete/zones endpoint.
-            // Shape: [{ "min": int, "max": int } ...] — zone N is index N-1.
-            // Null until the user connects Strava and we fetch them.
+            // HR zones (5 entries, ordered Z1..Z5, each `{min, max}`; Z5 max is -1).
+            // Null until we have data to derive them from.
             $table->json('heart_rate_zones')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password')->nullable();

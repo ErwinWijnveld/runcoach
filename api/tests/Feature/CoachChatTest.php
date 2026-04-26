@@ -77,7 +77,11 @@ class CoachChatTest extends TestCase
                             'total_km' => 20,
                             'days' => [
                                 [
-                                    'day_of_week' => 1,
+                                    // Pick today's weekday so the day never
+                                    // lands in the past — applyCreateSchedule
+                                    // drops past-dated days, and a week with
+                                    // no surviving days is no longer persisted.
+                                    'day_of_week' => now()->isoWeekday(),
                                     'type' => 'easy',
                                     'title' => 'Easy Run',
                                     'description' => 'Test',

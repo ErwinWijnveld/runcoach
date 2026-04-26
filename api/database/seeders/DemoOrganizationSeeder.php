@@ -142,8 +142,6 @@ class DemoOrganizationSeeder extends Seeder
                 'password' => Hash::make(self::PASSWORD),
                 'has_completed_onboarding' => true,
                 'email_verified_at' => now(),
-                // unique fake strava_athlete_id so the unique index doesn't collide
-                'strava_athlete_id' => random_int(10_000_000, 99_999_999),
                 'coach_style' => 'balanced',
             ],
         );

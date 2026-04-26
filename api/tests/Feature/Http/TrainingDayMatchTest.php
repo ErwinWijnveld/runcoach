@@ -4,14 +4,12 @@ namespace Tests\Feature\Http;
 
 use App\Jobs\GenerateActivityFeedback;
 use App\Models\Goal;
-use App\Models\StravaActivity;
-use App\Models\StravaToken;
 use App\Models\TrainingDay;
 use App\Models\TrainingResult;
 use App\Models\TrainingWeek;
 use App\Models\User;
+use App\Models\WearableActivity;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
@@ -41,52 +39,41 @@ class TrainingDayMatchTest extends TestCase
         ], $dayAttrs));
     }
 
-    public function test_available_activities_lists_recent_runs_with_sync_flag(): void
+    public function test_available_activities_lists_recent_runs_with_match_flag(): void
     {
         [$user, $headers] = $this->authUser();
-        StravaToken::factory()->create(['user_id' => $user->id]);
 
         $day = $this->scheduleDay($user);
 
-        // One run will be "already synced" to a different day; the other free.
+        // One run will already be matched to a different day; the other free.
         $otherDay = $this->scheduleDay($user, ['date' => now()->subDays(3)->toDateString()]);
-        $synced = StravaActivity::factory()->create([
+        $matched = WearableActivity::factory()->create([
             'user_id' => $user->id,
-            'strava_id' => 9001,
+            'source' => 'apple_health',
+            'name' => 'Already matched run',
+            'start_date' => now()->subDays(3),
         ]);
         TrainingResult::factory()->create([
             'training_day_id' => $otherDay->id,
-            'strava_activity_id' => $synced->id,
+            'wearable_activity_id' => $matched->id,
         ]);
 
-        Http::fake([
-            'strava.com/api/v3/athlete/activities*' => Http::response([
-                [
-                    'id' => 9001, // already synced
-                    'type' => 'Run',
-                    'name' => 'Already synced run',
-                    'distance' => 5200,
-                    'moving_time' => 1800,
-                    'start_date' => now()->subDays(3)->toIso8601String(),
-                ],
-                [
-                    'id' => 9002, // free
-                    'type' => 'Run',
-                    'name' => 'Today easy',
-                    'distance' => 4800,
-                    'moving_time' => 1650,
-                    'start_date' => now()->toIso8601String(),
-                    'average_heartrate' => 142,
-                ],
-                [
-                    'id' => 9003, // non-run, filtered out
-                    'type' => 'Ride',
-                    'name' => 'Bike commute',
-                    'distance' => 10000,
-                    'moving_time' => 1200,
-                    'start_date' => now()->toIso8601String(),
-                ],
-            ], 200),
+        $free = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'source' => 'apple_health',
+            'name' => 'Today easy',
+            'start_date' => now(),
+            'distance_meters' => 4800,
+            'duration_seconds' => 1650,
+            'average_pace_seconds_per_km' => 344,
+            'average_heartrate' => 142,
+        ]);
+
+        // Non-run, should be filtered out.
+        WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'Ride',
+            'start_date' => now(),
         ]);
 
         $response = $this->getJson("/api/v1/training-days/{$day->id}/available-activities", $headers);
@@ -96,10 +83,10 @@ class TrainingDayMatchTest extends TestCase
 
         $this->assertCount(2, $data, 'Non-run activities are filtered out');
 
-        $syncedEntry = collect($data)->firstWhere('strava_activity_id', 9001);
-        $this->assertSame($otherDay->id, $syncedEntry['matched_training_day_id']);
+        $matchedEntry = collect($data)->firstWhere('wearable_activity_id', $matched->id);
+        $this->assertSame($otherDay->id, $matchedEntry['matched_training_day_id']);
 
-        $freeEntry = collect($data)->firstWhere('strava_activity_id', 9002);
+        $freeEntry = collect($data)->firstWhere('wearable_activity_id', $free->id);
         $this->assertNull($freeEntry['matched_training_day_id']);
         $this->assertSame(4.8, $freeEntry['distance_km']);
         $this->assertSame(344, $freeEntry['average_pace_seconds_per_km']);
@@ -108,7 +95,6 @@ class TrainingDayMatchTest extends TestCase
     public function test_match_activity_creates_result_and_scores_it(): void
     {
         [$user, $headers] = $this->authUser();
-        StravaToken::factory()->create(['user_id' => $user->id]);
 
         $day = $this->scheduleDay($user, [
             'target_km' => 5.0,
@@ -116,30 +102,25 @@ class TrainingDayMatchTest extends TestCase
             'target_heart_rate_zone' => 2,
         ]);
 
-        Http::fake([
-            'strava.com/api/v3/activities/7777' => Http::response([
-                'id' => 7777,
-                'type' => 'Run',
-                'name' => 'Matched manually',
-                'distance' => 5050,
-                'moving_time' => 1830,
-                'elapsed_time' => 1900,
-                'average_speed' => 2.76,
-                'start_date' => now()->toIso8601String(),
-                'average_heartrate' => 140,
-                'map' => ['summary_polyline' => null],
-            ], 200),
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'distance_meters' => 5050,
+            'duration_seconds' => 1830,
+            'average_pace_seconds_per_km' => 362,
+            'average_heartrate' => 140,
+            'start_date' => now(),
         ]);
 
         $response = $this->postJson(
             "/api/v1/training-days/{$day->id}/match-activity",
-            ['strava_activity_id' => 7777],
+            ['wearable_activity_id' => $activity->id],
             $headers,
         );
 
         $response->assertOk();
         $this->assertDatabaseHas('training_results', [
             'training_day_id' => $day->id,
+            'wearable_activity_id' => $activity->id,
         ]);
 
         $result = TrainingResult::where('training_day_id', $day->id)->first();
@@ -150,38 +131,19 @@ class TrainingDayMatchTest extends TestCase
     public function test_match_activity_refuses_when_already_bound_to_another_day(): void
     {
         [$user, $headers] = $this->authUser();
-        StravaToken::factory()->create(['user_id' => $user->id]);
 
         $dayA = $this->scheduleDay($user);
         $dayB = $this->scheduleDay($user);
 
-        // Pre-existing result on dayA with strava id 8888.
-        $activity = StravaActivity::factory()->create([
-            'user_id' => $user->id,
-            'strava_id' => 8888,
-        ]);
+        $activity = WearableActivity::factory()->create(['user_id' => $user->id]);
         TrainingResult::factory()->create([
             'training_day_id' => $dayA->id,
-            'strava_activity_id' => $activity->id,
-        ]);
-
-        Http::fake([
-            'strava.com/api/v3/activities/8888' => Http::response([
-                'id' => 8888,
-                'type' => 'Run',
-                'name' => 'Already taken',
-                'distance' => 5000,
-                'moving_time' => 1800,
-                'elapsed_time' => 1850,
-                'average_speed' => 2.77,
-                'start_date' => now()->toIso8601String(),
-                'map' => ['summary_polyline' => null],
-            ], 200),
+            'wearable_activity_id' => $activity->id,
         ]);
 
         $response = $this->postJson(
             "/api/v1/training-days/{$dayB->id}/match-activity",
-            ['strava_activity_id' => 8888],
+            ['wearable_activity_id' => $activity->id],
             $headers,
         );
 
@@ -191,26 +153,16 @@ class TrainingDayMatchTest extends TestCase
     public function test_match_activity_rejects_non_run(): void
     {
         [$user, $headers] = $this->authUser();
-        StravaToken::factory()->create(['user_id' => $user->id]);
         $day = $this->scheduleDay($user);
 
-        Http::fake([
-            'strava.com/api/v3/activities/6666' => Http::response([
-                'id' => 6666,
-                'type' => 'Ride',
-                'name' => 'Bike',
-                'distance' => 20000,
-                'moving_time' => 3600,
-                'elapsed_time' => 3600,
-                'average_speed' => 5.5,
-                'start_date' => now()->toIso8601String(),
-                'map' => ['summary_polyline' => null],
-            ], 200),
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'Ride',
         ]);
 
         $response = $this->postJson(
             "/api/v1/training-days/{$day->id}/match-activity",
-            ['strava_activity_id' => 6666],
+            ['wearable_activity_id' => $activity->id],
             $headers,
         );
 
@@ -223,72 +175,46 @@ class TrainingDayMatchTest extends TestCase
         $victimDay = $this->scheduleDay($victim);
 
         [, $attackerHeaders] = $this->authUser();
+        $attackerActivity = WearableActivity::factory()->create();
 
         $response = $this->postJson(
             "/api/v1/training-days/{$victimDay->id}/match-activity",
-            ['strava_activity_id' => 1],
+            ['wearable_activity_id' => $attackerActivity->id],
             $attackerHeaders,
         );
 
         $response->assertNotFound();
     }
 
-    public function test_match_activity_refuses_when_athlete_id_differs(): void
+    public function test_match_activity_refuses_to_use_another_users_activity(): void
     {
         [$user, $headers] = $this->authUser();
-        $user->forceFill(['strava_athlete_id' => 111])->save();
-        StravaToken::factory()->create(['user_id' => $user->id]);
-
         $day = $this->scheduleDay($user);
 
-        Http::fake([
-            'strava.com/api/v3/activities/5555' => Http::response([
-                'id' => 5555,
-                'type' => 'Run',
-                'name' => 'Stolen run',
-                'distance' => 5000,
-                'moving_time' => 1800,
-                'elapsed_time' => 1800,
-                'average_speed' => 2.77,
-                'start_date' => now()->toIso8601String(),
-                'athlete' => ['id' => 222], // different athlete!
-                'map' => ['summary_polyline' => null],
-            ], 200),
-        ]);
+        $strangerActivity = WearableActivity::factory()->create();
 
         $response = $this->postJson(
             "/api/v1/training-days/{$day->id}/match-activity",
-            ['strava_activity_id' => 5555],
+            ['wearable_activity_id' => $strangerActivity->id],
             $headers,
         );
 
-        $response->assertStatus(403);
-        $this->assertDatabaseMissing('training_results', ['training_day_id' => $day->id]);
+        $response->assertNotFound();
     }
 
     public function test_match_activity_accepts_trail_and_virtual_runs(): void
     {
         [$user, $headers] = $this->authUser();
-        StravaToken::factory()->create(['user_id' => $user->id]);
         $day = $this->scheduleDay($user);
 
-        Http::fake([
-            'strava.com/api/v3/activities/3333' => Http::response([
-                'id' => 3333,
-                'type' => 'TrailRun',
-                'name' => 'Forest trail',
-                'distance' => 5000,
-                'moving_time' => 1800,
-                'elapsed_time' => 1900,
-                'average_speed' => 2.77,
-                'start_date' => now()->toIso8601String(),
-                'map' => ['summary_polyline' => null],
-            ], 200),
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'TrailRun',
         ]);
 
         $response = $this->postJson(
             "/api/v1/training-days/{$day->id}/match-activity",
-            ['strava_activity_id' => 3333],
+            ['wearable_activity_id' => $activity->id],
             $headers,
         );
 
@@ -300,13 +226,14 @@ class TrainingDayMatchTest extends TestCase
         [$user, $headers] = $this->authUser();
         $day = $this->scheduleDay($user);
 
-        $activity = StravaActivity::factory()->create([
+        $activity = WearableActivity::factory()->create([
             'user_id' => $user->id,
-            'strava_id' => 4242,
+            'source' => 'apple_health',
+            'source_activity_id' => 'kept-after-unlink',
         ]);
         TrainingResult::factory()->create([
             'training_day_id' => $day->id,
-            'strava_activity_id' => $activity->id,
+            'wearable_activity_id' => $activity->id,
         ]);
 
         $response = $this->deleteJson(
@@ -317,7 +244,10 @@ class TrainingDayMatchTest extends TestCase
 
         $response->assertOk();
         $this->assertDatabaseMissing('training_results', ['training_day_id' => $day->id]);
-        $this->assertDatabaseHas('strava_activities', ['strava_id' => 4242]);
+        $this->assertDatabaseHas('wearable_activities', [
+            'source' => 'apple_health',
+            'source_activity_id' => 'kept-after-unlink',
+        ]);
     }
 
     public function test_unlink_is_idempotent_when_no_result_exists(): void
@@ -350,46 +280,24 @@ class TrainingDayMatchTest extends TestCase
         $response->assertNotFound();
     }
 
-    public function test_available_activities_returns_disconnected_error_on_strava_401(): void
-    {
-        [$user, $headers] = $this->authUser();
-        StravaToken::factory()->create(['user_id' => $user->id]);
-        $day = $this->scheduleDay($user);
-
-        Http::fake([
-            'strava.com/oauth/token' => Http::response(['error' => 'invalid_refresh'], 401),
-            'strava.com/api/v3/athlete/activities*' => Http::response(['message' => 'Bad token'], 401),
-        ]);
-
-        $response = $this->getJson("/api/v1/training-days/{$day->id}/available-activities", $headers);
-
-        $response->assertOk();
-        $response->assertJson([
-            'data' => [],
-            'error' => 'strava_disconnected',
-        ]);
-    }
-
     public function test_match_dispatches_feedback_generation(): void
     {
         Queue::fake();
 
         [$user, $headers] = $this->authUser();
-        StravaToken::factory()->create(['user_id' => $user->id]);
         $day = $this->scheduleDay($user);
 
-        Http::fake([
-            'strava.com/api/v3/activities/7777' => Http::response([
-                'id' => 7777, 'type' => 'Run', 'name' => 'Run',
-                'distance' => 5050, 'moving_time' => 1830, 'elapsed_time' => 1900,
-                'average_speed' => 2.76, 'start_date' => now()->toIso8601String(),
-                'map' => ['summary_polyline' => null],
-            ], 200),
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'distance_meters' => 5050,
+            'duration_seconds' => 1830,
+            'average_pace_seconds_per_km' => 362,
+            'start_date' => now(),
         ]);
 
         $this->postJson(
             "/api/v1/training-days/{$day->id}/match-activity",
-            ['strava_activity_id' => 7777],
+            ['wearable_activity_id' => $activity->id],
             $headers,
         )->assertOk();
 

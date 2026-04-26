@@ -21,7 +21,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'strava_athlete_id', 'strava_profile_url', 'coach_style', 'has_completed_onboarding', 'heart_rate_zones', 'is_superadmin'])]
+#[Fillable(['name', 'email', 'password', 'apple_sub', 'coach_style', 'has_completed_onboarding', 'heart_rate_zones', 'is_superadmin'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
@@ -40,11 +40,6 @@ class User extends Authenticatable implements FilamentUser
         ];
     }
 
-    public function stravaToken(): HasOne
-    {
-        return $this->hasOne(StravaToken::class);
-    }
-
     public function goals(): HasMany
     {
         return $this->hasMany(Goal::class);
@@ -57,9 +52,9 @@ class User extends Authenticatable implements FilamentUser
             ->latestOfMany('target_date');
     }
 
-    public function stravaActivities(): HasMany
+    public function wearableActivities(): HasMany
     {
-        return $this->hasMany(StravaActivity::class);
+        return $this->hasMany(WearableActivity::class);
     }
 
     public function runningProfile(): HasOne

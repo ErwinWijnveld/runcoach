@@ -4,37 +4,65 @@ namespace App\Services;
 
 use App\Models\User;
 use App\Models\UserRunningProfile;
-use App\Services\Strava\StravaClient;
-use Carbon\Carbon;
+use App\Models\WearableActivity;
+use Illuminate\Support\Collection;
 
 class RunningProfileService
 {
-    public function __construct(
-        private readonly StravaClient $strava,
-    ) {}
-
     public function analyze(User $user): UserRunningProfile
     {
         $end = now();
         $start = now()->subYear();
 
-        $activities = $this->strava->fetchActivitiesInRange($user, $start, $end);
-        $runs = array_filter($activities, fn ($a) => ($a['type'] ?? '') === 'Run');
+        $runs = WearableActivity::query()
+            ->where('user_id', $user->id)
+            ->whereIn('type', WearableActivity::RUN_TYPES)
+            ->whereBetween('start_date', [$start, $end])
+            ->orderBy('start_date')
+            ->get();
 
-        $profile = $this->computeMetrics($user, array_values($runs));
+        $profile = $this->computeMetrics($user, $runs);
         $profile->narrative_summary = $this->buildNarrative($profile->metrics);
         $profile->analyzed_at = now();
         $profile->data_start_date = $start;
         $profile->data_end_date = $end;
         $profile->save();
 
+        // Personalize HR zones from observed max HR. Apple Health doesn't
+        // expose HR zones the way Strava did — derive them from the runner's
+        // own data so compliance scoring stops falling back to generic
+        // defaults. Only update when we have enough HR samples and the user
+        // hasn't already set zones manually.
+        $maxHr = (int) ($profile->metrics['max_heart_rate'] ?? 0);
+        $hrRuns = (int) ($profile->metrics['hr_runs_count'] ?? 0);
+        if ($maxHr > 0 && $hrRuns >= 3 && empty($user->heart_rate_zones)) {
+            $user->forceFill(['heart_rate_zones' => $this->deriveZonesFromMaxHr($maxHr)])->save();
+        }
+
         return $profile;
     }
 
     /**
+     * Standard 5-zone split as percentages of max HR. Zone 5 max is -1
+     * (open-ended) to match the convention ComplianceScoringService uses.
+     *
+     * @return array<int, array{min:int, max:int}>
+     */
+    private function deriveZonesFromMaxHr(int $maxHr): array
+    {
+        return [
+            ['min' => 0, 'max' => (int) round($maxHr * 0.60)],
+            ['min' => (int) round($maxHr * 0.60), 'max' => (int) round($maxHr * 0.70)],
+            ['min' => (int) round($maxHr * 0.70), 'max' => (int) round($maxHr * 0.80)],
+            ['min' => (int) round($maxHr * 0.80), 'max' => (int) round($maxHr * 0.90)],
+            ['min' => (int) round($maxHr * 0.90), 'max' => -1],
+        ];
+    }
+
+    /**
      * Returns a cached profile when one exists, otherwise analyzes from the
-     * user's Strava history. Returns null while the initial Strava sync is
-     * still in flight (no activities synced yet).
+     * user's local activities. Returns null when the user has no activities
+     * synced yet (the app hasn't pushed any HealthKit workouts).
      */
     public function getOrAnalyze(User $user): ?UserRunningProfile
     {
@@ -44,14 +72,17 @@ class RunningProfileService
             return $existing;
         }
 
-        if (! $user->stravaActivities()->exists()) {
+        if (! $user->wearableActivities()->exists()) {
             return null;
         }
 
         return $this->analyze($user);
     }
 
-    public function computeMetrics(User $user, array $runs): UserRunningProfile
+    /**
+     * @param  Collection<int, WearableActivity>  $runs
+     */
+    public function computeMetrics(User $user, Collection $runs): UserRunningProfile
     {
         $metrics = $this->aggregate($runs);
 
@@ -62,28 +93,40 @@ class RunningProfileService
     }
 
     /**
-     * @param  array<int, array<string, mixed>>  $runs
+     * @param  Collection<int, WearableActivity>  $runs
      * @return array<string, mixed>
      */
-    private function aggregate(array $runs): array
+    private function aggregate(Collection $runs): array
     {
-        $totalRuns = count($runs);
-        $totalMeters = array_sum(array_column($runs, 'distance'));
-        $totalSeconds = array_sum(array_column($runs, 'moving_time'));
+        $totalRuns = $runs->count();
+        $totalMeters = $runs->sum('distance_meters');
+        $totalSeconds = $runs->sum('duration_seconds');
         $totalKm = round($totalMeters / 1000, 1);
 
         $weeks = 52;
         $weeklyAvgKm = $totalRuns === 0 ? 0.0 : round($totalKm / $weeks, 1);
-        $weeklyAvgRuns = $totalRuns === 0 ? 0 : (int) round($totalRuns / $weeks);
+        // 1-decimal float so users with <1 run/week don't see "0 runs/week"
+        // (a runner with 20 runs/year ≈ 0.4/week, not 0).
+        $weeklyAvgRuns = $totalRuns === 0 ? 0.0 : round($totalRuns / $weeks, 1);
 
         $avgPace = $totalMeters === 0 ? 0 : (int) round($totalSeconds / ($totalMeters / 1000));
         $avgDuration = $totalRuns === 0 ? 0 : (int) round($totalSeconds / $totalRuns);
 
         $weeksWithRuns = [];
         foreach ($runs as $run) {
-            $weeksWithRuns[Carbon::parse($run['start_date'])->format('o-W')] = true;
+            $weeksWithRuns[$run->start_date->format('o-W')] = true;
         }
         $consistency = (int) round(count($weeksWithRuns) / $weeks * 100);
+
+        // HR aggregates over the runs that actually have HR. Apple Health
+        // sometimes ships workouts without HR (manual entries, third-party
+        // imports, runs done without a watch) — exclude those rather than
+        // averaging in zeros. The agent uses these to reason about easy
+        // vs tempo zone targets in CreateSchedule.
+        $hrAvgs = $runs->pluck('average_heartrate')->filter(fn ($v) => $v !== null);
+        $hrMaxes = $runs->pluck('max_heartrate')->filter(fn ($v) => $v !== null);
+        $avgHeartRate = $hrAvgs->isNotEmpty() ? (int) round($hrAvgs->avg()) : null;
+        $maxHeartRate = $hrMaxes->isNotEmpty() ? (int) round($hrMaxes->max()) : null;
 
         return [
             'weekly_avg_km' => $weeklyAvgKm,
@@ -93,21 +136,25 @@ class RunningProfileService
             'total_runs_12mo' => $totalRuns,
             'total_distance_km_12mo' => $totalKm,
             'consistency_score' => $consistency,
-            'long_run_trend' => $this->trend($runs, fn ($r) => $r['distance']),
+            'avg_heart_rate' => $avgHeartRate,
+            'max_heart_rate' => $maxHeartRate,
+            'hr_runs_count' => $hrAvgs->count(),
+            'long_run_trend' => $this->trend($runs, fn (WearableActivity $r) => $r->distance_meters),
             'pace_trend' => $this->paceTrend($runs),
         ];
     }
 
-    private function trend(array $runs, callable $metric): string
+    private function trend(Collection $runs, callable $metric): string
     {
-        if (count($runs) < 10) {
+        if ($runs->count() < 10) {
             return 'flat';
         }
 
-        $first = array_slice($runs, 0, (int) floor(count($runs) / 2));
-        $last = array_slice($runs, (int) floor(count($runs) / 2));
-        $avgFirst = array_sum(array_map($metric, $first)) / max(1, count($first));
-        $avgLast = array_sum(array_map($metric, $last)) / max(1, count($last));
+        $half = (int) floor($runs->count() / 2);
+        $first = $runs->slice(0, $half);
+        $last = $runs->slice($half);
+        $avgFirst = $first->sum($metric) / max(1, $first->count());
+        $avgLast = $last->sum($metric) / max(1, $last->count());
 
         if ($avgLast > $avgFirst * 1.05) {
             return 'improving';
@@ -119,18 +166,19 @@ class RunningProfileService
         return 'flat';
     }
 
-    private function paceTrend(array $runs): string
+    private function paceTrend(Collection $runs): string
     {
-        if (count($runs) < 10) {
+        if ($runs->count() < 10) {
             return 'flat';
         }
 
-        $paceMetric = fn ($r) => $r['distance'] > 0 ? $r['moving_time'] / $r['distance'] : 0;
+        $paceMetric = fn (WearableActivity $r) => $r->average_pace_seconds_per_km;
 
-        $first = array_slice($runs, 0, (int) floor(count($runs) / 2));
-        $last = array_slice($runs, (int) floor(count($runs) / 2));
-        $avgFirst = array_sum(array_map($paceMetric, $first)) / max(1, count($first));
-        $avgLast = array_sum(array_map($paceMetric, $last)) / max(1, count($last));
+        $half = (int) floor($runs->count() / 2);
+        $first = $runs->slice(0, $half);
+        $last = $runs->slice($half);
+        $avgFirst = $first->sum($paceMetric) / max(1, $first->count());
+        $avgLast = $last->sum($paceMetric) / max(1, $last->count());
 
         if ($avgLast < $avgFirst * 0.95) {
             return 'improving';
@@ -150,7 +198,7 @@ class RunningProfileService
         $totalRuns = (int) ($metrics['total_runs_12mo'] ?? 0);
 
         if ($totalRuns === 0) {
-            return "No Strava runs in the past 12 months yet, we'll build from the ground up.";
+            return "No running activities in the past 12 months yet, we'll build from the ground up.";
         }
 
         $totalKm = (float) ($metrics['total_distance_km_12mo'] ?? 0);
@@ -176,6 +224,12 @@ class RunningProfileService
             default => "Running has been sporadic lately, with a consistency score of {$consistency}.",
         };
 
+        $avgHr = (int) ($metrics['avg_heart_rate'] ?? 0);
+        $maxHr = (int) ($metrics['max_heart_rate'] ?? 0);
+        $hrLine = ($avgHr > 0 && $maxHr > 0)
+            ? "Your typical run heart rate is around {$avgHr} bpm with a peak of {$maxHr} — useful for calibrating easy vs hard efforts."
+            : null;
+
         $lines = [
             sprintf(
                 "Over the past 12 months you've logged %d runs covering %s km at a typical pace of %s/km.",
@@ -195,6 +249,10 @@ class RunningProfileService
         $trendLine = $this->buildTrendLine($longRunTrend, $paceTrend);
         if ($trendLine !== null) {
             $lines[] = $trendLine;
+        }
+
+        if ($hrLine !== null) {
+            $lines[] = $hrLine;
         }
 
         return implode(' ', $lines);

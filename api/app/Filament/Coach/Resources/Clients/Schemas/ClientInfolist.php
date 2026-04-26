@@ -64,7 +64,7 @@ class ClientInfolist
                             ->schema([
                                 TextEntry::make('activities_placeholder')
                                     ->label('')
-                                    ->state('Strava activities tab coming in Phase 5.'),
+                                    ->state('Activities tab coming in Phase 5.'),
                             ]),
                     ])
                     ->columnSpanFull(),

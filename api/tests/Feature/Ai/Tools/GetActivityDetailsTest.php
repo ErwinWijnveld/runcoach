@@ -3,12 +3,9 @@
 namespace Tests\Feature\Ai\Tools;
 
 use App\Ai\Tools\GetActivityDetails;
-use App\Models\StravaToken;
 use App\Models\User;
-use App\Services\StravaStreamSplits;
-use App\Services\StravaSyncService;
+use App\Models\WearableActivity;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Facades\Http;
 use Laravel\Ai\Tools\Request;
 use Tests\TestCase;
 
@@ -18,155 +15,78 @@ class GetActivityDetailsTest extends TestCase
 
     private function callTool(User $user, int $activityId): array
     {
-        $tool = new GetActivityDetails(
-            $user,
-            app(StravaSyncService::class),
-            app(StravaStreamSplits::class),
-        );
+        $tool = new GetActivityDetails($user);
         $request = new Request(['activity_id' => $activityId]);
 
         return json_decode($tool->handle($request), true);
     }
 
-    public function test_returns_error_when_user_has_no_strava_token(): void
+    public function test_returns_error_when_activity_does_not_exist(): void
     {
         $user = User::factory()->create();
 
-        $result = $this->callTool($user, 12345);
-
-        $this->assertArrayHasKey('message', $result);
-        $this->assertStringContainsString('No Strava connection', $result['message']);
-    }
-
-    public function test_returns_summary_and_fine_grained_splits_for_a_run(): void
-    {
-        $user = User::factory()->create();
-        StravaToken::factory()->create(['user_id' => $user->id]);
-
-        // Streams: 30s steady @ 5:33/km, then 30s faster @ 3:20/km — two segments.
-        Http::fake([
-            'strava.com/api/v3/activities/99999/streams*' => Http::response([
-                'time' => ['data' => [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60]],
-                'distance' => ['data' => [0.0, 15.0, 30.0, 45.0, 60.0, 75.0, 90.0, 115.0, 140.0, 165.0, 190.0, 215.0, 240.0]],
-                'heartrate' => ['data' => [140, 142, 145, 148, 150, 152, 155, 165, 170, 172, 172, 172, 172]],
-            ], 200),
-            'strava.com/api/v3/activities/99999' => Http::response([
-                'id' => 99999,
-                'name' => 'Morning Run',
-                'type' => 'Run',
-                'start_date' => '2026-04-15T07:00:00Z',
-                'distance' => 5025.4,                // <10 km → 50m buckets
-                'moving_time' => 1520,
-                'average_heartrate' => 148.0,
-                'max_heartrate' => 172.0,
-                'total_elevation_gain' => 42.1,
-                'has_heartrate' => true,
-                'average_cadence' => 85.0,
-                'laps' => [],
-            ], 200),
-        ]);
-
-        $result = $this->callTool($user, 99999);
-
-        $this->assertSame(99999, $result['summary']['id']);
-        $this->assertSame('Morning Run', $result['summary']['name']);
-        $this->assertSame(148, $result['summary']['avg_heart_rate']);
-
-        // Two pace segments (steady → fast).
-        $this->assertCount(2, $result['splits']);
-        $this->assertArrayHasKey('duration_seconds', $result['splits'][0]);
-        $this->assertArrayHasKey('distance_m', $result['splits'][0]);
-        $this->assertArrayHasKey('pace_seconds_per_km', $result['splits'][0]);
-        $this->assertArrayHasKey('average_heart_rate', $result['splits'][0]);
-        // Second segment has a faster pace (smaller seconds/km).
-        $this->assertLessThan(
-            $result['splits'][0]['pace_seconds_per_km'],
-            $result['splits'][1]['pace_seconds_per_km'],
-        );
-    }
-
-    public function test_formats_laps_when_present(): void
-    {
-        $user = User::factory()->create();
-        StravaToken::factory()->create(['user_id' => $user->id]);
-
-        Http::fake([
-            'strava.com/api/v3/activities/77777/streams*' => Http::response([], 200),
-            'strava.com/api/v3/activities/77777' => Http::response([
-                'id' => 77777,
-                'name' => 'Intervals',
-                'type' => 'Run',
-                'start_date' => '2026-04-10T17:00:00Z',
-                'distance' => 8000,
-                'moving_time' => 2400,
-                'splits_metric' => [],
-                'laps' => [
-                    [
-                        'lap_index' => 1,
-                        'name' => 'Warmup',
-                        'distance' => 2000.0,
-                        'moving_time' => 720,
-                        'average_heartrate' => 130.0,
-                        'max_heartrate' => 145.0,
-                        'total_elevation_gain' => 5.0,
-                    ],
-                    [
-                        'lap_index' => 2,
-                        'name' => '400m repeat',
-                        'distance' => 400.0,
-                        'moving_time' => 84,
-                        'average_heartrate' => 175.0,
-                        'max_heartrate' => 182.0,
-                        'total_elevation_gain' => 0.0,
-                    ],
-                ],
-            ], 200),
-        ]);
-
-        $result = $this->callTool($user, 77777);
-
-        $this->assertCount(2, $result['laps']);
-        $this->assertSame(1, $result['laps'][0]['lap']);
-        $this->assertSame('Warmup', $result['laps'][0]['name']);
-        $this->assertSame('400m repeat', $result['laps'][1]['name']);
-        $this->assertSame(175, $result['laps'][1]['average_heart_rate']);
-    }
-
-    public function test_handles_missing_splits_and_laps_gracefully(): void
-    {
-        $user = User::factory()->create();
-        StravaToken::factory()->create(['user_id' => $user->id]);
-
-        Http::fake([
-            'strava.com/api/v3/activities/55555/streams*' => Http::response([], 200),
-            'strava.com/api/v3/activities/55555' => Http::response([
-                'id' => 55555,
-                'name' => 'Short walk',
-                'type' => 'Run',
-                'start_date' => '2026-04-01T07:00:00Z',
-                'distance' => 800.0,
-                'moving_time' => 360,
-            ], 200),
-        ]);
-
-        $result = $this->callTool($user, 55555);
-
-        $this->assertSame([], $result['splits']);
-        $this->assertSame([], $result['laps']);
-        $this->assertSame('Short walk', $result['summary']['name']);
-    }
-
-    public function test_returns_error_string_when_strava_fails(): void
-    {
-        $user = User::factory()->create();
-        StravaToken::factory()->create(['user_id' => $user->id]);
-
-        Http::fake([
-            'strava.com/api/v3/activities/*' => Http::response(['message' => 'Not Found'], 404),
-        ]);
-
-        $result = $this->callTool($user, 42);
+        $result = $this->callTool($user, 999_999);
 
         $this->assertArrayHasKey('error', $result);
+    }
+
+    public function test_returns_error_when_activity_belongs_to_another_user(): void
+    {
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+        $strangerActivity = WearableActivity::factory()->create(['user_id' => $other->id]);
+
+        $result = $this->callTool($user, $strangerActivity->id);
+
+        $this->assertArrayHasKey('error', $result);
+    }
+
+    public function test_returns_summary_for_an_activity_without_splits(): void
+    {
+        $user = User::factory()->create();
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'name' => 'Morning Run',
+            'distance_meters' => 5000,
+            'duration_seconds' => 1500,
+            'average_pace_seconds_per_km' => 300,
+            'average_heartrate' => 148,
+            'max_heartrate' => 168,
+            'elevation_gain_meters' => 32,
+            'calories_kcal' => 410,
+            'raw_data' => [],
+        ]);
+
+        $result = $this->callTool($user, $activity->id);
+
+        $this->assertSame('Morning Run', $result['summary']['name']);
+        $this->assertEquals(5.0, $result['summary']['distance_km']);
+        $this->assertSame(148, $result['summary']['avg_heart_rate']);
+        $this->assertSame(168, $result['summary']['max_heart_rate']);
+        $this->assertSame(32, $result['summary']['total_elevation_gain_m']);
+        $this->assertSame([], $result['splits']);
+    }
+
+    public function test_returns_pre_computed_splits_from_raw_data(): void
+    {
+        $user = User::factory()->create();
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'distance_meters' => 5000,
+            'raw_data' => [
+                'splits' => [
+                    ['distance_m' => 1000, 'duration_seconds' => 310, 'pace_seconds_per_km' => 310, 'average_heart_rate' => 145],
+                    ['distance_m' => 1000, 'duration_seconds' => 305, 'pace_seconds_per_km' => 305, 'average_heart_rate' => 150],
+                    ['distance_m' => 1000, 'duration_seconds' => 295, 'pace_seconds_per_km' => 295, 'average_heart_rate' => 158],
+                ],
+            ],
+        ]);
+
+        $result = $this->callTool($user, $activity->id);
+
+        $this->assertCount(3, $result['splits']);
+        $this->assertSame(310, $result['splits'][0]['pace_seconds_per_km']);
+        $this->assertSame(295, $result['splits'][2]['pace_seconds_per_km']);
+        $this->assertSame(145, $result['splits'][0]['average_heart_rate']);
     }
 }

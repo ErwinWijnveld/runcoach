@@ -1,6 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:app/core/utils/json_converters.dart';
-import 'package:app/features/schedule/models/strava_activity_summary.dart';
+import 'package:app/features/schedule/models/wearable_activity_summary.dart';
 
 part 'training_result.freezed.dart';
 part 'training_result.g.dart';
@@ -23,10 +23,10 @@ sealed class TrainingResult with _$TrainingResult {
     double? heartRateScore,
     @JsonKey(name: 'ai_feedback') String? aiFeedback,
 
-    /// Locally-persisted Strava run that was matched to this training day.
+    /// Locally-persisted wearable run that was matched to this training day.
     /// Eager-loaded by the backend on `showDay`, `dayResult`, and
     /// `matchActivityToDay`. Null for older results where we didn't load it.
-    @JsonKey(name: 'strava_activity') StravaActivitySummary? stravaActivity,
+    @JsonKey(name: 'wearable_activity') WearableActivitySummary? wearableActivity,
   }) = _TrainingResult;
 
   factory TrainingResult.fromJson(Map<String, dynamic> json) =>

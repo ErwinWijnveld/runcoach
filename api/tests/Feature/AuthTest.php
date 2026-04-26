@@ -2,82 +2,97 @@
 
 namespace Tests\Feature;
 
-use App\Models\StravaToken;
 use App\Models\User;
+use App\Services\Auth\AppleIdentityTokenVerifier;
+use App\Services\Auth\InvalidAppleIdentityTokenException;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Queue;
+use Mockery;
 use Tests\TestCase;
 
 class AuthTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
-    public function test_strava_redirect_returns_authorize_url(): void
+    private function fakeAppleVerifier(string $sub, ?string $email = null): void
     {
-        $response = $this->getJson('/api/v1/auth/strava/redirect');
-
-        $response->assertOk();
-        $response->assertJsonStructure(['url']);
-        $this->assertStringContainsString('strava.com/oauth/authorize', $response->json('url'));
-    }
-
-    public function test_strava_callback_creates_user_and_returns_token(): void
-    {
-        Queue::fake();
-
-        Http::fake([
-            'www.strava.com/oauth/token' => Http::response([
-                'access_token' => 'fake_access_token',
-                'refresh_token' => 'fake_refresh_token',
-                'expires_at' => now()->addHours(6)->timestamp,
-                'athlete' => [
-                    'id' => 12345,
-                    'firstname' => 'Test',
-                    'lastname' => 'Runner',
-                    'email' => 'test@example.com',
-                ],
-            ]),
+        $mock = Mockery::mock(AppleIdentityTokenVerifier::class);
+        $mock->shouldReceive('verify')->andReturn([
+            'sub' => $sub,
+            'email' => $email,
+            'email_verified' => true,
         ]);
 
-        $response = $this->getJson('/api/v1/auth/strava/callback?code=test_auth_code');
+        $this->app->instance(AppleIdentityTokenVerifier::class, $mock);
+    }
+
+    public function test_apple_sign_in_creates_user_and_returns_token(): void
+    {
+        $this->fakeAppleVerifier('apple-sub-001', 'jane@example.com');
+
+        $response = $this->postJson('/api/v1/auth/apple', [
+            'identity_token' => 'fake.jwt.value',
+            'name' => 'Jane Runner',
+        ]);
 
         $response->assertOk();
-        $response->assertJsonStructure(['token', 'user']);
-
+        $response->assertJsonStructure(['token', 'user' => ['id', 'name', 'email']]);
         $this->assertDatabaseHas('users', [
-            'strava_athlete_id' => 12345,
-            'name' => 'Test Runner',
+            'apple_sub' => 'apple-sub-001',
+            'email' => 'jane@example.com',
+            'name' => 'Jane Runner',
         ]);
-        $this->assertDatabaseCount('strava_tokens', 1);
     }
 
-    public function test_strava_callback_updates_existing_user(): void
+    public function test_apple_sign_in_returns_existing_user_for_known_sub(): void
     {
-        Queue::fake();
-
-        $user = User::factory()->create(['strava_athlete_id' => 12345]);
-        StravaToken::factory()->create(['user_id' => $user->id]);
-
-        Http::fake([
-            'www.strava.com/oauth/token' => Http::response([
-                'access_token' => 'new_access_token',
-                'refresh_token' => 'new_refresh_token',
-                'expires_at' => now()->addHours(6)->timestamp,
-                'athlete' => [
-                    'id' => 12345,
-                    'firstname' => 'Test',
-                    'lastname' => 'Runner',
-                    'email' => 'test@example.com',
-                ],
-            ]),
+        $existing = User::factory()->create([
+            'apple_sub' => 'apple-sub-002',
+            'name' => 'Returning Runner',
         ]);
 
-        $response = $this->getJson('/api/v1/auth/strava/callback?code=test_auth_code');
+        $this->fakeAppleVerifier('apple-sub-002');
+
+        $response = $this->postJson('/api/v1/auth/apple', [
+            'identity_token' => 'fake.jwt.value',
+        ]);
 
         $response->assertOk();
+        $this->assertSame($existing->id, $response->json('user.id'));
         $this->assertDatabaseCount('users', 1);
-        $this->assertDatabaseCount('strava_tokens', 1);
+    }
+
+    public function test_apple_sign_in_falls_back_to_synthetic_email_when_token_omits_it(): void
+    {
+        $this->fakeAppleVerifier('apple-sub-003');
+
+        $response = $this->postJson('/api/v1/auth/apple', [
+            'identity_token' => 'fake.jwt.value',
+        ]);
+
+        $response->assertOk();
+        $this->assertDatabaseHas('users', [
+            'apple_sub' => 'apple-sub-003',
+            'email' => 'apple-sub-003@privaterelay.appleid.com',
+        ]);
+    }
+
+    public function test_apple_sign_in_rejects_invalid_token(): void
+    {
+        $mock = Mockery::mock(AppleIdentityTokenVerifier::class);
+        $mock->shouldReceive('verify')->andThrow(
+            new InvalidAppleIdentityTokenException('Wrong issuer')
+        );
+        $this->app->instance(AppleIdentityTokenVerifier::class, $mock);
+
+        $this->postJson('/api/v1/auth/apple', [
+            'identity_token' => 'bogus.token',
+        ])->assertStatus(401);
+    }
+
+    public function test_apple_sign_in_requires_identity_token(): void
+    {
+        $this->postJson('/api/v1/auth/apple', [])
+            ->assertStatus(422);
     }
 
     public function test_logout_revokes_token(): void

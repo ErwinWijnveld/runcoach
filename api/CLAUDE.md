@@ -184,11 +184,11 @@ This is the Laravel backend for **RunCoach**, a personal AI running coach app. S
 
 ## What this backend does
 
-- Authenticates users via Strava OAuth2 (Sanctum tokens for the Flutter app)
-- Syncs Strava running activities (3 months on login, real-time via webhooks)
-- Runs an agentic AI coach (Laravel AI SDK) that has full access to the user's Strava data
+- Authenticates users via **Sign in with Apple** (`POST /auth/apple` verifies the iOS-issued identity token against Apple's JWKS via `firebase/php-jwt`, returns a Sanctum bearer)
+- **Ingests wearable activities** pushed by the Flutter app (`POST /wearable/activities`) into a wearable-agnostic `wearable_activities` table — currently `source='apple_health'` only; Garmin/Polar/Strava can be added later via Open Wearables without schema changes
+- Auto-matches each ingested activity to the user's active training schedule and scores compliance (pace/distance/HR)
+- Runs an agentic AI coach (Laravel AI SDK) that reads from the local DB only — no live external API calls during a coach turn
 - Generates training schedules for races with a proposal/approval flow
-- Auto-matches completed activities to planned training days and scores compliance
 
 ## Core architecture
 
@@ -207,10 +207,10 @@ The coach uses **Laravel AI SDK** (`laravel/ai` v0.5.1). Default provider is **A
     - `GetRunningProfile` — (no args) returns cached `UserRunningProfile`, or triggers fresh analysis inline
     - `PresentRunningStats` — renders a stats card in the chat (4 metrics)
     - `OfferChoices` — renders tappable chip row (label/value pairs)
-  - **Strava query tools**:
+  - **Activity query tools (all read from `wearable_activities`, no live external API):**
     - `GetRecentRuns` — N most recent runs, no date input
-    - `SearchStravaActivities` — Strava API date-range query (NOT local DB), auto-paginates, returns aggregates + runs
-    - `GetActivityDetails` — per-km splits, laps, HR for a single activity id
+    - `SearchActivities` — date-range query, returns runs + pre-computed aggregates + weekly breakdown
+    - `GetActivityDetails` — summary + any pre-computed splits stored in `raw_data.splits` (Apple Health workouts recorded with the Workout app on Apple Watch surface 1km splits there)
   - **Schedule + compliance**:
     - `GetCurrentSchedule` — active schedule with compliance
     - `GetGoalInfo` — goal details + readiness
@@ -380,29 +380,41 @@ TTL is ~5 minutes. Within onboarding (3-4 turns in 1-2 min) the cache hits hard:
 - **SDK caveat**: `StreamableAgentResponse::$usage` only reflects the *final* tool-loop iteration's usage (the one that yields `StreamEnd`). Intermediate iterations that returned `stop_reason: tool_use` are not tallied. Reported totals undercount streaming agent runs by roughly 30–50%.
 - Browse the data in Filament at `/admin/token-usages` (see monorepo CLAUDE.md for access).
 
-### Strava integration
+### Sign in with Apple
 
-- `app/Services/StravaSyncService.php` — OAuth token exchange, refresh, activity fetching
-- `app/Jobs/SyncStravaHistory.php` — queued job, fetches N months of history on login/manual sync
-- `app/Jobs/ProcessStravaActivity.php` — webhook-triggered; fetches one activity, matches to training day, scores compliance, dispatches feedback generation
-- `app/Jobs/GenerateActivityFeedback.php` — AI post-run feedback
-- `app/Jobs/GenerateWeeklyInsight.php` — AI weekly coach notes
-- `app/Services/ComplianceScoringService.php` — weighted scoring: distance 30%, pace 40%, HR 30% (redistributes to 45/55 without HR)
+- `app/Services/Auth/AppleIdentityTokenVerifier.php` — fetches Apple's JWKS from `https://appleid.apple.com/auth/keys` (cached 1h via `Cache::remember('apple:jwks', 3600, ...)`), validates the JWT signature, issuer (`https://appleid.apple.com`), audience (`config('services.apple.bundle_id')`, default `com.erwinwijnveld.runcoach`), and expiry. Returns `{sub, email, email_verified}`.
+- `app/Services/Auth/InvalidAppleIdentityTokenException.php` — thrown for any verification failure; `AuthController::appleSignIn` translates it to a 401.
+- `app/Http/Controllers/AuthController.php::appleSignIn` — accepts `{identity_token, email?, name?}`, verifies, upserts a User on `apple_sub`, returns `{token, user}`. Apple only includes `email`/`name` on the *first* sign-in per user — subsequent sign-ins return only the `sub`, so the controller falls back to the JWT's `email` claim or a synthesized `<sub>@privaterelay.appleid.com` placeholder.
+- **Mockable in tests**: `AppleIdentityTokenVerifier` is constructor-injected, so tests bind a Mockery instance via `$this->app->instance(AppleIdentityTokenVerifier::class, $mock)` — no need to generate real Apple-signed JWTs. See `tests/Feature/AuthTest.php`.
+
+### Wearable ingestion
+
+- `app/Models/WearableActivity.php` (`wearable_activities` table) — provider-agnostic activity row. Key columns: `source` (string enum: `apple_health`, `strava`, `garmin`, `polar`, ...), `source_activity_id` (string — HKWorkout uuid, Open Wearables workout uuid, Strava activity id), `source_user_id` (for dedup), `distance_meters`, `duration_seconds`, `elapsed_seconds`, `average_pace_seconds_per_km`, `average_heartrate`, `max_heartrate`, `elevation_gain_meters`, `calories_kcal`, `start_date`, `end_date`, `raw_data` (JSON, source-specific extras like Apple Health splits). Unique index on `(source, source_activity_id)` makes ingestion idempotent. Constants: `WearableActivity::RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun']`.
+- `app/Http/Controllers/WearableActivityController.php` — `POST /wearable/activities` accepts a batch (`{activities: [...]}`, max 200/req), upserts each row, dispatches `ProcessWearableActivity` per row. `GET /wearable/activities` lists the user's history (paginated 30/page).
+- `app/Jobs/ProcessWearableActivity.php` — filters to `RUN_TYPES`, calls `ComplianceScoringService::matchAndScore`, queues `GenerateActivityFeedback` + `GenerateWeeklyInsight` if a TrainingResult landed.
+- `app/Jobs/GenerateActivityFeedback.php` — AI post-run feedback. No more streams API — splits surface only when the source supplies them in `raw_data.splits`.
+- `app/Jobs/GenerateWeeklyInsight.php` — AI weekly coach notes.
+- `app/Services/ComplianceScoringService.php` — weighted scoring: distance 30%, pace 40%, HR 30% (redistributes to 45/55 without HR). Uses `actual_pace_seconds_per_km` directly from the activity row (no derivation from speed).
+
+**Adding a new source (e.g. Open Wearables for Garmin):**
+1. Write a service that fetches workouts and posts them to `POST /wearable/activities` with `source='garmin'`. Could live as a queued job, a webhook controller, or both.
+2. That's it — the unique constraint, ProcessWearableActivity dispatch, AI tools, and onboarding flow all work as-is. Optional: add an icon/label for the new source in `app/lib/features/schedule/widgets/wearable_summary_card.dart` and `select_activity_sheet.dart`.
 
 ### Domain models
 
-10 Eloquent models with factories, using Laravel 13 `#[Fillable]` attribute syntax (NOT `$fillable` property):
-- `User`, `StravaToken`, `StravaActivity`
-- `Goal` → `TrainingWeek` → `TrainingDay` → `TrainingResult`
+Eleven Eloquent models with factories, using Laravel 13 `#[Fillable]` attribute syntax (NOT `$fillable` property):
+- `User` (with `apple_sub` unique-nullable column for Apple Sign-In identity), `WearableActivity`
+- `Goal` → `TrainingWeek` → `TrainingDay` → `TrainingResult` (`wearable_activity_id` FK)
 - `CoachProposal` (with `agent_message_id` FK to SDK's messages table, `user_id` FK to users)
+- `UserRunningProfile`, `PlanGeneration`, `TokenUsage`, `Organization`, `OrganizationMembership`
 
-All enums are in `app/Enums/` as PHP 8.1 backed enums: `CoachStyle`, `MessageRole`, `ProposalStatus`, `ProposalType`, `GoalDistance`, `GoalStatus`, `TrainingType`.
+All enums are in `app/Enums/` as PHP 8.1 backed enums: `CoachStyle`, `MessageRole`, `ProposalStatus`, `ProposalType`, `GoalDistance`, `GoalStatus`, `GoalType`, `TrainingType`, `MembershipStatus`, `OrganizationRole`, `OrganizationStatus`, `PlanGenerationStatus`.
 
 ### API Structure
 
-All routes under `/api/v1/*` prefix in `routes/api.php`. Public routes: Strava OAuth + webhooks. Everything else requires `auth:sanctum`.
+All routes under `/api/v1/*` prefix in `routes/api.php`. Public routes: `POST /auth/apple` + `POST /auth/dev-login`. Everything else requires `auth:sanctum`.
 
-Controllers live in `app/Http/Controllers/`: Auth, Profile, Goal, TrainingSchedule, Strava, StravaWebhook, Coach, Dashboard.
+Controllers live in `app/Http/Controllers/`: Auth, Profile, Goal, TrainingSchedule, WearableActivity, Coach, Dashboard, Onboarding, plus `Api/MembershipController` and `Api/OrganizationController`.
 
 ## Project-specific conventions
 
@@ -417,9 +429,9 @@ Controllers live in `app/Http/Controllers/`: Auth, Profile, Goal, TrainingSchedu
 
 ### Tool design guidelines
 
-When adding or refactoring agent tools, follow these principles. They are derived from reviewing [r-huijts/strava-mcp](https://github.com/r-huijts/strava-mcp) ([tools folder](https://github.com/r-huijts/strava-mcp/tree/main/src/tools)) — a production Strava MCP whose tool shapes we treat as a design benchmark. Read that repo before designing a new tool.
+When adding or refactoring agent tools, follow these principles. They are derived from reviewing [r-huijts/strava-mcp](https://github.com/r-huijts/strava-mcp) ([tools folder](https://github.com/r-huijts/strava-mcp/tree/main/src/tools)) — a production Strava MCP whose tool shapes we treat as a design benchmark even though we don't actually call Strava. Read that repo before designing a new tool.
 
-1. **One tool per use case, not one tool per endpoint.** The MCP ships separate `getRecentActivities` (no args, latest N) and `getAllActivities` (date range + filters). We mirror this with `GetRecentRuns` + `SearchStravaActivities`. Don't force the agent to guess args for common cases — give it a narrow tool.
+1. **One tool per use case, not one tool per endpoint.** The MCP ships separate `getRecentActivities` (no args, latest N) and `getAllActivities` (date range + filters). We mirror this with `GetRecentRuns` + `SearchActivities`. Don't force the agent to guess args for common cases — give it a narrow tool.
 
 2. **All optional params use `->required()->nullable()`.** Handler defaults apply when null. The agent should never be forced to invent a value it doesn't have.
 
@@ -453,8 +465,10 @@ Mutation tools (`CreateSchedule`, `ModifySchedule`) NEVER write to the database.
 
 ### Testing
 
-- 91 feature tests in `tests/Feature/`. Use `LazilyRefreshDatabase` trait (NOT `RefreshDatabase`).
+- ~295 feature tests in `tests/Feature/`. Use `LazilyRefreshDatabase` trait (NOT `RefreshDatabase`).
 - Coach tests use `RunCoachAgent::fake(['response text'])` to mock agent responses.
+- Apple Sign-In tests bind a Mockery `AppleIdentityTokenVerifier` instance to the container (`$this->app->instance(...)`) — see `tests/Feature/AuthTest.php`.
+- Wearable ingestion tests post to `/wearable/activities` directly and assert on `wearable_activities` rows + dispatched jobs — see `tests/Feature/Http/WearableActivityIngestionTest.php`.
 - Middleware/listener tests construct events directly with `Mockery::mock(TextProvider::class)` — see `tests/Feature/Listeners/RecordAgentTokenUsageTest.php`.
 - Run: `php artisan test --compact`
 

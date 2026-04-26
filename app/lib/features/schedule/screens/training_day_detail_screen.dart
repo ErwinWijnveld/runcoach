@@ -13,8 +13,8 @@ import 'package:app/features/coach/widgets/swooshing_star.dart';
 import 'package:app/features/schedule/data/training_day_coach_suggestions.dart';
 import 'package:app/features/schedule/models/training_day.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
-import 'package:app/features/schedule/widgets/select_strava_run_sheet.dart';
-import 'package:app/features/schedule/widgets/strava_summary_card.dart';
+import 'package:app/features/schedule/widgets/select_activity_sheet.dart';
+import 'package:app/features/schedule/widgets/wearable_summary_card.dart';
 import 'package:app/features/schedule/widgets/training_day_action_buttons.dart';
 import 'package:app/features/schedule/widgets/training_day_hero_card.dart';
 import 'package:app/features/schedule/widgets/training_day_stat_tiles.dart';
@@ -85,7 +85,7 @@ class _Loaded extends StatelessWidget {
                     child: TrainingDayActionButtons(
                       status: status,
                       onSendToWatch: () => _showWatchPlaceholder(context),
-                      onSelectStravaRun: () => SelectStravaRunSheet.show(
+                      onSelectActivity: () => SelectActivitySheet.show(
                         context,
                         dayId: day.id,
                         onMatched: () {
@@ -107,13 +107,13 @@ class _Loaded extends StatelessWidget {
                   ],
                   ..._buildDetailSection(day, status),
                   if (status == TrainingDayStatus.completed &&
-                      day.result?.stravaActivity != null) ...[
+                      day.result?.wearableActivity != null) ...[
                     const SizedBox(height: 16),
-                    const _SectionTitle('Synced Strava run'),
+                    const _SectionTitle('Synced activity'),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                      child: StravaSummaryCard(
-                        activity: day.result!.stravaActivity!,
+                      child: WearableSummaryCard(
+                        activity: day.result!.wearableActivity!,
                         onOpenDetails: () =>
                             context.push('/schedule/day/${day.id}/result'),
                       ),
