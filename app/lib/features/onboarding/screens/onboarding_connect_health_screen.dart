@@ -30,7 +30,6 @@ class _OnboardingConnectHealthScreenState
     extends ConsumerState<OnboardingConnectHealthScreen> {
   _Stage _stage = _Stage.idle;
   String? _error;
-  bool _permissionDenied = false;
   bool _showEmpty = false;
   int _synced = 0;
 
@@ -42,30 +41,24 @@ class _OnboardingConnectHealthScreenState
     setState(() {
       _stage = _Stage.requestingPermission;
       _error = null;
-      _permissionDenied = false;
       _showEmpty = false;
     });
 
     final hk = ref.read(healthKitServiceProvider);
 
-    final bool granted;
+    // The boolean from requestPermissions is unreliable on iOS — it returns
+    // false even when the user grants workouts but denies HR (per the
+    // docstring on requestPermissions). We fire it to surface the system
+    // prompt the first time and ignore the result. The genuine "user
+    // denied workouts" case shows up downstream as `workouts.isEmpty` and
+    // is handled by the empty-history state.
     try {
-      granted = await hk.requestPermissions();
+      await hk.requestPermissions();
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _stage = _Stage.idle;
         _error = "Couldn't reach Apple Health. Try again?";
-      });
-      return;
-    }
-
-    if (!granted) {
-      if (!mounted) return;
-      setState(() {
-        _stage = _Stage.idle;
-        _permissionDenied = true;
-        _error = "Apple Health permission was denied. Open Settings → Health → Data Access & Devices → RunCoach to enable read access, then come back.";
       });
       return;
     }
@@ -213,13 +206,15 @@ class _OnboardingConnectHealthScreenState
     switch (_stage) {
       case _Stage.idle:
         if (_showEmpty) {
-          return _EmptyHistoryBody(onContinue: _skipToForm);
+          return _EmptyHistoryBody(
+            onContinue: _skipToForm,
+            onOpenSettings: _openSettings,
+            onTryAgain: _connectAndSync,
+          );
         }
         return _IntroBody(
           error: _error,
-          permissionDenied: _permissionDenied,
           onConnect: _connectAndSync,
-          onOpenSettings: _openSettings,
           onSkip: _skipToForm,
         );
       case _Stage.requestingPermission:
@@ -246,15 +241,11 @@ enum _Stage { idle, requestingPermission, syncing, done }
 
 class _IntroBody extends StatelessWidget {
   final String? error;
-  final bool permissionDenied;
   final VoidCallback onConnect;
-  final VoidCallback onOpenSettings;
   final VoidCallback onSkip;
   const _IntroBody({
     required this.error,
-    required this.permissionDenied,
     required this.onConnect,
-    required this.onOpenSettings,
     required this.onSkip,
   });
 
@@ -294,25 +285,10 @@ class _IntroBody extends StatelessWidget {
             ),
           ),
         const Spacer(),
-        if (permissionDenied) ...[
-          CupertinoButton.filled(
-            onPressed: onOpenSettings,
-            child: const Text('Open Settings'),
-          ),
-          const SizedBox(height: 8),
-          CupertinoButton(
-            onPressed: onConnect,
-            child: Text(
-              'Try again',
-              style: GoogleFonts.inter(color: AppColors.inkMuted),
-            ),
-          ),
-        ] else ...[
-          CupertinoButton.filled(
-            onPressed: onConnect,
-            child: const Text('Connect Apple Health'),
-          ),
-        ],
+        CupertinoButton.filled(
+          onPressed: onConnect,
+          child: const Text('Connect Apple Health'),
+        ),
         const SizedBox(height: 8),
         CupertinoButton(
           onPressed: onSkip,
@@ -337,7 +313,13 @@ class _IntroBody extends StatelessWidget {
 
 class _EmptyHistoryBody extends StatelessWidget {
   final VoidCallback onContinue;
-  const _EmptyHistoryBody({required this.onContinue});
+  final VoidCallback onOpenSettings;
+  final VoidCallback onTryAgain;
+  const _EmptyHistoryBody({
+    required this.onContinue,
+    required this.onOpenSettings,
+    required this.onTryAgain,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -346,22 +328,47 @@ class _EmptyHistoryBody extends StatelessWidget {
       children: [
         const SizedBox(height: 8),
         Text(
-          "We didn't find any runs",
+          "No runs found yet",
           style: RunCoreText.serifTitle(size: 28),
         ),
         const SizedBox(height: 8),
         Text(
-          "Apple Health doesn't show any running workouts in the last 12 months — that's fine, we'll start your plan from scratch.",
+          "We couldn't read any running workouts from Apple Health. Either there aren't any in the last 12 months, or read access wasn't granted.",
           style: GoogleFonts.inter(
             fontSize: 15,
             color: AppColors.inkMuted,
             height: 1.4,
           ),
         ),
+        const SizedBox(height: 12),
+        Text(
+          "If you DO have runs, open Settings → Health → Data Access & Devices → RunCoach and turn on Workouts + Heart Rate.",
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            color: AppColors.inkMuted,
+            height: 1.4,
+          ),
+        ),
         const Spacer(),
         CupertinoButton.filled(
+          onPressed: onOpenSettings,
+          child: const Text('Open Settings'),
+        ),
+        const SizedBox(height: 8),
+        CupertinoButton(
+          onPressed: onTryAgain,
+          child: Text(
+            'Try again',
+            style: GoogleFonts.inter(color: AppColors.inkMuted),
+          ),
+        ),
+        const SizedBox(height: 4),
+        CupertinoButton(
           onPressed: onContinue,
-          child: const Text('Continue'),
+          child: Text(
+            'Continue without syncing',
+            style: GoogleFonts.inter(color: AppColors.inkMuted, fontSize: 14),
+          ),
         ),
       ],
     );

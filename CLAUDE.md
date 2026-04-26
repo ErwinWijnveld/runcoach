@@ -177,6 +177,16 @@ Each release: bump `version: 1.0.0+N` in `app/pubspec.yaml` (the `+N` build numb
 - Before implementing anything non-trivial, write a spec first, then a plan
 - Commit often, descriptive messages, never commit without running tests first
 
+### Never auto-push, build, or upload
+
+Stop at the local commit. Wait for an explicit per-turn instruction before any of:
+
+- `git push` to any remote (especially `main`)
+- `bash scripts/build-ios.sh` (creates the IPA)
+- `bash scripts/upload-ios.sh` (sends to TestFlight — burns a build number)
+
+A previous "push to main" or "build and push iOS" instruction authorizes THAT one round-trip, not all future ones. After a follow-up edit, wait again — even when the previous turn ended with a successful upload. Each TestFlight upload propagates to App Store Connect and can't be cleanly undone.
+
 ## Testing
 
 - **Backend**: `cd api && php artisan test --compact` — ~295 tests, all using `LazilyRefreshDatabase`

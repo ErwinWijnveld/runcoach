@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/services.dart';
 import 'package:health/health.dart';
 
@@ -23,30 +21,32 @@ class HealthKitService {
 
   static const _workoutType = HealthDataType.WORKOUT;
   static const _hrType = HealthDataType.HEART_RATE;
+  static const _readTypes = <HealthDataType>[_workoutType, _hrType];
 
-  /// Request HealthKit read access. WORKOUT is required (no workouts =
-  /// nothing to sync); HEART_RATE is requested separately as a best-effort
-  /// extra so that a user who denies HR alone doesn't get blocked. Apple's
-  /// system permission sheet only appears once per type per app install,
-  /// so the second request is a no-op the next time around — but it keeps
-  /// the failure modes clean.
+  /// Request HealthKit read access for workouts AND heart rate in a single
+  /// system prompt (iOS shows one sheet with both rows). Returns the boolean
+  /// the `health` package gives us, but the caller should NOT treat `false`
+  /// as "denied":
+  ///
+  /// - On iOS, `requestAuthorization` returns `false` whenever ANY requested
+  ///   type wasn't granted — so a user who allows workouts but denies HR
+  ///   shows up as `false`, even though we can perfectly well sync workouts.
+  /// - Apple's `hasPermissions(READ)` is also unreliable for read-only
+  ///   types (privacy: Apple won't tell apps which types they're allowed
+  ///   to read).
+  ///
+  /// The connect-health screen treats the return value purely as a hint and
+  /// always falls through to `fetchWorkouts()` — if workouts come back
+  /// empty, that's surfaced as the empty-history state which lets the user
+  /// continue regardless. HR is best-effort per workout
+  /// (`_fetchHeartRateForWorkout` returns null when denied or absent).
   Future<bool> requestPermissions() async {
     await _health.configure();
 
-    final workoutGranted = await _health.requestAuthorization(
-      const [_workoutType],
-      permissions: const [HealthDataAccess.READ],
+    return await _health.requestAuthorization(
+      _readTypes,
+      permissions: const [HealthDataAccess.READ, HealthDataAccess.READ],
     );
-
-    // Best-effort HR grant. Failing this is fine — `_fetchHeartRateForWorkout`
-    // returns null for runs without HR samples. Don't await its result on
-    // the gating path.
-    unawaited(_health.requestAuthorization(
-      const [_hrType],
-      permissions: const [HealthDataAccess.READ],
-    ));
-
-    return workoutGranted;
   }
 
   /// Pull workouts in the given window and shape them for the backend.
