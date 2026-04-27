@@ -57,14 +57,19 @@ class PushService {
     return _awaitTokenAndRegister(appVersion: appVersion);
   }
 
-  /// Re-registers on cold-start when permission was already granted in a
-  /// prior session. Refreshes `last_seen_at` server-side.
+  /// Cold-start re-register. Calls `requestAuthorization` under the hood —
+  /// iOS makes that idempotent: it only shows the system prompt when the
+  /// auth status is `notDetermined`, otherwise it returns the cached
+  /// answer silently. So this transparently handles three cases:
+  ///   - Already granted in a prior session → registers, refreshes
+  ///     `last_seen_at` server-side. No prompt.
+  ///   - Already denied → returns null silently. No prompt.
+  ///   - Never asked (e.g. user onboarded BEFORE push shipped, or fresh
+  ///     install where onboarding's explicit prompt hasn't fired yet) →
+  ///     shows the prompt.
   Future<String?> registerIfPermitted({String? appVersion}) async {
     if (!_supported) return null;
-    await _channel.invokeMethod<void>('registerForRemoteNotifications');
-    // If the user previously denied, the OS won't deliver a token; we wait
-    // briefly then give up so cold-start doesn't hang.
-    return _awaitTokenAndRegister(appVersion: appVersion, timeout: const Duration(seconds: 5));
+    return requestPermissionAndRegister(appVersion: appVersion);
   }
 
   /// Drop the device's row on the server, called from logout.
