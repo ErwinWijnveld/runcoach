@@ -27,7 +27,7 @@ part 'workout_sync_provider.g.dart';
 sealed class WorkoutSyncState with _$WorkoutSyncState {
   const factory WorkoutSyncState({
     @Default(<int, AnalyzingRun>{}) Map<int, AnalyzingRun> analyzing,
-    @Default(0) int notifiedNewRunsCount,
+    @Default(false) bool isSyncing,
     LastSyncResult? lastSyncResult,
     DateTime? lastSyncedAt,
   }) = _WorkoutSyncState;
@@ -94,8 +94,10 @@ class WorkoutSync extends _$WorkoutSync {
       return;
     }
 
-    // Pre-emptively bump lastSyncedAt so a second concurrent caller bails.
-    state = state.copyWith(lastSyncedAt: now);
+    // Pre-emptively bump lastSyncedAt so a second concurrent caller bails,
+    // and flip the sync flag so the toast/banner stays visible until the
+    // POST returns. The toast widget is the primary consumer of isSyncing.
+    state = state.copyWith(lastSyncedAt: now, isSyncing: true);
 
     try {
       final hk = ref.read(healthKitServiceProvider);
@@ -107,6 +109,7 @@ class WorkoutSync extends _$WorkoutSync {
       final workouts = await hk.fetchWorkouts(window: syncWindow);
       if (workouts.isEmpty) {
         state = state.copyWith(
+          isSyncing: false,
           lastSyncResult: LastSyncResult(
             created: 0,
             updated: 0,
@@ -141,10 +144,29 @@ class WorkoutSync extends _$WorkoutSync {
           final id = (map['id'] as num?)?.toInt();
           final willAnalyze = map['will_analyze'] == true;
           if (id == null || !willAnalyze) continue;
+
+          // Backend now matches synchronously, so the response already
+          // tells us whether each run landed on a training day. Seed the
+          // analyzing entry with that status — the chip skips the
+          // "matching with your plan…" phase and goes straight into
+          // "AI is analyzing…" or the unmatched terminal state.
+          final status = switch (map['match_status']) {
+            'matched' => AnalyzingRunStatus.matched,
+            'unmatched' => AnalyzingRunStatus.unmatched,
+            _ => AnalyzingRunStatus.pending,
+          };
+
           newRuns.add(AnalyzingRun(
             wearableActivityId: id,
-            status: AnalyzingRunStatus.pending,
+            status: status,
             startedAt: now,
+            trainingDayId: (map['training_day_id'] as num?)?.toInt(),
+            trainingResultId: (map['training_result_id'] as num?)?.toInt(),
+            complianceScore: switch (map['compliance_score']) {
+              num n => n.toDouble(),
+              String s => double.tryParse(s),
+              _ => null,
+            },
           ));
         }
       }
@@ -158,7 +180,7 @@ class WorkoutSync extends _$WorkoutSync {
 
       state = state.copyWith(
         analyzing: merged,
-        notifiedNewRunsCount: state.notifiedNewRunsCount + newRuns.length,
+        isSyncing: false,
         lastSyncResult: LastSyncResult(
           created: created,
           updated: updated,
@@ -167,16 +189,37 @@ class WorkoutSync extends _$WorkoutSync {
         ),
       );
 
-      // Kick the polling fallback. The push handler also clears
-      // entries — whichever wins first.
-      if (newRuns.isNotEmpty) {
+      // Schedule auto-dismiss for any unmatched runs we just seeded — the
+      // chip should briefly show "Run logged · No matching day" then fade.
+      for (final r in newRuns) {
+        if (r.status == AnalyzingRunStatus.unmatched) {
+          _scheduleEntryRemoval(r.wearableActivityId);
+        }
+      }
+
+      // Kick the polling fallback only when there's still work the backend
+      // has to finish (matched runs waiting on AI feedback). Unmatched +
+      // pending runs don't have a downstream push to wait for.
+      final waitingForFeedback =
+          newRuns.any((r) => r.status == AnalyzingRunStatus.matched);
+      if (waitingForFeedback) {
         _ensurePolling();
       }
     } catch (e, st) {
       // Non-fatal: leave lastSyncedAt set so we still respect the
       // debounce, but don't write a misleading lastSyncResult.
+      state = state.copyWith(isSyncing: false);
       debugPrint('[WorkoutSync] sync failed: $e\n$st');
     }
+  }
+
+  void _scheduleEntryRemoval(int wearableActivityId,
+      {Duration after = const Duration(seconds: 4)}) {
+    Future.delayed(after, () {
+      final after = Map<int, AnalyzingRun>.from(state.analyzing)
+        ..remove(wearableActivityId);
+      state = state.copyWith(analyzing: after);
+    });
   }
 
   /// Mark a run as fully analyzed and refresh dependent providers.
@@ -216,12 +259,6 @@ class WorkoutSync extends _$WorkoutSync {
       state = state.copyWith(analyzing: after);
     });
     _refreshDependents();
-  }
-
-  /// Drop the toast counter once the UI has shown it.
-  void clearNewRunsToast() {
-    if (state.notifiedNewRunsCount == 0) return;
-    state = state.copyWith(notifiedNewRunsCount: 0);
   }
 
   void _ensurePolling() {

@@ -7,7 +7,6 @@ import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/push/services/push_service.dart';
 import 'package:app/features/wearable/providers/workout_sync_provider.dart';
-import 'package:app/features/wearable/widgets/new_runs_toast.dart';
 import 'package:app/features/wearable/widgets/workout_sync_lifecycle.dart';
 import 'package:app/router/app_router.dart';
 
@@ -67,13 +66,7 @@ class _RunCoachAppState extends ConsumerState<RunCoachApp> {
         DefaultWidgetsLocalizations.delegate,
       ],
       builder: (context, child) {
-        // Wrap the routed tree once so the lifecycle observer + new-runs
-        // toast persist across navigation, but live BELOW the router so
-        // they have access to the same ProviderScope. WorkoutSyncLifecycle
-        // is the trigger; NewRunsToastHost is the visual layer.
-        return WorkoutSyncLifecycle(
-          child: NewRunsToastHost(child: child ?? const SizedBox.shrink()),
-        );
+        return WorkoutSyncLifecycle(child: child ?? const SizedBox.shrink());
       },
     );
   }

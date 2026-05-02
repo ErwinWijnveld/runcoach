@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$WorkoutSyncState {
 
- Map<int, AnalyzingRun> get analyzing; int get notifiedNewRunsCount; LastSyncResult? get lastSyncResult; DateTime? get lastSyncedAt;
+ Map<int, AnalyzingRun> get analyzing; bool get isSyncing; LastSyncResult? get lastSyncResult; DateTime? get lastSyncedAt;
 /// Create a copy of WorkoutSyncState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $WorkoutSyncStateCopyWith<WorkoutSyncState> get copyWith => _$WorkoutSyncStateCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkoutSyncState&&const DeepCollectionEquality().equals(other.analyzing, analyzing)&&(identical(other.notifiedNewRunsCount, notifiedNewRunsCount) || other.notifiedNewRunsCount == notifiedNewRunsCount)&&(identical(other.lastSyncResult, lastSyncResult) || other.lastSyncResult == lastSyncResult)&&(identical(other.lastSyncedAt, lastSyncedAt) || other.lastSyncedAt == lastSyncedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorkoutSyncState&&const DeepCollectionEquality().equals(other.analyzing, analyzing)&&(identical(other.isSyncing, isSyncing) || other.isSyncing == isSyncing)&&(identical(other.lastSyncResult, lastSyncResult) || other.lastSyncResult == lastSyncResult)&&(identical(other.lastSyncedAt, lastSyncedAt) || other.lastSyncedAt == lastSyncedAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(analyzing),notifiedNewRunsCount,lastSyncResult,lastSyncedAt);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(analyzing),isSyncing,lastSyncResult,lastSyncedAt);
 
 @override
 String toString() {
-  return 'WorkoutSyncState(analyzing: $analyzing, notifiedNewRunsCount: $notifiedNewRunsCount, lastSyncResult: $lastSyncResult, lastSyncedAt: $lastSyncedAt)';
+  return 'WorkoutSyncState(analyzing: $analyzing, isSyncing: $isSyncing, lastSyncResult: $lastSyncResult, lastSyncedAt: $lastSyncedAt)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $WorkoutSyncStateCopyWith<$Res>  {
   factory $WorkoutSyncStateCopyWith(WorkoutSyncState value, $Res Function(WorkoutSyncState) _then) = _$WorkoutSyncStateCopyWithImpl;
 @useResult
 $Res call({
- Map<int, AnalyzingRun> analyzing, int notifiedNewRunsCount, LastSyncResult? lastSyncResult, DateTime? lastSyncedAt
+ Map<int, AnalyzingRun> analyzing, bool isSyncing, LastSyncResult? lastSyncResult, DateTime? lastSyncedAt
 });
 
 
@@ -62,11 +62,11 @@ class _$WorkoutSyncStateCopyWithImpl<$Res>
 
 /// Create a copy of WorkoutSyncState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? analyzing = null,Object? notifiedNewRunsCount = null,Object? lastSyncResult = freezed,Object? lastSyncedAt = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? analyzing = null,Object? isSyncing = null,Object? lastSyncResult = freezed,Object? lastSyncedAt = freezed,}) {
   return _then(_self.copyWith(
 analyzing: null == analyzing ? _self.analyzing : analyzing // ignore: cast_nullable_to_non_nullable
-as Map<int, AnalyzingRun>,notifiedNewRunsCount: null == notifiedNewRunsCount ? _self.notifiedNewRunsCount : notifiedNewRunsCount // ignore: cast_nullable_to_non_nullable
-as int,lastSyncResult: freezed == lastSyncResult ? _self.lastSyncResult : lastSyncResult // ignore: cast_nullable_to_non_nullable
+as Map<int, AnalyzingRun>,isSyncing: null == isSyncing ? _self.isSyncing : isSyncing // ignore: cast_nullable_to_non_nullable
+as bool,lastSyncResult: freezed == lastSyncResult ? _self.lastSyncResult : lastSyncResult // ignore: cast_nullable_to_non_nullable
 as LastSyncResult?,lastSyncedAt: freezed == lastSyncedAt ? _self.lastSyncedAt : lastSyncedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,
   ));
@@ -162,10 +162,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Map<int, AnalyzingRun> analyzing,  int notifiedNewRunsCount,  LastSyncResult? lastSyncResult,  DateTime? lastSyncedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Map<int, AnalyzingRun> analyzing,  bool isSyncing,  LastSyncResult? lastSyncResult,  DateTime? lastSyncedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _WorkoutSyncState() when $default != null:
-return $default(_that.analyzing,_that.notifiedNewRunsCount,_that.lastSyncResult,_that.lastSyncedAt);case _:
+return $default(_that.analyzing,_that.isSyncing,_that.lastSyncResult,_that.lastSyncedAt);case _:
   return orElse();
 
 }
@@ -183,10 +183,10 @@ return $default(_that.analyzing,_that.notifiedNewRunsCount,_that.lastSyncResult,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Map<int, AnalyzingRun> analyzing,  int notifiedNewRunsCount,  LastSyncResult? lastSyncResult,  DateTime? lastSyncedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Map<int, AnalyzingRun> analyzing,  bool isSyncing,  LastSyncResult? lastSyncResult,  DateTime? lastSyncedAt)  $default,) {final _that = this;
 switch (_that) {
 case _WorkoutSyncState():
-return $default(_that.analyzing,_that.notifiedNewRunsCount,_that.lastSyncResult,_that.lastSyncedAt);}
+return $default(_that.analyzing,_that.isSyncing,_that.lastSyncResult,_that.lastSyncedAt);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -200,10 +200,10 @@ return $default(_that.analyzing,_that.notifiedNewRunsCount,_that.lastSyncResult,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Map<int, AnalyzingRun> analyzing,  int notifiedNewRunsCount,  LastSyncResult? lastSyncResult,  DateTime? lastSyncedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Map<int, AnalyzingRun> analyzing,  bool isSyncing,  LastSyncResult? lastSyncResult,  DateTime? lastSyncedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _WorkoutSyncState() when $default != null:
-return $default(_that.analyzing,_that.notifiedNewRunsCount,_that.lastSyncResult,_that.lastSyncedAt);case _:
+return $default(_that.analyzing,_that.isSyncing,_that.lastSyncResult,_that.lastSyncedAt);case _:
   return null;
 
 }
@@ -215,7 +215,7 @@ return $default(_that.analyzing,_that.notifiedNewRunsCount,_that.lastSyncResult,
 
 
 class _WorkoutSyncState implements WorkoutSyncState {
-  const _WorkoutSyncState({final  Map<int, AnalyzingRun> analyzing = const <int, AnalyzingRun>{}, this.notifiedNewRunsCount = 0, this.lastSyncResult, this.lastSyncedAt}): _analyzing = analyzing;
+  const _WorkoutSyncState({final  Map<int, AnalyzingRun> analyzing = const <int, AnalyzingRun>{}, this.isSyncing = false, this.lastSyncResult, this.lastSyncedAt}): _analyzing = analyzing;
   
 
  final  Map<int, AnalyzingRun> _analyzing;
@@ -225,7 +225,7 @@ class _WorkoutSyncState implements WorkoutSyncState {
   return EqualUnmodifiableMapView(_analyzing);
 }
 
-@override@JsonKey() final  int notifiedNewRunsCount;
+@override@JsonKey() final  bool isSyncing;
 @override final  LastSyncResult? lastSyncResult;
 @override final  DateTime? lastSyncedAt;
 
@@ -239,16 +239,16 @@ _$WorkoutSyncStateCopyWith<_WorkoutSyncState> get copyWith => __$WorkoutSyncStat
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkoutSyncState&&const DeepCollectionEquality().equals(other._analyzing, _analyzing)&&(identical(other.notifiedNewRunsCount, notifiedNewRunsCount) || other.notifiedNewRunsCount == notifiedNewRunsCount)&&(identical(other.lastSyncResult, lastSyncResult) || other.lastSyncResult == lastSyncResult)&&(identical(other.lastSyncedAt, lastSyncedAt) || other.lastSyncedAt == lastSyncedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorkoutSyncState&&const DeepCollectionEquality().equals(other._analyzing, _analyzing)&&(identical(other.isSyncing, isSyncing) || other.isSyncing == isSyncing)&&(identical(other.lastSyncResult, lastSyncResult) || other.lastSyncResult == lastSyncResult)&&(identical(other.lastSyncedAt, lastSyncedAt) || other.lastSyncedAt == lastSyncedAt));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_analyzing),notifiedNewRunsCount,lastSyncResult,lastSyncedAt);
+int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(_analyzing),isSyncing,lastSyncResult,lastSyncedAt);
 
 @override
 String toString() {
-  return 'WorkoutSyncState(analyzing: $analyzing, notifiedNewRunsCount: $notifiedNewRunsCount, lastSyncResult: $lastSyncResult, lastSyncedAt: $lastSyncedAt)';
+  return 'WorkoutSyncState(analyzing: $analyzing, isSyncing: $isSyncing, lastSyncResult: $lastSyncResult, lastSyncedAt: $lastSyncedAt)';
 }
 
 
@@ -259,7 +259,7 @@ abstract mixin class _$WorkoutSyncStateCopyWith<$Res> implements $WorkoutSyncSta
   factory _$WorkoutSyncStateCopyWith(_WorkoutSyncState value, $Res Function(_WorkoutSyncState) _then) = __$WorkoutSyncStateCopyWithImpl;
 @override @useResult
 $Res call({
- Map<int, AnalyzingRun> analyzing, int notifiedNewRunsCount, LastSyncResult? lastSyncResult, DateTime? lastSyncedAt
+ Map<int, AnalyzingRun> analyzing, bool isSyncing, LastSyncResult? lastSyncResult, DateTime? lastSyncedAt
 });
 
 
@@ -276,11 +276,11 @@ class __$WorkoutSyncStateCopyWithImpl<$Res>
 
 /// Create a copy of WorkoutSyncState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? analyzing = null,Object? notifiedNewRunsCount = null,Object? lastSyncResult = freezed,Object? lastSyncedAt = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? analyzing = null,Object? isSyncing = null,Object? lastSyncResult = freezed,Object? lastSyncedAt = freezed,}) {
   return _then(_WorkoutSyncState(
 analyzing: null == analyzing ? _self._analyzing : analyzing // ignore: cast_nullable_to_non_nullable
-as Map<int, AnalyzingRun>,notifiedNewRunsCount: null == notifiedNewRunsCount ? _self.notifiedNewRunsCount : notifiedNewRunsCount // ignore: cast_nullable_to_non_nullable
-as int,lastSyncResult: freezed == lastSyncResult ? _self.lastSyncResult : lastSyncResult // ignore: cast_nullable_to_non_nullable
+as Map<int, AnalyzingRun>,isSyncing: null == isSyncing ? _self.isSyncing : isSyncing // ignore: cast_nullable_to_non_nullable
+as bool,lastSyncResult: freezed == lastSyncResult ? _self.lastSyncResult : lastSyncResult // ignore: cast_nullable_to_non_nullable
 as LastSyncResult?,lastSyncedAt: freezed == lastSyncedAt ? _self.lastSyncedAt : lastSyncedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,
   ));

@@ -4,7 +4,7 @@ namespace Tests\Feature\Http;
 
 use App\Enums\GoalStatus;
 use App\Jobs\GenerateActivityFeedback;
-use App\Jobs\ProcessWearableActivity;
+use App\Jobs\GenerateWeeklyInsight;
 use App\Models\Goal;
 use App\Models\TrainingDay;
 use App\Models\TrainingResult;
@@ -92,15 +92,15 @@ class WearableActivityIngestionTest extends TestCase
 
         // Pace was computed: 1820 / 5.05 ≈ 360
         $this->assertSame(360, WearableActivity::first()->average_pace_seconds_per_km);
-
-        Queue::assertPushed(ProcessWearableActivity::class);
     }
 
-    public function test_skips_processing_jobs_when_user_has_no_active_plan(): void
+    public function test_skips_match_attempt_when_user_has_no_active_plan(): void
     {
-        // 75 historical workouts on first sign-in used to spawn 75 no-op
-        // jobs (no plan exists yet to match against). Skip dispatch entirely
-        // until the user has an active goal.
+        // First sign-in onboarding pushes 75-200 historical workouts before
+        // any plan exists. There's nothing to match against, so we don't
+        // attempt scoring (no TrainingResult rows) and don't queue any AI
+        // feedback work. The Flutter UI's `will_analyze=false` keeps it from
+        // showing a stuck spinner.
         Queue::fake();
         [, $headers] = $this->authUser();
 
@@ -112,7 +112,9 @@ class WearableActivityIngestionTest extends TestCase
             ],
         ], $headers)->assertStatus(201)->assertJson(['created' => 3]);
 
-        Queue::assertNotPushed(ProcessWearableActivity::class);
+        $this->assertSame(0, TrainingResult::count());
+        Queue::assertNotPushed(GenerateActivityFeedback::class);
+        Queue::assertNotPushed(GenerateWeeklyInsight::class);
     }
 
     public function test_is_idempotent_on_source_activity_id(): void
@@ -145,25 +147,11 @@ class WearableActivityIngestionTest extends TestCase
         )->assertStatus(422);
     }
 
-    public function test_dispatches_processing_job_per_new_activity(): void
+    public function test_matches_synchronously_and_dispatches_async_feedback(): void
     {
-        Queue::fake();
-        [$user, $headers] = $this->authUser();
-        $this->giveUserAnActivePlan($user);
-
-        $this->postJson('/api/v1/wearable/activities', [
-            'activities' => [
-                $this->payload(['source_activity_id' => 'a']),
-                $this->payload(['source_activity_id' => 'b']),
-                $this->payload(['source_activity_id' => 'c']),
-            ],
-        ], $headers)->assertStatus(201);
-
-        Queue::assertPushed(ProcessWearableActivity::class, 3);
-    }
-
-    public function test_process_job_matches_to_training_day_and_dispatches_feedback(): void
-    {
+        // Matching + scoring runs inline so the response already tells the
+        // app a training day was found. The slow piece (AI feedback +
+        // weekly insight) stays async — the app waits for the push.
         Queue::fake();
         [$user, $headers] = $this->authUser();
 
@@ -172,7 +160,7 @@ class WearableActivityIngestionTest extends TestCase
             'status' => GoalStatus::Active,
         ]);
         $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
-        TrainingDay::factory()->create([
+        $day = TrainingDay::factory()->create([
             'training_week_id' => $week->id,
             'date' => now()->toDateString(),
             'target_km' => 5.0,
@@ -180,23 +168,65 @@ class WearableActivityIngestionTest extends TestCase
         ]);
 
         $payload = $this->payload(['start_date' => now()->toIso8601String()]);
-        $this->postJson('/api/v1/wearable/activities', ['activities' => [$payload]], $headers)
-            ->assertStatus(201);
+        $response = $this->postJson(
+            '/api/v1/wearable/activities',
+            ['activities' => [$payload]],
+            $headers,
+        )->assertStatus(201);
 
-        // Run the queued ProcessWearableActivity job synchronously.
         $activity = WearableActivity::first();
-        Queue::assertPushed(ProcessWearableActivity::class, function ($job) use ($activity) {
-            return $job->wearableActivityId === $activity->id;
-        });
 
-        // Manually invoke the handler to assert the downstream pipeline.
-        Queue::fake();
-        app()->call([new ProcessWearableActivity($activity->id), 'handle']);
-
+        // TrainingResult was created inline (no queue worker required).
         $this->assertDatabaseHas('training_results', [
             'wearable_activity_id' => $activity->id,
+            'training_day_id' => $day->id,
         ]);
+
+        // Response shape exposes the match info to the client.
+        $response->assertJson([
+            'created_runs' => [[
+                'id' => $activity->id,
+                'match_status' => 'matched',
+                'training_day_id' => $day->id,
+            ]],
+        ]);
+        $this->assertNotNull($response->json('created_runs.0.training_result_id'));
+        $this->assertNotNull($response->json('created_runs.0.compliance_score'));
+
+        // AI work is still async.
         Queue::assertPushed(GenerateActivityFeedback::class);
+        Queue::assertPushed(GenerateWeeklyInsight::class);
+    }
+
+    public function test_response_marks_unmatched_when_no_training_day_fits(): void
+    {
+        // Active plan exists but no training day on / near the activity's
+        // date. Match attempt is made and returns null; surface as unmatched
+        // so the app's chip can show "Run logged · No matching day".
+        Queue::fake();
+        [$user, $headers] = $this->authUser();
+
+        Goal::factory()->create([
+            'user_id' => $user->id,
+            'status' => GoalStatus::Active,
+        ]);
+
+        $payload = $this->payload(['start_date' => now()->toIso8601String()]);
+        $response = $this->postJson(
+            '/api/v1/wearable/activities',
+            ['activities' => [$payload]],
+            $headers,
+        )->assertStatus(201);
+
+        $response->assertJson([
+            'created_runs' => [[
+                'match_status' => 'unmatched',
+                'training_day_id' => null,
+                'training_result_id' => null,
+                'compliance_score' => null,
+            ]],
+        ]);
+        Queue::assertNotPushed(GenerateActivityFeedback::class);
     }
 
     public function test_index_returns_paginated_user_activities(): void
@@ -211,22 +241,33 @@ class WearableActivityIngestionTest extends TestCase
         $this->assertCount(3, $response->json('data'));
     }
 
-    public function test_re_pushing_same_activity_does_not_dispatch_a_second_job(): void
+    public function test_re_pushing_same_activity_does_not_re_match_or_re_dispatch(): void
     {
         Queue::fake();
         [$user, $headers] = $this->authUser();
-        $this->giveUserAnActivePlan($user);
+        $goal = Goal::factory()->create([
+            'user_id' => $user->id,
+            'status' => GoalStatus::Active,
+        ]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
+        TrainingDay::factory()->create([
+            'training_week_id' => $week->id,
+            'date' => now()->toDateString(),
+            'target_km' => 5.0,
+        ]);
 
-        $payload = $this->payload();
+        $payload = $this->payload(['start_date' => now()->toIso8601String()]);
 
         $this->postJson('/api/v1/wearable/activities', ['activities' => [$payload]], $headers);
-        Queue::assertPushed(ProcessWearableActivity::class, 1);
+        Queue::assertPushed(GenerateActivityFeedback::class, 1);
+        $this->assertSame(1, TrainingResult::count());
 
-        // Re-push: row updates, but no new job — match+score is idempotent
-        // and the work was already done on the first push.
+        // Re-push: row updates, no second TrainingResult, no second job —
+        // wasRecentlyCreated is false so we never enter the match branch.
         Queue::fake();
         $this->postJson('/api/v1/wearable/activities', ['activities' => [$payload]], $headers);
-        Queue::assertNotPushed(ProcessWearableActivity::class);
+        Queue::assertNotPushed(GenerateActivityFeedback::class);
+        $this->assertSame(1, TrainingResult::count());
     }
 
     public function test_two_users_can_have_the_same_source_activity_id(): void
@@ -299,8 +340,9 @@ class WearableActivityIngestionTest extends TestCase
     public function test_response_surfaces_created_runs_with_metadata(): void
     {
         // The Flutter app uses created_runs to drive the per-run "analyzing"
-        // chip + analysis-status polling. Each entry must include the row id
-        // and a `will_analyze` flag so the app knows whether to expect a push.
+        // chip + analysis-status polling. Each entry must include the row id,
+        // a `will_analyze` flag, and the inline match outcome so the UI can
+        // skip the pending phase when matching has already happened.
         Queue::fake();
         [$user, $headers] = $this->authUser();
         $this->giveUserAnActivePlan($user);
@@ -319,6 +361,9 @@ class WearableActivityIngestionTest extends TestCase
             $this->assertArrayHasKey('id', $entry);
             $this->assertArrayHasKey('distance_meters', $entry);
             $this->assertArrayHasKey('start_date', $entry);
+            $this->assertArrayHasKey('match_status', $entry);
+            $this->assertArrayHasKey('training_day_id', $entry);
+            $this->assertArrayHasKey('compliance_score', $entry);
             $this->assertTrue($entry['will_analyze']);
         }
     }

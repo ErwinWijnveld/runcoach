@@ -5,15 +5,27 @@ import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/wearable/models/analyzing_run.dart';
 import 'package:app/features/wearable/providers/workout_sync_provider.dart';
 
-/// Persistent chip placed at the top of the dashboard while a run is
-/// being analyzed. Three visual states keyed off [AnalyzingRunStatus]:
+/// Persistent chip placed at the top of the dashboard. Single UI surface
+/// for the whole foreground-sync → match → AI-analysis pipeline. Shows
+/// only when the user has work in flight; collapses to nothing otherwise.
 ///
-///   pending / matched   →  pulsing gold dot + "Analyzing your run…"
-///   analyzed            →  solid green check + "Analysis ready"
+/// Visible states (all use the same gold-pulse → green-check transition):
+///
+///   syncing             →  pulsing dot + "Syncing your runs from Apple Health…"
+///                          (visible while isSyncing == true; takes over from
+///                          any prior chip immediately)
+///   matched / pending   →  pulsing dot + "AI is analyzing your run"
+///                          (after sync returns with a matched run, until
+///                          push or polling flips status to analyzed)
+///   analyzed            →  green check + "Analysis ready · 8.4/10"
 ///                          (auto-dismisses after a few seconds)
-///   unmatched           →  muted dot + "Run logged"
+///   unmatched           →  muted dot + "Run logged · no matching training day"
+///                          (auto-dismisses)
 ///
-/// Hidden entirely when the analyzing map is empty.
+/// Replaces the earlier separate toast + chip: a single persistent indicator
+/// is what the user actually wanted ("the spinner keeps running until the
+/// run is matched, then AI analysis starts"), and avoids overlay surfaces
+/// fighting pumpAndSettle in unit tests.
 class AnalyzingRunChip extends ConsumerWidget {
   const AnalyzingRunChip({super.key});
 
@@ -21,36 +33,55 @@ class AnalyzingRunChip extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(workoutSyncProvider);
     final analyzing = state.analyzing;
+
+    // 1) During the network sync, show the syncing copy regardless of
+    //    whether prior analyzing entries exist — they belong to a previous
+    //    sync cycle and the new one supersedes them.
+    if (state.isSyncing) {
+      return const Padding(
+        padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+        child: _ChipShell(
+          indicator: _PulsingDot(color: AppColors.gold),
+          title: 'Syncing your runs',
+          subtitle: 'Pulling new runs from Apple Health…',
+        ),
+      );
+    }
+
     if (analyzing.isEmpty) return const SizedBox.shrink();
 
     // Show the most recently started run if there are several. The map
-    // preserves insertion order in Dart.
+    // preserves insertion order in Dart, so .last is the freshest.
     final entry = analyzing.values.last;
+    final more = analyzing.length - 1;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      child: _ChipBody(run: entry, total: analyzing.length),
+      child: _ChipForRun(run: entry, additionalCount: more),
     );
   }
 }
 
-class _ChipBody extends StatelessWidget {
+class _ChipForRun extends StatelessWidget {
   final AnalyzingRun run;
-  final int total;
-  const _ChipBody({required this.run, required this.total});
+  final int additionalCount;
+  const _ChipForRun({required this.run, required this.additionalCount});
 
   @override
   Widget build(BuildContext context) {
-    final (label, sublabel, indicator) = switch (run.status) {
+    final (title, subtitle, indicator) = switch (run.status) {
+      // Pending is rare in the new flow — matching is synchronous in the
+      // POST. Kept as a defensive fallback for the polling endpoint which
+      // still distinguishes "no result yet".
       AnalyzingRunStatus.pending => (
-          'Analyzing your run',
-          'Matching with your training plan…',
-          const _PulsingDot(color: AppColors.gold),
+          'Matching to your training plan',
+          'Just a moment…',
+          const _PulsingDot(color: AppColors.gold) as Widget,
         ),
       AnalyzingRunStatus.matched => (
-          'Coach is reviewing it',
-          'Generating feedback…',
-          const _PulsingDot(color: AppColors.gold),
+          'AI is analyzing your run',
+          'Generating personalized feedback…',
+          const _PulsingDot(color: AppColors.gold) as Widget,
         ),
       AnalyzingRunStatus.analyzed => (
           'Analysis ready',
@@ -61,7 +92,7 @@ class _ChipBody extends StatelessWidget {
             CupertinoIcons.checkmark_circle_fill,
             size: 16,
             color: AppColors.success,
-          ),
+          ) as Widget,
         ),
       AnalyzingRunStatus.unmatched => (
           'Run logged',
@@ -70,10 +101,39 @@ class _ChipBody extends StatelessWidget {
             CupertinoIcons.circle_fill,
             size: 10,
             color: AppColors.textSecondary,
-          ),
+          ) as Widget,
         ),
     };
 
+    final titleSuffix =
+        additionalCount > 0 ? ' (${additionalCount + 1} runs)' : '';
+
+    return _ChipShell(
+      indicator: indicator,
+      title: '$title$titleSuffix',
+      subtitle: subtitle,
+    );
+  }
+
+  String _score(double s) {
+    final r = (s * 10).round() / 10;
+    if (r == r.toInt()) return r.toInt().toString();
+    return r.toString();
+  }
+}
+
+class _ChipShell extends StatelessWidget {
+  final Widget indicator;
+  final String title;
+  final String subtitle;
+  const _ChipShell({
+    required this.indicator,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -98,7 +158,7 @@ class _ChipBody extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  total > 1 ? '$label (${total - 1} more queued)' : label,
+                  title,
                   style: GoogleFonts.inter(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -107,7 +167,7 @@ class _ChipBody extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  sublabel,
+                  subtitle,
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: AppColors.inkMuted,
@@ -119,12 +179,6 @@ class _ChipBody extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _score(double s) {
-    final r = (s * 10).round() / 10;
-    if (r == r.toInt()) return r.toInt().toString();
-    return r.toString();
   }
 }
 

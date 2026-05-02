@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Enums\GoalStatus;
-use App\Jobs\ProcessWearableActivity;
+use App\Jobs\GenerateActivityFeedback;
+use App\Jobs\GenerateWeeklyInsight;
 use App\Models\WearableActivity;
+use App\Services\ComplianceScoringService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -14,9 +16,12 @@ class WearableActivityController extends Controller
     /**
      * Ingest a batch of activities the Flutter app read from a device wearable
      * source (currently Apple HealthKit). Idempotent: rows are upserted on
-     * `(source, source_activity_id)`. Each newly created/updated activity is
-     * handed to `ProcessWearableActivity` to match against the active
-     * training schedule and score compliance.
+     * `(source, source_activity_id)`. Matching against the active training
+     * schedule + compliance scoring runs SYNCHRONOUSLY here so the response
+     * already tells the app whether each run matched a day. The slow piece —
+     * generating AI feedback (`GenerateActivityFeedback`) and recomputing
+     * the weekly insight — stays async; the Flutter UI shows a "coach is
+     * analyzing" indicator until the `WorkoutAnalyzed` push lands.
      *
      * Payload shape:
      *  {
@@ -42,7 +47,7 @@ class WearableActivityController extends Controller
      *    ]
      *  }
      */
-    public function store(Request $request): JsonResponse
+    public function store(Request $request, ComplianceScoringService $compliance): JsonResponse
     {
         $request->validate([
             'activities' => 'required|array|min:1|max:200',
@@ -108,21 +113,41 @@ class WearableActivityController extends Controller
 
             if ($activity->wasRecentlyCreated) {
                 $created++;
-                // Only dispatch on create AND when there's a schedule the
-                // activity could possibly match. Re-pushes already match
-                // their result; new activities pushed before the user has
-                // an active plan can't match anything (and once a plan is
-                // accepted later, only newly-arriving activities matter —
-                // historical activities are already past the plan's date
-                // window).
-                if ($hasActiveGoal) {
-                    ProcessWearableActivity::dispatch($activity->id);
+
+                $matchStatus = 'pending';
+                $trainingDayId = null;
+                $trainingResultId = null;
+                $complianceScore = null;
+                $isRun = in_array($activity->type, WearableActivity::RUN_TYPES, true);
+
+                // Match + score synchronously so the response already tells
+                // the app which runs landed on a training day. The expensive
+                // bit (AI feedback + weekly insight) stays async — the UI
+                // surfaces an "AI is analyzing" indicator until the push
+                // notification lands.
+                if ($isRun && $hasActiveGoal) {
+                    $result = $compliance->matchAndScore($user, $activity);
+                    if ($result) {
+                        $matchStatus = 'matched';
+                        $trainingDayId = $result->training_day_id;
+                        $trainingResultId = $result->id;
+                        $complianceScore = (float) $result->compliance_score;
+                        GenerateActivityFeedback::dispatch($result->id);
+                        if ($result->trainingDay) {
+                            GenerateWeeklyInsight::dispatch($result->trainingDay->training_week_id);
+                        }
+                    } else {
+                        $matchStatus = 'unmatched';
+                    }
+                } elseif (! $hasActiveGoal) {
+                    // No active plan → nothing to match against. Keep status
+                    // 'pending' for forward-compat with the polling endpoint,
+                    // but the client's `will_analyze=false` keeps it from
+                    // showing a stuck spinner.
+                    $matchStatus = 'pending';
                 }
 
-                // Surface the new run ids to the client so the app can show
-                // a per-run "analyzing…" indicator and poll/await the push
-                // notification that lands once feedback is ready.
-                if (in_array($activity->type, WearableActivity::RUN_TYPES, true)) {
+                if ($isRun) {
                     $createdRuns[] = [
                         'id' => $activity->id,
                         'name' => $activity->name,
@@ -130,6 +155,10 @@ class WearableActivityController extends Controller
                         'duration_seconds' => $activity->duration_seconds,
                         'start_date' => $activity->start_date?->toIso8601String(),
                         'will_analyze' => $hasActiveGoal,
+                        'match_status' => $matchStatus,
+                        'training_day_id' => $trainingDayId,
+                        'training_result_id' => $trainingResultId,
+                        'compliance_score' => $complianceScore,
                     ];
                 }
             } else {

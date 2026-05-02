@@ -29,8 +29,6 @@ class WorkoutSyncLifecycle extends ConsumerStatefulWidget {
 
 class _WorkoutSyncLifecycleState extends ConsumerState<WorkoutSyncLifecycle>
     with WidgetsBindingObserver {
-  bool _initialFireScheduled = false;
-
   @override
   void initState() {
     super.initState();
@@ -61,14 +59,12 @@ class _WorkoutSyncLifecycleState extends ConsumerState<WorkoutSyncLifecycle>
 
   @override
   Widget build(BuildContext context) {
-    // First-load fire: schedule once, after the first frame, so we don't
-    // race the auth hydration. Uses ref.listen so we re-fire when the
-    // user actually logs in mid-session (not just on cold start).
-    if (!_initialFireScheduled) {
-      _initialFireScheduled = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) => _maybeSync());
-    }
-
+    // Cold-start path: when the auth state hydrates from loading/null to
+    // a logged-in user (and the user is past onboarding), fire a sync.
+    // Same listener also covers fresh sign-ins mid-session. Resume hits
+    // come through didChangeAppLifecycleState above. We deliberately do
+    // NOT fire on every build/first-frame — that would race auth and
+    // deadlock unit tests where method channels aren't connected.
     ref.listen(authProvider, (prev, next) {
       final wasLoggedIn = prev?.value != null;
       final isLoggedIn = next.value != null;
