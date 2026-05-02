@@ -4,43 +4,27 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/schedule/widgets/training_day_status.dart';
 
-/// State-aware action row under the stat tiles.
-/// - missed / today / upcoming: Send to watch + Pick activity (side by side)
-/// - completed: Send to watch (full-width)
+/// Single full-width "Send to watch" CTA. Other actions (pick activity,
+/// reschedule) live in the top-right ellipsis menu so the primary CTA stays
+/// uncontested. The status arg is kept for future per-state copy variations.
 class TrainingDayActionButtons extends StatelessWidget {
   final TrainingDayStatus status;
   final VoidCallback? onSendToWatch;
-  final VoidCallback? onSelectActivity;
 
   const TrainingDayActionButtons({
     super.key,
     required this.status,
     required this.onSendToWatch,
-    required this.onSelectActivity,
   });
 
   @override
   Widget build(BuildContext context) {
-    final sendToWatch = _PrimaryButton(
-      label: 'SEND TO WATCH',
-      onPressed: onSendToWatch,
-    );
-
-    if (!status.showSelectActivity) {
-      return SizedBox(width: double.infinity, child: sendToWatch);
-    }
-
-    return Row(
-      children: [
-        Expanded(child: sendToWatch),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _PrimaryButton(
-            label: 'PICK ACTIVITY',
-            onPressed: onSelectActivity,
-          ),
-        ),
-      ],
+    return SizedBox(
+      width: double.infinity,
+      child: _PrimaryButton(
+        label: 'SEND TO WATCH',
+        onPressed: onSendToWatch,
+      ),
     );
   }
 }

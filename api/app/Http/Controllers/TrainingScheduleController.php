@@ -50,6 +50,68 @@ class TrainingScheduleController extends Controller
         return response()->json(['data' => $day]);
     }
 
+    /**
+     * Move a training day to a different date. Re-assigns the day to the
+     * matching TrainingWeek if the new date crosses a week boundary, so the
+     * weekly view stays coherent. Refuses when the day already has a result —
+     * unlink the activity first if you really want to move a completed day.
+     */
+    public function updateDay(Request $request, int $dayId): JsonResponse
+    {
+        $user = $request->user();
+
+        $day = TrainingDay::whereHas('trainingWeek.goal', function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })->with('trainingWeek.goal')->findOrFail($dayId);
+
+        abort_if(
+            $day->result()->exists(),
+            422,
+            'Cannot reschedule a day that already has a result. Unlink the activity first.'
+        );
+
+        $goal = $day->trainingWeek->goal;
+
+        // The race-day invariant: the day on `goal.target_date` IS the race
+        // (renamed by the optimizer's enforceRaceDay pass). Letting the user
+        // move it would put the race on the wrong calendar slot and the
+        // optimizer can't fix it because updateDay doesn't run optimize.
+        if (
+            $goal->target_date !== null
+            && $day->date !== null
+            && $goal->target_date->toDateString() === Carbon::parse($day->date)->toDateString()
+        ) {
+            abort(422, 'This is your goal day — it has to stay on the goal date. Edit the goal date instead.');
+        }
+
+        $minDate = now()->startOfDay()->toDateString();
+        $rules = ['date' => ['required', 'date', "after_or_equal:{$minDate}"]];
+        if ($goal->target_date !== null) {
+            $rules['date'][] = 'before_or_equal:'.$goal->target_date->toDateString();
+        }
+        $request->validate($rules);
+
+        $newDate = Carbon::parse($request->input('date'))->startOfDay();
+
+        // Re-assign to the week whose [starts_at, starts_at+7) range contains
+        // the new date. Falls back to the existing week if no match (defensive
+        // — shouldn't happen when validation passes).
+        $matchingWeek = $goal->trainingWeeks()
+            ->where('starts_at', '<=', $newDate->toDateString())
+            ->where('starts_at', '>', $newDate->copy()->subDays(7)->toDateString())
+            ->orderByDesc('starts_at')
+            ->first();
+
+        $day->update([
+            'date' => $newDate->toDateString(),
+            'training_week_id' => $matchingWeek?->id ?? $day->training_week_id,
+        ]);
+
+        return response()->json([
+            'data' => $day->fresh(['trainingWeek', 'result.wearableActivity']),
+        ]);
+    }
+
     public function dayResult(Request $request, int $dayId): JsonResponse
     {
         $day = TrainingDay::whereHas('trainingWeek.goal', function ($query) use ($request) {

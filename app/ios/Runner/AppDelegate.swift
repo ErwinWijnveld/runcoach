@@ -49,5 +49,12 @@ import UIKit
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "PushNotifications") {
       PushNotifications.shared.register(controller: registrar.messenger())
     }
+
+    // WorkoutKit bridge — schedules planned runs in the Fitness app so they
+    // sync to the paired Apple Watch. iOS 17+; older OSes return
+    // status=unavailable.
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "WorkoutScheduling") {
+      WorkoutScheduling.register(controller: registrar.messenger())
+    }
   }
 }

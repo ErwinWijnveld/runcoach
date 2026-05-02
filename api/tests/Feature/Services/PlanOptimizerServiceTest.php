@@ -218,13 +218,13 @@ class PlanOptimizerServiceTest extends TestCase
                             'type' => 'interval',
                             'target_km' => 8.0,
                             'intervals' => [
-                                ['kind' => 'warmup', 'label' => 'Warm up', 'distance_m' => 1000],
+                                ['kind' => 'warmup', 'label' => 'Warm up', 'duration_seconds' => 60],
                                 ['kind' => 'work', 'label' => '800m rep', 'distance_m' => 800],
-                                ['kind' => 'recovery', 'label' => 'Recovery', 'distance_m' => 400],
+                                ['kind' => 'recovery', 'label' => 'Recovery', 'duration_seconds' => 90],
                                 ['kind' => 'work', 'label' => '800m rep', 'distance_m' => 800],
-                                ['kind' => 'recovery', 'label' => 'Recovery', 'distance_m' => 400],
+                                ['kind' => 'recovery', 'label' => 'Recovery', 'duration_seconds' => 90],
                                 ['kind' => 'work', 'label' => '800m rep', 'distance_m' => 800],
-                                ['kind' => 'cooldown', 'label' => 'Cool down', 'distance_m' => 1000],
+                                ['kind' => 'cooldown', 'label' => 'Cool down', 'duration_seconds' => 300],
                             ],
                         ],
                         // Ensure the interval is NOT the last day so the race-day
@@ -288,10 +288,10 @@ class PlanOptimizerServiceTest extends TestCase
                             'type' => 'interval',
                             'target_km' => 6.0,
                             'intervals' => [
-                                ['kind' => 'warmup', 'label' => 'Warm up', 'distance_m' => 1000],
+                                ['kind' => 'warmup', 'label' => 'Warm up', 'duration_seconds' => 60],
                                 ['kind' => 'work', 'label' => '400m rep', 'distance_m' => 400],
-                                ['kind' => 'recovery', 'label' => 'Jog', 'distance_m' => 200],
-                                ['kind' => 'cooldown', 'label' => 'Cool down', 'distance_m' => 800],
+                                ['kind' => 'recovery', 'label' => 'Jog', 'duration_seconds' => 60],
+                                ['kind' => 'cooldown', 'label' => 'Cool down', 'duration_seconds' => 300],
                             ],
                         ],
                     ],
@@ -302,10 +302,97 @@ class PlanOptimizerServiceTest extends TestCase
         $result = $this->optimizer->optimize($payload, $user);
 
         $intervals = $result['schedule']['weeks'][0]['days'][0]['intervals'];
+        $this->assertCount(4, $intervals);
         $this->assertSame(330, $intervals[0]['target_pace_seconds_per_km']); // warmup = easy = 300+30
         $this->assertSame(250, $intervals[1]['target_pace_seconds_per_km']); // work = interval = 300-50
         $this->assertSame(360, $intervals[2]['target_pace_seconds_per_km']); // recovery = 300+60
         $this->assertSame(330, $intervals[3]['target_pace_seconds_per_km']); // cooldown = easy
+    }
+
+    public function test_normalize_intervals_caps_warmup_clamps_cooldown_and_time_only_recovery(): void
+    {
+        $user = $this->userWithBaseline(300);
+
+        $payload = [
+            'goal_name' => 'Test',
+            'schedule' => [
+                'weeks' => [[
+                    'week_number' => 1,
+                    'focus' => 'build',
+                    'days' => [
+                        [
+                            'day_of_week' => 3,
+                            'type' => 'interval',
+                            'target_km' => 6.0,
+                            'intervals' => [
+                                // Way too long warmup with both fields set.
+                                ['kind' => 'warmup', 'label' => 'Warm up', 'distance_m' => 2000, 'duration_seconds' => 300],
+                                ['kind' => 'work', 'label' => '800m rep', 'distance_m' => 800],
+                                // Distance-based recovery → must be converted to time.
+                                ['kind' => 'recovery', 'label' => 'Recovery', 'distance_m' => 400, 'duration_seconds' => null],
+                                // Distance-based cooldown that's too long; must clamp to 600s and become time-based.
+                                ['kind' => 'cooldown', 'label' => 'Cool down', 'distance_m' => 1000, 'duration_seconds' => 1800],
+                            ],
+                        ],
+                    ],
+                ]],
+            ],
+        ];
+
+        $result = $this->optimizer->optimize($payload, $user);
+        $intervals = $result['schedule']['weeks'][0]['days'][0]['intervals'];
+
+        $this->assertCount(4, $intervals);
+
+        // Warmup: time-based, capped at 120s, distance cleared.
+        $this->assertSame('warmup', $intervals[0]['kind']);
+        $this->assertSame(120, $intervals[0]['duration_seconds']);
+        $this->assertNull($intervals[0]['distance_m']);
+
+        // Recovery: time-based, distance converted to seconds (400m at 360s/km recovery pace = 144s).
+        $this->assertSame('recovery', $intervals[2]['kind']);
+        $this->assertNull($intervals[2]['distance_m']);
+        $this->assertGreaterThan(60, $intervals[2]['duration_seconds']);
+
+        // Cooldown: always last, time-based, clamped to 600s, distance cleared.
+        $this->assertSame('cooldown', $intervals[3]['kind']);
+        $this->assertSame(600, $intervals[3]['duration_seconds']);
+        $this->assertNull($intervals[3]['distance_m']);
+    }
+
+    public function test_normalize_intervals_synthesizes_cooldown_when_missing(): void
+    {
+        $user = $this->userWithBaseline(300);
+
+        $payload = [
+            'goal_name' => 'Test',
+            'schedule' => [
+                'weeks' => [[
+                    'week_number' => 1,
+                    'focus' => 'build',
+                    'days' => [
+                        [
+                            'day_of_week' => 3,
+                            'type' => 'interval',
+                            'target_km' => 6.0,
+                            'intervals' => [
+                                ['kind' => 'warmup', 'label' => 'Warm up', 'duration_seconds' => 60],
+                                ['kind' => 'work', 'label' => '400m rep', 'distance_m' => 400],
+                                ['kind' => 'recovery', 'label' => 'Recovery', 'duration_seconds' => 90],
+                            ],
+                        ],
+                    ],
+                ]],
+            ],
+        ];
+
+        $result = $this->optimizer->optimize($payload, $user);
+        $intervals = $result['schedule']['weeks'][0]['days'][0]['intervals'];
+
+        // Cooldown synthesized at the end with default 300s.
+        $this->assertCount(4, $intervals);
+        $this->assertSame('cooldown', $intervals[3]['kind']);
+        $this->assertSame(300, $intervals[3]['duration_seconds']);
     }
 
     public function test_keeps_user_stated_target_date_and_drops_days_past_it(): void

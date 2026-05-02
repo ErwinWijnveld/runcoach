@@ -15,6 +15,7 @@
 		7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */; };
 		AB10A1B12EAE0001000HKPRS /* HealthKitPersonalRecords.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10A1B02EAE0001000HKPRS /* HealthKitPersonalRecords.swift */; };
 		AB10A1B32EAE0002000PUSHN /* PushNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10A1B22EAE0002000PUSHN /* PushNotifications.swift */; };
+		AB10A1B52EAE0003000WORKO /* WorkoutScheduling.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10A1B42EAE0003000WORKO /* WorkoutScheduling.swift */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
@@ -56,6 +57,7 @@
 		7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		AB10A1B02EAE0001000HKPRS /* HealthKitPersonalRecords.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitPersonalRecords.swift; sourceTree = "<group>"; };
 		AB10A1B22EAE0002000PUSHN /* PushNotifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotifications.swift; sourceTree = "<group>"; };
+		AB10A1B42EAE0003000WORKO /* WorkoutScheduling.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutScheduling.swift; sourceTree = "<group>"; };
 		7AFA3C8E1D35360C0083082E /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Release.xcconfig; path = Flutter/Release.xcconfig; sourceTree = "<group>"; };
 		89D406787EB3155067D9D4BC /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		8B014BA734DA1368C0C4C42E /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
@@ -160,6 +162,7 @@
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				AB10A1B02EAE0001000HKPRS /* HealthKitPersonalRecords.swift */,
 				AB10A1B22EAE0002000PUSHN /* PushNotifications.swift */,
+				AB10A1B42EAE0003000WORKO /* WorkoutScheduling.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 			);
 			path = Runner;
@@ -417,6 +420,7 @@
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 				AB10A1B12EAE0001000HKPRS /* HealthKitPersonalRecords.swift in Sources */,
 				AB10A1B32EAE0002000PUSHN /* PushNotifications.swift in Sources */,
+				AB10A1B52EAE0003000WORKO /* WorkoutScheduling.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -13,6 +13,8 @@ import 'package:app/features/coach/widgets/swooshing_star.dart';
 import 'package:app/features/schedule/data/training_day_coach_suggestions.dart';
 import 'package:app/features/schedule/models/training_day.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
+import 'package:app/features/schedule/services/workout_scheduler_service.dart';
+import 'package:app/features/schedule/widgets/reschedule_day_sheet.dart';
 import 'package:app/features/schedule/widgets/select_activity_sheet.dart';
 import 'package:app/features/schedule/widgets/wearable_summary_card.dart';
 import 'package:app/features/schedule/widgets/training_day_action_buttons.dart';
@@ -54,7 +56,10 @@ class _Loaded extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _BackButton(),
+          _TopBar(
+            showMore: status.showSelectActivity,
+            onMore: () => _showMoreActions(context, day, status),
+          ),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.only(bottom: 16),
@@ -84,17 +89,7 @@ class _Loaded extends StatelessWidget {
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     child: TrainingDayActionButtons(
                       status: status,
-                      onSendToWatch: () => _showWatchPlaceholder(context),
-                      onSelectActivity: () => SelectActivitySheet.show(
-                        context,
-                        dayId: day.id,
-                        onMatched: () {
-                          ref.invalidate(trainingDayDetailProvider(day.id));
-                          ref.invalidate(trainingDayResultProvider(day.id));
-                          ref.invalidate(scheduleProvider);
-                          ref.invalidate(currentWeekProvider);
-                        },
-                      ),
+                      onSendToWatch: () => _sendToWatch(context, day),
                     ),
                   ),
                   if (day.intervals != null && day.intervals!.isNotEmpty) ...[
@@ -189,19 +184,289 @@ class _Loaded extends StatelessWidget {
         color: AppColors.primaryInk,
       );
 
-  Future<void> _showWatchPlaceholder(BuildContext context) {
+  void _showMoreActions(
+    BuildContext context,
+    TrainingDay day,
+    TrainingDayStatus status,
+  ) {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (sheetCtx) => CupertinoActionSheet(
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.of(sheetCtx).pop();
+              SelectActivitySheet.show(
+                context,
+                dayId: day.id,
+                onMatched: () {
+                  ref.invalidate(trainingDayDetailProvider(day.id));
+                  ref.invalidate(trainingDayResultProvider(day.id));
+                  ref.invalidate(scheduleProvider);
+                  ref.invalidate(currentWeekProvider);
+                },
+              );
+            },
+            child: const Text('Pick activity'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.of(sheetCtx).pop();
+              RescheduleDaySheet.show(
+                context,
+                dayId: day.id,
+                initialDate: _parseYmd(day.date) ?? DateTime.now(),
+                onRescheduled: () {
+                  ref.invalidate(trainingDayDetailProvider(day.id));
+                  ref.invalidate(scheduleProvider);
+                  ref.invalidate(currentWeekProvider);
+                },
+              );
+            },
+            child: const Text('Reschedule'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.of(sheetCtx).pop(),
+          child: const Text('Cancel'),
+        ),
+      ),
+    );
+  }
+
+  static DateTime? _parseYmd(String input) {
+    if (input.length < 10) return null;
+    try {
+      final parts = input.substring(0, 10).split('-');
+      return DateTime(
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+        int.parse(parts[2]),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _sendToWatch(BuildContext context, TrainingDay day) async {
+    final dateLocal = _parseYmd(day.date);
+    if (dateLocal == null) {
+      await _showResultDialog(context,
+          title: "Couldn't send",
+          body:
+              "This training day has an invalid date — try refreshing the schedule.");
+      return;
+    }
+
+    final hasIntervals = day.intervals != null && day.intervals!.isNotEmpty;
+    final km = day.targetKm;
+
+    if (!hasIntervals && (km == null || km <= 0)) {
+      await _showResultDialog(context,
+          title: "Nothing to send",
+          body:
+              'This workout has no distance set, so it can\'t be scheduled on the watch.');
+      return;
+    }
+
+    // Pre-check: extract the would-be steps so we can surface a friendly
+    // error before showing the spinner / hitting the native bridge.
+    final intervalPlan = hasIntervals ? _buildIntervalPlan(day) : null;
+    if (intervalPlan != null && intervalPlan.steps.isEmpty) {
+      await _showResultDialog(context,
+          title: "Nothing to send",
+          body:
+              'This interval session has no work reps to send to the watch.');
+      return;
+    }
+
+    showCupertinoDialog<void>(
+      context: context,
+      builder: (_) => const _SendingDialog(),
+    );
+
+    final service = ref.read(workoutSchedulerServiceProvider);
+    final result = intervalPlan != null
+        ? await service.scheduleIntervals(
+            dayId: day.id,
+            date: dateLocal,
+            displayName: day.title,
+            warmupSeconds: intervalPlan.warmupSeconds,
+            cooldownSeconds: intervalPlan.cooldownSeconds,
+            steps: intervalPlan.steps,
+          )
+        : await service.scheduleRun(
+            dayId: day.id,
+            date: dateLocal,
+            distanceKm: km!,
+          );
+
+    if (!context.mounted) return;
+    Navigator.of(context, rootNavigator: true).pop(); // close progress
+
+    final (title, body) = switch (result.status) {
+      WorkoutScheduleStatus.scheduled => (
+          'Sent to your watch',
+          result.message ??
+              'Open the Fitness app on your iPhone or Apple Watch to start it.'
+        ),
+      WorkoutScheduleStatus.duplicate => (
+          'Already scheduled',
+          result.message ??
+              'You already have a workout planned for this day in the Fitness app.'
+        ),
+      WorkoutScheduleStatus.denied => (
+          'Permission needed',
+          result.message ??
+              'Allow workout scheduling in Settings → RunCoach to send this run to your watch.'
+        ),
+      WorkoutScheduleStatus.unavailable => (
+          'Not available',
+          result.message ??
+              'Sending workouts to the Apple Watch needs iOS 17 or newer.'
+        ),
+      WorkoutScheduleStatus.failed => (
+          "Couldn't send",
+          result.message ?? 'Something went wrong. Try again.'
+        ),
+    };
+
+    await _showResultDialog(context, title: title, body: body);
+  }
+
+  /// Build the WorkoutKit payload from a TrainingDay's intervals list. Old
+  /// rows can still contain distance-based recoveries / cooldowns — we
+  /// normalize them here so the watch always gets the canonical shape:
+  ///   - warmup hoisted to its own slot, time-based, capped at 120s
+  ///   - work + recovery flow into the IntervalBlock as steps
+  ///   - cooldown hoisted to its own slot, time-based, clamped to [60s, 600s];
+  ///     synthesized at 300s if the segment list lacks one (defensive)
+  ///
+  /// Pure helper — does NOT call the native bridge. The screen invokes the
+  /// service with the returned [_IntervalPlan]. This split lets us pre-check
+  /// `steps.isEmpty` and show a friendly error before the spinner appears.
+  _IntervalPlan _buildIntervalPlan(TrainingDay day) {
+    int? warmupSeconds;
+    int? cooldownSeconds;
+    final steps = <WorkoutIntervalStep>[];
+
+    for (final segment in day.intervals!) {
+      switch (segment.kind) {
+        case 'warmup':
+          // Take only the first warmup encountered; rest are ignored.
+          if (warmupSeconds != null) break;
+          warmupSeconds = (segment.durationSeconds ?? 60).clamp(15, 120);
+          break;
+        case 'recovery':
+          int? duration = segment.durationSeconds;
+          if ((duration == null || duration <= 0) &&
+              segment.distanceM != null &&
+              segment.distanceM! > 0) {
+            // Fall back: convert distance to time using a 6:00/km recovery
+            // pace (360 sec/km). Conservative — better too long than too short.
+            duration = ((segment.distanceM! / 1000) * 360).round();
+          }
+          duration ??= 90;
+          steps.add(WorkoutIntervalStep(
+            kind: 'recovery',
+            durationSeconds: duration.clamp(15, 600),
+          ));
+          break;
+        case 'cooldown':
+          int? duration = segment.durationSeconds;
+          if ((duration == null || duration <= 0) &&
+              segment.distanceM != null &&
+              segment.distanceM! > 0) {
+            duration = ((segment.distanceM! / 1000) * 360).round();
+          }
+          duration ??= 300;
+          cooldownSeconds = duration.clamp(60, 600);
+          break;
+        case 'work':
+        default:
+          // Default branch handles unexpected `kind` values defensively as
+          // work segments rather than dropping them silently.
+          if (segment.distanceM != null && segment.distanceM! > 0) {
+            steps.add(WorkoutIntervalStep(
+              kind: 'work',
+              distanceM: segment.distanceM,
+            ));
+          } else if (segment.durationSeconds != null &&
+              segment.durationSeconds! > 0) {
+            steps.add(WorkoutIntervalStep(
+              kind: 'work',
+              durationSeconds: segment.durationSeconds,
+            ));
+          }
+          break;
+      }
+    }
+
+    // Cooldown is mandatory in our schema. If the day's payload somehow
+    // arrived without one, synthesize the default so the watch session
+    // still ends with one.
+    cooldownSeconds ??= 300;
+
+    return _IntervalPlan(
+      warmupSeconds: warmupSeconds,
+      cooldownSeconds: cooldownSeconds,
+      steps: steps,
+    );
+  }
+
+  Future<void> _showResultDialog(
+    BuildContext context, {
+    required String title,
+    required String body,
+  }) {
     return showCupertinoDialog<void>(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
-        title: const Text('Coming soon'),
-        content: const Text(
-            "'Send to watch' will push this session to your Garmin / Apple Watch once we wire the integration."),
+        title: Text(title),
+        content: Text(body),
         actions: [
           CupertinoDialogAction(
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('OK'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Pure value object: the normalized payload ready to send to the native
+/// WorkoutKit bridge. Built by `_buildIntervalPlan` so the screen can
+/// pre-check shape (e.g. empty steps) before calling the bridge.
+class _IntervalPlan {
+  final int? warmupSeconds;
+  final int? cooldownSeconds;
+  final List<WorkoutIntervalStep> steps;
+
+  const _IntervalPlan({
+    required this.warmupSeconds,
+    required this.cooldownSeconds,
+    required this.steps,
+  });
+}
+
+class _SendingDialog extends StatelessWidget {
+  const _SendingDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return const CupertinoAlertDialog(
+      content: Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CupertinoActivityIndicator(radius: 14),
+            SizedBox(height: 12),
+            Text('Sending to your watch…'),
+          ],
+        ),
       ),
     );
   }
@@ -237,27 +502,54 @@ class _SectionTitle extends StatelessWidget {
   }
 }
 
-class _BackButton extends StatelessWidget {
+class _TopBar extends StatelessWidget {
+  final bool showMore;
+  final VoidCallback onMore;
+
+  const _TopBar({required this.showMore, required this.onMore});
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(22),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(22),
-          onTap: () =>
-              context.canPop() ? context.pop() : context.go('/schedule'),
-          child: const Padding(
-            padding: EdgeInsets.all(10),
-            child: Icon(
-              CupertinoIcons.back,
-              color: AppColors.primaryInk,
-              size: 22,
+      child: Row(
+        children: [
+          Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(22),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(22),
+              onTap: () =>
+                  context.canPop() ? context.pop() : context.go('/schedule'),
+              child: const Padding(
+                padding: EdgeInsets.all(10),
+                child: Icon(
+                  CupertinoIcons.back,
+                  color: AppColors.primaryInk,
+                  size: 22,
+                ),
+              ),
             ),
           ),
-        ),
+          const Spacer(),
+          if (showMore)
+            Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(22),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(22),
+                onTap: onMore,
+                child: const Padding(
+                  padding: EdgeInsets.all(10),
+                  child: Icon(
+                    CupertinoIcons.ellipsis_circle,
+                    color: AppColors.primaryInk,
+                    size: 24,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

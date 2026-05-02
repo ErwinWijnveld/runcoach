@@ -106,6 +106,7 @@ class PlanOptimizerService
 
         $payload = $this->reclassifyLongRuns($payload);
         $payload = $this->promoteLongRuns($payload);
+        $payload = $this->normalizeIntervals($payload, $baseline);
         $payload = $this->computePaces($payload, $baseline);
         $payload = $this->generateTitles($payload, $goalName);
         $payload = $this->recalculateWeeklyTotals($payload);
@@ -485,6 +486,135 @@ class PlanOptimizerService
             }
 
             $payload['schedule']['weeks'][$wi]['days'] = $days;
+        }
+
+        return $payload;
+    }
+
+    /** Maximum allowed warmup duration in seconds. Anything longer gets clamped. */
+    private const MAX_WARMUP_SECONDS = 120;
+
+    /** Default warmup duration when the agent didn't supply one. */
+    private const DEFAULT_WARMUP_SECONDS = 60;
+
+    /** Default recovery duration when the agent left it null AND no distance to convert from. */
+    private const DEFAULT_RECOVERY_SECONDS = 90;
+
+    /** Maximum allowed cooldown duration in seconds. */
+    private const MAX_COOLDOWN_SECONDS = 600;
+
+    /** Minimum cooldown duration (anything shorter is bumped up). */
+    private const MIN_COOLDOWN_SECONDS = 60;
+
+    /** Default cooldown duration when the agent didn't supply one. */
+    private const DEFAULT_COOLDOWN_SECONDS = 300;
+
+    /**
+     * Enforce the structural rules for interval sessions:
+     *  - WARMUP is time-based: clear `distance_m`, ensure `duration_seconds`
+     *    is set (default 60s), cap at MAX_WARMUP_SECONDS (120s).
+     *  - RECOVERY is time-based: clear `distance_m`, ensure `duration_seconds`
+     *    is set. If the agent only gave `distance_m`, convert it to seconds
+     *    using a recovery-pace estimate so the runner gets a sensible value
+     *    instead of falling through to the default.
+     *  - WORK reps: if BOTH `distance_m` and `duration_seconds` are set, prefer
+     *    the distance and null the time (matches typical "800m rep" reading).
+     *  - COOLDOWN is REQUIRED and time-based: clear `distance_m`, ensure
+     *    `duration_seconds` is set, clamp to [60s, 600s] (default 300s if the
+     *    agent left it null). Synthesize one at the end of the segment list
+     *    when the agent forgot to include one.
+     *
+     * Runs after `reclassifyLongRuns` / `promoteLongRuns` and BEFORE
+     * `computePaces` so the pace-fill logic only sees the canonical shape.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function normalizeIntervals(array $payload, int $baseline): array
+    {
+        $recoveryPace = max(150, $baseline + self::PACE_DELTA_INTERVAL_RECOVERY);
+
+        foreach ($payload['schedule']['weeks'] as $wi => $week) {
+            foreach (($week['days'] ?? []) as $di => $day) {
+                $type = (string) ($day['type'] ?? TrainingType::Easy->value);
+                if ($type !== TrainingType::Interval->value) {
+                    continue;
+                }
+                if (! isset($day['intervals']) || ! is_array($day['intervals']) || empty($day['intervals'])) {
+                    continue;
+                }
+
+                $clean = [];
+                $cooldownSeen = null;
+
+                foreach ($day['intervals'] as $segment) {
+                    if (! is_array($segment)) {
+                        continue;
+                    }
+                    $kind = (string) ($segment['kind'] ?? 'work');
+
+                    if ($kind === 'warmup') {
+                        $segment['distance_m'] = null;
+                        $duration = $segment['duration_seconds'] ?? null;
+                        if (! is_int($duration) || $duration <= 0) {
+                            $duration = self::DEFAULT_WARMUP_SECONDS;
+                        }
+                        $segment['duration_seconds'] = min($duration, self::MAX_WARMUP_SECONDS);
+                        $clean[] = $segment;
+                    } elseif ($kind === 'recovery') {
+                        $duration = $segment['duration_seconds'] ?? null;
+                        $distance = $segment['distance_m'] ?? null;
+                        if (! is_int($duration) || $duration <= 0) {
+                            // Convert distance to time using recovery pace if
+                            // we have a distance — otherwise fall back to a
+                            // sensible default. Either way, distance_m is
+                            // cleared so the watch sees only seconds.
+                            if (is_int($distance) && $distance > 0) {
+                                $duration = (int) round(($distance / 1000) * $recoveryPace);
+                            } else {
+                                $duration = self::DEFAULT_RECOVERY_SECONDS;
+                            }
+                        }
+                        $segment['duration_seconds'] = max(15, $duration);
+                        $segment['distance_m'] = null;
+                        $clean[] = $segment;
+                    } elseif ($kind === 'cooldown') {
+                        // Hold the cooldown aside; it's appended at the very
+                        // end of the segment list so trailing position is
+                        // guaranteed regardless of agent ordering.
+                        $duration = $segment['duration_seconds'] ?? null;
+                        if (! is_int($duration) || $duration <= 0) {
+                            $duration = self::DEFAULT_COOLDOWN_SECONDS;
+                        }
+                        $segment['duration_seconds'] = max(
+                            self::MIN_COOLDOWN_SECONDS,
+                            min($duration, self::MAX_COOLDOWN_SECONDS),
+                        );
+                        $segment['distance_m'] = null;
+                        $cooldownSeen = $segment;
+                    } else {
+                        // Work segment: prefer distance_m if both are set.
+                        $duration = $segment['duration_seconds'] ?? null;
+                        $distance = $segment['distance_m'] ?? null;
+                        if (is_int($distance) && $distance > 0
+                            && is_int($duration) && $duration > 0) {
+                            $segment['duration_seconds'] = null;
+                        }
+                        $clean[] = $segment;
+                    }
+                }
+
+                // Synthesize a cooldown if the agent forgot one. Always last.
+                $clean[] = $cooldownSeen ?? [
+                    'kind' => 'cooldown',
+                    'label' => 'Cool down',
+                    'distance_m' => null,
+                    'duration_seconds' => self::DEFAULT_COOLDOWN_SECONDS,
+                    'target_pace_seconds_per_km' => null,
+                ];
+
+                $payload['schedule']['weeks'][$wi]['days'][$di]['intervals'] = $clean;
+            }
         }
 
         return $payload;

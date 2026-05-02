@@ -18,6 +18,12 @@ abstract class ScheduleApi {
   @GET('/training-days/{dayId}')
   Future<dynamic> getTrainingDay(@Path() int dayId);
 
+  @PATCH('/training-days/{dayId}')
+  Future<dynamic> updateTrainingDay(
+    @Path() int dayId,
+    @Body() Map<String, dynamic> body,
+  );
+
   @GET('/training-days/{dayId}/result')
   Future<dynamic> getTrainingResult(@Path() int dayId);
 

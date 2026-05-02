@@ -10,6 +10,7 @@ import 'package:flutter/material.dart'
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
@@ -508,7 +509,7 @@ class _CoachFeedbackCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Text(
+          GptMarkdown(
             feedback,
             style: GoogleFonts.publicSans(
               fontSize: 14,

@@ -83,6 +83,27 @@ class ManualMatchActivity extends _$ManualMatchActivity {
   }
 }
 
+/// Move a training day to a new date. The backend re-assigns the day to the
+/// matching training week if the new date crosses a week boundary.
+@riverpod
+class RescheduleDay extends _$RescheduleDay {
+  @override
+  void build() {}
+
+  Future<TrainingDay> reschedule({
+    required int dayId,
+    required DateTime date,
+  }) async {
+    final api = ref.read(scheduleApiProvider);
+    final ymd =
+        '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final response = await api.updateTrainingDay(dayId, {'date': ymd});
+    return TrainingDay.fromJson(
+      Map<String, dynamic>.from(response['data'] as Map),
+    );
+  }
+}
+
 /// Polls `/training-days/{id}/result` every 5s until `ai_feedback` is non-null,
 /// then yields the text and closes. Yields `null` while pending so the UI can
 /// keep the spinner on screen. Auto-disposes when the screen leaves.

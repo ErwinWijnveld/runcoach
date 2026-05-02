@@ -66,6 +66,7 @@ Do NOT flag:
 - The training entry on `target_date` itself — the system represents the race as a `tempo`-typed day with `target_km` equal to the goal distance and the goal name as the title. That IS the race day, by design; treat it as such and never flag it as "should be type 'race'", "should not be a tempo workout", or similar. There is no `race` training type in this schema.
 - 80/20 intensity distribution or specific training-type mixes — not every schema needs this, don't enforce it.
 - Presence of an `intervals` array on `interval` days — the agent prompt requires it.
+- Interval segment shape (warmup/work/recovery/cooldown kinds, time-based vs distance-based, durations, presence of warmup or cooldown) — these are ALL enforced by the deterministic optimizer. NEVER flag "session needs a cooldown", "warmup too long", "recovery should be in meters", etc. The optimizer adds a cooldown if missing, caps warmup at 120s, and forces recovery + cooldown to time-based.
 
 Be strict but not perfectionist. If a design choice is defensible, don't flag it.
 

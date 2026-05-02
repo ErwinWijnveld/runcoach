@@ -102,4 +102,112 @@ class TrainingScheduleTest extends TestCase
         $response->assertOk();
         $this->assertNull($response->json('data'));
     }
+
+    public function test_update_day_reassigns_to_matching_week(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $goal = Goal::factory()->create([
+            'user_id' => $user->id,
+            'target_date' => now()->addWeeks(8)->toDateString(),
+        ]);
+        $weekA = TrainingWeek::factory()->create([
+            'goal_id' => $goal->id,
+            'week_number' => 1,
+            'starts_at' => now()->startOfDay()->toDateString(),
+        ]);
+        $weekB = TrainingWeek::factory()->create([
+            'goal_id' => $goal->id,
+            'week_number' => 2,
+            'starts_at' => now()->addDays(7)->startOfDay()->toDateString(),
+        ]);
+        $day = TrainingDay::factory()->create([
+            'training_week_id' => $weekA->id,
+            'date' => now()->addDays(2)->toDateString(),
+        ]);
+
+        $newDate = now()->addDays(9)->toDateString();
+        $response = $this->patchJson(
+            "/api/v1/training-days/{$day->id}",
+            ['date' => $newDate],
+            $headers,
+        );
+
+        $response->assertOk();
+        $this->assertEquals($newDate, substr($response->json('data.date'), 0, 10));
+        $this->assertEquals($weekB->id, $response->json('data.training_week_id'));
+    }
+
+    public function test_update_day_rejects_past_date(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $goal = Goal::factory()->create(['user_id' => $user->id]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
+        $day = TrainingDay::factory()->create(['training_week_id' => $week->id]);
+
+        $response = $this->patchJson(
+            "/api/v1/training-days/{$day->id}",
+            ['date' => now()->subDays(1)->toDateString()],
+            $headers,
+        );
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors('date');
+    }
+
+    public function test_update_day_rejects_when_result_exists(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $goal = Goal::factory()->create(['user_id' => $user->id]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
+        $day = TrainingDay::factory()->create(['training_week_id' => $week->id]);
+        TrainingResult::factory()->create(['training_day_id' => $day->id]);
+
+        $response = $this->patchJson(
+            "/api/v1/training-days/{$day->id}",
+            ['date' => now()->addDays(1)->toDateString()],
+            $headers,
+        );
+
+        $response->assertStatus(422);
+    }
+
+    public function test_update_day_rejects_moving_the_race_day(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $raceDate = now()->addWeeks(8)->startOfDay();
+        $goal = Goal::factory()->create([
+            'user_id' => $user->id,
+            'target_date' => $raceDate->toDateString(),
+        ]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
+        $raceDay = TrainingDay::factory()->create([
+            'training_week_id' => $week->id,
+            'date' => $raceDate->toDateString(),
+        ]);
+
+        $response = $this->patchJson(
+            "/api/v1/training-days/{$raceDay->id}",
+            ['date' => $raceDate->copy()->subDays(2)->toDateString()],
+            $headers,
+        );
+
+        $response->assertStatus(422);
+    }
+
+    public function test_update_day_rejects_other_users_day(): void
+    {
+        [, $headers] = $this->authUser();
+        $otherUser = User::factory()->create();
+        $goal = Goal::factory()->create(['user_id' => $otherUser->id]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
+        $day = TrainingDay::factory()->create(['training_week_id' => $week->id]);
+
+        $response = $this->patchJson(
+            "/api/v1/training-days/{$day->id}",
+            ['date' => now()->addDays(1)->toDateString()],
+            $headers,
+        );
+
+        $response->assertNotFound();
+    }
 }

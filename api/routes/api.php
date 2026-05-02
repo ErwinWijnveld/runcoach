@@ -35,6 +35,7 @@ Route::prefix('v1')->group(function () {
         Route::get('goals/{goal}/schedule', [TrainingScheduleController::class, 'schedule']);
         Route::get('goals/{goal}/schedule/current', [TrainingScheduleController::class, 'currentWeek']);
         Route::get('training-days/{day}', [TrainingScheduleController::class, 'showDay']);
+        Route::patch('training-days/{day}', [TrainingScheduleController::class, 'updateDay']);
         Route::get('training-days/{day}/result', [TrainingScheduleController::class, 'dayResult']);
         Route::get('training-days/{day}/available-activities', [TrainingScheduleController::class, 'availableActivitiesForDay']);
         Route::post('training-days/{day}/match-activity', [TrainingScheduleController::class, 'matchActivityToDay']);

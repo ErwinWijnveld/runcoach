@@ -161,10 +161,10 @@ class ProposalServiceScheduleTest extends TestCase
                                     'title' => '6x800m',
                                     'target_km' => 10.0,
                                     'intervals' => [
-                                        ['kind' => 'warmup', 'label' => 'Warm up', 'distance_m' => 1500, 'duration_seconds' => 540, 'target_pace_seconds_per_km' => 360],
-                                        ['kind' => 'work', 'label' => '800m @ 10k pace', 'distance_m' => 800, 'duration_seconds' => 216, 'target_pace_seconds_per_km' => 270],
-                                        ['kind' => 'recovery', 'label' => 'Recovery jog', 'distance_m' => 400, 'duration_seconds' => 180, 'target_pace_seconds_per_km' => 450],
-                                        ['kind' => 'cooldown', 'label' => 'Cool down', 'distance_m' => 1000, 'duration_seconds' => 360, 'target_pace_seconds_per_km' => 360],
+                                        ['kind' => 'warmup', 'label' => 'Warm up', 'distance_m' => null, 'duration_seconds' => 60, 'target_pace_seconds_per_km' => 360],
+                                        ['kind' => 'work', 'label' => '800m @ 10k pace', 'distance_m' => 800, 'duration_seconds' => null, 'target_pace_seconds_per_km' => 270],
+                                        ['kind' => 'recovery', 'label' => 'Recovery jog', 'distance_m' => null, 'duration_seconds' => 90, 'target_pace_seconds_per_km' => 450],
+                                        ['kind' => 'cooldown', 'label' => 'Cool down', 'distance_m' => null, 'duration_seconds' => 300, 'target_pace_seconds_per_km' => 360],
                                     ],
                                 ],
                                 [
@@ -197,6 +197,11 @@ class ProposalServiceScheduleTest extends TestCase
         $this->assertCount(4, $intervalDay->intervals_json);
         $this->assertSame('warmup', $intervalDay->intervals_json[0]['kind']);
         $this->assertSame(800, $intervalDay->intervals_json[1]['distance_m']);
+        $this->assertSame('recovery', $intervalDay->intervals_json[2]['kind']);
+        $this->assertNull($intervalDay->intervals_json[2]['distance_m']);
+        $this->assertSame(90, $intervalDay->intervals_json[2]['duration_seconds']);
+        $this->assertSame('cooldown', $intervalDay->intervals_json[3]['kind']);
+        $this->assertSame(300, $intervalDay->intervals_json[3]['duration_seconds']);
 
         $easyDay = $days->firstWhere('title', 'Easy run');
         $this->assertNull($easyDay->intervals_json);

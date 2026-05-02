@@ -467,6 +467,68 @@ abstract class _$ManualMatchActivity extends $Notifier<void> {
   }
 }
 
+/// Move a training day to a new date. The backend re-assigns the day to the
+/// matching training week if the new date crosses a week boundary.
+
+@ProviderFor(RescheduleDay)
+final rescheduleDayProvider = RescheduleDayProvider._();
+
+/// Move a training day to a new date. The backend re-assigns the day to the
+/// matching training week if the new date crosses a week boundary.
+final class RescheduleDayProvider
+    extends $NotifierProvider<RescheduleDay, void> {
+  /// Move a training day to a new date. The backend re-assigns the day to the
+  /// matching training week if the new date crosses a week boundary.
+  RescheduleDayProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'rescheduleDayProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$rescheduleDayHash();
+
+  @$internal
+  @override
+  RescheduleDay create() => RescheduleDay();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(void value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<void>(value),
+    );
+  }
+}
+
+String _$rescheduleDayHash() => r'0522c9a60055ab7b904335935e7f606f4ae4bd99';
+
+/// Move a training day to a new date. The backend re-assigns the day to the
+/// matching training week if the new date crosses a week boundary.
+
+abstract class _$RescheduleDay extends $Notifier<void> {
+  void build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<void, void>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<void, void>,
+              void,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
 /// Polls `/training-days/{id}/result` every 5s until `ai_feedback` is non-null,
 /// then yields the text and closes. Yields `null` while pending so the UI can
 /// keep the spinner on screen. Auto-disposes when the screen leaves.
