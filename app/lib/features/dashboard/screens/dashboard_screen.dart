@@ -14,6 +14,7 @@ import 'package:app/features/dashboard/providers/dashboard_provider.dart';
 import 'package:app/features/schedule/models/training_day.dart';
 import 'package:app/features/schedule/models/training_week.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
+import 'package:app/features/wearable/widgets/analyzing_run_chip.dart';
 import 'package:app/router/app_router.dart'
     show floatingPromptBarBottomOffset, kBottomStackedReservedHeight;
 
@@ -55,6 +56,7 @@ class DashboardScreen extends ConsumerWidget {
             child: Column(
               children: [
                 const AppHeader(),
+                const AnalyzingRunChip(),
                 Expanded(
                   child: dashboardAsync.when(
                     loading: () => const AppSpinner(),

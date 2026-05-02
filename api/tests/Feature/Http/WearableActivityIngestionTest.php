@@ -7,6 +7,7 @@ use App\Jobs\GenerateActivityFeedback;
 use App\Jobs\ProcessWearableActivity;
 use App\Models\Goal;
 use App\Models\TrainingDay;
+use App\Models\TrainingResult;
 use App\Models\TrainingWeek;
 use App\Models\User;
 use App\Models\UserRunningProfile;
@@ -293,6 +294,132 @@ class WearableActivityIngestionTest extends TestCase
         )->assertStatus(201);
 
         $this->assertNull($user->runningProfile()->first());
+    }
+
+    public function test_response_surfaces_created_runs_with_metadata(): void
+    {
+        // The Flutter app uses created_runs to drive the per-run "analyzing"
+        // chip + analysis-status polling. Each entry must include the row id
+        // and a `will_analyze` flag so the app knows whether to expect a push.
+        Queue::fake();
+        [$user, $headers] = $this->authUser();
+        $this->giveUserAnActivePlan($user);
+
+        $response = $this->postJson('/api/v1/wearable/activities', [
+            'activities' => [
+                $this->payload(['source_activity_id' => 'a', 'name' => 'Run A']),
+                $this->payload(['source_activity_id' => 'b', 'name' => 'Run B']),
+            ],
+        ], $headers);
+
+        $response->assertStatus(201);
+        $createdRuns = $response->json('created_runs');
+        $this->assertCount(2, $createdRuns);
+        foreach ($createdRuns as $entry) {
+            $this->assertArrayHasKey('id', $entry);
+            $this->assertArrayHasKey('distance_meters', $entry);
+            $this->assertArrayHasKey('start_date', $entry);
+            $this->assertTrue($entry['will_analyze']);
+        }
+    }
+
+    public function test_response_marks_will_analyze_false_when_user_has_no_active_plan(): void
+    {
+        Queue::fake();
+        [, $headers] = $this->authUser();
+
+        $response = $this->postJson('/api/v1/wearable/activities', [
+            'activities' => [$this->payload()],
+        ], $headers);
+
+        $response->assertStatus(201);
+        $this->assertCount(1, $response->json('created_runs'));
+        $this->assertFalse($response->json('created_runs.0.will_analyze'));
+    }
+
+    public function test_analysis_status_returns_pending_for_unmatched_activity(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $activity = WearableActivity::factory()->create(['user_id' => $user->id]);
+
+        $this->getJson(
+            "/api/v1/wearable/activities/{$activity->id}/analysis",
+            $headers,
+        )
+            ->assertOk()
+            ->assertJson([
+                'status' => 'pending',
+                'wearable_activity_id' => $activity->id,
+            ]);
+    }
+
+    public function test_analysis_status_returns_matched_when_result_exists_without_feedback(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $goal = Goal::factory()->create([
+            'user_id' => $user->id,
+            'status' => GoalStatus::Active,
+        ]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
+        $day = TrainingDay::factory()->create(['training_week_id' => $week->id]);
+        $activity = WearableActivity::factory()->create(['user_id' => $user->id]);
+        TrainingResult::factory()->create([
+            'training_day_id' => $day->id,
+            'wearable_activity_id' => $activity->id,
+            'compliance_score' => 8.4,
+            'ai_feedback' => null,
+        ]);
+
+        $this->getJson(
+            "/api/v1/wearable/activities/{$activity->id}/analysis",
+            $headers,
+        )
+            ->assertOk()
+            ->assertJson([
+                'status' => 'matched',
+                'training_day_id' => $day->id,
+            ]);
+    }
+
+    public function test_analysis_status_returns_analyzed_when_feedback_is_set(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $goal = Goal::factory()->create([
+            'user_id' => $user->id,
+            'status' => GoalStatus::Active,
+        ]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
+        $day = TrainingDay::factory()->create(['training_week_id' => $week->id]);
+        $activity = WearableActivity::factory()->create(['user_id' => $user->id]);
+        TrainingResult::factory()->create([
+            'training_day_id' => $day->id,
+            'wearable_activity_id' => $activity->id,
+            'compliance_score' => 8.4,
+            'ai_feedback' => 'Great pacing on the descents.',
+        ]);
+
+        $this->getJson(
+            "/api/v1/wearable/activities/{$activity->id}/analysis",
+            $headers,
+        )
+            ->assertOk()
+            ->assertJson([
+                'status' => 'analyzed',
+                'training_day_id' => $day->id,
+                'ai_feedback' => 'Great pacing on the descents.',
+            ]);
+    }
+
+    public function test_analysis_status_404s_for_other_users_activity(): void
+    {
+        [, $headers] = $this->authUser();
+        $other = User::factory()->create();
+        $activity = WearableActivity::factory()->create(['user_id' => $other->id]);
+
+        $this->getJson(
+            "/api/v1/wearable/activities/{$activity->id}/analysis",
+            $headers,
+        )->assertStatus(404);
     }
 
     public function test_re_pushing_existing_activities_keeps_running_profile_cache(): void

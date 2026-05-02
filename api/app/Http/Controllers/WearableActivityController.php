@@ -66,6 +66,7 @@ class WearableActivityController extends Controller
         $user = $request->user();
         $created = 0;
         $updated = 0;
+        $createdRuns = [];
 
         // Matching needs an active goal. During onboarding (and for users
         // who haven't accepted a plan yet) every dispatched job would no-op
@@ -117,6 +118,20 @@ class WearableActivityController extends Controller
                 if ($hasActiveGoal) {
                     ProcessWearableActivity::dispatch($activity->id);
                 }
+
+                // Surface the new run ids to the client so the app can show
+                // a per-run "analyzing…" indicator and poll/await the push
+                // notification that lands once feedback is ready.
+                if (in_array($activity->type, WearableActivity::RUN_TYPES, true)) {
+                    $createdRuns[] = [
+                        'id' => $activity->id,
+                        'name' => $activity->name,
+                        'distance_meters' => $activity->distance_meters,
+                        'duration_seconds' => $activity->duration_seconds,
+                        'start_date' => $activity->start_date?->toIso8601String(),
+                        'will_analyze' => $hasActiveGoal,
+                    ];
+                }
             } else {
                 $updated++;
             }
@@ -134,7 +149,61 @@ class WearableActivityController extends Controller
         return response()->json([
             'created' => $created,
             'updated' => $updated,
+            'created_runs' => $createdRuns,
         ], 201);
+    }
+
+    /**
+     * Status of the AI analysis pipeline for a single freshly synced run.
+     * The Flutter app polls this every few seconds while showing the
+     * "Analyzing…" indicator, as a fallback for when the push notification
+     * never lands (denied notification permission, simulator, expired
+     * APNs payload, etc.).
+     *
+     * Status transitions:
+     *  - `pending`     — activity exists but ProcessWearableActivity hasn't
+     *                    landed yet, or no active goal so no match attempt.
+     *  - `unmatched`   — match attempt completed but no training day fit.
+     *  - `matched`     — TrainingResult exists, scoring done, but
+     *                    `ai_feedback` not yet generated.
+     *  - `analyzed`    — `ai_feedback` is non-null. Terminal.
+     */
+    public function analysisStatus(Request $request, int $activity): JsonResponse
+    {
+        $row = $request->user()->wearableActivities()
+            ->with('trainingResults.trainingDay')
+            ->find($activity);
+
+        if (! $row) {
+            return response()->json(['message' => 'Activity not found.'], 404);
+        }
+
+        $result = $row->trainingResults->first();
+
+        if (! $result) {
+            // No result row means either still in flight, or matchAndScore
+            // failed to find a candidate day. Distinguish by checking
+            // whether processing has had time to run — but the queue is
+            // fast (<2s) so we just report `pending` and let the client
+            // decide when to give up.
+            return response()->json([
+                'status' => 'pending',
+                'wearable_activity_id' => $row->id,
+            ]);
+        }
+
+        $analyzed = $result->ai_feedback !== null;
+
+        return response()->json([
+            'status' => $analyzed ? 'analyzed' : 'matched',
+            'wearable_activity_id' => $row->id,
+            'training_result_id' => $result->id,
+            'training_day_id' => $result->training_day_id,
+            'compliance_score' => $result->compliance_score,
+            'actual_km' => $result->actual_km,
+            'actual_pace_seconds_per_km' => $result->actual_pace_seconds_per_km,
+            'ai_feedback' => $result->ai_feedback,
+        ]);
     }
 
     /**

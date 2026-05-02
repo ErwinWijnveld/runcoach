@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Ai\Agents\ActivityFeedbackAgent;
 use App\Models\TrainingResult;
 use App\Models\WearableActivity;
+use App\Notifications\WorkoutAnalyzed;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -28,6 +29,15 @@ class GenerateActivityFeedback implements ShouldQueue
         $response = ActivityFeedbackAgent::make()->prompt($this->buildPrompt($result));
 
         $result->update(['ai_feedback' => $response->text]);
+
+        // Push to the user's iPhone now that the analysis is done — only
+        // when the activity is still owned by a real user (route-method
+        // returns no devices for users without ios tokens, so this is a
+        // no-op when push permission was denied).
+        $user = $result->wearableActivity?->user;
+        if ($user) {
+            $user->notify(new WorkoutAnalyzed($result->id));
+        }
     }
 
     private function buildPrompt(TrainingResult $result): string

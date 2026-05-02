@@ -16,6 +16,9 @@ abstract class WearableApi {
   @GET('/wearable/activities')
   Future<dynamic> list();
 
+  @GET('/wearable/activities/{id}/analysis')
+  Future<dynamic> analysisStatus(@Path('id') int id);
+
   @POST('/wearable/personal-records')
   Future<dynamic> ingestPersonalRecords(@Body() Map<String, dynamic> body);
 }

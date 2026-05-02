@@ -43,6 +43,7 @@ Route::prefix('v1')->group(function () {
         // Wearable activities (HealthKit ingestion from the app)
         Route::post('wearable/activities', [WearableActivityController::class, 'store']);
         Route::get('wearable/activities', [WearableActivityController::class, 'index']);
+        Route::get('wearable/activities/{activity}/analysis', [WearableActivityController::class, 'analysisStatus']);
         Route::post('wearable/personal-records', [WearableActivityController::class, 'storePersonalRecords']);
 
         // Push notification device tokens

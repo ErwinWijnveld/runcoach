@@ -10,7 +10,9 @@ use App\Models\TrainingResult;
 use App\Models\TrainingWeek;
 use App\Models\User;
 use App\Models\WearableActivity;
+use App\Notifications\WorkoutAnalyzed;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
 class GenerateActivityFeedbackTest extends TestCase
@@ -87,5 +89,51 @@ class GenerateActivityFeedbackTest extends TestCase
         // without overwriting.
         app()->call([new GenerateActivityFeedback($result->id), 'handle']);
         $this->assertSame('x', $result->fresh()->ai_feedback);
+    }
+
+    public function test_dispatches_workout_analyzed_push_after_feedback_is_written(): void
+    {
+        Notification::fake();
+        ActivityFeedbackAgent::fake(['Solid run.']);
+
+        $user = User::factory()->create();
+        $goal = Goal::factory()->create(['user_id' => $user->id]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
+        $day = TrainingDay::factory()->create(['training_week_id' => $week->id]);
+        $activity = WearableActivity::factory()->create(['user_id' => $user->id]);
+        $result = TrainingResult::factory()->create([
+            'training_day_id' => $day->id,
+            'wearable_activity_id' => $activity->id,
+            'ai_feedback' => null,
+        ]);
+
+        app()->call([new GenerateActivityFeedback($result->id), 'handle']);
+
+        Notification::assertSentTo(
+            $user,
+            WorkoutAnalyzed::class,
+            fn (WorkoutAnalyzed $n) => $n->trainingResultId === $result->id,
+        );
+    }
+
+    public function test_does_not_resend_push_when_feedback_already_present(): void
+    {
+        Notification::fake();
+        ActivityFeedbackAgent::fake(['Initial.']);
+
+        $user = User::factory()->create();
+        $goal = Goal::factory()->create(['user_id' => $user->id]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
+        $day = TrainingDay::factory()->create(['training_week_id' => $week->id]);
+        $activity = WearableActivity::factory()->create(['user_id' => $user->id]);
+        $result = TrainingResult::factory()->create([
+            'training_day_id' => $day->id,
+            'wearable_activity_id' => $activity->id,
+            'ai_feedback' => 'Already done.',
+        ]);
+
+        app()->call([new GenerateActivityFeedback($result->id), 'handle']);
+
+        Notification::assertNothingSent();
     }
 }

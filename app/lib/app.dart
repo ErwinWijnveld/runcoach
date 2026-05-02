@@ -6,6 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/push/services/push_service.dart';
+import 'package:app/features/wearable/providers/workout_sync_provider.dart';
+import 'package:app/features/wearable/widgets/new_runs_toast.dart';
+import 'package:app/features/wearable/widgets/workout_sync_lifecycle.dart';
 import 'package:app/router/app_router.dart';
 
 class RunCoachApp extends ConsumerStatefulWidget {
@@ -25,6 +28,11 @@ class _RunCoachAppState extends ConsumerState<RunCoachApp> {
 
     // Tap on a delivered notification — fired by the native bridge.
     push.onTap = (payload) {
+      // workout_analyzed pushes carry the freshly written analysis
+      // payload; mirror it into local state so the chip flips and the
+      // dashboard/schedule providers refresh, even if the user opened
+      // the app via the tap rather than the in-app toast.
+      _handleWorkoutAnalyzedPayload(ref, payload);
       final path = PushService.routeFromPayload(payload);
       if (path != null) {
         router.go(path);
@@ -58,6 +66,15 @@ class _RunCoachAppState extends ConsumerState<RunCoachApp> {
         DefaultCupertinoLocalizations.delegate,
         DefaultWidgetsLocalizations.delegate,
       ],
+      builder: (context, child) {
+        // Wrap the routed tree once so the lifecycle observer + new-runs
+        // toast persist across navigation, but live BELOW the router so
+        // they have access to the same ProviderScope. WorkoutSyncLifecycle
+        // is the trigger; NewRunsToastHost is the visual layer.
+        return WorkoutSyncLifecycle(
+          child: NewRunsToastHost(child: child ?? const SizedBox.shrink()),
+        );
+      },
     );
   }
 
@@ -70,5 +87,24 @@ class _RunCoachAppState extends ConsumerState<RunCoachApp> {
     }, fireImmediately: true);
     await completer.future;
     sub.close();
+  }
+
+  void _handleWorkoutAnalyzedPayload(
+    WidgetRef ref,
+    Map<String, dynamic> payload,
+  ) {
+    if (payload['type'] != 'workout_analyzed') return;
+    final activityId = (payload['wearable_activity_id'] as num?)?.toInt();
+    if (activityId == null) return;
+    ref.read(workoutSyncProvider.notifier).markAnalyzed(
+          activityId,
+          trainingDayId: (payload['training_day_id'] as num?)?.toInt(),
+          trainingResultId: (payload['training_result_id'] as num?)?.toInt(),
+          complianceScore: switch (payload['compliance_score']) {
+            num n => n.toDouble(),
+            String s => double.tryParse(s),
+            _ => null,
+          },
+        );
   }
 }

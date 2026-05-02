@@ -42,6 +42,14 @@ class PushService {
       'plan_generation_failed' => '/onboarding/generating',
       'training_day_reminder' =>
         '/schedule/day/${payload['training_day_id']?.toString() ?? ''}',
+      // Analyzed run with a matched training day → go straight to the
+      // result. Without a day id (unmatched runs aren't surfaced via push
+      // today, but be defensive) → land on the dashboard.
+      'workout_analyzed' => () {
+          final dayId = payload['training_day_id']?.toString();
+          if (dayId == null || dayId.isEmpty) return '/dashboard';
+          return '/schedule/day/$dayId/result';
+        }(),
       _ => null,
     };
   }
