@@ -5,7 +5,7 @@ namespace App\Filament\Coach\Resources\Clients\RelationManagers;
 use App\Enums\GoalDistance;
 use App\Enums\GoalStatus;
 use App\Enums\GoalType;
-use App\Models\OrganizationMembership;
+use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
@@ -95,9 +95,9 @@ class GoalsRelationManager extends RelationManager
             ->headerActions([
                 CreateAction::make()
                     ->mutateFormDataUsing(function (array $data): array {
-                        /** @var OrganizationMembership $owner */
+                        /** @var User $owner */
                         $owner = $this->getOwnerRecord();
-                        $data['user_id'] = $owner->user_id;
+                        $data['user_id'] = $owner->id;
 
                         return $data;
                     }),

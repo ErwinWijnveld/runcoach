@@ -6,6 +6,7 @@ use App\Enums\GoalStatus;
 use App\Enums\MembershipStatus;
 use App\Enums\OrganizationRole;
 use App\Models\OrganizationMembership;
+use App\Models\User;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
@@ -16,72 +17,49 @@ class ClientsTable
 {
     public static function configure(Table $table): Table
     {
+        /** @var User|null $authUser */
+        $authUser = auth()->user();
+        $showCoach = $authUser?->isOrgAdmin() === true || $authUser?->isSuperadmin() === true;
+
         return $table
-            ->defaultSort('joined_at', 'desc')
+            ->defaultSort('name')
             ->columns([
-                TextColumn::make('user.name')
+                TextColumn::make('name')
                     ->label('Name')
-                    ->placeholder('— pending —')
-                    ->searchable(['users.name'])
+                    ->placeholder('—')
+                    ->searchable()
+                    ->sortable()
                     ->weight('bold'),
-                TextColumn::make('display_email')
+                TextColumn::make('email')
                     ->label('Email')
-                    ->state(fn ($record) => $record->user?->email ?? $record->invite_email)
-                    ->searchable(query: function ($query, string $search) {
-                        $query->whereHas('user', fn ($q) => $q->where('email', 'like', "%{$search}%"))
-                            ->orWhere('invite_email', 'like', "%{$search}%");
-                    }),
-                TextColumn::make('coach.name')
-                    ->label('Coach')
-                    ->placeholder('— unassigned —')
-                    ->toggleable(),
-                TextColumn::make('user.activeGoal.name')
+                    ->searchable()
+                    ->copyable(),
+                TextColumn::make('activeGoal.name')
                     ->label('Goal')
-                    ->placeholder('— no active goal —')
-                    ->limit(40)
-                    ->toggleable(),
-                TextColumn::make('user.activeGoal.target_date')
-                    ->label('Target')
-                    ->date('Y-m-d')
-                    ->toggleable(),
-                TextColumn::make('status')
-                    ->badge()
-                    ->color(fn (MembershipStatus $state) => match ($state) {
-                        MembershipStatus::Active => 'success',
-                        MembershipStatus::Invited => 'warning',
-                        default => 'gray',
-                    }),
-                TextColumn::make('joined_at')
-                    ->label('Joined')
-                    ->date('Y-m-d')
+                    ->placeholder('—')
+                    ->limit(40),
+                TextColumn::make('activeGoal.target_date')
+                    ->label('Race day')
+                    ->date('M j, Y')
                     ->placeholder('—')
                     ->sortable(),
+                TextColumn::make('activeMembership.coach.name')
+                    ->label('Coach')
+                    ->placeholder('—')
+                    ->visible($showCoach)
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
-            ->filters([
-                SelectFilter::make('coach_user_id')
-                    ->label('Assigned coach')
-                    ->options(fn () => OrganizationMembership::query()
-                        ->where('role', OrganizationRole::Coach)
-                        ->where('status', MembershipStatus::Active)
-                        ->where('organization_id', auth()->user()?->organizationId())
-                        ->with('user')
-                        ->get()
-                        ->mapWithKeys(fn ($m) => [$m->user_id => $m->user?->name ?? $m->invite_email])
-                        ->all()),
-                SelectFilter::make('status')->options(MembershipStatus::class),
-            ])
+            ->filters(self::filtersFor($authUser))
             ->recordActions([
                 Action::make('schedule')
                     ->label('Schedule')
                     ->icon('heroicon-o-calendar-days')
                     ->color('primary')
-                    ->visible(function ($record) {
-                        return $record->user?->goals()
-                            ->where('status', GoalStatus::Active)
-                            ->exists() ?? false;
-                    })
-                    ->url(function ($record) {
-                        $goal = $record->user?->goals()
+                    ->visible(fn (User $record) => $record->goals()
+                        ->where('status', GoalStatus::Active)
+                        ->exists())
+                    ->url(function (User $record) {
+                        $goal = $record->goals()
                             ->where('status', GoalStatus::Active)
                             ->latest('target_date')
                             ->first();
@@ -92,5 +70,38 @@ class ClientsTable
                     }),
                 ViewAction::make()->label('Profile'),
             ]);
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    private static function filtersFor(?User $authUser): array
+    {
+        if ($authUser === null || $authUser->isSuperadmin()) {
+            return [];
+        }
+
+        return [
+            SelectFilter::make('coach_user_id')
+                ->label('Assigned coach')
+                ->options(fn () => OrganizationMembership::query()
+                    ->where('role', OrganizationRole::Coach)
+                    ->where('status', MembershipStatus::Active)
+                    ->where('organization_id', $authUser->organizationId())
+                    ->with('user')
+                    ->get()
+                    ->mapWithKeys(fn ($m) => [$m->user_id => $m->user?->name ?? $m->invite_email])
+                    ->all())
+                ->query(function ($query, array $data) use ($authUser) {
+                    if (empty($data['value'])) {
+                        return;
+                    }
+
+                    $query->whereHas('memberships', fn ($q) => $q
+                        ->where('organization_id', $authUser->organizationId())
+                        ->where('role', OrganizationRole::Client)
+                        ->where('coach_user_id', $data['value']));
+                }),
+        ];
     }
 }

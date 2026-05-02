@@ -22,6 +22,14 @@ class ListClients extends ListRecords
 
     protected function getHeaderActions(): array
     {
+        /** @var User|null $authUser */
+        $authUser = auth()->user();
+
+        // Invite is org-scoped — superadmins without an org context don't see it.
+        if ($authUser === null || $authUser->organizationId() === null) {
+            return [];
+        }
+
         return [
             Action::make('inviteClient')
                 ->label('Invite client')
@@ -35,24 +43,17 @@ class ListClients extends ListRecords
                     Select::make('coach_user_id')
                         ->label('Assigned coach')
                         ->placeholder('Unassigned')
-                        ->options(function () {
-                            /** @var User $user */
-                            $user = auth()->user();
-
-                            return OrganizationMembership::query()
-                                ->where('role', OrganizationRole::Coach)
-                                ->where('status', MembershipStatus::Active)
-                                ->where('organization_id', $user->organizationId())
-                                ->with('user')
-                                ->get()
-                                ->mapWithKeys(fn ($m) => [$m->user_id => $m->user?->name ?? $m->invite_email])
-                                ->all();
-                        }),
+                        ->options(fn () => OrganizationMembership::query()
+                            ->where('role', OrganizationRole::Coach)
+                            ->where('status', MembershipStatus::Active)
+                            ->where('organization_id', $authUser->organizationId())
+                            ->with('user')
+                            ->get()
+                            ->mapWithKeys(fn ($m) => [$m->user_id => $m->user?->name ?? $m->invite_email])
+                            ->all()),
                 ])
-                ->action(function (array $data): void {
-                    /** @var User $user */
-                    $user = auth()->user();
-                    $org = Organization::find($user->organizationId());
+                ->action(function (array $data) use ($authUser): void {
+                    $org = Organization::find($authUser->organizationId());
 
                     if (! $org) {
                         Notification::make()->title('No organization context')->danger()->send();
@@ -67,7 +68,7 @@ class ListClients extends ListRecords
                             $org,
                             $data['email'],
                             OrganizationRole::Client,
-                            $user,
+                            $authUser,
                             $coach,
                         );
 

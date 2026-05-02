@@ -4,13 +4,11 @@ namespace App\Filament\Coach\Resources\Clients;
 
 use App\Enums\MembershipStatus;
 use App\Enums\OrganizationRole;
-use App\Filament\Coach\Resources\Clients\Pages\EditClient;
 use App\Filament\Coach\Resources\Clients\Pages\ListClients;
 use App\Filament\Coach\Resources\Clients\Pages\ViewClient;
 use App\Filament\Coach\Resources\Clients\RelationManagers\GoalsRelationManager;
 use App\Filament\Coach\Resources\Clients\Schemas\ClientInfolist;
 use App\Filament\Coach\Resources\Clients\Tables\ClientsTable;
-use App\Models\OrganizationMembership;
 use App\Models\User;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -21,7 +19,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 class ClientResource extends Resource
 {
-    protected static ?string $model = OrganizationMembership::class;
+    protected static ?string $model = User::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
@@ -46,16 +44,19 @@ class ClientResource extends Resource
         /** @var User $user */
         $user = auth()->user();
 
-        $query = OrganizationMembership::query()
-            ->with(['user.activeGoal', 'coach'])
-            ->where('role', OrganizationRole::Client)
-            ->whereIn('status', [MembershipStatus::Active, MembershipStatus::Invited]);
+        $query = User::query()
+            ->with(['activeGoal', 'activeMembership.coach']);
 
-        if (! $user->isSuperadmin()) {
-            $query->where('organization_id', $user->organizationId());
+        if ($user->isSuperadmin()) {
+            return $query;
         }
 
-        return $query;
+        $orgId = $user->organizationId();
+
+        return $query->whereHas('memberships', fn (Builder $q) => $q
+            ->where('organization_id', $orgId)
+            ->where('role', OrganizationRole::Client)
+            ->whereIn('status', [MembershipStatus::Active, MembershipStatus::Invited]));
     }
 
     public static function table(Table $table): Table
@@ -80,12 +81,11 @@ class ClientResource extends Resource
         return [
             'index' => ListClients::route('/'),
             'view' => ViewClient::route('/{record}'),
-            'edit' => EditClient::route('/{record}/edit'),
         ];
     }
 
     public static function canCreate(): bool
     {
-        return false; // creation via invite flow on the list page
+        return false;
     }
 }
