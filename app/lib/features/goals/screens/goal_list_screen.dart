@@ -9,6 +9,7 @@ import 'package:app/core/utils/date_formatter.dart';
 import 'package:app/core/widgets/app_header.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
+import 'package:app/core/widgets/intro_fx.dart';
 import 'package:app/router/app_router.dart'
     show floatingPromptBarBottomOffset, kBottomStackedReservedHeight;
 import 'package:app/core/widgets/coach_prompt_bar.dart';
@@ -48,7 +49,7 @@ class GoalListScreen extends ConsumerWidget {
                       title: 'Error: $err',
                       onRetry: () => ref.invalidate(goalsProvider),
                     ),
-                    data: (goals) => _GoalsBody(goals: goals),
+                    data: (goals) => IntroFx(child: _GoalsBody(goals: goals)),
                   ),
                 ),
               ],

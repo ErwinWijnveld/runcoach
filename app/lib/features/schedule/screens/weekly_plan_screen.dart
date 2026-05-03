@@ -8,6 +8,7 @@ import 'package:app/core/widgets/app_header.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/coach_prompt_bar.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
+import 'package:app/core/widgets/intro_fx.dart';
 import 'package:app/features/coach/providers/coach_provider.dart';
 import 'package:app/router/app_router.dart'
     show floatingPromptBarBottomOffset, kBottomStackedReservedHeight;
@@ -56,11 +57,13 @@ class WeeklyPlanScreen extends ConsumerWidget {
                               child: Text('No training week found'),
                             );
                           }
-                          return _WeekPages(
-                            weeks: weeks,
-                            initialIndex: _initialWeekIndex(weeks),
-                            onTapDay: (id) => context.go('/schedule/day/$id'),
-                            onTapCoach: () => startNewCoachChat(context, ref),
+                          return IntroFx(
+                            child: _WeekPages(
+                              weeks: weeks,
+                              initialIndex: _initialWeekIndex(weeks),
+                              onTapDay: (id) => context.go('/schedule/day/$id'),
+                              onTapCoach: () => startNewCoachChat(context, ref),
+                            ),
                           );
                         },
                       );

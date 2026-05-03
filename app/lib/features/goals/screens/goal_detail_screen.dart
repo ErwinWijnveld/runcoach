@@ -9,6 +9,7 @@ import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/utils/date_formatter.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
+import 'package:app/core/widgets/intro_fx.dart';
 import 'package:app/core/widgets/coach_prompt_bar.dart';
 import 'package:app/features/coach/data/coach_api.dart';
 import 'package:app/features/coach/providers/coach_provider.dart';
@@ -57,58 +58,60 @@ class _Loaded extends ConsumerWidget {
         children: [
           const _BackButton(),
           Expanded(
-            child: LayoutBuilder(
-              builder: (context, constraints) => SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: IntrinsicHeight(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                          child: _GoalHeroCard(goal: goal),
-                        ),
-                        const SizedBox(height: 12),
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                          child: _GoalStatTiles(goal: goal),
-                        ),
-                        const SizedBox(height: 16),
-                        if (isActive) ...[
-                          const _SectionTitle('Training'),
+            child: IntroFx(
+              child: LayoutBuilder(
+                builder: (context, constraints) => SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                    child: IntrinsicHeight(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                            child: _ScheduleRow(
-                              onTap: () => context.go('/schedule'),
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                            child: _GoalHeroCard(goal: goal),
+                          ),
+                          const SizedBox(height: 12),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                            child: _GoalStatTiles(goal: goal),
+                          ),
+                          const SizedBox(height: 16),
+                          if (isActive) ...[
+                            const _SectionTitle('Training'),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                              child: _ScheduleRow(
+                                onTap: () => context.go('/schedule'),
+                              ),
                             ),
-                          ),
-                        ] else if (goal.status == 'paused' ||
-                            goal.status == 'planning') ...[
-                          const _SectionTitle('Not active'),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                            child: _SwitchToGoalCard(goal: goal),
-                          ),
-                        ],
-                        // Spacer pushes the delete button to sit just above
-                        // the docked prompt bar when content is short.
-                        const Spacer(),
-                        if (goal.status == 'active' ||
-                            goal.status == 'paused' ||
-                            goal.status == 'planning') ...[
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-                            child: AppFilledButton(
-                              label: 'Delete goal',
-                              icon: CupertinoIcons.delete,
-                              color: AppColors.danger,
-                              onPressed: () => _confirmDelete(context, ref),
+                          ] else if (goal.status == 'paused' ||
+                              goal.status == 'planning') ...[
+                            const _SectionTitle('Not active'),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                              child: _SwitchToGoalCard(goal: goal),
                             ),
-                          ),
+                          ],
+                          // Spacer pushes the delete button to sit just above
+                          // the docked prompt bar when content is short.
+                          const Spacer(),
+                          if (goal.status == 'active' ||
+                              goal.status == 'paused' ||
+                              goal.status == 'planning') ...[
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                              child: AppFilledButton(
+                                label: 'Delete goal',
+                                icon: CupertinoIcons.delete,
+                                color: AppColors.danger,
+                                onPressed: () => _confirmDelete(context, ref),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 16),
                         ],
-                        const SizedBox(height: 16),
-                      ],
+                      ),
                     ),
                   ),
                 ),

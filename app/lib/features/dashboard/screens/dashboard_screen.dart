@@ -9,6 +9,7 @@ import 'package:app/core/widgets/app_header.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/coach_prompt_bar.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
+import 'package:app/core/widgets/intro_fx.dart';
 import 'package:app/features/coach/providers/coach_provider.dart';
 import 'package:app/features/dashboard/models/dashboard_data.dart';
 import 'package:app/features/dashboard/providers/dashboard_provider.dart';
@@ -150,8 +151,8 @@ class _DashboardContent extends StatelessWidget {
         16,
         kBottomStackedReservedHeight,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: IntroColumn(
+        spacing: 12,
         children: [
           _TodayCard(
             day: selectedDay,
@@ -161,7 +162,6 @@ class _DashboardContent extends StatelessWidget {
                 ? context.go('/schedule')
                 : context.go('/schedule/day/${selectedDay.id}'),
           ),
-          const SizedBox(height: 12),
           _ThisWeekCard(
             week: currentWeek,
             today: today,
@@ -169,7 +169,6 @@ class _DashboardContent extends StatelessWidget {
             raceDate: raceDate,
             onTap: () => context.go('/schedule'),
           ),
-          const SizedBox(height: 12),
           _WeeksMatrixCard(
             weeks: weeks,
             today: today,

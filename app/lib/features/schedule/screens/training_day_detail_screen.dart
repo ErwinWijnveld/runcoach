@@ -7,6 +7,7 @@ import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/theme/compliance_colors.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
+import 'package:app/core/widgets/intro_fx.dart';
 import 'package:app/core/widgets/coach_prompt_bar.dart';
 import 'package:app/features/schedule/data/training_day_coach_suggestions.dart';
 import 'package:app/features/schedule/widgets/workout_chat_sheet.dart';
@@ -61,52 +62,54 @@ class _Loaded extends StatelessWidget {
             onMore: () => _showMoreActions(context, day, status),
           ),
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                    child: TrainingDayHeroCard(
-                      title: day.title,
-                      status: status,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    child: TrainingDayStatTiles(
-                      distance: _distanceTile(day),
-                      pace: _paceTile(day),
-                      hrZone: _hrZoneTile(day),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    child: TrainingDayActionButtons(
-                      status: status,
-                      onSendToWatch: () => _sendToWatch(context, day),
-                    ),
-                  ),
-                  if (day.intervals != null && day.intervals!.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    const _SectionTitle('Intervals'),
+            child: IntroFx(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                      child: TrainingIntervalsTable(intervals: day.intervals!),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                      child: TrainingDayHeroCard(
+                        title: day.title,
+                        status: status,
+                      ),
                     ),
+                    const SizedBox(height: 10),
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: TrainingDayStatTiles(
+                        distance: _distanceTile(day),
+                        pace: _paceTile(day),
+                        hrZone: _hrZoneTile(day),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: TrainingDayActionButtons(
+                        status: status,
+                        onSendToWatch: () => _sendToWatch(context, day),
+                      ),
+                    ),
+                    if (day.intervals != null && day.intervals!.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      const _SectionTitle('Intervals'),
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                        child: TrainingIntervalsTable(intervals: day.intervals!),
+                      ),
+                    ],
+                    if (status == TrainingDayStatus.completed &&
+                        day.result != null) ...[
+                      const SizedBox(height: 16),
+                      _CoachAnalysisSection(dayId: day.id, day: day),
+                    ] else
+                      ..._buildDetailSection(day, status),
                   ],
-                  if (status == TrainingDayStatus.completed &&
-                      day.result != null) ...[
-                    const SizedBox(height: 16),
-                    _CoachAnalysisSection(dayId: day.id, day: day),
-                  ] else
-                    ..._buildDetailSection(day, status),
-                ],
+                ),
               ),
             ),
           ),

@@ -9,6 +9,7 @@ import 'package:app/core/utils/relative_time.dart';
 import 'package:app/core/widgets/app_header.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
+import 'package:app/core/widgets/intro_fx.dart';
 import 'package:app/router/app_router.dart' show kBottomNavReservedHeight;
 import 'package:app/features/coach/data/coach_api.dart';
 import 'package:app/features/coach/models/conversation.dart';
@@ -100,11 +101,13 @@ class _CoachChatListScreenState extends ConsumerState<CoachChatListScreen> {
                     }
                     return const AppSpinner();
                   }
-                  return _ListBody(
-                    conversations: conversations,
-                    onNewChat: () => _createConversation(),
-                    onTapConversation: (id) => context.push('/coach/chat/$id'),
-                    onDeleteConversation: (id) => _deleteConversation(id),
+                  return IntroFx(
+                    child: _ListBody(
+                      conversations: conversations,
+                      onNewChat: () => _createConversation(),
+                      onTapConversation: (id) => context.push('/coach/chat/$id'),
+                      onDeleteConversation: (id) => _deleteConversation(id),
+                    ),
                   );
                 },
               ),

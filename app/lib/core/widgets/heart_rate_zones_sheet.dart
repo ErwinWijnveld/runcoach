@@ -97,31 +97,25 @@ class _HeartRateZonesSheetState extends ConsumerState<HeartRateZonesSheet> {
   }
 
   void _onBoundaryChanged(int index) {
+    // PURE refresh — never mutate other boundary controllers from
+    // here. Mid-typing values are transiently invalid (e.g. "171"
+    // becomes "17" then "1" on backspace as the runner edits Z4↔Z5
+    // from 171→175), and the previous cascading-push logic would
+    // detect that "1" as ordering violations and overwrite every
+    // OTHER boundary with negative numbers, destroying the runner's
+    // existing zones in a single keystroke. Validation happens at
+    // save time instead — see `_save`.
     final value = int.tryParse(_boundaryControllers[index].text.trim());
-    if (value == null) return;
 
-    // Keep adjacent boundaries strictly increasing — push neighbours
-    // along when the user types past them.
-    for (var i = index - 1; i >= 0; i--) {
-      final prev = int.tryParse(_boundaryControllers[i].text.trim()) ?? 0;
-      if (prev >= int.parse(_boundaryControllers[i + 1].text.trim())) {
-        _boundaryControllers[i].text =
-            '${int.parse(_boundaryControllers[i + 1].text.trim()) - 1}';
-      }
-    }
-    for (var i = index + 1; i < _boundaryControllers.length; i++) {
-      final next = int.tryParse(_boundaryControllers[i].text.trim()) ?? 0;
-      if (next <= int.parse(_boundaryControllers[i - 1].text.trim())) {
-        _boundaryControllers[i].text =
-            '${int.parse(_boundaryControllers[i - 1].text.trim()) + 1}';
-      }
-    }
-
-    // Keep the Max-HR header in sync when the top boundary moves.
-    if (index == _boundaryControllers.length - 1) {
+    // Keep the Max-HR header in sync when the top boundary moves —
+    // safe even with transient values; the field is informational.
+    if (value != null && index == _boundaryControllers.length - 1) {
       final inferred = (value / 0.9).round();
       _maxHrController.text = '$inferred';
     }
+
+    // Trigger rebuild so the adjacent zone row's "lower" text reflects
+    // the current edit (Z2's lower = boundaries[0], etc).
     setState(() {});
   }
 

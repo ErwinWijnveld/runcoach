@@ -428,6 +428,19 @@ Header bell + bottom-sheet inbox + cold-start reminder for items the runner must
 2. (Optional) extend `_typeLabel` switch in `notifications_sheet.dart` for a humanised eyebrow label — falls through to `replaceAll('_', ' ').toUpperCase()` if not added.
 3. (Optional) add a tertiary action arm in `_NotificationCard.build` (the `if (n.type == 'pace_adjustment')` block) when the type has a calibration sheet to surface.
 
+### 15. Screen intro animations
+
+Tasteful Apple-style entry animations on tab roots and detail screens. Two helpers in `lib/core/widgets/intro_fx.dart`:
+
+- **`IntroFx`** — wraps a single widget with a 320ms fade + 4% upward slide (`Curves.easeOutCubic`). Use on detail screens where the whole content panel should drift in as one unit.
+- **`IntroColumn`** — a `Column` with a 60ms stagger between children. Use on tab roots with a small number of cards.
+
+Both honor `MediaQuery.disableAnimations` (renders the child at its final state when Reduce Motion is on) and always end at the visible rest state — an interrupted run can never leave content hidden.
+
+Currently applied to: `dashboard_screen.dart` (staggered cards), `weekly_plan_screen.dart` (whole `_WeekPages`, plays once on mount — page-view swipes between weeks are unaffected), `training_day_detail_screen.dart`, `coach_chat_list_screen.dart`, `goal_list_screen.dart`, `goal_detail_screen.dart`. **Don't** wrap the detail screen scaffold itself when GoRouter pushes it on `_rootNavigatorKey` — the iOS slide-in already covers entry; animate the inner content panel instead. **Don't** stagger every row of an unbounded `ListView.builder`; intros fire per build and replay during scroll recycling.
+
+Backed by `flutter_animate` (zero codegen, no `build_runner` involvement, so safe alongside Freezed 3.x / no-`custom_lint`).
+
 ## Running and building
 
 ```bash
