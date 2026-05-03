@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:app/features/auth/models/hr_zone.dart';
 import 'package:app/features/onboarding/models/plan_generation.dart';
 import 'package:app/features/organization/models/membership.dart';
 
@@ -14,6 +15,7 @@ sealed class User with _$User {
     @JsonKey(name: 'apple_sub') String? appleSub,
     @JsonKey(name: 'coach_style') String? coachStyle,
     @JsonKey(name: 'has_completed_onboarding') @Default(false) bool hasCompletedOnboarding,
+    @JsonKey(name: 'heart_rate_zones') List<HrZone>? heartRateZones,
     @JsonKey(name: 'pending_plan_generation') PlanGeneration? pendingPlanGeneration,
     @JsonKey(name: 'current_membership') Membership? currentMembership,
     @JsonKey(name: 'pending_invites') @Default([]) List<Membership> pendingInvites,

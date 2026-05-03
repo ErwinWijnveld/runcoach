@@ -139,51 +139,6 @@
             }
             .dark .gs-add-btn { border-top-color: rgba(255,255,255,0.04); }
             .gs-add-btn:hover { color: #4F46E5; }
-
-            .gs-modal-backdrop {
-                position: fixed;
-                inset: 0;
-                z-index: 50;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                padding: 1rem;
-                background: rgba(0,0,0,0.5);
-                backdrop-filter: blur(4px);
-            }
-            .gs-modal {
-                background: #fff;
-                border-radius: 1rem;
-                box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
-                max-width: 640px;
-                width: 100%;
-                overflow: hidden;
-            }
-            .dark .gs-modal { background: #111827; }
-            .gs-modal-head { padding: 1.25rem 1.5rem 0.5rem; }
-            .gs-modal-title { font-size: 1.05rem; font-weight: 700; color: #111827; }
-            .dark .gs-modal-title { color: #F9FAFB; }
-            .gs-modal-sub { font-size: 0.85rem; color: #6B7280; margin-top: 0.15rem; }
-            .gs-modal-body { padding: 0.5rem 1.5rem; }
-            .gs-modal-foot {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                padding: 1rem 1.5rem;
-                border-top: 1px solid #F3F4F6;
-            }
-            .dark .gs-modal-foot { border-top-color: rgba(255,255,255,0.05); }
-            .gs-delete-btn {
-                background: transparent;
-                border: 0;
-                font-size: 0.85rem;
-                font-weight: 500;
-                color: #DC2626;
-                cursor: pointer;
-                padding: 0.25rem 0;
-            }
-            .gs-delete-btn:hover { color: #B91C1C; }
-            .gs-modal-actions { display: flex; gap: 0.5rem; }
         </style>
 
         {{-- Hero summary --}}
@@ -253,7 +208,7 @@
                         };
                     @endphp
 
-                    <button type="button" class="gs-day" wire:click="editDay({{ $day->id }})">
+                    <button type="button" class="gs-day" wire:click="openEditDay({{ $day->id }})">
                         <div class="gs-day-bar" style="background-color: {{ $palette['bar'] }};"></div>
 
                         <div class="gs-day-date">
@@ -303,31 +258,9 @@
             </x-filament::section>
         @endforelse
 
-        @php $editingDay = $this->editingDay; @endphp
-        {{-- Edit modal --}}
-        @if ($editingDay !== null)
-            <div class="gs-modal-backdrop" wire:click.self="cancelEdit">
-                <div class="gs-modal">
-                    <div class="gs-modal-head">
-                        <div class="gs-modal-title">Edit session</div>
-                        <div class="gs-modal-sub">Tap save to apply. Changes go live immediately for the runner.</div>
-                    </div>
-                    <form wire:submit="saveDay">
-                        <div class="gs-modal-body">
-                            {{ $this->form }}
-                        </div>
-                        <div class="gs-modal-foot">
-                            <button type="button" class="gs-delete-btn" wire:click="deleteEditingDay" wire:confirm="Remove this session from the plan?">
-                                Delete session
-                            </button>
-                            <div class="gs-modal-actions">
-                                <x-filament::button type="button" color="gray" wire:click="cancelEdit">Cancel</x-filament::button>
-                                <x-filament::button type="submit" color="primary">Save</x-filament::button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        @endif
+        {{-- Filament-managed action modal renders here. The custom modal we
+             used to ship rendered scrolled-mid-screen and lacked overflow
+             handling; this gives us a properly scrollable Filament dialog. --}}
+        <x-filament-actions::modals />
     @endif
 </x-filament-panels::page>

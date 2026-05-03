@@ -6,7 +6,8 @@ import 'package:app/features/schedule/widgets/training_day_status.dart';
 
 /// Single full-width "Send to watch" CTA. Other actions (pick activity,
 /// reschedule) live in the top-right ellipsis menu so the primary CTA stays
-/// uncontested. The status arg is kept for future per-state copy variations.
+/// uncontested. Hidden for `completed` days — the run already happened, no
+/// point in scheduling it on the watch retroactively.
 class TrainingDayActionButtons extends StatelessWidget {
   final TrainingDayStatus status;
   final VoidCallback? onSendToWatch;
@@ -19,6 +20,9 @@ class TrainingDayActionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (status == TrainingDayStatus.completed) {
+      return const SizedBox.shrink();
+    }
     return SizedBox(
       width: double.infinity,
       child: _PrimaryButton(

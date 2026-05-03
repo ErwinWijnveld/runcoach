@@ -20,9 +20,17 @@ class _OrganizationApi implements OrganizationApi {
   final ParseErrorLogger? errorLogger;
 
   @override
-  Future<dynamic> searchOrganizations(String? q) async {
+  Future<dynamic> searchOrganizations(
+    String? q,
+    int? page,
+    int? perPage,
+  ) async {
     final _extra = <String, dynamic>{};
-    final queryParameters = <String, dynamic>{r'q': q};
+    final queryParameters = <String, dynamic>{
+      r'q': q,
+      r'page': page,
+      r'per_page': perPage,
+    };
     queryParameters.removeWhere((k, v) => v == null);
     final _headers = <String, dynamic>{};
     const Map<String, dynamic>? _data = null;

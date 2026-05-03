@@ -18,6 +18,12 @@ sealed class VercelStreamEvent with _$VercelStreamEvent {
       ProposalEvent;
   const factory VercelStreamEvent.stats(CoachStatsCard stats) = StatsEvent;
   const factory VercelStreamEvent.chips(List<CoachChip> chips) = ChipsEvent;
+  const factory VercelStreamEvent.handoff(String suggestedPrompt) =
+      HandoffEvent;
+  // Server-side direct mutation (e.g. RescheduleWorkout). Tells the client
+  // to bust its plan cache so the schedule overview reflects the change
+  // when the user navigates back.
+  const factory VercelStreamEvent.planChanged() = PlanChangedEvent;
   const factory VercelStreamEvent.error(String message) = ErrorEvent;
   const factory VercelStreamEvent.done() = DoneEvent;
 }

@@ -120,7 +120,10 @@ class PlanOptimizerServiceTest extends TestCase
         $days = $result['schedule']['weeks'][0]['days'];
         $this->assertSame(390, $days[0]['target_pace_seconds_per_km']); // 360+30 easy
         $this->assertSame(335, $days[1]['target_pace_seconds_per_km']); // 360-25 tempo
-        $this->assertSame(310, $days[2]['target_pace_seconds_per_km']); // 360-50 interval
+        // Interval days carry pace per work segment in `intervals_json`,
+        // never at the day level — `TrainingDay::workSetAveragePaceSecondsPerKm`
+        // surfaces the average at read time.
+        $this->assertNull($days[2]['target_pace_seconds_per_km']);
         $this->assertSame(375, $days[3]['target_pace_seconds_per_km']); // 360+15 long_run
     }
 
@@ -1051,7 +1054,9 @@ class PlanOptimizerServiceTest extends TestCase
         $days = $result['schedule']['weeks'][0]['days'];
 
         $this->assertSame(265, $days[0]['target_pace_seconds_per_km']);
-        $this->assertSame(245, $days[1]['target_pace_seconds_per_km']);
+        // Interval day-level pace is forced null even when the AI tried to
+        // set one — per-rep pace inside `intervals` is the source of truth.
+        $this->assertNull($days[1]['target_pace_seconds_per_km']);
         $this->assertSame(372, $days[2]['target_pace_seconds_per_km']);
 
         Carbon::setTestNow();

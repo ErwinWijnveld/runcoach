@@ -19,7 +19,11 @@ return new class extends Migration
             $table->decimal('actual_km', 5, 1);
             $table->unsignedInteger('actual_pace_seconds_per_km');
             $table->decimal('actual_avg_heart_rate', 5, 1)->nullable();
-            $table->decimal('pace_score', 3, 1);
+            // Nullable on interval days: full-run avg pace mixes work +
+            // recovery + warmup + cooldown so it can't be scored against
+            // a per-segment work pace. Only segment-aware ingestion can
+            // produce a meaningful pace score for intervals.
+            $table->decimal('pace_score', 3, 1)->nullable();
             $table->decimal('distance_score', 3, 1);
             $table->decimal('heart_rate_score', 3, 1)->nullable();
             $table->text('ai_feedback')->nullable();

@@ -66,7 +66,7 @@ final class ScheduleProvider
   }
 }
 
-String _$scheduleHash() => r'bcd6e658baed6db6f974acd06ba50a888ed58513';
+String _$scheduleHash() => r'bfa3a0effd6cdf483e8207088057a92c0ac55d6a';
 
 final class ScheduleFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<List<TrainingWeek>>, int> {
@@ -141,7 +141,7 @@ final class CurrentWeekProvider
   }
 }
 
-String _$currentWeekHash() => r'94d43966786c3efb50d7494aff21ec070e74ae2f';
+String _$currentWeekHash() => r'49f4d9dc29228e801d0431d63f9feae4e54840ea';
 
 final class CurrentWeekFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<TrainingWeek?>, int> {
@@ -216,7 +216,7 @@ final class TrainingDayDetailProvider
   }
 }
 
-String _$trainingDayDetailHash() => r'afbf174a686bacdd83e29f7d567f150bcdc05e9f';
+String _$trainingDayDetailHash() => r'53d21f2ffd82aa9a1ba6fc1ce85db132e2a1dbf6';
 
 final class TrainingDayDetailFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<TrainingDay>, int> {
@@ -291,7 +291,7 @@ final class TrainingDayResultProvider
   }
 }
 
-String _$trainingDayResultHash() => r'a2225c4c98dd04d6dc95f039a6ad525ad8a055d8';
+String _$trainingDayResultHash() => r'10ffd4a3b90182e99971a0c396be1b5dc5ca2594';
 
 final class TrainingDayResultFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<TrainingResult?>, int> {
@@ -380,7 +380,7 @@ final class AvailableActivitiesProvider
 }
 
 String _$availableActivitiesHash() =>
-    r'8e1b7da8071893fb75288cd846e0b1c86f52c5dc';
+    r'6daf8028bbae0e9534679a0eed62a84d7c9205cf';
 
 /// Wearable activities the runner has synced near a training day's date,
 /// each flagged with whether they're already matched. Feeds the
@@ -409,14 +409,35 @@ final class AvailableActivitiesFamily extends $Family
 }
 
 /// Manually match (or unlink) a wearable activity for a training day.
+///
+/// Mutators capture every cross-provider dependency BEFORE awaiting the
+/// API call. The host widget (e.g. the activity-picker sheet) can be torn
+/// down while the request is in flight — autoDispose then disposes this
+/// provider's `ref` and any `ref.read(...)` after the await throws. By
+/// dereferencing once up-front we operate on stable handles and the awaited
+/// future settles cleanly even if the caller already navigated away.
 
 @ProviderFor(ManualMatchActivity)
 final manualMatchActivityProvider = ManualMatchActivityProvider._();
 
 /// Manually match (or unlink) a wearable activity for a training day.
+///
+/// Mutators capture every cross-provider dependency BEFORE awaiting the
+/// API call. The host widget (e.g. the activity-picker sheet) can be torn
+/// down while the request is in flight — autoDispose then disposes this
+/// provider's `ref` and any `ref.read(...)` after the await throws. By
+/// dereferencing once up-front we operate on stable handles and the awaited
+/// future settles cleanly even if the caller already navigated away.
 final class ManualMatchActivityProvider
     extends $NotifierProvider<ManualMatchActivity, void> {
   /// Manually match (or unlink) a wearable activity for a training day.
+  ///
+  /// Mutators capture every cross-provider dependency BEFORE awaiting the
+  /// API call. The host widget (e.g. the activity-picker sheet) can be torn
+  /// down while the request is in flight — autoDispose then disposes this
+  /// provider's `ref` and any `ref.read(...)` after the await throws. By
+  /// dereferencing once up-front we operate on stable handles and the awaited
+  /// future settles cleanly even if the caller already navigated away.
   ManualMatchActivityProvider._()
     : super(
         from: null,
@@ -445,9 +466,16 @@ final class ManualMatchActivityProvider
 }
 
 String _$manualMatchActivityHash() =>
-    r'9de5d0a8bc2bf24aaa6c6a083edba45d443c4cf1';
+    r'a2f5604002d02ed44cef50830d70fcc1f458948d';
 
 /// Manually match (or unlink) a wearable activity for a training day.
+///
+/// Mutators capture every cross-provider dependency BEFORE awaiting the
+/// API call. The host widget (e.g. the activity-picker sheet) can be torn
+/// down while the request is in flight — autoDispose then disposes this
+/// provider's `ref` and any `ref.read(...)` after the await throws. By
+/// dereferencing once up-front we operate on stable handles and the awaited
+/// future settles cleanly even if the caller already navigated away.
 
 abstract class _$ManualMatchActivity extends $Notifier<void> {
   void build();
@@ -506,7 +534,7 @@ final class RescheduleDayProvider
   }
 }
 
-String _$rescheduleDayHash() => r'0522c9a60055ab7b904335935e7f606f4ae4bd99';
+String _$rescheduleDayHash() => r'a607cdcbaf6dab6af6e2139adc687a79668a10c6';
 
 /// Move a training day to a new date. The backend re-assigns the day to the
 /// matching training week if the new date crosses a week boundary.

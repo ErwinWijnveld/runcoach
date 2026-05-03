@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
+import 'package:app/features/permissions/services/permissions_service.dart';
 import 'package:app/features/wearable/providers/workout_sync_provider.dart';
 
 /// Wraps the app's router and triggers a foreground sync whenever:
@@ -55,6 +56,11 @@ class _WorkoutSyncLifecycleState extends ConsumerState<WorkoutSyncLifecycle>
     if (user.hasCompletedOnboarding != true) return;
     // Fire-and-forget — sync() handles its own errors and debouncing.
     unawaited(ref.read(workoutSyncProvider.notifier).sync());
+    // Re-prompts HealthKit + push on every foreground. iOS only shows the
+    // system dialog when permission is `notDetermined`; already-decided
+    // states are silent no-ops. Onboarding is gated above, so the
+    // connect-health screen still owns the first prompt.
+    unawaited(ref.read(permissionsServiceProvider).ensureRequested());
   }
 
   @override

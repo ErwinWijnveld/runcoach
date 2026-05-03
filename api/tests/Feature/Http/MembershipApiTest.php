@@ -153,7 +153,53 @@ class MembershipApiTest extends TestCase
 
         $response->assertOk()
             ->assertJsonCount(1, 'data')
-            ->assertJsonPath('data.0.name', 'Amsterdam Running Club');
+            ->assertJsonPath('data.0.name', 'Amsterdam Running Club')
+            ->assertJsonPath('meta.has_more', false);
+    }
+
+    public function test_organizations_search_returns_logo_url_when_present(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        Organization::factory()->create([
+            'name' => 'Logo Gym',
+            'logo_path' => 'organization-logos/logo-gym.png',
+        ]);
+        Organization::factory()->create([
+            'name' => 'No Logo Gym',
+            'logo_path' => null,
+        ]);
+
+        $response = $this->getJson('/api/v1/organizations/search?q=gym');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.name', 'Logo Gym')
+            ->assertJsonPath('data.0.logo_url', fn ($url) => is_string($url) && str_ends_with($url, '/storage/organization-logos/logo-gym.png'))
+            ->assertJsonPath('data.1.logo_url', null);
+    }
+
+    public function test_organizations_search_paginates_alphabetically_without_query(): void
+    {
+        $user = User::factory()->create();
+        Sanctum::actingAs($user);
+
+        foreach (range(1, 30) as $i) {
+            Organization::factory()->create(['name' => sprintf('Gym %02d', $i)]);
+        }
+
+        $first = $this->getJson('/api/v1/organizations/search?per_page=25&page=1');
+        $first->assertOk()
+            ->assertJsonCount(25, 'data')
+            ->assertJsonPath('data.0.name', 'Gym 01')
+            ->assertJsonPath('meta.has_more', true)
+            ->assertJsonPath('meta.total', 30);
+
+        $second = $this->getJson('/api/v1/organizations/search?per_page=25&page=2');
+        $second->assertOk()
+            ->assertJsonCount(5, 'data')
+            ->assertJsonPath('data.0.name', 'Gym 26')
+            ->assertJsonPath('meta.has_more', false);
     }
 
     public function test_profile_includes_membership_fields(): void

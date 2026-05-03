@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$Organization {
 
- int get id; String get name; String get slug; String? get description; String? get website;@JsonKey(name: 'logo_path') String? get logoPath;
+ int get id; String get name; String get slug; String? get description; String? get website;@JsonKey(name: 'logo_path') String? get logoPath;@JsonKey(name: 'logo_url') String? get logoUrl;
 /// Create a copy of Organization
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $OrganizationCopyWith<Organization> get copyWith => _$OrganizationCopyWithImpl<O
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Organization&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.description, description) || other.description == description)&&(identical(other.website, website) || other.website == website)&&(identical(other.logoPath, logoPath) || other.logoPath == logoPath));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Organization&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.description, description) || other.description == description)&&(identical(other.website, website) || other.website == website)&&(identical(other.logoPath, logoPath) || other.logoPath == logoPath)&&(identical(other.logoUrl, logoUrl) || other.logoUrl == logoUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,slug,description,website,logoPath);
+int get hashCode => Object.hash(runtimeType,id,name,slug,description,website,logoPath,logoUrl);
 
 @override
 String toString() {
-  return 'Organization(id: $id, name: $name, slug: $slug, description: $description, website: $website, logoPath: $logoPath)';
+  return 'Organization(id: $id, name: $name, slug: $slug, description: $description, website: $website, logoPath: $logoPath, logoUrl: $logoUrl)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $OrganizationCopyWith<$Res>  {
   factory $OrganizationCopyWith(Organization value, $Res Function(Organization) _then) = _$OrganizationCopyWithImpl;
 @useResult
 $Res call({
- int id, String name, String slug, String? description, String? website,@JsonKey(name: 'logo_path') String? logoPath
+ int id, String name, String slug, String? description, String? website,@JsonKey(name: 'logo_path') String? logoPath,@JsonKey(name: 'logo_url') String? logoUrl
 });
 
 
@@ -65,7 +65,7 @@ class _$OrganizationCopyWithImpl<$Res>
 
 /// Create a copy of Organization
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? slug = null,Object? description = freezed,Object? website = freezed,Object? logoPath = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? slug = null,Object? description = freezed,Object? website = freezed,Object? logoPath = freezed,Object? logoUrl = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -73,6 +73,7 @@ as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non
 as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,website: freezed == website ? _self.website : website // ignore: cast_nullable_to_non_nullable
 as String?,logoPath: freezed == logoPath ? _self.logoPath : logoPath // ignore: cast_nullable_to_non_nullable
+as String?,logoUrl: freezed == logoUrl ? _self.logoUrl : logoUrl // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -155,10 +156,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name,  String slug,  String? description,  String? website, @JsonKey(name: 'logo_path')  String? logoPath)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name,  String slug,  String? description,  String? website, @JsonKey(name: 'logo_path')  String? logoPath, @JsonKey(name: 'logo_url')  String? logoUrl)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _Organization() when $default != null:
-return $default(_that.id,_that.name,_that.slug,_that.description,_that.website,_that.logoPath);case _:
+return $default(_that.id,_that.name,_that.slug,_that.description,_that.website,_that.logoPath,_that.logoUrl);case _:
   return orElse();
 
 }
@@ -176,10 +177,10 @@ return $default(_that.id,_that.name,_that.slug,_that.description,_that.website,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name,  String slug,  String? description,  String? website, @JsonKey(name: 'logo_path')  String? logoPath)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name,  String slug,  String? description,  String? website, @JsonKey(name: 'logo_path')  String? logoPath, @JsonKey(name: 'logo_url')  String? logoUrl)  $default,) {final _that = this;
 switch (_that) {
 case _Organization():
-return $default(_that.id,_that.name,_that.slug,_that.description,_that.website,_that.logoPath);}
+return $default(_that.id,_that.name,_that.slug,_that.description,_that.website,_that.logoPath,_that.logoUrl);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -193,10 +194,10 @@ return $default(_that.id,_that.name,_that.slug,_that.description,_that.website,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name,  String slug,  String? description,  String? website, @JsonKey(name: 'logo_path')  String? logoPath)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name,  String slug,  String? description,  String? website, @JsonKey(name: 'logo_path')  String? logoPath, @JsonKey(name: 'logo_url')  String? logoUrl)?  $default,) {final _that = this;
 switch (_that) {
 case _Organization() when $default != null:
-return $default(_that.id,_that.name,_that.slug,_that.description,_that.website,_that.logoPath);case _:
+return $default(_that.id,_that.name,_that.slug,_that.description,_that.website,_that.logoPath,_that.logoUrl);case _:
   return null;
 
 }
@@ -208,7 +209,7 @@ return $default(_that.id,_that.name,_that.slug,_that.description,_that.website,_
 @JsonSerializable()
 
 class _Organization implements Organization {
-  const _Organization({required this.id, required this.name, required this.slug, this.description, this.website, @JsonKey(name: 'logo_path') this.logoPath});
+  const _Organization({required this.id, required this.name, required this.slug, this.description, this.website, @JsonKey(name: 'logo_path') this.logoPath, @JsonKey(name: 'logo_url') this.logoUrl});
   factory _Organization.fromJson(Map<String, dynamic> json) => _$OrganizationFromJson(json);
 
 @override final  int id;
@@ -217,6 +218,7 @@ class _Organization implements Organization {
 @override final  String? description;
 @override final  String? website;
 @override@JsonKey(name: 'logo_path') final  String? logoPath;
+@override@JsonKey(name: 'logo_url') final  String? logoUrl;
 
 /// Create a copy of Organization
 /// with the given fields replaced by the non-null parameter values.
@@ -231,16 +233,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Organization&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.description, description) || other.description == description)&&(identical(other.website, website) || other.website == website)&&(identical(other.logoPath, logoPath) || other.logoPath == logoPath));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _Organization&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.description, description) || other.description == description)&&(identical(other.website, website) || other.website == website)&&(identical(other.logoPath, logoPath) || other.logoPath == logoPath)&&(identical(other.logoUrl, logoUrl) || other.logoUrl == logoUrl));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,slug,description,website,logoPath);
+int get hashCode => Object.hash(runtimeType,id,name,slug,description,website,logoPath,logoUrl);
 
 @override
 String toString() {
-  return 'Organization(id: $id, name: $name, slug: $slug, description: $description, website: $website, logoPath: $logoPath)';
+  return 'Organization(id: $id, name: $name, slug: $slug, description: $description, website: $website, logoPath: $logoPath, logoUrl: $logoUrl)';
 }
 
 
@@ -251,7 +253,7 @@ abstract mixin class _$OrganizationCopyWith<$Res> implements $OrganizationCopyWi
   factory _$OrganizationCopyWith(_Organization value, $Res Function(_Organization) _then) = __$OrganizationCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String name, String slug, String? description, String? website,@JsonKey(name: 'logo_path') String? logoPath
+ int id, String name, String slug, String? description, String? website,@JsonKey(name: 'logo_path') String? logoPath,@JsonKey(name: 'logo_url') String? logoUrl
 });
 
 
@@ -268,7 +270,7 @@ class __$OrganizationCopyWithImpl<$Res>
 
 /// Create a copy of Organization
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? slug = null,Object? description = freezed,Object? website = freezed,Object? logoPath = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? slug = null,Object? description = freezed,Object? website = freezed,Object? logoPath = freezed,Object? logoUrl = freezed,}) {
   return _then(_Organization(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -276,6 +278,7 @@ as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non
 as String,description: freezed == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
 as String?,website: freezed == website ? _self.website : website // ignore: cast_nullable_to_non_nullable
 as String?,logoPath: freezed == logoPath ? _self.logoPath : logoPath // ignore: cast_nullable_to_non_nullable
+as String?,logoUrl: freezed == logoUrl ? _self.logoUrl : logoUrl // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

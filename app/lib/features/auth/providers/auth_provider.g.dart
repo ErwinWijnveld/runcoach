@@ -40,7 +40,7 @@ final class AuthProvider extends $NotifierProvider<Auth, AsyncValue<User?>> {
   }
 }
 
-String _$authHash() => r'ea6adea086d2b8d1b88cbd3d86d0239b33b06b6b';
+String _$authHash() => r'99afd4f662996756bd16ba7d579d6b62272bf650';
 
 abstract class _$Auth extends $Notifier<AsyncValue<User?>> {
   AsyncValue<User?> build();

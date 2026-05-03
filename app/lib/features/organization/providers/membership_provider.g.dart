@@ -48,19 +48,11 @@ final class MembershipsProvider
 
 String _$membershipsHash() => r'df85ef0c8987a41f0f8865c1a283059c72423675';
 
-@ProviderFor(organizationSearch)
+@ProviderFor(OrganizationSearch)
 final organizationSearchProvider = OrganizationSearchFamily._();
 
 final class OrganizationSearchProvider
-    extends
-        $FunctionalProvider<
-          AsyncValue<List<Organization>>,
-          List<Organization>,
-          FutureOr<List<Organization>>
-        >
-    with
-        $FutureModifier<List<Organization>>,
-        $FutureProvider<List<Organization>> {
+    extends $AsyncNotifierProvider<OrganizationSearch, OrganizationPage> {
   OrganizationSearchProvider._({
     required OrganizationSearchFamily super.from,
     required String super.argument,
@@ -84,15 +76,7 @@ final class OrganizationSearchProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<Organization>> $createElement(
-    $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
-
-  @override
-  FutureOr<List<Organization>> create(Ref ref) {
-    final argument = this.argument as String;
-    return organizationSearch(ref, argument);
-  }
+  OrganizationSearch create() => OrganizationSearch();
 
   @override
   bool operator ==(Object other) {
@@ -106,10 +90,17 @@ final class OrganizationSearchProvider
 }
 
 String _$organizationSearchHash() =>
-    r'65f3a307533a17fe7168dd5b2864d0e6080dd127';
+    r'fdd5fe8ae8a8cb005f235746250a0d87701f4724';
 
 final class OrganizationSearchFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<List<Organization>>, String> {
+    with
+        $ClassFamilyOverride<
+          OrganizationSearch,
+          AsyncValue<OrganizationPage>,
+          OrganizationPage,
+          FutureOr<OrganizationPage>,
+          String
+        > {
   OrganizationSearchFamily._()
     : super(
         retry: null,
@@ -124,6 +115,28 @@ final class OrganizationSearchFamily extends $Family
 
   @override
   String toString() => r'organizationSearchProvider';
+}
+
+abstract class _$OrganizationSearch extends $AsyncNotifier<OrganizationPage> {
+  late final _$args = ref.$arg as String;
+  String get query => _$args;
+
+  FutureOr<OrganizationPage> build(String query);
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref =
+        this.ref as $Ref<AsyncValue<OrganizationPage>, OrganizationPage>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<OrganizationPage>, OrganizationPage>,
+              AsyncValue<OrganizationPage>,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, () => build(_$args));
+  }
 }
 
 @ProviderFor(MembershipActions)

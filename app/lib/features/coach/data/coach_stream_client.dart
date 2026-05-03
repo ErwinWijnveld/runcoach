@@ -29,21 +29,36 @@ class CoachStreamClient {
     String content, {
     String? chipValue,
   }) {
+    return streamPath(
+      '/coach/conversations/$conversationId/messages',
+      content,
+      chipValue: chipValue,
+    );
+  }
+
+  /// Stream a message against any SSE chat endpoint that follows the same
+  /// Vercel-protocol shape (coach + workout chats today). The path is
+  /// relative to the API base URL.
+  Stream<VercelStreamEvent> streamPath(
+    String path,
+    String content, {
+    String? chipValue,
+  }) {
     if (kIsWeb) {
-      return _streamViaFetch(conversationId, content, chipValue: chipValue);
+      return _streamViaFetch(path, content, chipValue: chipValue);
     }
-    return _streamViaDio(conversationId, content, chipValue: chipValue);
+    return _streamViaDio(path, content, chipValue: chipValue);
   }
 
   Stream<VercelStreamEvent> _streamViaDio(
-    String conversationId,
+    String path,
     String content, {
     String? chipValue,
   }) async* {
     final body = <String, dynamic>{'content': content};
     if (chipValue != null) body['chip_value'] = chipValue;
     final response = await _dio.post<ResponseBody>(
-      '/coach/conversations/$conversationId/messages',
+      path,
       data: body,
       options: Options(
         responseType: ResponseType.stream,
@@ -61,14 +76,14 @@ class CoachStreamClient {
   }
 
   Stream<VercelStreamEvent> _streamViaFetch(
-    String conversationId,
+    String path,
     String content, {
     String? chipValue,
   }) async* {
     final token = await _tokenStorage?.getToken();
     final request = http.Request(
       'POST',
-      Uri.parse('$baseUrl/coach/conversations/$conversationId/messages'),
+      Uri.parse('$baseUrl$path'),
     );
     request.headers['Accept'] = 'text/event-stream';
     request.headers['Content-Type'] = 'application/json';

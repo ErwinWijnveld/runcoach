@@ -15,7 +15,13 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$CoachMessage {
 
- String get id; String get role; String get content;@JsonKey(name: 'created_at') String get createdAt; CoachProposal? get proposal;@JsonKey(includeFromJson: false, includeToJson: false) CoachStatsCard? get statsCard;@JsonKey(includeFromJson: false, includeToJson: false) List<CoachChip>? get chips;@JsonKey(includeFromJson: false, includeToJson: false) String? get errorDetail;@JsonKey(includeFromJson: false, includeToJson: false) bool get streaming;@JsonKey(includeFromJson: false, includeToJson: false) String? get toolIndicator;
+ String get id; String get role; String get content;@JsonKey(name: 'created_at') String get createdAt; CoachProposal? get proposal;@JsonKey(includeFromJson: false, includeToJson: false) CoachStatsCard? get statsCard;@JsonKey(includeFromJson: false, includeToJson: false) List<CoachChip>? get chips;@JsonKey(includeFromJson: false, includeToJson: false) String? get errorDetail;@JsonKey(includeFromJson: false, includeToJson: false) bool get streaming;@JsonKey(includeFromJson: false, includeToJson: false) String? get toolIndicator;// Set when the workout-scoped agent calls EscalateToCoach. The UI
+// renders a tile under this message that opens a fresh coach chat
+// pre-seeded with this prompt. Not persisted server-side — the SDK
+// stores it in tool_results, but reload doesn't re-display it (the
+// hand-off was a one-shot decision; reopening the workout chat
+// shouldn't keep nagging).
+@JsonKey(includeFromJson: false, includeToJson: false) String? get handoffPrompt;
 /// Create a copy of CoachMessage
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +34,16 @@ $CoachMessageCopyWith<CoachMessage> get copyWith => _$CoachMessageCopyWithImpl<C
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CoachMessage&&(identical(other.id, id) || other.id == id)&&(identical(other.role, role) || other.role == role)&&(identical(other.content, content) || other.content == content)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.proposal, proposal) || other.proposal == proposal)&&(identical(other.statsCard, statsCard) || other.statsCard == statsCard)&&const DeepCollectionEquality().equals(other.chips, chips)&&(identical(other.errorDetail, errorDetail) || other.errorDetail == errorDetail)&&(identical(other.streaming, streaming) || other.streaming == streaming)&&(identical(other.toolIndicator, toolIndicator) || other.toolIndicator == toolIndicator));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CoachMessage&&(identical(other.id, id) || other.id == id)&&(identical(other.role, role) || other.role == role)&&(identical(other.content, content) || other.content == content)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.proposal, proposal) || other.proposal == proposal)&&(identical(other.statsCard, statsCard) || other.statsCard == statsCard)&&const DeepCollectionEquality().equals(other.chips, chips)&&(identical(other.errorDetail, errorDetail) || other.errorDetail == errorDetail)&&(identical(other.streaming, streaming) || other.streaming == streaming)&&(identical(other.toolIndicator, toolIndicator) || other.toolIndicator == toolIndicator)&&(identical(other.handoffPrompt, handoffPrompt) || other.handoffPrompt == handoffPrompt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,role,content,createdAt,proposal,statsCard,const DeepCollectionEquality().hash(chips),errorDetail,streaming,toolIndicator);
+int get hashCode => Object.hash(runtimeType,id,role,content,createdAt,proposal,statsCard,const DeepCollectionEquality().hash(chips),errorDetail,streaming,toolIndicator,handoffPrompt);
 
 @override
 String toString() {
-  return 'CoachMessage(id: $id, role: $role, content: $content, createdAt: $createdAt, proposal: $proposal, statsCard: $statsCard, chips: $chips, errorDetail: $errorDetail, streaming: $streaming, toolIndicator: $toolIndicator)';
+  return 'CoachMessage(id: $id, role: $role, content: $content, createdAt: $createdAt, proposal: $proposal, statsCard: $statsCard, chips: $chips, errorDetail: $errorDetail, streaming: $streaming, toolIndicator: $toolIndicator, handoffPrompt: $handoffPrompt)';
 }
 
 
@@ -48,7 +54,7 @@ abstract mixin class $CoachMessageCopyWith<$Res>  {
   factory $CoachMessageCopyWith(CoachMessage value, $Res Function(CoachMessage) _then) = _$CoachMessageCopyWithImpl;
 @useResult
 $Res call({
- String id, String role, String content,@JsonKey(name: 'created_at') String createdAt, CoachProposal? proposal,@JsonKey(includeFromJson: false, includeToJson: false) CoachStatsCard? statsCard,@JsonKey(includeFromJson: false, includeToJson: false) List<CoachChip>? chips,@JsonKey(includeFromJson: false, includeToJson: false) String? errorDetail,@JsonKey(includeFromJson: false, includeToJson: false) bool streaming,@JsonKey(includeFromJson: false, includeToJson: false) String? toolIndicator
+ String id, String role, String content,@JsonKey(name: 'created_at') String createdAt, CoachProposal? proposal,@JsonKey(includeFromJson: false, includeToJson: false) CoachStatsCard? statsCard,@JsonKey(includeFromJson: false, includeToJson: false) List<CoachChip>? chips,@JsonKey(includeFromJson: false, includeToJson: false) String? errorDetail,@JsonKey(includeFromJson: false, includeToJson: false) bool streaming,@JsonKey(includeFromJson: false, includeToJson: false) String? toolIndicator,@JsonKey(includeFromJson: false, includeToJson: false) String? handoffPrompt
 });
 
 
@@ -65,7 +71,7 @@ class _$CoachMessageCopyWithImpl<$Res>
 
 /// Create a copy of CoachMessage
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? role = null,Object? content = null,Object? createdAt = null,Object? proposal = freezed,Object? statsCard = freezed,Object? chips = freezed,Object? errorDetail = freezed,Object? streaming = null,Object? toolIndicator = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? role = null,Object? content = null,Object? createdAt = null,Object? proposal = freezed,Object? statsCard = freezed,Object? chips = freezed,Object? errorDetail = freezed,Object? streaming = null,Object? toolIndicator = freezed,Object? handoffPrompt = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
@@ -77,6 +83,7 @@ as CoachStatsCard?,chips: freezed == chips ? _self.chips : chips // ignore: cast
 as List<CoachChip>?,errorDetail: freezed == errorDetail ? _self.errorDetail : errorDetail // ignore: cast_nullable_to_non_nullable
 as String?,streaming: null == streaming ? _self.streaming : streaming // ignore: cast_nullable_to_non_nullable
 as bool,toolIndicator: freezed == toolIndicator ? _self.toolIndicator : toolIndicator // ignore: cast_nullable_to_non_nullable
+as String?,handoffPrompt: freezed == handoffPrompt ? _self.handoffPrompt : handoffPrompt // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
@@ -183,10 +190,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String role,  String content, @JsonKey(name: 'created_at')  String createdAt,  CoachProposal? proposal, @JsonKey(includeFromJson: false, includeToJson: false)  CoachStatsCard? statsCard, @JsonKey(includeFromJson: false, includeToJson: false)  List<CoachChip>? chips, @JsonKey(includeFromJson: false, includeToJson: false)  String? errorDetail, @JsonKey(includeFromJson: false, includeToJson: false)  bool streaming, @JsonKey(includeFromJson: false, includeToJson: false)  String? toolIndicator)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String role,  String content, @JsonKey(name: 'created_at')  String createdAt,  CoachProposal? proposal, @JsonKey(includeFromJson: false, includeToJson: false)  CoachStatsCard? statsCard, @JsonKey(includeFromJson: false, includeToJson: false)  List<CoachChip>? chips, @JsonKey(includeFromJson: false, includeToJson: false)  String? errorDetail, @JsonKey(includeFromJson: false, includeToJson: false)  bool streaming, @JsonKey(includeFromJson: false, includeToJson: false)  String? toolIndicator, @JsonKey(includeFromJson: false, includeToJson: false)  String? handoffPrompt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _CoachMessage() when $default != null:
-return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal,_that.statsCard,_that.chips,_that.errorDetail,_that.streaming,_that.toolIndicator);case _:
+return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal,_that.statsCard,_that.chips,_that.errorDetail,_that.streaming,_that.toolIndicator,_that.handoffPrompt);case _:
   return orElse();
 
 }
@@ -204,10 +211,10 @@ return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String role,  String content, @JsonKey(name: 'created_at')  String createdAt,  CoachProposal? proposal, @JsonKey(includeFromJson: false, includeToJson: false)  CoachStatsCard? statsCard, @JsonKey(includeFromJson: false, includeToJson: false)  List<CoachChip>? chips, @JsonKey(includeFromJson: false, includeToJson: false)  String? errorDetail, @JsonKey(includeFromJson: false, includeToJson: false)  bool streaming, @JsonKey(includeFromJson: false, includeToJson: false)  String? toolIndicator)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String role,  String content, @JsonKey(name: 'created_at')  String createdAt,  CoachProposal? proposal, @JsonKey(includeFromJson: false, includeToJson: false)  CoachStatsCard? statsCard, @JsonKey(includeFromJson: false, includeToJson: false)  List<CoachChip>? chips, @JsonKey(includeFromJson: false, includeToJson: false)  String? errorDetail, @JsonKey(includeFromJson: false, includeToJson: false)  bool streaming, @JsonKey(includeFromJson: false, includeToJson: false)  String? toolIndicator, @JsonKey(includeFromJson: false, includeToJson: false)  String? handoffPrompt)  $default,) {final _that = this;
 switch (_that) {
 case _CoachMessage():
-return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal,_that.statsCard,_that.chips,_that.errorDetail,_that.streaming,_that.toolIndicator);}
+return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal,_that.statsCard,_that.chips,_that.errorDetail,_that.streaming,_that.toolIndicator,_that.handoffPrompt);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -221,10 +228,10 @@ return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String role,  String content, @JsonKey(name: 'created_at')  String createdAt,  CoachProposal? proposal, @JsonKey(includeFromJson: false, includeToJson: false)  CoachStatsCard? statsCard, @JsonKey(includeFromJson: false, includeToJson: false)  List<CoachChip>? chips, @JsonKey(includeFromJson: false, includeToJson: false)  String? errorDetail, @JsonKey(includeFromJson: false, includeToJson: false)  bool streaming, @JsonKey(includeFromJson: false, includeToJson: false)  String? toolIndicator)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String role,  String content, @JsonKey(name: 'created_at')  String createdAt,  CoachProposal? proposal, @JsonKey(includeFromJson: false, includeToJson: false)  CoachStatsCard? statsCard, @JsonKey(includeFromJson: false, includeToJson: false)  List<CoachChip>? chips, @JsonKey(includeFromJson: false, includeToJson: false)  String? errorDetail, @JsonKey(includeFromJson: false, includeToJson: false)  bool streaming, @JsonKey(includeFromJson: false, includeToJson: false)  String? toolIndicator, @JsonKey(includeFromJson: false, includeToJson: false)  String? handoffPrompt)?  $default,) {final _that = this;
 switch (_that) {
 case _CoachMessage() when $default != null:
-return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal,_that.statsCard,_that.chips,_that.errorDetail,_that.streaming,_that.toolIndicator);case _:
+return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal,_that.statsCard,_that.chips,_that.errorDetail,_that.streaming,_that.toolIndicator,_that.handoffPrompt);case _:
   return null;
 
 }
@@ -236,7 +243,7 @@ return $default(_that.id,_that.role,_that.content,_that.createdAt,_that.proposal
 @JsonSerializable()
 
 class _CoachMessage implements CoachMessage {
-  const _CoachMessage({required this.id, required this.role, required this.content, @JsonKey(name: 'created_at') required this.createdAt, this.proposal, @JsonKey(includeFromJson: false, includeToJson: false) this.statsCard, @JsonKey(includeFromJson: false, includeToJson: false) final  List<CoachChip>? chips, @JsonKey(includeFromJson: false, includeToJson: false) this.errorDetail, @JsonKey(includeFromJson: false, includeToJson: false) this.streaming = false, @JsonKey(includeFromJson: false, includeToJson: false) this.toolIndicator}): _chips = chips;
+  const _CoachMessage({required this.id, required this.role, required this.content, @JsonKey(name: 'created_at') required this.createdAt, this.proposal, @JsonKey(includeFromJson: false, includeToJson: false) this.statsCard, @JsonKey(includeFromJson: false, includeToJson: false) final  List<CoachChip>? chips, @JsonKey(includeFromJson: false, includeToJson: false) this.errorDetail, @JsonKey(includeFromJson: false, includeToJson: false) this.streaming = false, @JsonKey(includeFromJson: false, includeToJson: false) this.toolIndicator, @JsonKey(includeFromJson: false, includeToJson: false) this.handoffPrompt}): _chips = chips;
   factory _CoachMessage.fromJson(Map<String, dynamic> json) => _$CoachMessageFromJson(json);
 
 @override final  String id;
@@ -257,6 +264,13 @@ class _CoachMessage implements CoachMessage {
 @override@JsonKey(includeFromJson: false, includeToJson: false) final  String? errorDetail;
 @override@JsonKey(includeFromJson: false, includeToJson: false) final  bool streaming;
 @override@JsonKey(includeFromJson: false, includeToJson: false) final  String? toolIndicator;
+// Set when the workout-scoped agent calls EscalateToCoach. The UI
+// renders a tile under this message that opens a fresh coach chat
+// pre-seeded with this prompt. Not persisted server-side — the SDK
+// stores it in tool_results, but reload doesn't re-display it (the
+// hand-off was a one-shot decision; reopening the workout chat
+// shouldn't keep nagging).
+@override@JsonKey(includeFromJson: false, includeToJson: false) final  String? handoffPrompt;
 
 /// Create a copy of CoachMessage
 /// with the given fields replaced by the non-null parameter values.
@@ -271,16 +285,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CoachMessage&&(identical(other.id, id) || other.id == id)&&(identical(other.role, role) || other.role == role)&&(identical(other.content, content) || other.content == content)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.proposal, proposal) || other.proposal == proposal)&&(identical(other.statsCard, statsCard) || other.statsCard == statsCard)&&const DeepCollectionEquality().equals(other._chips, _chips)&&(identical(other.errorDetail, errorDetail) || other.errorDetail == errorDetail)&&(identical(other.streaming, streaming) || other.streaming == streaming)&&(identical(other.toolIndicator, toolIndicator) || other.toolIndicator == toolIndicator));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CoachMessage&&(identical(other.id, id) || other.id == id)&&(identical(other.role, role) || other.role == role)&&(identical(other.content, content) || other.content == content)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.proposal, proposal) || other.proposal == proposal)&&(identical(other.statsCard, statsCard) || other.statsCard == statsCard)&&const DeepCollectionEquality().equals(other._chips, _chips)&&(identical(other.errorDetail, errorDetail) || other.errorDetail == errorDetail)&&(identical(other.streaming, streaming) || other.streaming == streaming)&&(identical(other.toolIndicator, toolIndicator) || other.toolIndicator == toolIndicator)&&(identical(other.handoffPrompt, handoffPrompt) || other.handoffPrompt == handoffPrompt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,role,content,createdAt,proposal,statsCard,const DeepCollectionEquality().hash(_chips),errorDetail,streaming,toolIndicator);
+int get hashCode => Object.hash(runtimeType,id,role,content,createdAt,proposal,statsCard,const DeepCollectionEquality().hash(_chips),errorDetail,streaming,toolIndicator,handoffPrompt);
 
 @override
 String toString() {
-  return 'CoachMessage(id: $id, role: $role, content: $content, createdAt: $createdAt, proposal: $proposal, statsCard: $statsCard, chips: $chips, errorDetail: $errorDetail, streaming: $streaming, toolIndicator: $toolIndicator)';
+  return 'CoachMessage(id: $id, role: $role, content: $content, createdAt: $createdAt, proposal: $proposal, statsCard: $statsCard, chips: $chips, errorDetail: $errorDetail, streaming: $streaming, toolIndicator: $toolIndicator, handoffPrompt: $handoffPrompt)';
 }
 
 
@@ -291,7 +305,7 @@ abstract mixin class _$CoachMessageCopyWith<$Res> implements $CoachMessageCopyWi
   factory _$CoachMessageCopyWith(_CoachMessage value, $Res Function(_CoachMessage) _then) = __$CoachMessageCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String role, String content,@JsonKey(name: 'created_at') String createdAt, CoachProposal? proposal,@JsonKey(includeFromJson: false, includeToJson: false) CoachStatsCard? statsCard,@JsonKey(includeFromJson: false, includeToJson: false) List<CoachChip>? chips,@JsonKey(includeFromJson: false, includeToJson: false) String? errorDetail,@JsonKey(includeFromJson: false, includeToJson: false) bool streaming,@JsonKey(includeFromJson: false, includeToJson: false) String? toolIndicator
+ String id, String role, String content,@JsonKey(name: 'created_at') String createdAt, CoachProposal? proposal,@JsonKey(includeFromJson: false, includeToJson: false) CoachStatsCard? statsCard,@JsonKey(includeFromJson: false, includeToJson: false) List<CoachChip>? chips,@JsonKey(includeFromJson: false, includeToJson: false) String? errorDetail,@JsonKey(includeFromJson: false, includeToJson: false) bool streaming,@JsonKey(includeFromJson: false, includeToJson: false) String? toolIndicator,@JsonKey(includeFromJson: false, includeToJson: false) String? handoffPrompt
 });
 
 
@@ -308,7 +322,7 @@ class __$CoachMessageCopyWithImpl<$Res>
 
 /// Create a copy of CoachMessage
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? role = null,Object? content = null,Object? createdAt = null,Object? proposal = freezed,Object? statsCard = freezed,Object? chips = freezed,Object? errorDetail = freezed,Object? streaming = null,Object? toolIndicator = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? role = null,Object? content = null,Object? createdAt = null,Object? proposal = freezed,Object? statsCard = freezed,Object? chips = freezed,Object? errorDetail = freezed,Object? streaming = null,Object? toolIndicator = freezed,Object? handoffPrompt = freezed,}) {
   return _then(_CoachMessage(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
@@ -320,6 +334,7 @@ as CoachStatsCard?,chips: freezed == chips ? _self._chips : chips // ignore: cas
 as List<CoachChip>?,errorDetail: freezed == errorDetail ? _self.errorDetail : errorDetail // ignore: cast_nullable_to_non_nullable
 as String?,streaming: null == streaming ? _self.streaming : streaming // ignore: cast_nullable_to_non_nullable
 as bool,toolIndicator: freezed == toolIndicator ? _self.toolIndicator : toolIndicator // ignore: cast_nullable_to_non_nullable
+as String?,handoffPrompt: freezed == handoffPrompt ? _self.handoffPrompt : handoffPrompt // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }

@@ -18,6 +18,9 @@ abstract class CoachApi {
   @GET('/coach/conversations/{id}')
   Future<dynamic> getConversation(@Path() String id);
 
+  @DELETE('/coach/conversations/{id}')
+  Future<void> deleteConversation(@Path() String id);
+
   @POST('/coach/proposals/{id}/accept')
   Future<void> acceptProposal(@Path() int id);
 

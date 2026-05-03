@@ -45,7 +45,7 @@ final class GoalsProvider
   }
 }
 
-String _$goalsHash() => r'e1bfabdc3a96a9b9147fe4cdd193219fc39d17a3';
+String _$goalsHash() => r'c947a1ee7ae397b5c54830b2e1349c15a91205db';
 
 @ProviderFor(goalDetail)
 final goalDetailProvider = GoalDetailFamily._();
@@ -96,7 +96,7 @@ final class GoalDetailProvider
   }
 }
 
-String _$goalDetailHash() => r'0adb6ae582fa752a097262e4d6fa41fb8e02e1ba';
+String _$goalDetailHash() => r'72c9ef70d1321d1d6c9f100658b8748f0177a822';
 
 final class GoalDetailFamily extends $Family
     with $FunctionalFamilyOverride<FutureOr<Goal>, int> {
@@ -148,7 +148,7 @@ final class GoalActionsProvider
   }
 }
 
-String _$goalActionsHash() => r'aacef173458d53cfb150228e6e8f7ea5d4b0c40b';
+String _$goalActionsHash() => r'e3e9e7e83692e97dcbbef3d2d2f2eb1e01c55ecf';
 
 abstract class _$GoalActions extends $Notifier<AsyncValue<void>> {
   AsyncValue<void> build();

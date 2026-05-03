@@ -6,21 +6,19 @@ use App\Ai\Agents\RunCoachAgent;
 use App\Enums\ProposalStatus;
 use App\Http\Requests\SendMessageRequest;
 use App\Models\CoachProposal;
+use App\Services\AgentStreamingService;
 use App\Services\ProposalService;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Contracts\ConversationStore;
-use Laravel\Ai\Streaming\Events\ToolResult as ToolResultEvent;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use Throwable;
 
 class CoachController extends Controller
 {
     public function __construct(
         private ProposalService $proposalService,
+        private AgentStreamingService $streamer,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -28,6 +26,7 @@ class CoachController extends Controller
         $conversations = DB::table('agent_conversations')
             ->where('user_id', $request->user()->id)
             ->whereNull('context')
+            ->whereNull('subject_type')
             ->orderByDesc('updated_at')
             ->get(['id', 'title', 'created_at', 'updated_at']);
 
@@ -86,6 +85,36 @@ class CoachController extends Controller
         ]);
     }
 
+    public function destroy(Request $request, string $conversationId): JsonResponse
+    {
+        $userId = $request->user()->id;
+
+        $conversation = DB::table('agent_conversations')
+            ->where('id', $conversationId)
+            ->where('user_id', $userId)
+            ->firstOrFail();
+
+        DB::transaction(function () use ($conversation, $userId) {
+            $messageIds = DB::table('agent_conversation_messages')
+                ->where('conversation_id', $conversation->id)
+                ->pluck('id');
+
+            CoachProposal::where('user_id', $userId)
+                ->whereIn('agent_message_id', $messageIds)
+                ->delete();
+
+            DB::table('agent_conversation_messages')
+                ->where('conversation_id', $conversation->id)
+                ->delete();
+
+            DB::table('agent_conversations')
+                ->where('id', $conversation->id)
+                ->delete();
+        });
+
+        return response()->json(null, 204);
+    }
+
     public function sendMessage(SendMessageRequest $request, string $conversationId): StreamedResponse
     {
         $user = $request->user();
@@ -99,105 +128,21 @@ class CoachController extends Controller
         $this->maybeAutoTitle($conversation, $content);
 
         return response()->stream(function () use ($user, $conversationId, $content) {
-            ignore_user_abort(true);
-            set_time_limit(0);
+            $agent = RunCoachAgent::make(user: $user)
+                ->continue($conversationId, as: $user);
 
-            $promptStartedAt = microtime(true);
-
-            try {
-                $stream = RunCoachAgent::make(user: $user)
-                    ->continue($conversationId, as: $user)
-                    ->stream($content);
-
-                foreach ($stream as $event) {
-                    $payload = $event->toVercelProtocolArray();
-                    if (! empty($payload)) {
-                        echo 'data: '.json_encode($payload)."\n\n";
-                        ob_flush();
-                        flush();
-                    }
-
-                    if ($event instanceof ToolResultEvent) {
-                        $result = is_string($event->toolResult->result)
-                            ? json_decode($event->toolResult->result, true)
-                            : $event->toolResult->result;
-
-                        if (is_array($result)) {
-                            $display = $result['display'] ?? null;
-                            if ($display === 'stats_card') {
-                                echo 'data: '.json_encode([
-                                    'type' => 'data-stats',
-                                    'data' => ['metrics' => $result['metrics']],
-                                ])."\n\n";
-                                ob_flush();
-                                flush();
-                            }
-                            if ($display === 'chip_suggestions') {
-                                echo 'data: '.json_encode([
-                                    'type' => 'data-chips',
-                                    'data' => ['chips' => $result['chips']],
-                                ])."\n\n";
-                                ob_flush();
-                                flush();
-                            }
-                        }
-                    }
-                }
-
-                $proposal = $this->proposalService
-                    ->detectProposalFromConversation($user, $conversationId);
-
-                if ($proposal) {
-                    echo 'data: '.json_encode([
-                        'type' => 'data-proposal',
-                        'data' => $proposal->toArray(),
-                    ])."\n\n";
-                    ob_flush();
-                    flush();
-                }
-
-                Log::info(sprintf(
-                    '[agent:prompt] ctx=coach user_id=%d duration_ms=%d message_bytes=%d',
-                    $user->id,
-                    (int) round((microtime(true) - $promptStartedAt) * 1000),
-                    strlen($content),
-                ));
-            } catch (Throwable $e) {
-                Log::error('[coach stream] '.get_class($e).': '.$e->getMessage(), [
-                    'conversation_id' => $conversationId,
-                    'user_id' => $user->id,
-                ]);
-                echo 'data: '.json_encode([
-                    'type' => 'error',
-                    'errorText' => $this->humanizeStreamError($e),
-                ])."\n\n";
-                ob_flush();
-                flush();
-            }
-
-            echo "data: [DONE]\n\n";
-            ob_flush();
-            flush();
+            $this->streamer->stream(
+                $agent,
+                $conversationId,
+                $user,
+                $content,
+                logContext: 'coach',
+            );
         }, 200, [
             'Content-Type' => 'text/event-stream',
             'Cache-Control' => 'no-cache, no-transform',
             'X-Accel-Buffering' => 'no',
         ]);
-    }
-
-    private function humanizeStreamError(Throwable $e): string
-    {
-        $message = $e->getMessage();
-
-        if ($e instanceof ConnectionException || str_contains($message, 'Connection refused') || str_contains($message, 'Could not resolve host')) {
-            return "Couldn't reach the coach. Check your connection and try again.";
-        }
-
-        if (str_contains($message, 'rate_limit') || str_contains($message, '429')) {
-            return 'The coach is rate-limited right now. Try again in a moment.';
-        }
-
-        return 'The coach hit an error. Please try again.';
     }
 
     public function acceptProposal(Request $request, int $proposalId): JsonResponse

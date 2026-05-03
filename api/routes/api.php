@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\MembershipController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\OrganizationController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CoachController;
@@ -11,6 +12,7 @@ use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TrainingScheduleController;
 use App\Http\Controllers\WearableActivityController;
+use App\Http\Controllers\WorkoutChatController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -51,6 +53,11 @@ Route::prefix('v1')->group(function () {
         Route::post('devices', [DeviceTokenController::class, 'store']);
         Route::delete('devices', [DeviceTokenController::class, 'destroy']);
 
+        // In-app notifications inbox (action-required items)
+        Route::get('notifications', [NotificationController::class, 'index']);
+        Route::post('notifications/{notification}/accept', [NotificationController::class, 'accept']);
+        Route::post('notifications/{notification}/dismiss', [NotificationController::class, 'dismiss']);
+
         // Dashboard
         Route::get('dashboard', DashboardController::class);
 
@@ -79,8 +86,13 @@ Route::prefix('v1')->group(function () {
         Route::get('coach/conversations', [CoachController::class, 'index']);
         Route::post('coach/conversations', [CoachController::class, 'store']);
         Route::get('coach/conversations/{conversation}', [CoachController::class, 'show']);
+        Route::delete('coach/conversations/{conversation}', [CoachController::class, 'destroy']);
         Route::post('coach/conversations/{conversation}/messages', [CoachController::class, 'sendMessage']);
         Route::post('coach/proposals/{proposal}/accept', [CoachController::class, 'acceptProposal']);
         Route::post('coach/proposals/{proposal}/reject', [CoachController::class, 'rejectProposal']);
+
+        // Per-training-day chat (WorkoutAgent)
+        Route::get('workout-chat/{trainingDay}', [WorkoutChatController::class, 'show']);
+        Route::post('workout-chat/{trainingDay}/messages', [WorkoutChatController::class, 'sendMessage']);
     });
 });

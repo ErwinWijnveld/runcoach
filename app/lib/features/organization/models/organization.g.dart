@@ -14,6 +14,7 @@ _Organization _$OrganizationFromJson(Map<String, dynamic> json) =>
       description: json['description'] as String?,
       website: json['website'] as String?,
       logoPath: json['logo_path'] as String?,
+      logoUrl: json['logo_url'] as String?,
     );
 
 Map<String, dynamic> _$OrganizationToJson(_Organization instance) =>
@@ -24,4 +25,5 @@ Map<String, dynamic> _$OrganizationToJson(_Organization instance) =>
       'description': instance.description,
       'website': instance.website,
       'logo_path': instance.logoPath,
+      'logo_url': instance.logoUrl,
     };

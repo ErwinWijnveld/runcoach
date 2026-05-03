@@ -1,5 +1,4 @@
 import 'dart:ui';
-
 import 'package:cupertino_native/cupertino_native.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;
@@ -25,7 +24,6 @@ import 'package:app/features/onboarding/screens/onboarding_overview_screen.dart'
 import 'package:app/features/onboarding/screens/onboarding_form_screen.dart';
 import 'package:app/features/onboarding/screens/onboarding_generating_screen.dart';
 import 'package:app/features/organization/screens/connections_screen.dart';
-import 'package:app/features/organization/screens/find_organization_screen.dart';
 import 'package:app/features/organization/screens/invite_detail_screen.dart';
 
 part 'app_router.g.dart';
@@ -138,12 +136,6 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: '/connections',
         builder: (context, state) => const ConnectionsScreen(),
-        routes: [
-          GoRoute(
-            path: 'find',
-            builder: (context, state) => const FindOrganizationScreen(),
-          ),
-        ],
       ),
       GoRoute(
         path: '/invites/:token',
@@ -467,7 +459,7 @@ class _RunCoreBottomNav extends StatelessWidget {
                     Expanded(
                       child: _NavItem(
                         svgAsset: 'assets/icons/ai_coach_tab.svg',
-                        label: 'AI Coach',
+                        label: 'Chat',
                         active: currentIndex == 2,
                         onTap: () => _goTo(context, 2),
                       ),
@@ -589,7 +581,7 @@ class _NativeIosTabBar extends StatelessWidget {
           icon: CNSymbol('calendar'),
         ),
         CNTabBarItem(
-          label: 'AI Coach',
+          label: 'Chat',
           icon: CNSymbol('sparkles'),
         ),
         CNTabBarItem(

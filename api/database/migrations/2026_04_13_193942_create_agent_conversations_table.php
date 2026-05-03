@@ -16,9 +16,16 @@ return new class extends AiMigration
             $table->foreignId('user_id')->nullable();
             $table->string('title');
             $table->string('context')->nullable()->index();
+            // Polymorphic owner: when set, this conversation is scoped to a
+            // specific subject (e.g. a TrainingDay for the workout-agent
+            // chat) and is hidden from the general coach chat list. Today
+            // the only subject_type is 'training_day'.
+            $table->string('subject_type')->nullable();
+            $table->unsignedBigInteger('subject_id')->nullable();
             $table->timestamps();
 
             $table->index(['user_id', 'updated_at']);
+            $table->index(['user_id', 'subject_type', 'subject_id']);
         });
 
         Schema::create('agent_conversation_messages', function (Blueprint $table) {

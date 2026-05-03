@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
+import 'package:app/core/widgets/heart_rate_zones_sheet.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/router/app_router.dart';
 
@@ -13,6 +14,13 @@ Future<void> showProfileMenuSheet(BuildContext context) {
   return showCupertinoModalPopup<void>(
     context: context,
     builder: (_) => const HidesBottomNav(child: ProfileMenuSheet()),
+  );
+}
+
+Future<void> _openAccountSheet(BuildContext context) {
+  return showCupertinoModalPopup<void>(
+    context: context,
+    builder: (_) => const HidesBottomNav(child: _AccountEditSheet()),
   );
 }
 
@@ -58,8 +66,16 @@ class ProfileMenuSheet extends ConsumerWidget {
                     context.push('/connections');
                   },
                 ),
-                const _SettingRow(icon: CupertinoIcons.person_circle, label: 'Account'),
-                const _SettingRow(icon: CupertinoIcons.bell, label: 'Notificaties'),
+                _SettingRow(
+                  icon: CupertinoIcons.person_circle,
+                  label: 'Account',
+                  onTap: () => _openAccountSheet(context),
+                ),
+                _SettingRow(
+                  icon: CupertinoIcons.heart,
+                  label: 'HR Zones',
+                  onTap: () => showHeartRateZonesSheet(context),
+                ),
                 const _SettingRow(icon: CupertinoIcons.lock, label: 'Privacy'),
                 const _SettingRow(icon: CupertinoIcons.info_circle, label: 'Over'),
               ],
@@ -279,6 +295,220 @@ class _LogoutButton extends ConsumerWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _AccountEditSheet extends ConsumerStatefulWidget {
+  const _AccountEditSheet();
+
+  @override
+  ConsumerState<_AccountEditSheet> createState() => _AccountEditSheetState();
+}
+
+class _AccountEditSheetState extends ConsumerState<_AccountEditSheet> {
+  late final TextEditingController _nameController;
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = ref.read(authProvider).value;
+    _nameController = TextEditingController(text: user?.name ?? '');
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) {
+      setState(() => _error = 'Name cannot be empty');
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await ref.read(authProvider.notifier).updateProfile(name: name);
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error = e.toString();
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = ref.watch(authProvider).value;
+    final email = user?.email ?? '';
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.neutral,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 36,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: AppColors.inputBorder,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Account',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryInk,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _FieldLabel('Name'),
+                    const SizedBox(height: 6),
+                    CupertinoTextField(
+                      controller: _nameController,
+                      placeholder: 'Your name',
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.cardBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.inputBorder),
+                      ),
+                      enabled: !_saving,
+                    ),
+                    const SizedBox(height: 16),
+                    const _FieldLabel('Email'),
+                    const SizedBox(height: 6),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.cardBg,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.inputBorder),
+                      ),
+                      child: Text(
+                        email.isEmpty ? '—' : email,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          color: AppColors.inkMuted,
+                        ),
+                      ),
+                    ),
+                    if (_error != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        _error!,
+                        style: const TextStyle(
+                          color: CupertinoColors.systemRed,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: CupertinoButton(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        color: AppColors.cardBg,
+                        borderRadius: BorderRadius.circular(14),
+                        onPressed: _saving
+                            ? null
+                            : () => Navigator.of(context).pop(),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(
+                            color: AppColors.primaryInk,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: CupertinoButton.filled(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        borderRadius: BorderRadius.circular(14),
+                        onPressed: _saving ? null : _save,
+                        child: _saving
+                            ? const CupertinoActivityIndicator(
+                                color: CupertinoColors.white,
+                              )
+                            : const Text(
+                                'Save',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  final String text;
+  const _FieldLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text.toUpperCase(),
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        color: AppColors.warmBrown,
+        letterSpacing: 1,
       ),
     );
   }

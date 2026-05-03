@@ -175,8 +175,8 @@ class _SelectActivitySheetState extends ConsumerState<SelectActivitySheet> {
           );
 
       if (!mounted) return;
-      ref.invalidate(availableActivitiesProvider(widget.dayId));
-
+      // ManualMatchActivity bumps planVersion, which refreshes the
+      // available-activities picker too.
       Navigator.of(context).pop();
       widget.onMatched();
     } catch (e) {

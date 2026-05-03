@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Icons, Material, InkWell;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_header.dart';
@@ -29,10 +30,6 @@ const _muted = Color(0xFF7A6A4E);
 const _muted2 = Color(0xFFA79274);
 const _inkBlack = Color(0xFF1A1510);
 const _restCell = Color(0xFFEFE7D2);
-const _upcomingCell = Color(0xFFF6EFDC);
-const _upcomingEmphasis = Color(0xFFD9CEA8);
-const _missedCell = Color(0xFFC44A2E);
-const _longRunDeep = Color(0xFFC99420);
 const _lineSoft = Color(0x2E7A6A4E);
 
 const int _weeksPerPage = 16;
@@ -254,9 +251,7 @@ class _TodayCard extends StatelessWidget {
 
   Widget _buildContent(TrainingDay day) {
     final date = DateTime.parse(day.date);
-    final typeLabel = _humanizeType(day.type);
-    final dayLabel = _relativeDayLabel(date, today);
-    final eyebrow = '$dayLabel · $typeLabel'.toUpperCase();
+    final dayLabel = _relativeDayLabel(date, today).toUpperCase();
 
     final distance = day.targetKm == null
         ? null
@@ -285,11 +280,26 @@ class _TodayCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    eyebrow,
-                    style: RunCoreText.sectionEyebrow(color: _eyebrowGold),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.goldGlow,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      dayLabel,
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8,
+                        color: AppColors.eyebrow,
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Text(
                     day.title,
                     style: RunCoreText.serifTitle(size: 26, height: 30 / 26),
@@ -409,7 +419,16 @@ class _WeekBars extends StatelessWidget {
         final barHeight = km == 0 ? 4.0 : 6.0 + ratio * (height - 6.0);
         final color = _barColor(cell);
         final label = dayLabels[i];
-        final isToday = cell.state == _CellState.today;
+        final isToday = cell.isToday;
+        final dayLabel = Text(
+          label,
+          style: TextStyle(
+            fontSize: 10.5,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.4,
+            color: isToday ? CupertinoColors.white : _muted,
+          ),
+        );
         return Expanded(
           child: Padding(
             padding: EdgeInsets.only(right: i == 6 ? 0 : 6),
@@ -433,15 +452,19 @@ class _WeekBars extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.4,
-                    color: isToday ? AppColors.primaryInk : _muted,
-                  ),
-                ),
+                if (isToday)
+                  Container(
+                    width: 18,
+                    height: 18,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: AppColors.secondary,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: dayLabel,
+                  )
+                else
+                  dayLabel,
               ],
             ),
           ),
@@ -456,15 +479,13 @@ Color _barColor(_DayCell cell) {
     case _CellState.rest:
       return _restCell;
     case _CellState.done:
-      return _inkBlack;
+      return AppColors.success;
     case _CellState.missed:
-      return _missedCell;
-    case _CellState.today:
-      return AppColors.secondary;
+      return AppColors.danger;
     case _CellState.race:
       return _inkBlack;
     case _CellState.upcoming:
-      return cell.type == 'long_run' ? _longRunDeep : _upcomingEmphasis;
+      return AppColors.secondary;
   }
 }
 
@@ -766,6 +787,9 @@ class _MatrixColumn extends StatelessWidget {
               decoration: BoxDecoration(
                 color: _cellColor(column.cells[d]),
                 borderRadius: BorderRadius.circular(2),
+                border: column.cells[d].isToday
+                    ? Border.all(color: AppColors.secondary, width: 1.5)
+                    : null,
               ),
               child: column.cells[d].state == _CellState.race
                   ? const Center(
@@ -790,13 +814,11 @@ Color _cellColor(_DayCell cell) {
     case _CellState.rest:
       return _restCell;
     case _CellState.done:
-      return _inkBlack;
+      return AppColors.success;
     case _CellState.missed:
-      return _missedCell;
-    case _CellState.today:
-      return AppColors.secondary;
+      return AppColors.danger;
     case _CellState.upcoming:
-      return _upcomingCell;
+      return AppColors.secondary;
     case _CellState.race:
       return _inkBlack;
   }
@@ -841,10 +863,9 @@ class _Legend extends StatelessWidget {
       spacing: 12,
       runSpacing: 4,
       children: [
-        _LegendDot(color: _inkBlack, label: 'Done'),
-        _LegendDot(color: _missedCell, label: 'Missed'),
-        _LegendDot(color: AppColors.secondary, label: 'Today'),
-        _LegendDot(color: _upcomingCell, label: 'Upcoming'),
+        _LegendDot(color: AppColors.success, label: 'Done'),
+        _LegendDot(color: AppColors.danger, label: 'Missed'),
+        _LegendDot(color: AppColors.secondary, label: 'Upcoming'),
       ],
     );
   }
@@ -972,16 +993,18 @@ class _EmptyState extends StatelessWidget {
 // Model + derivation helpers
 // ---------------------------------------------------------------------------
 
-enum _CellState { rest, done, missed, today, upcoming, race }
+enum _CellState { rest, done, missed, upcoming, race }
 
 class _DayCell {
   final _CellState state;
+  final bool isToday;
   final double? targetKm;
   final String? type;
   final TrainingDay? day;
 
   const _DayCell({
     required this.state,
+    this.isToday = false,
     this.targetKm,
     this.type,
     this.day,
@@ -1005,12 +1028,34 @@ List<_DayCell> _buildWeekCells(
     if (date == null) continue;
     final weekday = date.weekday - 1; // Mon=0..Sun=6
     if (weekday < 0 || weekday > 6) continue;
+    final dateOnly = DateTime(date.year, date.month, date.day);
     cells[weekday] = _DayCell(
       state: _deriveState(day, today, raceDate),
+      isToday: _sameDay(dateOnly, today),
       targetKm: day.targetKm,
       type: day.type,
       day: day,
     );
+  }
+
+  // Mark today's slot even if it's a rest day (no TrainingDay for that date),
+  // but only when `today` falls within this week's range.
+  final weekStart = DateTime.tryParse(week.startsAt);
+  if (weekStart != null) {
+    final weekStartDay = DateTime(weekStart.year, weekStart.month, weekStart.day);
+    final weekEndDay = weekStartDay.add(const Duration(days: 6));
+    if (!today.isBefore(weekStartDay) && !today.isAfter(weekEndDay)) {
+      final idx = today.weekday - 1;
+      if (idx >= 0 && idx < 7 && !cells[idx].isToday) {
+        cells[idx] = _DayCell(
+          state: cells[idx].state,
+          isToday: true,
+          targetKm: cells[idx].targetKm,
+          type: cells[idx].type,
+          day: cells[idx].day,
+        );
+      }
+    }
   }
 
   return cells;
@@ -1023,12 +1068,8 @@ _CellState _deriveState(TrainingDay day, DateTime today, DateTime? raceDate) {
   if (raceDate != null && _sameDay(dateOnly, raceDate)) {
     return _CellState.race;
   }
-  if (_sameDay(dateOnly, today)) {
-    return day.result != null ? _CellState.done : _CellState.today;
-  }
-  if (dateOnly.isBefore(today)) {
-    return day.result != null ? _CellState.done : _CellState.missed;
-  }
+  if (day.result != null) return _CellState.done;
+  if (dateOnly.isBefore(today)) return _CellState.missed;
   return _CellState.upcoming;
 }
 
@@ -1104,26 +1145,6 @@ DateTime? _tryParseDate(String? iso) {
   final dt = DateTime.tryParse(iso);
   if (dt == null) return null;
   return DateTime(dt.year, dt.month, dt.day);
-}
-
-String _humanizeType(String type) {
-  switch (type) {
-    case 'easy':
-      return 'Easy';
-    case 'tempo':
-      return 'Tempo';
-    case 'interval':
-      return 'Intervals';
-    case 'long_run':
-      return 'Long run';
-    case 'threshold':
-      return 'Threshold';
-    default:
-      return type
-          .split('_')
-          .map((s) => s.isEmpty ? s : '${s[0].toUpperCase()}${s.substring(1)}')
-          .join(' ');
-  }
 }
 
 String _relativeDayLabel(DateTime date, DateTime today) {

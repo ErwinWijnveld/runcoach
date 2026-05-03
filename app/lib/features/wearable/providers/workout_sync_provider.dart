@@ -3,8 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:app/features/dashboard/providers/dashboard_provider.dart';
-import 'package:app/features/schedule/providers/schedule_provider.dart';
+import 'package:app/features/schedule/providers/plan_version_provider.dart';
 import 'package:app/features/wearable/data/wearable_api.dart';
 import 'package:app/features/wearable/models/analyzing_run.dart';
 
@@ -352,11 +351,8 @@ class WorkoutSync extends _$WorkoutSync {
 
   void _refreshDependents() {
     // Fresh result rows mean the dashboard's compliance + the schedule
-    // matrix are stale. Invalidate so the next read pulls them.
-    ref.invalidate(dashboardProvider);
-    // scheduleProvider is family-keyed by goalId — invalidating with no
-    // arg busts every entry, which is the correct behavior because we
-    // don't track which goal owns the run here.
-    ref.invalidate(scheduleProvider);
+    // matrix are stale. Bumping planVersion broadcasts that to every
+    // plan-derived provider in one call.
+    ref.read(planVersionProvider.notifier).bump();
   }
 }

@@ -7,6 +7,7 @@ use App\Models\TrainingDay;
 use App\Models\TrainingResult;
 use App\Models\User;
 use App\Models\WearableActivity;
+use App\Support\HeartRateZones;
 
 class ComplianceScoringService
 {
@@ -49,11 +50,7 @@ class ComplianceScoringService
         $distanceScore = $this->calculateDistanceScore($day, $activity);
         $heartRateScore = $this->calculateHeartRateScore($day, $activity);
 
-        if ($heartRateScore !== null) {
-            $overallScore = ($distanceScore * 0.3) + ($paceScore * 0.4) + ($heartRateScore * 0.3);
-        } else {
-            $overallScore = ($distanceScore * 0.45) + ($paceScore * 0.55);
-        }
+        $overallScore = self::weightedOverall($distanceScore, $paceScore, $heartRateScore);
 
         return TrainingResult::updateOrCreate(
             ['training_day_id' => $day->id],
@@ -63,12 +60,49 @@ class ComplianceScoringService
                 'actual_km' => $activity->distanceInKm(),
                 'actual_pace_seconds_per_km' => $activity->paceSecondsPerKm(),
                 'actual_avg_heart_rate' => $activity->average_heartrate,
-                'pace_score' => round($paceScore, 1),
+                'pace_score' => $paceScore !== null ? round($paceScore, 1) : null,
                 'distance_score' => round($distanceScore, 1),
                 'heart_rate_score' => $heartRateScore !== null ? round($heartRateScore, 1) : null,
                 'matched_at' => now(),
             ]
         );
+    }
+
+    /**
+     * Combine the three sub-scores using fixed canonical weights — but only
+     * include components that produced a real score. Active weights are
+     * renormalised so the result always lives on the same 0-10 scale,
+     * regardless of which dimensions were unavailable.
+     *
+     * Canonical weights: distance 30%, pace 40%, HR 30%. Real-world
+     * combinations after renormalisation:
+     *  - all three:                30 / 40 / 30
+     *  - no HR (no avg hr):        43 / 57 / —
+     *  - no pace (interval days):  50 / —  / 50
+     *  - distance only:            100 / — / —
+     *
+     * Public + static so seed data can compute the same number without
+     * needing to instantiate the service or duplicate the formula. Single
+     * source of truth — change weights here and seeded values follow.
+     */
+    public static function weightedOverall(float $distance, ?float $pace, ?float $hr): float
+    {
+        $components = [['score' => $distance, 'weight' => 0.3]];
+        if ($pace !== null) {
+            $components[] = ['score' => $pace, 'weight' => 0.4];
+        }
+        if ($hr !== null) {
+            $components[] = ['score' => $hr, 'weight' => 0.3];
+        }
+
+        $totalWeight = array_sum(array_column($components, 'weight'));
+
+        $weighted = 0.0;
+        foreach ($components as $c) {
+            $weighted += $c['score'] * $c['weight'];
+        }
+
+        return $totalWeight > 0 ? $weighted / $totalWeight : 0.0;
     }
 
     private function findMatchingDay(User $user, WearableActivity $activity): ?TrainingDay
@@ -103,10 +137,18 @@ class ComplianceScoringService
         })->first();
     }
 
-    private function calculatePaceScore(TrainingDay $day, WearableActivity $activity): float
+    /**
+     * Pace compliance, or null when we have no defensible target to compare
+     * against. Intervals fall in this bucket: their day-level
+     * `target_pace_seconds_per_km` is null and an actual run's average
+     * (which mixes work + recovery + warmup + cooldown) wouldn't be
+     * meaningful to score against the work-segment target. Until segment
+     * ingestion lands, intervals get distance + HR scoring only.
+     */
+    private function calculatePaceScore(TrainingDay $day, WearableActivity $activity): ?float
     {
         if (! $day->target_pace_seconds_per_km) {
-            return 7.0;
+            return null;
         }
 
         $actualPace = $activity->paceSecondsPerKm();
@@ -135,15 +177,14 @@ class ComplianceScoringService
             return null;
         }
 
-        $zones = $this->zonesFor($activity->user);
-        $targetIndex = $day->target_heart_rate_zone - 1;
-        if (! isset($zones[$targetIndex])) {
+        $zone = HeartRateZones::zoneFor($activity->user, $day->target_heart_rate_zone);
+        if ($zone === null) {
             return null;
         }
 
         $avgHr = (float) $activity->average_heartrate;
-        $min = (float) $zones[$targetIndex]['min'];
-        $max = (float) $zones[$targetIndex]['max'];
+        $min = (float) $zone['min'];
+        $max = (float) $zone['max'];
 
         // Zone 5's upper bound is -1 (open-ended) by convention.
         $insideZone = $avgHr >= $min && ($max < 0 || $avgHr <= $max);
@@ -156,34 +197,5 @@ class ComplianceScoringService
         $distanceBpm = $avgHr < $min ? ($min - $avgHr) : ($avgHr - $max);
 
         return max(1.0, 10.0 - ($distanceBpm / 5.0));
-    }
-
-    /**
-     * Standard HR zones used when the runner hasn't connected a wearable yet
-     * or we couldn't derive their custom zones. Matches Strava's default
-     * thresholds for an untrained athlete.
-     */
-    private const DEFAULT_HR_ZONES = [
-        ['min' => 0, 'max' => 115],
-        ['min' => 115, 'max' => 152],
-        ['min' => 152, 'max' => 171],
-        ['min' => 171, 'max' => 190],
-        ['min' => 190, 'max' => -1],
-    ];
-
-    /**
-     * Resolve the zone table for a user. Prefers their stored zones
-     * (`users.heart_rate_zones`), falls back to defaults.
-     *
-     * @return array<int, array{min:int|float, max:int|float}>
-     */
-    private function zonesFor(?User $user): array
-    {
-        $stored = $user?->heart_rate_zones;
-        if (is_array($stored) && count($stored) >= 5) {
-            return array_values($stored);
-        }
-
-        return self::DEFAULT_HR_ZONES;
     }
 }

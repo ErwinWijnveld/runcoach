@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:app/core/storage/token_storage.dart';
 import 'package:app/features/auth/data/auth_api.dart';
+import 'package:app/features/auth/models/hr_zone.dart';
 import 'package:app/features/auth/models/user.dart';
 import 'package:app/features/onboarding/models/plan_generation.dart';
 import 'package:app/features/push/services/push_service.dart';
@@ -100,6 +101,18 @@ class Auth extends _$Auth {
     } catch (_) {}
     await tokenStorage.clearToken();
     state = const AsyncValue.data(null);
+  }
+
+  Future<void> updateProfile({String? name, List<HrZone>? heartRateZones}) async {
+    final api = ref.read(authApiProvider);
+    final body = <String, dynamic>{
+      'name': ?name,
+      'heart_rate_zones': ?heartRateZones?.map((z) => z.toJson()).toList(),
+    };
+    if (body.isEmpty) return;
+    final data = await api.updateProfile(body) as Map<String, dynamic>;
+    final user = User.fromJson(data['user'] as Map<String, dynamic>);
+    state = AsyncValue.data(user);
   }
 
   Future<void> deleteAccount() async {

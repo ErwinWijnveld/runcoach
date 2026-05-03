@@ -26,6 +26,14 @@ sealed class CoachMessage with _$CoachMessage {
     bool streaming,
     @JsonKey(includeFromJson: false, includeToJson: false)
     String? toolIndicator,
+    // Set when the workout-scoped agent calls EscalateToCoach. The UI
+    // renders a tile under this message that opens a fresh coach chat
+    // pre-seeded with this prompt. Not persisted server-side — the SDK
+    // stores it in tool_results, but reload doesn't re-display it (the
+    // hand-off was a one-shot decision; reopening the workout chat
+    // shouldn't keep nagging).
+    @JsonKey(includeFromJson: false, includeToJson: false)
+    String? handoffPrompt,
   }) = _CoachMessage;
 
   factory CoachMessage.fromJson(Map<String, dynamic> json) =>

@@ -4,11 +4,13 @@ import 'package:app/features/schedule/models/available_activity.dart';
 import 'package:app/features/schedule/models/training_week.dart';
 import 'package:app/features/schedule/models/training_day.dart';
 import 'package:app/features/schedule/models/training_result.dart';
+import 'package:app/features/schedule/providers/plan_version_provider.dart';
 
 part 'schedule_provider.g.dart';
 
 @riverpod
 Future<List<TrainingWeek>> schedule(Ref ref, int goalId) async {
+  ref.watch(planVersionProvider);
   final api = ref.watch(scheduleApiProvider);
   final data = await api.getSchedule(goalId);
   final list = data['data'] as List;
@@ -19,6 +21,7 @@ Future<List<TrainingWeek>> schedule(Ref ref, int goalId) async {
 
 @riverpod
 Future<TrainingWeek?> currentWeek(Ref ref, int goalId) async {
+  ref.watch(planVersionProvider);
   final api = ref.watch(scheduleApiProvider);
   final data = await api.getCurrentWeek(goalId);
   final weekData = data['data'];
@@ -28,6 +31,7 @@ Future<TrainingWeek?> currentWeek(Ref ref, int goalId) async {
 
 @riverpod
 Future<TrainingDay> trainingDayDetail(Ref ref, int dayId) async {
+  ref.watch(planVersionProvider);
   final api = ref.watch(scheduleApiProvider);
   final data = await api.getTrainingDay(dayId);
   return TrainingDay.fromJson(data['data'] as Map<String, dynamic>);
@@ -35,6 +39,7 @@ Future<TrainingDay> trainingDayDetail(Ref ref, int dayId) async {
 
 @riverpod
 Future<TrainingResult?> trainingDayResult(Ref ref, int dayId) async {
+  ref.watch(planVersionProvider);
   final api = ref.watch(scheduleApiProvider);
   final data = await api.getTrainingResult(dayId);
   final resultData = data['data'];
@@ -47,6 +52,7 @@ Future<TrainingResult?> trainingDayResult(Ref ref, int dayId) async {
 /// "Pick activity" modal on the day detail screen.
 @riverpod
 Future<List<AvailableActivity>> availableActivities(Ref ref, int dayId) async {
+  ref.watch(planVersionProvider);
   final api = ref.watch(scheduleApiProvider);
   final data = await api.getAvailableActivities(dayId);
   final list = data['data'] as List? ?? [];
@@ -56,6 +62,13 @@ Future<List<AvailableActivity>> availableActivities(Ref ref, int dayId) async {
 }
 
 /// Manually match (or unlink) a wearable activity for a training day.
+///
+/// Mutators capture every cross-provider dependency BEFORE awaiting the
+/// API call. The host widget (e.g. the activity-picker sheet) can be torn
+/// down while the request is in flight — autoDispose then disposes this
+/// provider's `ref` and any `ref.read(...)` after the await throws. By
+/// dereferencing once up-front we operate on stable handles and the awaited
+/// future settles cleanly even if the caller already navigated away.
 @riverpod
 class ManualMatchActivity extends _$ManualMatchActivity {
   @override
@@ -66,10 +79,12 @@ class ManualMatchActivity extends _$ManualMatchActivity {
     required int wearableActivityId,
   }) async {
     final api = ref.read(scheduleApiProvider);
+    final planVersion = ref.read(planVersionProvider.notifier);
     final response = await api.matchActivity(
       dayId,
       {'wearable_activity_id': wearableActivityId},
     );
+    planVersion.bump();
     return TrainingResult.fromJson(
       Map<String, dynamic>.from(response['data'] as Map),
     );
@@ -79,7 +94,9 @@ class ManualMatchActivity extends _$ManualMatchActivity {
   /// The WearableActivity row stays so the run can be re-matched.
   Future<void> unlink({required int dayId}) async {
     final api = ref.read(scheduleApiProvider);
+    final planVersion = ref.read(planVersionProvider.notifier);
     await api.unlinkActivity(dayId);
+    planVersion.bump();
   }
 }
 
@@ -95,9 +112,11 @@ class RescheduleDay extends _$RescheduleDay {
     required DateTime date,
   }) async {
     final api = ref.read(scheduleApiProvider);
+    final planVersion = ref.read(planVersionProvider.notifier);
     final ymd =
         '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
     final response = await api.updateTrainingDay(dayId, {'date': ymd});
+    planVersion.bump();
     return TrainingDay.fromJson(
       Map<String, dynamic>.from(response['data'] as Map),
     );

@@ -10,7 +10,11 @@ abstract class OrganizationApi {
   factory OrganizationApi(Dio dio) = _OrganizationApi;
 
   @GET('/organizations/search')
-  Future<dynamic> searchOrganizations(@Query('q') String? q);
+  Future<dynamic> searchOrganizations(
+    @Query('q') String? q,
+    @Query('page') int? page,
+    @Query('per_page') int? perPage,
+  );
 
   @GET('/me/memberships')
   Future<dynamic> listMemberships();

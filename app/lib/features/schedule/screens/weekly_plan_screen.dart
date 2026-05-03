@@ -14,6 +14,7 @@ import 'package:app/router/app_router.dart'
 import 'package:app/features/dashboard/providers/dashboard_provider.dart';
 import 'package:app/features/schedule/data/schedule_coach_suggestions.dart';
 import 'package:app/features/schedule/models/training_day.dart';
+import 'package:app/features/schedule/models/training_day_pace_x.dart';
 import 'package:app/features/schedule/models/training_week.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
 import 'package:app/features/schedule/widgets/training_day_status.dart';
@@ -625,7 +626,9 @@ class _DayTile extends StatelessWidget {
   }
 
   String get _subtitle {
-    final pace = day.targetPaceSecondsPerKm;
+    // For intervals this falls through to the work-set avg pace via the
+    // pace extension — day-level `targetPaceSecondsPerKm` is null there.
+    final pace = day.displayPaceSecondsPerKm;
     if (pace != null && pace > 0) {
       final m = pace ~/ 60;
       final s = (pace % 60).toString().padLeft(2, '0');

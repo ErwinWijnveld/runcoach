@@ -13,6 +13,9 @@ _User _$UserFromJson(Map<String, dynamic> json) => _User(
   appleSub: json['apple_sub'] as String?,
   coachStyle: json['coach_style'] as String?,
   hasCompletedOnboarding: json['has_completed_onboarding'] as bool? ?? false,
+  heartRateZones: (json['heart_rate_zones'] as List<dynamic>?)
+      ?.map((e) => HrZone.fromJson(e as Map<String, dynamic>))
+      .toList(),
   pendingPlanGeneration: json['pending_plan_generation'] == null
       ? null
       : PlanGeneration.fromJson(
@@ -40,6 +43,7 @@ Map<String, dynamic> _$UserToJson(_User instance) => <String, dynamic>{
   'apple_sub': instance.appleSub,
   'coach_style': instance.coachStyle,
   'has_completed_onboarding': instance.hasCompletedOnboarding,
+  'heart_rate_zones': instance.heartRateZones,
   'pending_plan_generation': instance.pendingPlanGeneration,
   'current_membership': instance.currentMembership,
   'pending_invites': instance.pendingInvites,

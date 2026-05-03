@@ -636,7 +636,16 @@ class PlanOptimizerService
             foreach (($week['days'] ?? []) as $di => $day) {
                 $type = (string) ($day['type'] ?? TrainingType::Easy->value);
 
-                if (($day['target_pace_seconds_per_km'] ?? null) === null) {
+                // Interval days carry pace per work segment inside
+                // `intervals` — never on the day itself. The "day pace" for
+                // an interval session is conceptually the avg across its
+                // working sets, computed on the fly via
+                // `TrainingDay::workSetAveragePaceSecondsPerKm()`. Forcing a
+                // null here means a single source of truth: any AI/optimizer
+                // value we used to write would mask the real per-rep pace.
+                if ($type === TrainingType::Interval->value) {
+                    $payload['schedule']['weeks'][$wi]['days'][$di]['target_pace_seconds_per_km'] = null;
+                } elseif (($day['target_pace_seconds_per_km'] ?? null) === null) {
                     $payload['schedule']['weeks'][$wi]['days'][$di]['target_pace_seconds_per_km']
                         = $this->paceForType($baseline, $type);
                 }

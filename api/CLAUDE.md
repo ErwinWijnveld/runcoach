@@ -449,6 +449,80 @@ All routes under `/api/v1/*` prefix in `routes/api.php`. Public routes: `POST /a
 
 Controllers live in `app/Http/Controllers/`: Auth, Profile, Goal, TrainingSchedule, WearableActivity, Coach, Dashboard, Onboarding, plus `Api/MembershipController` and `Api/OrganizationController`.
 
+### Reschedule training day
+
+`PATCH /api/v1/training-days/{day}` (`TrainingScheduleController::updateDay`) moves a `TrainingDay` to a new date. Validation rules:
+- `date` ≥ today and ≤ goal `target_date` (when set)
+- 422 if the day already has a `TrainingResult` linked (unlink first)
+- 422 if the day IS the race day (its `date` equals `goal.target_date`) — moving it would break the optimizer's race-day-on-target-date invariant. The user has to edit the goal date instead.
+
+After update, the day is auto-re-assigned to the matching `TrainingWeek` (week whose `[starts_at, starts_at + 7d)` contains the new date) so weekly views stay coherent. The optimizer is NOT re-run — `updateDay` is a date-only mutation.
+
+### Notifications inbox (action-required items)
+
+Generic per-user inbox for items the runner needs to act on. Backed by `user_notifications` (`App\Models\UserNotification`):
+- `type` (string discriminator: currently only `pace_adjustment`)
+- `title`, `body` — display copy
+- `action_data` (JSON) — type-specific payload
+- `status` (`pending` / `accepted` / `dismissed`) + `acted_at`
+
+**Endpoints** (all under `auth:sanctum`):
+- `GET /api/v1/notifications` → pending list, capped at 50 items (`NotificationController::MAX_INBOX_ITEMS`)
+- `POST /api/v1/notifications/{id}/accept` → routes by `type` to the right handler, marks accepted
+- `POST /api/v1/notifications/{id}/dismiss` → marks dismissed without applying
+
+**Adding a new type**:
+1. Pick a string like `profile_completion` and add as a `UserNotification::TYPE_*` constant
+2. Decide what `action_data` shape it needs and document it
+3. Add a producer (a service that creates the row when conditions trigger). For pace_adjustment, that's `App\Services\PaceAdjustmentEvaluator` — invoked from `GenerateActivityFeedback::handle()` inside a `try/catch report($e)` so a brittle producer can't silence the AI feedback / push pipeline.
+4. Add a `match` arm in `NotificationController::accept` for the type, calling its specific handler. Default falls through to `abort(422, …)`.
+5. (Optional) extend the Flutter `_NotificationCard` with a tertiary action when the type warrants it (e.g. pace_adjustment surfaces "Edit HR Zones" so the runner can address the root-cause calibration). See `app/CLAUDE.md` for the UI pattern.
+
+**Pace-adjustment producer rules** (`PaceAdjustmentEvaluator`):
+- Skips intervals (their day-level `target_pace_seconds_per_km` is always null + full-run avg pace isn't the right signal)
+- Skips when `pace_score < 8.0` (runner couldn't hold target pace, so the HR mismatch isn't a zone-calibration issue)
+- Skips when `heart_rate_score > 7.0` (HR was close enough to zone — no signal)
+- Pace-factor formula: `1 + (actual_hr − zone_mid) / zone_mid / 0.85`, clamped to `[0.85, 1.20]`
+- Skips when `|factor − 1| < 0.03` (adjustment too small to bother the user with)
+- Supersedes any pending notification of the same `training_type` (replace older suggestion when a fresh run confirms the pattern)
+- HR zone math goes through `App\Support\HeartRateZones` — single source of truth shared with `ComplianceScoringService`. Don't reimplement zone lookups inline.
+
+**Tests:** `tests/Feature/Services/PaceAdjustmentEvaluatorTest.php` (producer trigger logic) + `tests/Feature/Http/NotificationControllerTest.php` (accept/dismiss/auth flow) + `tests/Feature/Jobs/GenerateActivityFeedbackTest.php::test_push_still_fires_when_pace_evaluator_throws` (resilience).
+
+### Interval pace contract (must read before touching interval code)
+
+**Day-level pace is always null on interval days.** This is a hard invariant enforced in three places:
+1. `PlanOptimizerService::computePaces` — actively NULLS `target_pace_seconds_per_km` on interval days even when the AI tried to set one. Per-segment paces in `intervals` are still backfilled.
+2. `App\Filament\Coach\Pages\GoalSchedule::persistDay` — same rule for coach edits via the admin schedule page.
+3. The Flutter app reads pace via `TrainingDay::workSetAveragePaceSecondsPerKm()` — the unweighted mean of every `kind=work` segment's `target_pace_seconds_per_km`.
+
+The reason: an interval session has multiple distinct paces (different per rep, optionally a pyramid), and storing one number at the day level would mask that. The accessor surfaces a single representative number for UI labels without fudging the underlying truth.
+
+**`training_results.pace_score` is nullable.** `ComplianceScoringService::calculatePaceScore` returns `null` when there's no day-level target pace (always the case for intervals). `weightedOverall` then renormalises distance + HR (50/50 after renorm) so an interval session can still produce a meaningful `compliance_score`. Without segment-level ingestion of the user's actual workout (TODO: native iOS `HKWorkoutEvent` extraction), comparing a full-run avg to per-rep targets would be wrong — so we explicitly DO NOT.
+
+**Filament editor**:
+- `Action`-based modal (not the old custom CSS modal — Filament's `<x-filament-actions::modals />` gives proper scrolling/positioning).
+- Steps Repeater with three row types: `block` (loop with reps count), `rep` (single one-off rep), `rest` (one-off rest). Greedy parser collapses uniform `(work, recovery)` runs into `block` steps; mixed/pyramid sessions stay as multiple blocks/reps.
+- Read-only Placeholder shows the live work-set average ("Pace (work-set avg): 4:30/km") while editing; updates as the coach tweaks any work segment.
+- Pace text inputs validated by regex `^\d{1,2}:[0-5]\d$` — invalid input fails Filament validation rather than silently coercing to null on save.
+
+**Tests:** `tests/Feature/Models/TrainingDayWorkAvgPaceTest.php` (accessor) + `tests/Feature/ComplianceScoringTest.php` (interval scoring, search `interval_day_`) + `tests/Feature/Filament/GoalScheduleIntervalsTest.php` (parser/serializer round-trip + UI behaviour).
+
+### Interval session rules
+
+Enforced by `PlanOptimizerService::normalizeIntervals` (runs in `optimize()` for every create/edit) AND by the `RunCoachAgent` / `CreateSchedule` prompts. Only applies when `day.type === 'interval'`:
+
+- **Warmup**: optional, ALWAYS time-based (`distance_m: null`), capped at 120s, default 60s when omitted.
+- **Work reps**: exactly ONE of `distance_m` (e.g. "800m rep") or `duration_seconds` (e.g. "3-min hill"). If the agent sets both, the optimizer prefers distance and nulls the time.
+- **Recovery**: ALWAYS time-based, default 90s. Distance-based recoveries are converted to seconds via the recovery pace (`baseline + 60 sec/km`).
+- **Cooldown**: REQUIRED at the END, ALWAYS time-based, clamped to [60s, 600s], default 300s. Synthesized as the last segment if the agent forgot one.
+
+`PlanVerifierAgent` is told NOT to flag any of these (the optimizer handles them). When adding interval-shape rules, update both the agent prompt AND `normalizeIntervals` so the deterministic pass keeps the plan canonical regardless of agent compliance.
+
+**Interval pace is per-segment, never on the day** — `training_days.target_pace_seconds_per_km` is forced null for interval days by `PlanOptimizerService::computePaces` (and by `GoalSchedule::persistDay` in the Filament editor). The "day-level" pace is computed at read time via `TrainingDay::workSetAveragePaceSecondsPerKm()` (unweighted mean of every `kind=work` segment's `target_pace_seconds_per_km`). Don't reintroduce day-level pace writes on intervals — it'd mask the per-rep pace and produce confusing UI/feedback. Tests: `tests/Feature/Models/TrainingDayWorkAvgPaceTest.php`.
+
+**Compliance scoring excludes pace on intervals** — `ComplianceScoringService::calculatePaceScore` returns null when `target_pace_seconds_per_km` is null (always the case on intervals). `weightedOverall` then renormalises the remaining components (distance 30% + HR 30% → 50/50 after renorm; or 100% distance if HR also missing). This is a placeholder until segment ingestion lands — full-run avg pace mixes work + recovery + warmup + cooldown so scoring it against a per-rep target would be wrong. `training_results.pace_score` is nullable for this reason. Tests: `tests/Feature/ComplianceScoringTest.php` (search for `interval_day_`).
+
 ## Project-specific conventions
 
 ### Tools (Laravel AI SDK)

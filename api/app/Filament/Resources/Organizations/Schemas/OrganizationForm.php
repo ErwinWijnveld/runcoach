@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Organizations\Schemas;
 
 use App\Enums\OrganizationStatus;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -34,8 +35,15 @@ class OrganizationForm
                 TextInput::make('website')
                     ->url()
                     ->prefix('https://'),
-                TextInput::make('logo_path')
-                    ->helperText('Path to a stored logo image. Optional.'),
+                FileUpload::make('logo_path')
+                    ->label('Logo')
+                    ->image()
+                    ->imageEditor()
+                    ->disk('public')
+                    ->directory('organization-logos')
+                    ->visibility('public')
+                    ->maxSize(2048)
+                    ->helperText('PNG, JPG, or SVG. Max 2 MB.'),
                 Select::make('status')
                     ->options(OrganizationStatus::class)
                     ->default(OrganizationStatus::Active->value)

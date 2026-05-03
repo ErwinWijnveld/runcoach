@@ -1,12 +1,13 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:app/features/dashboard/providers/dashboard_provider.dart';
 import 'package:app/features/goals/data/goal_api.dart';
 import 'package:app/features/goals/models/goal.dart';
+import 'package:app/features/schedule/providers/plan_version_provider.dart';
 
 part 'goal_provider.g.dart';
 
 @riverpod
 Future<List<Goal>> goals(Ref ref) async {
+  ref.watch(planVersionProvider);
   final api = ref.watch(goalApiProvider);
   final data = await api.getGoals();
   final list = data['data'] as List;
@@ -15,6 +16,7 @@ Future<List<Goal>> goals(Ref ref) async {
 
 @riverpod
 Future<Goal> goalDetail(Ref ref, int id) async {
+  ref.watch(planVersionProvider);
   final api = ref.watch(goalApiProvider);
   final data = await api.getGoal(id);
   return Goal.fromJson(data['data'] as Map<String, dynamic>);
@@ -32,9 +34,10 @@ class GoalActions extends _$GoalActions {
     String? targetDate,
     int? goalTimeSeconds,
   }) async {
+    final api = ref.read(goalApiProvider);
+    final planVersion = ref.read(planVersionProvider.notifier);
     state = const AsyncValue.loading();
     try {
-      final api = ref.read(goalApiProvider);
       await api.createGoal({
         'name': name,
         'type': type,
@@ -42,23 +45,30 @@ class GoalActions extends _$GoalActions {
         'target_date': ?targetDate,
         'goal_time_seconds': ?goalTimeSeconds,
       });
-      ref.invalidate(goalsProvider);
+      // Provider may have auto-disposed while the request was in flight
+      // (the form screen unmounts on navigation). `state =` on a disposed
+      // notifier throws — bail before touching it. The captured `planVersion`
+      // is still safe because `PlanVersion` is `keepAlive: true`.
+      if (!ref.mounted) return;
+      planVersion.bump();
       state = const AsyncValue.data(null);
     } catch (e, st) {
+      if (!ref.mounted) return;
       state = AsyncValue.error(e, st);
     }
   }
 
   Future<void> deleteGoal(int id) async {
     final api = ref.read(goalApiProvider);
+    final planVersion = ref.read(planVersionProvider.notifier);
     await api.deleteGoal(id);
-    ref.invalidate(goalsProvider);
+    planVersion.bump();
   }
 
   Future<void> activateGoal(int id) async {
     final api = ref.read(goalApiProvider);
+    final planVersion = ref.read(planVersionProvider.notifier);
     await api.activateGoal(id);
-    ref.invalidate(goalsProvider);
-    ref.invalidate(dashboardProvider);
+    planVersion.bump();
   }
 }

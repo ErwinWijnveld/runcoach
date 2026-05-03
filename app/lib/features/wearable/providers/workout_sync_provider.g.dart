@@ -41,7 +41,7 @@ final class WorkoutSyncProvider
   }
 }
 
-String _$workoutSyncHash() => r'd2fe64553a2056b8d83e938e13d1d45e171cf87f';
+String _$workoutSyncHash() => r'd1bd4ea0b131e06164cbab66693e0200201986f7';
 
 abstract class _$WorkoutSync extends $Notifier<WorkoutSyncState> {
   WorkoutSyncState build();

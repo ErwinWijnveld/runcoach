@@ -82,10 +82,8 @@ class _RescheduleDaySheetState extends ConsumerState<RescheduleDaySheet> {
           );
 
       if (!mounted) return;
-      ref.invalidate(trainingDayDetailProvider(widget.dayId));
-      ref.invalidate(scheduleProvider);
-      ref.invalidate(currentWeekProvider);
-
+      // RescheduleDay notifier already bumps planVersion, which invalidates
+      // every plan-derived provider (schedule, current week, day detail).
       widget.onRescheduled?.call();
       Navigator.of(context).pop();
     } catch (e) {

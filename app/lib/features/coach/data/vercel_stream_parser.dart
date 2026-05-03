@@ -20,6 +20,9 @@ class VercelStreamParser {
     'GetRunningProfile': 'Analysing your running history…',
     'PresentRunningStats': 'Preparing your stats…',
     'OfferChoices': 'Preparing options…',
+    'EditWorkout': 'Adjusting this workout…',
+    'RescheduleWorkout': 'Moving this workout…',
+    'EscalateToCoach': 'Routing to your coach…',
   };
 
   Stream<VercelStreamEvent> parse(Stream<List<int>> bytes) async* {
@@ -99,6 +102,10 @@ class VercelStreamParser {
                 )
                 .toList(),
           ),
+        'data-handoff' => VercelStreamEvent.handoff(
+            (json['data']['suggested_prompt'] as String?) ?? '',
+          ),
+        'data-plan-changed' => const VercelStreamEvent.planChanged(),
         _ => null,
       };
     } catch (_) {

@@ -3,20 +3,20 @@ import 'package:flutter/material.dart' show Colors, InkWell, Material;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/theme/compliance_colors.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/core/widgets/coach_prompt_bar.dart';
-import 'package:app/features/coach/providers/coach_provider.dart';
-import 'package:app/features/coach/widgets/swooshing_star.dart';
 import 'package:app/features/schedule/data/training_day_coach_suggestions.dart';
+import 'package:app/features/schedule/widgets/workout_chat_sheet.dart';
 import 'package:app/features/schedule/models/training_day.dart';
+import 'package:app/features/schedule/models/training_day_pace_x.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
 import 'package:app/features/schedule/services/workout_scheduler_service.dart';
+import 'package:app/features/schedule/widgets/coach_analysis_card.dart';
 import 'package:app/features/schedule/widgets/reschedule_day_sheet.dart';
 import 'package:app/features/schedule/widgets/select_activity_sheet.dart';
-import 'package:app/features/schedule/widgets/wearable_summary_card.dart';
 import 'package:app/features/schedule/widgets/training_day_action_buttons.dart';
 import 'package:app/features/schedule/widgets/training_day_hero_card.dart';
 import 'package:app/features/schedule/widgets/training_day_stat_tiles.dart';
@@ -78,9 +78,9 @@ class _Loaded extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     child: TrainingDayStatTiles(
-                      distance: _formatDistance(day),
-                      pace: _formatPace(day),
-                      hrZone: _formatHrZone(day),
+                      distance: _distanceTile(day),
+                      pace: _paceTile(day),
+                      hrZone: _hrZoneTile(day),
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -100,20 +100,12 @@ class _Loaded extends StatelessWidget {
                       child: TrainingIntervalsTable(intervals: day.intervals!),
                     ),
                   ],
-                  ..._buildDetailSection(day, status),
                   if (status == TrainingDayStatus.completed &&
-                      day.result?.wearableActivity != null) ...[
+                      day.result != null) ...[
                     const SizedBox(height: 16),
-                    const _SectionTitle('Synced activity'),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                      child: WearableSummaryCard(
-                        activity: day.result!.wearableActivity!,
-                        onOpenDetails: () =>
-                            context.push('/schedule/day/${day.id}/result'),
-                      ),
-                    ),
-                  ],
+                    _CoachAnalysisSection(dayId: day.id, day: day),
+                  ] else
+                    ..._buildDetailSection(day, status),
                 ],
               ),
             ),
@@ -123,7 +115,7 @@ class _Loaded extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: CoachPromptBar.navigateAnimated(
-                onTap: () => startNewCoachChat(context, ref),
+                onTap: () => WorkoutChatSheet.show(context, day.id),
                 animatedSuggestions: trainingDayCoachSuggestions,
               ),
             ),
@@ -133,47 +125,75 @@ class _Loaded extends StatelessWidget {
     );
   }
 
-  String? _formatDistance(TrainingDay d) {
-    final actualKm = d.result?.actualKm;
-    final km = actualKm ?? d.targetKm;
+  StatTileData _distanceTile(TrainingDay d) {
+    final result = d.result;
+    return StatTileData(
+      target: _formatKm(d.targetKm),
+      actual: result == null ? null : _formatKm(result.actualKm),
+      actualColor: result == null
+          ? null
+          : ComplianceColors.forScore10(result.distanceScore),
+    );
+  }
+
+  StatTileData _paceTile(TrainingDay d) {
+    final result = d.result;
+    final isInterval = d.type == 'interval';
+    return StatTileData(
+      // Use the work-set average for intervals (day-level pace is null
+      // there by design — see TrainingDayPaceX).
+      target: _formatPaceSecs(d.displayPaceSecondsPerKm),
+      // Hide actual pace on interval days: a full-run avg that mixes
+      // warmup + work + recovery + cooldown isn't comparable to the
+      // work-set target and would mislead the runner. When segment-level
+      // ingestion lands we'll surface a real work-pace here.
+      actual: result == null || isInterval
+          ? null
+          : _formatPaceSecs(result.actualPaceSecondsPerKm),
+      actualColor: result == null || isInterval
+          ? null
+          : ComplianceColors.forScore10(result.paceScore),
+    );
+  }
+
+  StatTileData _hrZoneTile(TrainingDay d) {
+    final result = d.result;
+    final zone = d.targetHeartRateZone;
+    final actualHr = result?.actualAvgHeartRate;
+    return StatTileData(
+      target: zone == null ? null : 'Z$zone',
+      actual: actualHr == null ? null : '${actualHr.round()} bpm',
+      actualColor:
+          result == null ? null : ComplianceColors.forScore10(result.heartRateScore),
+    );
+  }
+
+  static String? _formatKm(double? km) {
     if (km == null) return null;
     final value = km.toStringAsFixed(km.truncateToDouble() == km ? 0 : 1);
     return '$value km';
   }
 
-  String? _formatPace(TrainingDay d) {
-    final actual = d.result?.actualPaceSecondsPerKm;
-    final secs = actual ?? d.targetPaceSecondsPerKm;
-    if (secs == null) return null;
+  static String? _formatPaceSecs(int? secs) {
+    if (secs == null || secs <= 0) return null;
     final mm = secs ~/ 60;
     final ss = secs % 60;
     return "$mm'${ss.toString().padLeft(2, '0')}\"";
   }
 
-  String? _formatHrZone(TrainingDay d) {
-    final zone = d.targetHeartRateZone;
-    if (zone == null) return null;
-    return '$zone';
-  }
-
+  /// Notes section for upcoming/today/missed days. Completed days route to
+  /// `_CoachAnalysisSection` instead — never reaches here.
   List<Widget> _buildDetailSection(TrainingDay day, TrainingDayStatus status) {
-    final completed = status == TrainingDayStatus.completed;
     final description = day.description?.trim();
-
-    if (!completed && (description == null || description.isEmpty)) {
+    if (description == null || description.isEmpty) {
       return const [];
     }
-
-    final Widget body = completed
-        ? _AnalysisBody(dayId: day.id, initial: day.result?.aiFeedback)
-        : Text(description!, style: _detailTextStyle);
-
     return [
       const SizedBox(height: 16),
-      _SectionTitle(completed ? 'Coach analysis' : 'Notes'),
+      const _SectionTitle('Notes'),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-        child: _DetailCard(child: body),
+        child: _DetailCard(child: Text(description, style: _detailTextStyle)),
       ),
     ];
   }
@@ -199,12 +219,9 @@ class _Loaded extends StatelessWidget {
               SelectActivitySheet.show(
                 context,
                 dayId: day.id,
-                onMatched: () {
-                  ref.invalidate(trainingDayDetailProvider(day.id));
-                  ref.invalidate(trainingDayResultProvider(day.id));
-                  ref.invalidate(scheduleProvider);
-                  ref.invalidate(currentWeekProvider);
-                },
+                // The mutation notifier bumps planVersion, which refreshes
+                // every plan-derived view automatically — nothing to do here.
+                onMatched: () {},
               );
             },
             child: const Text('Pick activity'),
@@ -216,11 +233,7 @@ class _Loaded extends StatelessWidget {
                 context,
                 dayId: day.id,
                 initialDate: _parseYmd(day.date) ?? DateTime.now(),
-                onRescheduled: () {
-                  ref.invalidate(trainingDayDetailProvider(day.id));
-                  ref.invalidate(scheduleProvider);
-                  ref.invalidate(currentWeekProvider);
-                },
+                onRescheduled: () {},
               );
             },
             child: const Text('Reschedule'),
@@ -576,88 +589,31 @@ class _DetailCard extends StatelessWidget {
   }
 }
 
-class _AnalysisBody extends ConsumerWidget {
+/// Combined Coach-analysis + Synced-activity section. Rendered only when
+/// the day has a result. Falls back to a placeholder excerpt while the AI
+/// feedback is being generated (poll handled by `trainingDayAiFeedbackProvider`).
+/// Tapping the card OR the "Open" link routes to the result detail screen.
+class _CoachAnalysisSection extends ConsumerWidget {
   final int dayId;
-  final String? initial;
-  const _AnalysisBody({required this.dayId, required this.initial});
+  final TrainingDay day;
+  const _CoachAnalysisSection({required this.dayId, required this.day});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final text = (initial != null && initial!.trim().isNotEmpty)
+    final result = day.result!;
+    final initial = result.aiFeedback;
+    // Re-poll for AI feedback only when the persisted value is empty —
+    // skips an unnecessary HTTP request once the analysis has landed.
+    final text = (initial != null && initial.trim().isNotEmpty)
         ? initial
         : ref.watch(trainingDayAiFeedbackProvider(dayId)).value;
 
-    if (text == null || text.trim().isEmpty) {
-      return Row(
-        children: [
-          const SwooshingStar(size: 18),
-          const SizedBox(width: 12),
-          Text('Analysing your run…', style: _Loaded._detailTextStyle),
-        ],
-      );
-    }
-
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => Navigator.of(context).push(
-        CupertinoPageRoute(builder: (_) => _AnalysisFullScreen(text: text)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            height: 110,
-            child: ClipRect(
-              child: OverflowBox(
-                alignment: Alignment.topLeft,
-                maxHeight: double.infinity,
-                child: GptMarkdown(text, style: _Loaded._detailTextStyle),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Read more →',
-            style: GoogleFonts.publicSans(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppColors.primary,
-            ),
-          ),
-        ],
-      ),
+    return CoachAnalysisCard(
+      complianceScore10: result.complianceScore,
+      aiFeedback: text,
+      onOpen: () => context.push('/schedule/day/$dayId/result'),
     );
   }
 }
 
-class _AnalysisFullScreen extends StatelessWidget {
-  final String text;
-  const _AnalysisFullScreen({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
-      backgroundColor: AppColors.neutral,
-      navigationBar: CupertinoNavigationBar(
-        backgroundColor: AppColors.neutral.withValues(alpha: 0.92),
-        border: null,
-        middle: Text(
-          'Coach analysis',
-          style: GoogleFonts.spaceGrotesk(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: AppColors.primaryInk,
-          ),
-        ),
-      ),
-      child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-          child: GptMarkdown(text, style: _Loaded._detailTextStyle),
-        ),
-      ),
-    );
-  }
-}
 

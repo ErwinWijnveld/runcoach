@@ -79,6 +79,24 @@ class CoachChat extends _$CoachChat {
 
 Run `dart run build_runner build --delete-conflicting-outputs` after changes.
 
+### 1b. Mutator providers — capture deps before the await
+
+Any `@riverpod` mutator method that does `await api.X(); ref.read(other).Y();` will eventually crash with **"Cannot use the Ref of X after it has been disposed"** the moment the host widget unmounts mid-request (e.g. user taps Apply in a sheet, then dismisses or navigates before the API responds — autoDispose tears the provider down → the post-await `ref.read` runs on a disposed ref). Symptom: a Cupertino "Couldn't match that run" alert with the dispose stack.
+
+**Rule**: in any mutator that awaits, capture every cross-provider handle BEFORE the first `await`. The captured object reference stays valid through the async gap because the target provider has its own lifetime (and `PlanVersion` is `keepAlive: true` regardless). Example:
+
+```dart
+Future<TrainingResult> match({...}) async {
+  final api = ref.read(scheduleApiProvider);
+  final planVersion = ref.read(planVersionProvider.notifier);   // capture before await
+  final response = await api.matchActivity(...);
+  planVersion.bump();                                            // ← safe, no ref.read here
+  return TrainingResult.fromJson(...);
+}
+```
+
+If the mutator ALSO writes its own `state =` after the await (i.e. surfaces loading/error via `AsyncValue<T>`), guard each post-await state setter with `if (!ref.mounted) return;` — the captured-deps trick doesn't help with `state` because that's the disposed Notifier's own setter. Canonical references: `features/schedule/providers/schedule_provider.dart` (state-less mutators) + `features/goals/providers/goal_provider.dart::GoalActions::createGoal` (mutator with state).
+
 ### 2. Freezed 3.x with `sealed class`
 
 All models must use `sealed class` (not just `class`) — this is a Freezed 3.x requirement. Example:
@@ -169,6 +187,16 @@ Warm earth-tone palette in `core/theme/app_theme.dart`:
 - `AppColors.gold` (#D4A84B) — secondary accent
 - `AppColors.cardBg` (#FFF9F0) — card background
 - `AppColors.lightTan` (#F5F0E8) — input backgrounds, dividers
+
+**Compliance colors** live in `core/theme/compliance_colors.dart` — single source of truth for the score → color mapping (≥0.80 success green, ≥0.50 secondary gold, <0.50 danger red). Use `ComplianceColors.forScore01(double)` for normalized 0-1 input or `forScore10(double?)` for the raw 0-10 scale stored on `TrainingResult` (returns null when the score is null, e.g. heartRateScore on runs without HR). When tweaking thresholds or colors, edit ONLY this file — every screen that renders a compliance indicator (training day stat tiles, coach analysis ring, training result bars) reads from here.
+
+**Card + CTA pattern** (canonical reference: `features/schedule/widgets/training_day_action_buttons.dart` + `features/notifications/widgets/notifications_sheet.dart`). Every "content card with primary action" in the app uses this language — match it for new surfaces:
+- **Card surface**: `CupertinoColors.white` background, `BorderRadius.circular(24)`, `EdgeInsets.all(20)`, optional subtle shadow `BoxShadow(color: Color(0x0A37280F), blurRadius: 12, offset: Offset(0, 2))`. Do NOT use `AppColors.cardBg` for primary cards — that cream tint reads as a secondary surface (used for inline rows inside the profile sheet).
+- **Eyebrow tag** (small label above the title): pill with `AppColors.goldGlow` bg, `EdgeInsets.symmetric(horizontal: 8, vertical: 3)`, `BorderRadius.circular(6)`, text `GoogleFonts.spaceGrotesk(10pt, w700, letterSpacing: 0.8, color: AppColors.eyebrow)`.
+- **Title**: italic Garamond — `GoogleFonts.ebGaramond(22-32pt, w500, italic, color: AppColors.primaryInk, height: 1.05-1.15)`.
+- **Body**: `GoogleFonts.publicSans(14pt, height: 1.45, color: AppColors.inkMuted)`.
+- **Primary CTA**: `ElevatedButton` (NOT `CupertinoButton.filled` — wrong color, system blue) with `backgroundColor: AppColors.secondary` (gold), `foregroundColor: AppColors.neutral`, vertical padding 14-16, `BorderRadius.circular(14-16)`, `elevation: 0`. Label is uppercase `GoogleFonts.spaceGrotesk(12pt, w700, letterSpacing: 0.8)`.
+- **Secondary action** (Dismiss / Cancel): same shape, `backgroundColor: AppColors.lightTan`, `foregroundColor: AppColors.primaryInk`. Sits left of the primary, half its flex.
 
 Bottom nav has 4 tabs: Dashboard, Schedule, AI Coach, Goals.
 
@@ -318,6 +346,88 @@ Native MethodChannel bridge instead of `firebase_messaging` — keeps Firebase o
 2. Add the routing case to `PushService.routeFromPayload()` so taps on the new type land on the right screen.
 3. (Optional) Suppress in-app banner when the user is already on the destination — handle in the `onTap` setter in `app.dart` (compare current location with target route).
 
+### 11. Send to watch (WorkoutKit, iOS 17+)
+
+Native MethodChannel bridge `nl.runcoach/workout` (`ios/Runner/WorkoutScheduling.swift`, registered in `AppDelegate.didInitializeImplicitFlutterEngine`). Three Dart→Native methods:
+
+- **`scheduleRun`** — `SingleGoalWorkout(activity:.running, location:.outdoor, goal:.distance(km, .kilometers))` for non-interval days. Args: `{date, distanceKm, dayId}`.
+- **`scheduleIntervals`** — `CustomWorkout` with `warmup` (time-only `WorkoutStep` if provided), one `IntervalBlock` of work/recovery `IntervalStep`s, and a time-only `cooldown`. Args: `{date, dayId, displayName, warmupSeconds, cooldownSeconds, steps:[{kind, distanceM, durationSeconds}]}`.
+- **`rescheduleIfPresent`** — fire-and-forget watch sync. Looks up our scheduled plan by deterministic UUID, removes from old date, schedules at new date. Silent no-op when nothing to do or auth not granted (does NOT prompt). Args: `{date, dayId}`.
+
+All return `{status: 'scheduled'|'duplicate'|'denied'|'unavailable'|'failed'|'moved'|'skipped', message}`.
+
+**Identity tracking** (iOS 17.4+): every `WorkoutPlan` is created with a deterministic UUID derived from the `TrainingDay.id`: `00000000-0000-0000-0000-{dayId masked to 48 bits as 12 hex chars}` (see `WorkoutScheduling.uuidForDay`). The mask prevents 64-bit overflow from breaking the UUID format. Identity tracking lets us:
+- de-dup ONLY against ourselves (other apps' workouts on the same day are allowed),
+- find-and-replace when sending the same TrainingDay to a different date,
+- auto-move on reschedule via `rescheduleIfPresent`.
+
+On iOS 17.0–17.3, custom IDs aren't available → no de-dup, no auto-reschedule. Multiple sends per day end up as multiple watch entries (rare audience in 2026).
+
+**Cooldown is required by schema** (`api/CLAUDE.md` → "Interval session rules"). The screen's `_buildIntervalPlan` defensively synthesizes a 300s cooldown if a row's `intervals_json` lacks one (covers pre-rule data). Distance-based recoveries are converted to seconds via 360 sec/km recovery pace. Cooldown segments are hoisted to the `cooldownSeconds` arg, never sent as steps.
+
+**Reschedule auto-syncs the watch**: `reschedule_day_sheet.dart::_save` awaits `WorkoutSchedulerService.rescheduleIfPresent` after a successful `PATCH /training-days/{day}`. Awaited (not unawaited) to avoid a race with a quick follow-up Send-to-watch tap.
+
+**Cannot be tested on the iOS Simulator.** WorkoutKit + Fitness app sync only work on real hardware.
+
+**Pbxproj entries:** `WorkoutScheduling.swift` is registered in `Runner.xcodeproj/project.pbxproj` in 3 places (PBXBuildFile, PBXFileReference, PBXGroup, PBXSourcesBuildPhase). When adding new `.swift` files in `ios/Runner/`, replicate the pattern of `HealthKitPersonalRecords.swift` / `PushNotifications.swift` there or `flutter run` fails with "Cannot find 'X' in scope".
+
+### 12. Reschedule day sheet
+
+`reschedule_day_sheet.dart` is a `showCupertinoModalPopup` with a custom Cupertino calendar grid (NOT Material's `CalendarDatePicker` — that has ripples and looks Android-y). Today is highlighted with a gold ring (`AppColors.secondary`), the picked date with a filled brown disc (`AppColors.primary`). Trigger: top-right ellipsis on the day-detail screen → action sheet → "Reschedule".
+
+After a successful PATCH, the sheet:
+1. Invalidates `trainingDayDetailProvider` / `scheduleProvider` / `currentWeekProvider` so the schedule views re-fetch.
+2. Awaits `WorkoutSchedulerService.rescheduleIfPresent(dayId, newDate)` so the watch entry follows the move.
+3. Pops itself.
+
+The calendar guards against `lastDate < today` (defensive fallback) and clamps `_selected` so out-of-range initial dates don't crash the displayMonth.
+
+### 13. Training day detail layout (status-aware)
+
+`training_day_detail_screen.dart` renders different bodies depending on `TrainingDayStatus`:
+
+| Status | Stat tiles (top) | Action buttons | Coach analysis card | Synced activity card | Notes section |
+|---|---|---|---|---|---|
+| upcoming / today / missed | target only | full-width Send to watch | — | — | shown if description present |
+| completed | target + actual underneath in per-section compliance color (`ComplianceColors.forScore10`) | hidden | combined card with ring %, COMPLIANCE label, AI feedback excerpt, arrow → result detail screen | — (folded INTO the analysis card) | hidden |
+
+`TrainingDayStatTiles` takes 3 `StatTileData` records (`target`, optional `actual`, optional `actualColor`). The screen builds them via `_distanceTile / _paceTile / _hrZoneTile` helpers — target value is always shown big, actual sits small underneath in the compliance color when a result exists.
+
+`coach_analysis_card.dart` replaces the older split between "Coach analysis" + "Synced activity" sections. Wrapped in `_CoachAnalysisSection` (ConsumerWidget) which polls `trainingDayAiFeedbackProvider` only while `result.aiFeedback` is null. Tapping the card OR the "Open ›" link OR the dark arrow all route to `/schedule/day/{id}/result` so the user has multiple obvious ways in.
+
+When changing this layout, keep these invariants:
+- Send to watch is hidden for completed days (no point scheduling a past run on the watch).
+- Stat tiles always show TARGET as the primary value — the actual goes underneath. NEVER swap them or you'll regress the "what was I supposed to do" affordance.
+- Per-section colors come from `result.distanceScore / paceScore / heartRateScore` (NOT the overall `complianceScore`) so the runner sees which dimension drove the score.
+
+**Interval pace tile**: on `type=='interval'` days `TrainingDay.targetPaceSecondsPerKm` is null by design (the day-level field doesn't apply to intervals — see `api/CLAUDE.md` → "Interval pace contract"). Read the displayed value via the `TrainingDayPaceX` extension's `displayPaceSecondsPerKm` getter instead — it returns the work-set average (mean of `kind=work` segment paces) for intervals and the day-level field for everything else. The pace tile also hides its `actual` value on intervals: a full-run avg that mixes warmup + recovery + cooldown isn't comparable to per-rep work pace and would render as a misleading "fail" colour. The training-result screen's `_TargetVsActualSection` doesn't need similar treatment because it already hides the pace row when the target is null.
+
+### 14. Notifications inbox (action-required items)
+
+Header bell + bottom-sheet inbox + cold-start reminder for items the runner must act on. Backed by the API's `user_notifications` table (see `api/CLAUDE.md` → "Notifications inbox" for backend details).
+
+**Pieces:**
+- `lib/features/notifications/models/user_notification.dart` — Freezed model
+- `lib/features/notifications/data/notifications_api.dart` — Retrofit (list/accept/dismiss)
+- `lib/features/notifications/providers/notifications_provider.dart`:
+  - `notificationsProvider` — `keepAlive: true` `AsyncNotifier<List<UserNotification>>`. `accept(id)` / `dismiss(id)` → `ref.invalidateSelf()` after API call.
+  - `pendingNotificationCountProvider` — derived count for the bell badge, defaults to 0 on loading/error so the badge doesn't flicker.
+- `lib/features/notifications/widgets/notifications_sheet.dart` — `showNotificationsSheet(context)` opens a Cupertino bottom sheet with a list of `_NotificationCard`s.
+
+**`AppHeader` bell (`lib/core/widgets/app_header.dart`)**: 18×18 `BoxShape.circle` red dot positioned over the icon when count > 0. Single digit shows literal number, ≥10 shows `9+`. Fixed 1:1 box so it stays a perfect circle regardless of digit width.
+
+**Boot popup (`lib/app.dart::_BootPopupHost`)**: mounted INSIDE the router via `CupertinoApp.router(builder: ...)` so its dialog has a Navigator ancestor. Watches `authProvider`; once auth resolves to a non-null user, fires once per app launch — fetches `notificationsProvider.future`, and if the list is non-empty pops a `CupertinoAlertDialog` with `Later` / `View` buttons. View → `showNotificationsSheet`. The single-fire flag (`_fired`) is per widget lifetime, so logout-and-back-in within the same app session won't re-fire (matches the "once per cold start" UX).
+
+**Card action pattern** (`_NotificationCard`):
+- Always: white card, gold-glow eyebrow pill with the type label, italic Garamond title, Public Sans body
+- Always: bottom row with `DISMISS` (left, 1× flex, `lightTan`) + `APPLY` (right, 2× flex, gold `secondary`) primary CTAs
+- Per-type tertiary action (full-width below the row, `_TertiaryButton`): conditionally rendered when the type warrants it. **For `pace_adjustment`**: `Edit HR Zones` with edit icon → `showHeartRateZonesSheet(context)`. The principle: if the notification's underlying cause has a calibration UI, surface that UI as a tertiary action so the runner can address the root cause rather than just patching the symptom.
+
+**Adding a new notification type:**
+1. Backend produces the row with a new `type` string + `action_data` shape (see `api/CLAUDE.md`).
+2. (Optional) extend `_typeLabel` switch in `notifications_sheet.dart` for a humanised eyebrow label — falls through to `replaceAll('_', ' ').toUpperCase()` if not added.
+3. (Optional) add a tertiary action arm in `_NotificationCard.build` (the `if (n.type == 'pace_adjustment')` block) when the type has a calibration sheet to surface.
+
 ## Running and building
 
 ```bash
@@ -348,6 +458,8 @@ flutter test
 The base URL is read from a `--dart-define` in `lib/core/api/dio_client.dart`. Default is `http://localhost:8001/api/v1` — fine for the simulator, useless on a physical iPhone (the iPhone's `localhost` is the iPhone, not your Mac).
 
 **Use `bash scripts/run-dev.sh`** instead of plain `flutter run` for physical-device testing. It auto-detects the Mac's LAN IP via `ipconfig getifaddr en0` (then `en1` for Ethernet), injects `--dart-define=API_BASE_URL=http://<ip>:8001/api/v1`, and forwards any extra flags to `flutter run`. Override the port with `PORT=8000 bash scripts/run-dev.sh` or the URL entirely with `API_BASE_URL=https://... bash scripts/run-dev.sh`.
+
+**Simulator runs need SDKROOT** (handled automatically by `run-dev.sh`): when `-d <id>` resolves to a known simulator (checked via `xcrun simctl list devices`), the script exports `SDKROOT=iphonesimulator` before invoking `flutter run`. This works around a Flutter native_assets bug that otherwise compiles `package:objective_c` (transitive dep of `cupertino_native`) for `arm64-apple-ios` instead of `arm64-apple-ios-simulator`, leading to an `objective_c.framework` dlopen failure on launch (`"Couldn't resolve native function 'DOBJC_initializeApi'"` plus `"Target native_assets required define SdkRoot but it was not provided"`). Always go through `run-dev.sh` for simulator runs — calling `flutter run -d <sim-id>` directly will resurrect the bug.
 
 Make sure Laravel binds to all interfaces:
 ```bash
@@ -424,3 +536,5 @@ dart run flutter_native_splash:create
 - **`DioException [connection error]: Connection refused, address = localhost, port = …`** on a physical iPhone → you ran `flutter run` instead of `bash scripts/run-dev.sh`. The default URL points at `localhost:8001`, which on the iPhone means *the iPhone itself*. Use the wrapper script to inject the Mac's LAN IP.
 - **Apple Sign-In dialog opens but returns a 401 from the backend** → check (a) `services.apple.bundle_id` in the API matches the iOS bundle id `com.erwinwijnveld.runcoach`, (b) the device clock is correct (Apple JWTs have tight expiry), (c) `tail -f api/storage/logs/laravel.log` for the `InvalidAppleIdentityTokenException` message (it spells out which validation step failed: signature/issuer/audience/expiry).
 - **HealthKit permission prompt never appears** → first check Info.plist has `NSHealthShareUsageDescription`. Then check the App ID has the HealthKit capability enabled at developer.apple.com — if not, the system silently no-ops the request. Apple's `hasPermissions(READ)` always returns null/false for privacy reasons even after grant; don't rely on it as a check.
+- **`showCupertinoDialog` from a top-level callback never appears** → `RunCoachApp.context` sits ABOVE `CupertinoApp.router`'s Navigator, so `Navigator.of(...)` can't find a route. `routerDelegate.navigatorKey.currentContext` is also wrong — that's the Navigator widget's OWN context, and `Navigator.of(context)` only walks ANCESTORS, so it skips the navigator itself. Fix: mount the dialog-triggering widget INSIDE the router via the `CupertinoApp.router(builder: (context, child) => ...)` callback — that `context` has the Navigator as an ancestor. Canonical reference: `app.dart::_BootPopupHost` for the cold-start notifications reminder. Same gotcha applies to `showCupertinoModalPopup`.
+- **`Couldn't resolve native function 'DOBJC_initializeApi' in 'package:objective_c/objective_c.dylib'`** at runtime on the iOS simulator (often paired with the warning `Target native_assets required define SdkRoot but it was not provided`) → Flutter's native_assets generator built the device slice for `cupertino_native`'s `objective_c` dependency instead of the simulator slice, so dlopen can't load the framework. Two parts to the fix: (a) clear the stale cache once with `rm -rf .dart_tool/flutter_build .dart_tool/native_assets* build/native_assets build/native_hooks build/ios`, and (b) launch via `bash scripts/run-dev.sh -d <sim-id>` so SDKROOT=iphonesimulator gets exported (auto-detected by the script). Direct `flutter run -d <sim-id>` will reproduce the bug.

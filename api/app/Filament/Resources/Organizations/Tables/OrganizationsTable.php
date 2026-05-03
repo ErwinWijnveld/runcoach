@@ -7,6 +7,7 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -18,6 +19,11 @@ class OrganizationsTable
         return $table
             ->defaultSort('created_at', 'desc')
             ->columns([
+                ImageColumn::make('logo_path')
+                    ->label('Logo')
+                    ->disk('public')
+                    ->circular()
+                    ->size(40),
                 TextColumn::make('name')
                     ->searchable()
                     ->sortable()

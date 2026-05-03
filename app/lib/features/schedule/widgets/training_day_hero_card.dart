@@ -32,24 +32,21 @@ class TrainingDayHeroCard extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Background illustration
+          // Background illustration. Use a direct Image.asset (NOT a
+          // Container with DecorationImage + a fallback color) so transparent
+          // edges in the PNG don't reveal a colored ring at the rounded
+          // corners. Default antiAlias clip keeps the corners looking as
+          // round as the original — antiAliasWithSaveLayer renders them
+          // slightly crisper which optically reads as "less rounded".
           Positioned.fill(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(30),
-              child: DecoratedBox(
-                decoration: const BoxDecoration(
-                  color: AppColors.goldGlow,
-                  boxShadow: [
-                    BoxShadow(color: Color(0x0D000000), blurRadius: 16),
-                  ],
-                ),
-                child: Image.asset(
-                  _backgroundFor(status),
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  height: double.infinity,
-                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                ),
+              child: Image.asset(
+                _backgroundFor(status),
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+                alignment: Alignment.center,
               ),
             ),
           ),

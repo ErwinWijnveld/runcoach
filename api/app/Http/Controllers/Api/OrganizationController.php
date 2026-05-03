@@ -15,6 +15,8 @@ class OrganizationController extends Controller
     {
         $request->validate([
             'q' => ['nullable', 'string', 'max:100'],
+            'page' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ]);
 
         $query = Organization::query()->where('status', OrganizationStatus::Active);
@@ -23,10 +25,17 @@ class OrganizationController extends Controller
             $query->where('name', 'like', "%{$search}%");
         }
 
-        $organizations = $query->orderBy('name')->limit(25)->get();
+        $perPage = $request->integer('per_page', 25);
+        $paginator = $query->orderBy('name')->paginate(perPage: $perPage);
 
         return response()->json([
-            'data' => OrganizationResource::collection($organizations),
+            'data' => OrganizationResource::collection($paginator->items()),
+            'meta' => [
+                'page' => $paginator->currentPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+                'has_more' => $paginator->hasMorePages(),
+            ],
         ]);
     }
 }

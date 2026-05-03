@@ -1,18 +1,14 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart'
-    show
-        AlwaysStoppedAnimation,
-        Colors,
-        Divider,
-        InkWell,
-        LinearProgressIndicator,
-        Material;
+import 'package:flutter/material.dart' show Colors, InkWell, Material;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/theme/compliance_colors.dart';
+import 'package:app/core/widgets/ai_glow_card.dart';
 import 'package:app/core/widgets/app_widgets.dart';
+import 'package:app/core/widgets/compliance_ring.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/features/schedule/models/training_result.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
@@ -28,90 +24,109 @@ class TrainingResultScreen extends ConsumerWidget {
 
     return GradientScaffold(
       child: SafeArea(
-        child: resultAsync.when(
-          loading: () => const AppSpinner(),
-          error: (err, _) => AppErrorState(title: 'Error: $err'),
-          data: (result) {
-            if (result == null) {
-              return Center(
-                child: Text(
-                  'No result recorded yet.',
-                  style: GoogleFonts.publicSans(color: AppColors.tertiary),
-                ),
-              );
-            }
+        bottom: false,
+        child: Column(
+          children: [
+            const _Header(),
+            Expanded(
+              child: resultAsync.when(
+                loading: () => const AppSpinner(),
+                error: (err, _) => AppErrorState(title: 'Error: $err'),
+                data: (result) {
+                  if (result == null) {
+                    return Center(
+                      child: Text(
+                        'No result recorded yet.',
+                        style: GoogleFonts.publicSans(
+                          color: AppColors.tertiary,
+                        ),
+                      ),
+                    );
+                  }
+                  return _ResultBody(
+                    dayId: dayId,
+                    result: result,
+                    dayAsync: dayAsync,
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-            return SingleChildScrollView(
-              padding: EdgeInsets.only(bottom: 24 + MediaQuery.paddingOf(context).bottom),
+class _ResultBody extends StatelessWidget {
+  final int dayId;
+  final TrainingResult result;
+  final AsyncValue dayAsync;
+
+  const _ResultBody({
+    required this.dayId,
+    required this.result,
+    required this.dayAsync,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: IntrinsicHeight(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const _Header(),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                    child: _ComplianceHeader(result: result),
+                  _ComplianceSection(result: result),
+                  ...dayAsync.when<List<Widget>>(
+                    data: (day) {
+                      if (day == null) return const [];
+                      if (day.targetKm == null &&
+                          day.targetPaceSecondsPerKm == null &&
+                          day.targetHeartRateZone == null) {
+                        return const [];
+                      }
+                      return [
+                        _TargetVsActualSection(
+                          targetKm: day.targetKm,
+                          actualKm: result.actualKm,
+                          distanceScore10: result.distanceScore,
+                          targetPaceSecondsPerKm: day.targetPaceSecondsPerKm,
+                          actualPaceSecondsPerKm: result.actualPaceSecondsPerKm,
+                          paceScore10: result.paceScore,
+                          targetHeartRateZone: day.targetHeartRateZone,
+                          actualAvgHeartRate: result.actualAvgHeartRate,
+                          heartRateScore10: result.heartRateScore,
+                        ),
+                      ];
+                    },
+                    loading: () => const [],
+                    error: (_, _) => const [],
                   ),
-                  const SizedBox(height: 16),
-                  const _SectionTitle('Score breakdown'),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                    child: _ScoreBreakdown(result: result),
-                  ),
-                  dayAsync.whenOrNull(
-                        data: (day) {
-                          if (day.targetKm == null &&
-                              day.targetPaceSecondsPerKm == null &&
-                              day.targetHeartRateZone == null) {
-                            return const SizedBox.shrink();
-                          }
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const _SectionTitle('Target vs actual'),
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                                  child: _VsTargetCard(
-                                    targetKm: day.targetKm,
-                                    actualKm: result.actualKm,
-                                    targetPaceSecondsPerKm:
-                                        day.targetPaceSecondsPerKm,
-                                    actualPaceSecondsPerKm:
-                                        result.actualPaceSecondsPerKm,
-                                    targetHeartRateZone:
-                                        day.targetHeartRateZone,
-                                    actualAvgHeartRate:
-                                        result.actualAvgHeartRate,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ) ??
-                      const SizedBox.shrink(),
                   if (result.aiFeedback != null &&
-                      result.aiFeedback!.trim().isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    const _SectionTitle('Coach feedback'),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                      child: _CoachFeedbackCard(feedback: result.aiFeedback!),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
+                      result.aiFeedback!.trim().isNotEmpty)
+                    _CoachFeedbackSection(feedback: result.aiFeedback!),
+                  const Spacer(),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.fromLTRB(
+                      20,
+                      24,
+                      20,
+                      16 + bottomInset,
+                    ),
                     child: _UnlinkActivityButton(dayId: dayId),
                   ),
                 ],
               ),
-            );
-          },
-        ),
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -159,74 +174,82 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _SectionTitle extends StatelessWidget {
+class _Eyebrow extends StatelessWidget {
   final String label;
-  const _SectionTitle(this.label);
+  const _Eyebrow(this.label);
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(22, 0, 22, 0),
-      child: Text(
-        label.toUpperCase(),
-        style: GoogleFonts.spaceGrotesk(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          letterSpacing: 0.96,
-          color: AppColors.inkMuted,
+    return Text(
+      label,
+      style: GoogleFonts.spaceGrotesk(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 1.6,
+        color: AppColors.inkMuted,
+      ),
+    );
+  }
+}
+
+class _ComplianceSection extends StatelessWidget {
+  final TrainingResult result;
+  const _ComplianceSection({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    final overall01 = (result.complianceScore / 10).clamp(0.0, 1.0);
+
+    final bars = <_BarData>[
+      _BarData(
+        label: 'DISTANCE',
+        score01: (result.distanceScore / 10).clamp(0.0, 1.0),
+      ),
+      _BarData(
+        label: 'PACE',
+        score01: (result.paceScore / 10).clamp(0.0, 1.0),
+      ),
+      if (result.heartRateScore != null)
+        _BarData(
+          label: 'HEART',
+          score01: (result.heartRateScore! / 10).clamp(0.0, 1.0),
         ),
-      ),
-    );
-  }
-}
+    ];
 
-class _ComplianceHeader extends StatelessWidget {
-  final TrainingResult result;
-  const _ComplianceHeader({required this.result});
-
-  @override
-  Widget build(BuildContext context) {
-    // Scores are stored on a 0-10 scale by ComplianceScoringService; clamp
-    // and map into 0-1 for the progress bar and 0-100 for the percentage.
-    final score01 = (result.complianceScore / 10).clamp(0.0, 1.0);
-    final pct = (score01 * 100).round();
-    final color = _scoreColor(score01);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: CupertinoColors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 16)],
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '$pct%',
-            style: GoogleFonts.ebGaramond(
-              fontSize: 44,
-              fontWeight: FontWeight.w500,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            'Overall compliance',
-            style: GoogleFonts.publicSans(
-              fontSize: 14,
-              color: AppColors.tertiary,
-            ),
-          ),
-          const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: score01,
-              minHeight: 8,
-              backgroundColor: AppColors.neutralHighlight,
-              valueColor: AlwaysStoppedAnimation(color),
-            ),
+          const _Eyebrow('COMPLIANCE'),
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Center(
+                  child: ComplianceRing(
+                    score01: overall01,
+                    size: 124,
+                    strokeWidth: 7,
+                    textStyle: GoogleFonts.ebGaramond(
+                      fontSize: 34,
+                      fontStyle: FontStyle.italic,
+                      fontWeight: FontWeight.w500,
+                      color: ComplianceColors.forScore01(overall01),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    for (final bar in bars) _ComplianceBar(data: bar),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -234,80 +257,64 @@ class _ComplianceHeader extends StatelessWidget {
   }
 }
 
-class _ScoreBreakdown extends StatelessWidget {
-  final TrainingResult result;
-  const _ScoreBreakdown({required this.result});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: CupertinoColors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 16)],
-      ),
-      child: Column(
-        children: [
-          _ScoreBar(label: 'Distance', score: result.distanceScore),
-          const SizedBox(height: 12),
-          _ScoreBar(label: 'Pace', score: result.paceScore),
-          if (result.heartRateScore != null) ...[
-            const SizedBox(height: 12),
-            _ScoreBar(label: 'Heart rate', score: result.heartRateScore!),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _ScoreBar extends StatelessWidget {
+class _BarData {
   final String label;
-  final double score; // 0-10
-  const _ScoreBar({required this.label, required this.score});
+  final double score01;
+  _BarData({required this.label, required this.score01});
+}
+
+class _ComplianceBar extends StatelessWidget {
+  final _BarData data;
+  const _ComplianceBar({required this.data});
+
+  static const double _maxBarHeight = 96;
+  static const double _minBarHeight = 14;
 
   @override
   Widget build(BuildContext context) {
-    // Scores are on a 0-10 scale; clamp then map to 0-1 for the bar.
-    final score01 = (score / 10).clamp(0.0, 1.0);
-    final pct = (score01 * 100).round();
-    final color = _scoreColor(score01);
+    final pct = (data.score01 * 100).round();
+    final color = ComplianceColors.forScore01(data.score01);
+    final fillHeight = (data.score01 * _maxBarHeight).clamp(
+      _minBarHeight,
+      _maxBarHeight,
+    );
 
-    return Row(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          width: 88,
-          child: Text(
-            label,
-            style: GoogleFonts.publicSans(
-              fontSize: 13,
-              color: AppColors.tertiary,
-            ),
+          height: _maxBarHeight + 22,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Text(
+                '$pct%',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                width: 30,
+                height: fillHeight,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ],
           ),
         ),
-        Expanded(
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: score01,
-              minHeight: 8,
-              backgroundColor: AppColors.neutralHighlight,
-              valueColor: AlwaysStoppedAnimation(color),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        SizedBox(
-          width: 44,
-          child: Text(
-            '$pct%',
-            textAlign: TextAlign.end,
-            style: GoogleFonts.spaceGrotesk(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
+        const SizedBox(height: 8),
+        Text(
+          data.label,
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.0,
+            color: AppColors.inkMuted,
           ),
         ),
       ],
@@ -315,31 +322,38 @@ class _ScoreBar extends StatelessWidget {
   }
 }
 
-class _VsTargetCard extends StatelessWidget {
+class _TargetVsActualSection extends StatelessWidget {
   final double? targetKm;
   final double actualKm;
+  final double distanceScore10;
   final int? targetPaceSecondsPerKm;
   final int actualPaceSecondsPerKm;
+  final double paceScore10;
   final int? targetHeartRateZone;
   final double? actualAvgHeartRate;
+  final double? heartRateScore10;
 
-  const _VsTargetCard({
+  const _TargetVsActualSection({
     required this.targetKm,
     required this.actualKm,
+    required this.distanceScore10,
     required this.targetPaceSecondsPerKm,
     required this.actualPaceSecondsPerKm,
+    required this.paceScore10,
     required this.targetHeartRateZone,
     required this.actualAvgHeartRate,
+    required this.heartRateScore10,
   });
 
   @override
   Widget build(BuildContext context) {
-    final rows = <Widget>[];
+    final rows = <_ComparisonRow>[];
     if (targetKm != null) {
       rows.add(_ComparisonRow(
         label: 'Distance',
-        target: '${targetKm!.toStringAsFixed(1)} km',
-        actual: '${actualKm.toStringAsFixed(1)} km',
+        target: '${_trimDouble(targetKm!)} km',
+        actual: '${_trimDouble(actualKm)} km',
+        actualColor: ComplianceColors.forScore10(distanceScore10),
       ));
     }
     if (targetPaceSecondsPerKm != null) {
@@ -347,50 +361,74 @@ class _VsTargetCard extends StatelessWidget {
         label: 'Pace',
         target: _formatPace(targetPaceSecondsPerKm!),
         actual: _formatPace(actualPaceSecondsPerKm),
+        actualColor: ComplianceColors.forScore10(paceScore10),
       ));
     }
     if (targetHeartRateZone != null || actualAvgHeartRate != null) {
       rows.add(_ComparisonRow(
         label: 'Heart rate',
-        target: targetHeartRateZone != null ? 'Zone $targetHeartRateZone' : '-',
+        target: targetHeartRateZone != null ? 'Zone $targetHeartRateZone' : '—',
         actual: actualAvgHeartRate != null
             ? '${actualAvgHeartRate!.round()} bpm'
-            : '-',
+            : '—',
+        actualColor: ComplianceColors.forScore10(heartRateScore10),
       ));
     }
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      decoration: BoxDecoration(
-        color: CupertinoColors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 16)],
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 4),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _ComparisonHeader(),
-          const SizedBox(height: 4),
-          const Divider(
-            height: 12,
-            thickness: 1,
-            color: AppColors.border,
+          const _Eyebrow('TARGET VS ACTUAL'),
+          const SizedBox(height: 14),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.cardBg,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: const [
+                BoxShadow(color: Color(0x08000000), blurRadius: 16),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _ComparisonHeader(),
+                  for (final row in rows) ...[
+                    const _RowDivider(),
+                    row,
+                  ],
+                ],
+              ),
+            ),
           ),
-          for (var i = 0; i < rows.length; i++) ...[
-            if (i > 0) const SizedBox(height: 10),
-            rows[i],
-          ],
         ],
       ),
     );
   }
 
-  String _formatPace(int s) {
-    if (s <= 0) return '-';
+  static String _trimDouble(double v) => v.toStringAsFixed(1);
+
+  static String _formatPace(int s) {
+    if (s <= 0) return '—';
     final mm = s ~/ 60;
     final ss = s % 60;
-    return '$mm:${ss.toString().padLeft(2, '0')} /km';
+    return "$mm'${ss.toString().padLeft(2, '0')}/km";
   }
+}
 
+class _RowDivider extends StatelessWidget {
+  const _RowDivider();
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 1,
+      color: AppColors.border,
+      margin: const EdgeInsets.symmetric(vertical: 14),
+    );
+  }
 }
 
 class _ComparisonHeader extends StatelessWidget {
@@ -399,19 +437,20 @@ class _ComparisonHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = GoogleFonts.spaceGrotesk(
-      fontSize: 10,
-      fontWeight: FontWeight.w700,
-      letterSpacing: 0.8,
-      color: AppColors.inkMuted,
+      fontSize: 11,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 1.4,
+      color: AppColors.tertiary,
     );
 
     return Row(
       children: [
-        const Expanded(flex: 2, child: SizedBox()),
+        const Expanded(flex: 4, child: SizedBox()),
         Expanded(
           flex: 3,
-          child: Text('TARGET', textAlign: TextAlign.center, style: style),
+          child: Text('TARGET', textAlign: TextAlign.end, style: style),
         ),
+        const SizedBox(width: 16),
         Expanded(
           flex: 3,
           child: Text('ACTUAL', textAlign: TextAlign.end, style: style),
@@ -429,19 +468,24 @@ class _ComparisonRow extends StatelessWidget {
     required this.label,
     required this.target,
     required this.actual,
+    required this.actualColor,
   });
+
+  final Color? actualColor;
 
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
-          flex: 2,
+          flex: 4,
           child: Text(
             label,
             style: GoogleFonts.publicSans(
-              fontSize: 13,
-              color: AppColors.tertiary,
+              fontSize: 17,
+              fontWeight: FontWeight.w400,
+              color: AppColors.primaryInk,
             ),
           ),
         ),
@@ -449,22 +493,25 @@ class _ComparisonRow extends StatelessWidget {
           flex: 3,
           child: Text(
             target,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.publicSans(
-              fontSize: 14,
+            textAlign: TextAlign.end,
+            style: GoogleFonts.ebGaramond(
+              fontSize: 18,
+              fontStyle: FontStyle.italic,
+              fontWeight: FontWeight.w400,
               color: AppColors.tertiary,
             ),
           ),
         ),
+        const SizedBox(width: 16),
         Expanded(
           flex: 3,
           child: Text(
             actual,
             textAlign: TextAlign.end,
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.primaryInk,
+            style: GoogleFonts.ebGaramond(
+              fontSize: 20,
+              fontWeight: FontWeight.w500,
+              color: actualColor ?? AppColors.primaryInk,
             ),
           ),
         ),
@@ -473,60 +520,33 @@ class _ComparisonRow extends StatelessWidget {
   }
 }
 
-class _CoachFeedbackCard extends StatelessWidget {
+class _CoachFeedbackSection extends StatelessWidget {
   final String feedback;
-  const _CoachFeedbackCard({required this.feedback});
+  const _CoachFeedbackSection({required this.feedback});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(20),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Icon(
-                CupertinoIcons.sparkles,
-                color: AppColors.secondary,
-                size: 14,
+          const _Eyebrow('COACH FEEDBACK'),
+          const SizedBox(height: 14),
+          AiGlowCard(
+            child: GptMarkdown(
+              feedback,
+              style: GoogleFonts.publicSans(
+                fontSize: 15,
+                height: 1.55,
+                color: AppColors.primaryInk,
               ),
-              const SizedBox(width: 6),
-              Text(
-                'COACH FEEDBACK',
-                style: GoogleFonts.spaceGrotesk(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
-                  color: AppColors.secondary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          GptMarkdown(
-            feedback,
-            style: GoogleFonts.publicSans(
-              fontSize: 14,
-              height: 1.5,
-              color: CupertinoColors.white.withValues(alpha: 0.92),
             ),
           ),
         ],
       ),
     );
   }
-}
-
-Color _scoreColor(double score01) {
-  if (score01 >= 0.8) return const Color(0xFF34C759);
-  if (score01 >= 0.5) return AppColors.secondary;
-  return AppColors.danger;
 }
 
 /// Danger-style button that unlinks the wearable activity from this training

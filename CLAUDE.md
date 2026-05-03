@@ -176,6 +176,7 @@ Each release: bump `version: 1.0.0+N` in `app/pubspec.yaml` (the `+N` build numb
 - Use Laravel Boost MCP tools (`search-docs`, `database-schema`) when working in api/
 - Before implementing anything non-trivial, write a spec first, then a plan
 - Commit often, descriptive messages, never commit without running tests first
+- **Keep CLAUDE.md current.** After any relatively-large change (new feature, new endpoint, new native bridge, schema change, agent-prompt rule change, deployment quirk), append a concise bullet to the relevant CLAUDE.md (`./CLAUDE.md` for cross-cutting, `api/CLAUDE.md` for backend, `app/CLAUDE.md` for Flutter/iOS). One sentence + file:line pointer is enough — the goal is the *next* session can reconstruct the decision without re-reading every file. Skip for trivial fixes.
 
 ### Never auto-push, build, or upload
 
@@ -213,6 +214,10 @@ Fully functional MVP on the `apple-health` branch:
 - Past-dated training days in week 1 are dropped in `ProposalService::applyCreateSchedule` (safety rail)
 - Filament admin with token-usage dashboard
 - Push notifications via APNs-direct (`laravel-notification-channels/apn` + native iOS MethodChannel, NO Firebase). Triggers: plan generation completion + failure. Spec: `docs/superpowers/specs/2026-04-26-push-notifications.md`. See `api/CLAUDE.md` → "Push notifications" and `app/CLAUDE.md` → section 10.
+- **Reschedule training days** via `PATCH /training-days/{day}` — re-assigns to the matching `TrainingWeek`, refuses race-day moves and days with a result. UI: top-right Cupertino action sheet on the day-detail screen + custom calendar in `reschedule_day_sheet.dart`.
+- **Send to watch** via WorkoutKit (iOS 17+) — native bridge `nl.runcoach/workout` schedules `SingleGoalWorkout` for basic runs and `CustomWorkout` for intervals. iOS 17.4+ uses deterministic UUIDs per `TrainingDay` so multiple workouts per day from other apps don't collide, and rescheduling auto-moves the watch entry. See `app/CLAUDE.md` → section 11.
+- **Interval rules** (enforced in `PlanOptimizerService::normalizeIntervals` + agent prompt): warmup optional/time-based (≤120s, default 60s), recovery always time-based (default 90s), cooldown REQUIRED at the end and time-based (60-600s, default 300s); cooldown synthesized when the agent omits it. Distance-based recoveries are converted to seconds via the recovery pace. See `api/CLAUDE.md` → "Interval session rules".
+- **Notifications inbox** — generic `user_notifications` table backs the header bell + cold-start "Action required" popup (`app/lib/app.dart::_maybeShowNotificationsReminder`). First type: `pace_adjustment` — emitted by `PaceAdjustmentEvaluator` after `GenerateActivityFeedback` if pace_score ≥ 8 + heart_rate_score ≤ 7 + non-interval, with a Karvonen-derived `pace_factor`. Accept applies the factor to every upcoming non-completed day of the same type via `Api/NotificationController::accept`; race day is preserved. Cards follow the canonical white-card / gold-CTA pattern in `app/CLAUDE.md` → section 7.
 - Flutter app: Dashboard, Schedule, AI Coach, Goals tabs
 
 **Branch state:** `main` is the legacy Strava implementation, preserved. `strava` (remote) is the snapshot of pre-migration state. `apple-health` contains the migration to Apple Sign-In + HealthKit + wearable-agnostic schema.

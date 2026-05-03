@@ -18,6 +18,18 @@ class CoachChatView extends ConsumerStatefulWidget {
   final void Function(WidgetRef)? onInvalidate;
   final Future<void> Function(WidgetRef, int proposalId)? onAccept;
   final Future<void> Function(WidgetRef, int proposalId)? onReject;
+  // When present, messages with a non-null `handoffPrompt` render a tile
+  // that calls this. The workout chat sheet wires it to "close + start a
+  // fresh coach chat seeded with the prompt".
+  final Future<void> Function(WidgetRef, String suggestedPrompt)? onHandoff;
+  // Suggestion grid shown on the empty state. Defaults to the general
+  // coach prompts; the workout sheet overrides with workout-specific ones.
+  final List<({IconData icon, String label, String subtitle, String prompt})>?
+      emptyStateSuggestions;
+  // Optional title shown above the empty-state suggestions, replacing the
+  // default "What can I help you with?".
+  final String? emptyStateTitle;
+  final String? emptyStateSubtitle;
 
   const CoachChatView({
     super.key,
@@ -28,6 +40,10 @@ class CoachChatView extends ConsumerStatefulWidget {
     this.onInvalidate,
     this.onAccept,
     this.onReject,
+    this.onHandoff,
+    this.emptyStateSuggestions,
+    this.emptyStateTitle,
+    this.emptyStateSubtitle,
   });
 
   @override
@@ -88,7 +104,12 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
             error: (err, _) => AppErrorState(title: 'Error: $err'),
             data: (messages) {
               if (messages.isEmpty) {
-                return _EmptyState(onQuickAction: (text) => _send(text));
+                return _EmptyState(
+                  onQuickAction: (text) => _send(text),
+                  suggestions: widget.emptyStateSuggestions,
+                  title: widget.emptyStateTitle,
+                  subtitle: widget.emptyStateSubtitle,
+                );
               }
               // Reversed ListView: index 0 is the newest message, rendered at
               // the visual bottom. Streaming text growing in the bottom bubble
@@ -137,6 +158,16 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
                           ),
                         ),
                       ],
+                      if (msg.handoffPrompt != null &&
+                          msg.handoffPrompt!.isNotEmpty &&
+                          widget.onHandoff != null) ...[
+                        const SizedBox(height: 10),
+                        _HandoffCard(
+                          prompt: msg.handoffPrompt!,
+                          onTap: () =>
+                              widget.onHandoff!(ref, msg.handoffPrompt!),
+                        ),
+                      ],
                     ],
                   );
                 },
@@ -162,29 +193,39 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
 
 class _EmptyState extends StatelessWidget {
   final ValueChanged<String> onQuickAction;
-  const _EmptyState({required this.onQuickAction});
+  final List<({IconData icon, String label, String subtitle, String prompt})>?
+      suggestions;
+  final String? title;
+  final String? subtitle;
 
-  static const _suggestions = [
+  const _EmptyState({
+    required this.onQuickAction,
+    this.suggestions,
+    this.title,
+    this.subtitle,
+  });
+
+  static const _defaultSuggestions = [
     (
-      emoji: '\u{1F4C5}',
+      icon: CupertinoIcons.bolt_fill,
       label: 'Create a training plan',
       subtitle: 'For an upcoming race or new goal.',
       prompt: 'I want to create a training plan for an upcoming race',
     ),
     (
-      emoji: '\u{1F504}',
+      icon: CupertinoIcons.slider_horizontal_3,
       label: 'Adjust my schedule',
       subtitle: "Tweak this week's plan.",
       prompt: "Can you adjust this week's training schedule?",
     ),
     (
-      emoji: '\u{1F4CA}',
+      icon: CupertinoIcons.chart_bar_alt_fill,
       label: 'Analyze my progress',
       subtitle: 'How am I trending lately?',
       prompt: 'How is my training going? Give me an analysis of my progress.',
     ),
     (
-      emoji: '\u{1F3C3}',
+      icon: CupertinoIcons.lightbulb_fill,
       label: 'Training advice',
       subtitle: 'Pacing, recovery, nutrition, gear.',
       prompt: 'Got any running advice for me today?',
@@ -193,6 +234,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tiles = suggestions ?? _defaultSuggestions;
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 32, 20, 24),
@@ -200,13 +242,14 @@ class _EmptyState extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            "What can I help you with?",
+            title ?? "What can I help you with?",
             style: RunCoreText.serifTitle(size: 32).copyWith(height: 1.15),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
           Text(
-            'I know your training history and can manage your schedule.',
+            subtitle ??
+                'I know your training history and can manage your schedule.',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 15,
@@ -216,9 +259,9 @@ class _EmptyState extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          for (final s in _suggestions) ...[
+          for (final s in tiles) ...[
             _SuggestionTile(
-              emoji: s.emoji,
+              icon: s.icon,
               label: s.label,
               subtitle: s.subtitle,
               onTap: () => onQuickAction(s.prompt),
@@ -231,14 +274,89 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
+class _HandoffCard extends StatelessWidget {
+  final String prompt;
+  final VoidCallback onTap;
+
+  const _HandoffCard({required this.prompt, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      onPressed: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.cardBg,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.inputBorder),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.gold.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                CupertinoIcons.sparkles,
+                size: 18,
+                color: AppColors.warmBrown,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Ask the full coach',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primaryInk,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    prompt,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.inkMuted,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+            const Icon(
+              CupertinoIcons.chevron_right,
+              size: 16,
+              color: AppColors.inkMuted,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _SuggestionTile extends StatelessWidget {
-  final String emoji;
+  final IconData icon;
   final String label;
   final String subtitle;
   final VoidCallback onTap;
 
   const _SuggestionTile({
-    required this.emoji,
+    required this.icon,
     required this.label,
     required this.subtitle,
     required this.onTap,
@@ -259,10 +377,10 @@ class _SuggestionTile extends StatelessWidget {
         child: Row(
           children: [
             SizedBox(
-              width: 36,
-              child: Text(emoji, style: const TextStyle(fontSize: 22)),
+              width: 34,
+              child: Icon(icon, size: 22, color: AppColors.gold),
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 8),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

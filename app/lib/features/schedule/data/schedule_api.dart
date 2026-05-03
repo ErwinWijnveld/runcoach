@@ -38,6 +38,9 @@ abstract class ScheduleApi {
 
   @DELETE('/training-days/{dayId}/match-activity')
   Future<void> unlinkActivity(@Path() int dayId);
+
+  @GET('/workout-chat/{dayId}')
+  Future<dynamic> getWorkoutChat(@Path() int dayId);
 }
 
 @riverpod

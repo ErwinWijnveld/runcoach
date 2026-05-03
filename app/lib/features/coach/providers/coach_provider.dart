@@ -9,6 +9,7 @@ import 'package:app/features/coach/data/coach_stream_client.dart';
 import 'package:app/features/coach/models/coach_message.dart';
 import 'package:app/features/coach/models/conversation.dart';
 import 'package:app/features/coach/models/vercel_stream_event.dart';
+import 'package:app/features/schedule/providers/plan_version_provider.dart';
 
 part 'coach_provider.g.dart';
 
@@ -16,12 +17,28 @@ part 'coach_provider.g.dart';
 /// Used by every tap-to-open-chat entry point (dashboard prompt bar, goal
 /// detail, schedule detail, etc.) so the runner never sees the chat list —
 /// a new empty chat is always ready to send the first message into.
-Future<void> startNewCoachChat(BuildContext context, WidgetRef ref) async {
+///
+/// When [seedMessage] is non-empty, sends it as the first user message
+/// after navigation — used by the workout-chat handoff CTA so the new
+/// coach chat opens with the runner's escalated question pre-asked.
+Future<void> startNewCoachChat(
+  BuildContext context,
+  WidgetRef ref, {
+  String? seedMessage,
+}) async {
   final api = ref.read(coachApiProvider);
   final response = await api.createConversation({'title': 'New Chat'});
   final id = response['data']['id'];
   ref.invalidate(conversationsProvider);
   if (context.mounted) context.push('/coach/chat/$id');
+  final seed = seedMessage?.trim() ?? '';
+  if (seed.isNotEmpty) {
+    // Fire-and-forget: the chat screen activates the provider on build,
+    // so calling sendMessage here lands on the freshly-built notifier.
+    Future.microtask(
+      () => ref.read(coachChatProvider(id).notifier).sendMessage(seed),
+    );
+  }
 }
 
 @riverpod
@@ -40,10 +57,17 @@ class ProposalActions extends _$ProposalActions {
   void build() {}
 
   Future<void> accept(int proposalId) async {
+    // Capture cross-provider deps BEFORE the await: an autoDispose chain
+    // upstream may tear this notifier's `ref` down while the API request
+    // is in flight, and `ref.read` after the await would throw "used Ref
+    // after dispose". The captured handles are stable references that
+    // remain valid through the async gap.
     final api = ref.read(coachApiProvider);
+    final planVersion = ref.read(planVersionProvider.notifier);
+    final auth = ref.read(authProvider.notifier);
     await api.acceptProposal(proposalId);
-    if (!ref.mounted) return;
-    await ref.read(authProvider.notifier).loadProfile();
+    planVersion.bump();
+    await auth.loadProfile();
   }
 
   Future<void> reject(int proposalId) async {
@@ -113,6 +137,15 @@ class CoachChat extends _$CoachChat {
             StatsEvent(:final stats) =>
               current.copyWith(statsCard: stats),
             ChipsEvent(:final chips) => current.copyWith(chips: chips),
+            // The general coach agent doesn't emit handoff events, but
+            // the union has the variant. Surface the prompt anyway so a
+            // future agent reusing the same provider can render it.
+            HandoffEvent(:final suggestedPrompt) =>
+              current.copyWith(handoffPrompt: suggestedPrompt),
+            PlanChangedEvent() => () {
+              ref.read(planVersionProvider.notifier).bump();
+              return current;
+            }(),
             ErrorEvent(:final message) => current.copyWith(
                 errorDetail: message,
                 streaming: false,
@@ -178,13 +211,21 @@ class CoachChat extends _$CoachChat {
 
   Future<void> acceptProposal(int proposalId) async {
     final api = ref.read(coachApiProvider);
+    final planVersion = ref.read(planVersionProvider.notifier);
+    final auth = ref.read(authProvider.notifier);
     await api.acceptProposal(proposalId);
-    await ref.read(authProvider.notifier).loadProfile();
+    planVersion.bump();
+    await auth.loadProfile();
   }
 
   Future<void> rejectProposal(int proposalId) async {
     final api = ref.read(coachApiProvider);
     await api.rejectProposal(proposalId);
+    // `sendMessage` reads `ref` internally; if the chat screen unmounted
+    // while we were rejecting, this notifier is disposed and the chained
+    // follow-up would crash. Bail out — the user is no longer here to read
+    // an agent reply anyway.
+    if (!ref.mounted) return;
     await sendMessage("Let's adjust this plan.");
   }
 }

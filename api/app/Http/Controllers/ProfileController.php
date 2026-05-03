@@ -55,6 +55,7 @@ class ProfileController extends Controller
             ...$user->only([
                 'id', 'name', 'email',
                 'coach_style', 'has_completed_onboarding',
+                'heart_rate_zones',
             ]),
             'pending_plan_generation' => $pending !== null
                 ? OnboardingController::serialize($pending)
