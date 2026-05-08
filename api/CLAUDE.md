@@ -202,24 +202,28 @@ The coach uses **Laravel AI SDK** (`laravel/ai` v0.5.1). Default provider is **A
   - `ActivityFeedbackAgent` — post-run feedback for completed activities
   - `WeeklyInsightAgent` — weekly coach notes
   - `RunningNarrativeAgent` — narrative paragraph for `UserRunningProfile`
-- `app/Ai/Tools/*.php` — 11 tools the coach agent can call:
-  - **Onboarding-only UI tools** (return display payloads the stream controller forwards to Flutter as `data-stats` / `data-chips` events):
-    - `GetRunningProfile` — (no args) returns cached `UserRunningProfile`, or triggers fresh analysis inline
-    - `PresentRunningStats` — renders a stats card in the chat (4 metrics)
-    - `OfferChoices` — renders tappable chip row (label/value pairs)
+- `app/Ai/Tools/*.php` — coach + onboarding agent tools:
+  - **UI display tools** (forwarded to Flutter as `data-stats` / `data-chips` events):
+    - `PresentRunningStats` — stats card (4 metrics)
+    - `OfferChoices` — tappable chip row
   - **Activity query tools (all read from `wearable_activities`, no live external API):**
+    - `GetRunningProfile` — cached `UserRunningProfile` (12-mo aggregate; the onboarding builder uses `FitnessSnapshotService` for recent fitness instead)
     - `GetRecentRuns` — N most recent runs, no date input
-    - `SearchActivities` — date-range query, returns runs + pre-computed aggregates + weekly breakdown
-    - `GetActivityDetails` — summary + any pre-computed splits stored in `raw_data.splits` (Apple Health workouts recorded with the Workout app on Apple Watch surface 1km splits there)
-  - **Schedule + compliance**:
+    - `SearchActivities` — date-range query with aggregates + weekly breakdown
+    - `GetActivityDetails` — per-km splits + HR curve when stored in `raw_data.splits`
+  - **Plan-state query tools:**
     - `GetCurrentSchedule` — active schedule with compliance
+    - `GetCurrentProposal` — pending proposal payload (call before `adjust_plan` if you need full structure)
     - `GetGoalInfo` — goal details + readiness
     - `GetComplianceReport` — compliance breakdown + trends
-    - `CreateSchedule` — proposes a new training plan (requires approval)
-    - `ModifySchedule` — proposes schedule changes (requires approval)
-- `app/Services/ProposalService.php` — detects proposals from `agent_conversation_messages.tool_results` and applies accepted ones. `applyCreateSchedule()` drops any training day whose date is before today (hard guarantee against past-dated week 1 days).
+  - **Plan-mutation tools (the unified Adjust + Build pattern):**
+    - `BuildPlan` — generates a complete plan from form-style inputs (goal_type, distance_meters, target_date, goal_time_seconds, days_per_week, preferred_weekdays, run_type_preferences, additional_notes). Used by both onboarding (first plan) AND coach-chat (full rebuilds when the goal changes). No verify loop, no JSON authoring — pure deterministic builder. ~6s wall clock.
+    - `AdjustPlan` — targeted edits to the latest pending proposal OR the active goal (auto-detects). Operations: `replace` / `add` / `remove` / `adjust` / `shift` / `set_goal`. Server clamps everything (pace ±15s tempo, ±10s interval, distance [4 km, 1.5×]). Race day untouchable. Used by both agents for ANY tweak. ~10s wall clock.
+    - `ModifySchedule` — legacy bulk-editor for active plans. Largely superseded by `AdjustPlan`; kept only if a legacy proposal type still references it.
+    - `EditWorkout` — workout-chat-only single-day edit (used by `WorkoutAgent`); internally delegates to `AdjustPlan`.
+- `app/Services/ProposalService.php` — detects proposals from `agent_conversation_messages.tool_results` and applies accepted ones. Applies `CreateSchedule` (creates new goal + activates), `EditActivePlan` (updates active goal in place), `ModifySchedule` (legacy), `AlternativeWeek` (legacy). `applyCreateSchedule()` drops any training day whose date is before today.
 
-**How proposals work:** When the agent calls `CreateSchedule` or `ModifySchedule`, the tool returns JSON with `requires_approval: true`. The SDK stores that in `tool_results`. After `$agent->prompt()` returns, `ProposalService::detectProposalFromConversation()` queries that column, finds the proposal, and stores a `CoachProposal` record. The user accepts/rejects via `/coach/proposals/{id}/accept` or `/reject`. Before acceptance they can open a details modal fed by `GET /coach/proposals/{id}/explanation` (cached 7 days per proposal via `Cache::remember`).
+**How proposals work:** When the agent calls `BuildPlan` or `AdjustPlan`, the tool returns JSON with `requires_approval: true`. The SDK stores that in `tool_results`. After `$agent->prompt()` returns, `ProposalService::detectProposalFromConversation()` queries that column, finds the proposal, and stores a `CoachProposal` record. The user accepts/rejects via `/coach/proposals/{id}/accept` or `/reject`. Before acceptance they can open a details modal fed by `GET /coach/proposals/{id}/explanation` (cached 7 days per proposal via `Cache::remember`). Active-goal edits via `AdjustPlan` carry a `diff` array on the payload so the Flutter `ProposalCard` renders a "PLAN REVISION (N changes)" pill.
 
 **The SDK manages conversations automatically** via `agent_conversations` and `agent_conversation_messages` tables (created by SDK migrations). Do NOT use `CoachConversation` or `CoachMessage` models — they no longer exist. Conversation IDs are UUIDs (36-char strings), not integers.
 
@@ -239,9 +243,11 @@ Workaround lives entirely in the Flutter coach provider (`app/lib/features/coach
 
 An earlier attempt patched the SDK to yield a second ToolCall event at `content_block_start` — that polluted `$response->toolCalls` with duplicate ids and caused `messages.N.content.M: tool_use ids must be unique` on the next turn. We removed the vendor patch; DO NOT bring it back.
 
-### Plan generation pipeline (onboarding + edits)
+### Plan generation pipeline (unified Adjust + Build pattern)
 
-Two distinct pipelines now share one DB schema. **Onboarding** uses a deterministic builder (no LLM authoring of the schedule). **Coach-chat edits** keep the agentic create/edit + verify loop. Read this before touching anything in `OnboardingAgent`, `RunCoachAgent`, `PlanOptimizerService`, `PlanVerifierAgent`, `BuildOnboardingPlan`, `CreateSchedule`, `EditSchedule`, or `VerifyPlan`.
+ONE pattern for both onboarding and coach-chat: `BuildPlan` for full creates / rebuilds, `AdjustPlan` for everything else. No verify loop. No LLM authoring of schedule JSON. Read this before touching anything in `OnboardingAgent`, `RunCoachAgent`, `PlanOptimizerService`, `BuildPlan`, `AdjustPlan`.
+
+> **Migration note (2026-05):** the old `CreateSchedule` + `EditSchedule` + `VerifyPlan` + `PlanVerifierAgent` stack was removed in favour of the deterministic Build/Adjust pattern. The OLD coach-chat path was 30-90s per edit (verify-loop + Sonnet JSON authoring + Haiku audit). The new path is 6-15s. All plan structure now comes from the deterministic builder + server-side op clamps; coaching judgment for tweaks is encoded in `TrainingPlanBuilder` constants, NOT in agent prompts.
 
 #### Onboarding (first-plan generation)
 
@@ -326,24 +332,28 @@ ProposalService::detectProposalFromConversation()
 
 End-to-end ~5-15s (was 60-110s):
 - ~6s for the simple build + reply path (no notes / no adjustment)
-- ~14s when notes trigger an `adjust_onboarding_plan` second tool call
+- ~14s when notes trigger an `adjust_plan` second tool call
 
-Same form input always produces the same base plan — the builder is deterministic, testable with PHPUnit, no agent fakes needed for the structure. The AI's adjustments (when notes warrant them) and reply text vary; tests for those paths fake the agent.
+Same form input always produces the same base plan — the builder is deterministic, testable with PHPUnit. The AI's adjustments (when notes warrant them) and reply text vary; tests for those paths fake the agent.
 
 #### Coach-chat edits (after onboarding, ongoing)
 
-Once the proposal is accepted (or the runner is back chatting later), every message flows through `RunCoachAgent` (`coachInstructions()`) with the full toolbox: `GetRecentRuns`, `SearchActivities`, `CreateSchedule`, `EditSchedule`, `VerifyPlan`, etc. The verify loop + optimizer post-pass + Haiku auditor are intact for that path — we only stripped the onboarding-specific branch out of `RunCoachAgent::instructions()`.
+Once the proposal is accepted (or the runner is back chatting later), every message flows through `RunCoachAgent`'s `coachInstructions()` with the SAME tools as onboarding plus query tools (`GetRecentRuns`, `SearchActivities`, `GetCurrentSchedule`, etc).
 
 ```
 [user message]
     ▼
-RunCoachAgent (coachInstructions only) ── tools ──→
-    CreateSchedule / EditSchedule → VerifyPlan → (EditSchedule → VerifyPlan)*
-        ↓
-    PlanVerifierAgent (Haiku audit)
+RunCoachAgent ── tools ──→
+    AdjustPlan (small tweaks) — auto-targets active goal, ~10s
+    OR
+    BuildPlan (full rebuild) — deterministic, ~10s
         ↓
     ProposalService.detectProposalFromConversation
 ```
+
+Plan-mutation contract:
+- **Tweaks** (change a day, swap session type, shift weekday, update goal time, race date moved, etc) → `adjust_plan`. Server clamps pace/distance, race-day untouchable. Active-goal edits emit `EditActivePlan` proposals carrying a `diff` array for the "PLAN REVISION" UI.
+- **Rebuilds** (different goal_type, race cancelled, original goal complete) → `build_plan`. Same form-style input as onboarding. On accept, `applyCreateSchedule` creates a new `Goal` and `GoalService::activate` deactivates the old one.
 
 #### Plan generation lifecycle (async, onboarding only)
 
@@ -354,35 +364,30 @@ RunCoachAgent (coachInstructions only) ── tools ──→
 - **Field on /profile + auth responses**: `pending_plan_generation` is non-null only when the user should be redirected to the loading screen or the proposal chat. Once the proposal is accepted/rejected, the field goes back to null and normal routing resumes.
 - **Queue worker timeout**: deploy command must use `--timeout=600` (or higher). 120s was the historical value and would kill plan generation mid-loop.
 
-#### The mandatory verify cycle (coach-chat only)
+#### Verify loop — REMOVED
 
-> NB: onboarding does NOT run the verify loop — `BuildOnboardingPlan` is deterministic and produces a structurally-correct payload directly. Verify is only on the coach-chat `CreateSchedule` / `EditSchedule` paths.
+The old Haiku-audited verify loop was retired with the Build/Adjust migration. There is no `VerifyPlan` tool, no `PlanVerifierAgent`, no `verify_plan:cycle:user` cache key. Plan structure is guaranteed by the deterministic builder; per-edit safety comes from `AdjustPlan`'s server-side clamps + the optimizer's structural post-pass.
 
-Hardcoded in `RunCoachAgent::coachInstructions()`:
+Historical context (delete after a few months):
+- Old `MAX_CYCLES = 2` cap; counter at `verify_plan:cycle:user:{id}` — both gone.
+- Old prompt rule "after EVERY `create_schedule` or `edit_schedule`, call `verify_plan`" — gone.
+- Doom-loop scrubs ("never say 'max cycles' to the user") — gone.
 
-> After EVERY `create_schedule` or `edit_schedule`, immediately call `verify_plan`. If `passed:false`, batch every `issues[].suggested_fix` into ONE `edit_schedule` call, then call `verify_plan` again. Stop when `passed:true` or `cycle >= max_cycles`.
+#### Plan-pipeline services (used by both onboarding + coach-chat)
 
-- **Cap:** `MAX_CYCLES = 2` in `VerifyPlan.php`.
-- **Cap counter key:** `verify_plan:cycle:user:{$userId}` (NOT proposal_id, because `EditSchedule` supersedes the pending proposal on every call — a proposal-keyed counter would reset every iteration and the loop would never terminate).
-- **Counter reset:** `CreateSchedule::handle` calls `Cache::forget(VerifyPlan::cycleCacheKey($userId))` before persisting, so a fresh generation always starts at cycle 1.
-- **Counter increment:** in `VerifyPlan::handle`, before calling Haiku.
-- **Capped short-circuit:** when the counter exceeds `MAX_CYCLES`, `VerifyPlan` returns `{passed:true, capped:true, summary:"Max verification cycles reached..."}` WITHOUT calling Haiku. This forces the agent to terminate the loop.
-- **User-facing reply discipline:** the prompt explicitly forbids the agent from saying "max cycles", "verifier", "server-managed", "display label", or any internal mechanic in its reply when the cap fires. If you see those words leak into the chat, the prompt's been edited.
-
-#### Onboarding-specific services (the deterministic pipeline)
-
-The new code lives under `app/Services/Onboarding/`, `app/Support/Onboarding/`, plus the agent + tools under `app/Ai/`:
+The plan-builder code lives under `app/Services/Onboarding/`, `app/Support/Onboarding/`, plus the agent + tools under `app/Ai/`. The "Onboarding" namespace is historical — the SAME services power coach-chat plan rebuilds via `BuildPlan`.
 
 - **`FitnessSnapshotService`** (`app/Services/Onboarding/`) — derives a recent-fitness snapshot via 4-tier cascade (recent threshold effort → HR-zone mining → recent average → fallback). Reads HR zones from `users.heart_rate_zones`. Tunable knobs are constants on the class (`STALENESS_PENALTIES`, `EASY_OFFSET_FROM_THRESHOLD`, `RECENT_THRESHOLD_LOOKBACK_DAYS`).
-- **`PlanAmbitionAnalyzer`** (`app/Services/Onboarding/`) — compares the runner's stated goal pace + volume vs realistic improvement rates (Daniels, Pfitzinger). Returns `AmbitionAssessment` with `level` (realistic / ambitious / very_ambitious), `peakVolumeMultiplier` (1.6× / 1.7× / 1.8×), `weeksExtension` (+0 / +4 / +8), `summary`, and `suggestion`. `REALISTIC_IMPROVEMENT_PER_MONTH = 12.0 sec/km/month`. Auto-extension only fires when `target_date` is null (runner committed to a date → adjust goal time instead).
-- **`TrainingPlanBuilder`** (`app/Services/Onboarding/`) — pure-PHP plan composer. Coaching judgment encoded as constants: `PEAK_KM_FOR_DISTANCE`, `MAX_PEAK_VS_BASELINE_RATIO` (default cap, AmbitionAssessment can crank), `CUTBACK_EVERY_N_WEEKS`, `TAPER_FRACTIONS`, `LONG_RUN_CAP_BY_RANK`, plus separate `DEFAULT_WEEKS_FOR_GOAL` (race completion: 5k=6, 10k=8, HM=12, M=16) and `DEFAULT_WEEKS_FOR_PR_ATTEMPT` (5k=10, 10k=12, HM=14, M=18) — PR cycles need more time to build speed AND volume.
-- **Effective-days logic** (`TrainingPlanBuilder::resolveEffectiveDays`) — `days_per_week` is the runner's TARGET, not a hard constraint. When the week's volume can't support that many meaningful sessions (each ≥ MIN_RUN_KM=4 km, long ≥ 7 km in build), the count is reduced. A low-baseline runner asking for 4 days starts at 2 and ramps up as volume grows. Avoids the "4 × 4km filler runs" anti-pattern.
-- **Long-run-is-longest invariant** — post-render bump in `planSessions` ensures `long_run.target_km ≥ longest_other_session + 1 km`. Otherwise interval-blueprint inflation can leave the long shorter than the interval session, breaking `reclassifyLongRuns` in the optimizer.
-- **Quality-pace ramps** (`tempoPace` + `intervalBlueprint` workPace) — peak at the LAST BUILD WEEK (`weeksToRace = taperLen`), not race week (no tempo/interval in race week). `taperLen` mirrors `buildWeeklyVolumeCurve`'s formula via `taperLengthForRamp()`. Tempos end at `goal_pace + 5s` (sustainable); interval work ends at `goal_pace` (race-pace specificity in intervals, not tempos).
-- **`FitnessSnapshot`** + **`OnboardingFormInput`** + **`AmbitionAssessment`** (`app/Support/Onboarding/`) — readonly value objects. `OnboardingFormInput::fromArray()` is the single ingestion point for historical form aliases (`'pr'` → `pr_attempt`, `'fitness'` / `'weight_loss'` → `general_fitness`) and the `runTypePreferences` ranking from the new onboarding step (gold → bronze → last over `easy`/`tempo`/`interval`/`long_run`). The ranking influences quality-slot type, easy→quality upgrade at 5+ days, and long-run length cap.
-- **`BuildOnboardingPlan` tool** (`app/Ai/Tools/`) — wraps snapshot → ambition (two-pass) → builder → optimizer → proposal. Returns `{requires_approval, proposal_id, plan_structure, fitness_summary, ambition}`. The `ambition` field carries `level + summary + suggestion` so the agent can warn the runner naturally.
-- **`AdjustOnboardingPlan` tool** (`app/Ai/Tools/`) — optional second pass invoked by the agent when notes warrant tweaks. Operations: `replace` / `add` / `remove` / `adjust` per (week, day_of_week). Server clamps everything: pace ±15s tempo / ±10s interval-work, distance [4 km, 1.5× builder], race-day untouchable, `add` respects `preferred_weekdays`. Re-runs optimizer and supersedes the prior pending proposal via `ProposalService::persistPending`.
-- **`OnboardingAgent`** (`app/Ai/Agents/`) — minimal Sonnet agent. Tools: `BuildOnboardingPlan`, `AdjustOnboardingPlan`, `GetRecentRuns`. No verify loop. Prompt has injury-aware step 2 (any mention of pain / tendonitis / "coming back from" MUST trigger `adjust_onboarding_plan` to replace tempos+intervals with easy in early weeks — the deterministic builder doesn't know about injuries).
+- **`PlanAmbitionAnalyzer`** (`app/Services/Onboarding/`) — compares the runner's stated goal pace + volume vs realistic improvement rates (Daniels, Pfitzinger). Returns `AmbitionAssessment` with `level` (realistic / ambitious / very_ambitious), `peakVolumeMultiplier` (1.6× / 1.7× / 1.8×), `weeksExtension` (+0 / +4 / +8), `summary`, and `suggestion`. `REALISTIC_IMPROVEMENT_PER_MONTH = 12.0 sec/km/month`. Auto-extension only fires when `target_date` is null.
+- **`TrainingPlanBuilder`** (`app/Services/Onboarding/`) — pure-PHP plan composer. Coaching judgment encoded as constants: `PEAK_KM_FOR_DISTANCE`, `MAX_PEAK_VS_BASELINE_RATIO`, `CUTBACK_EVERY_N_WEEKS`, `TAPER_FRACTIONS`, `LONG_RUN_CAP_BY_RANK`, plus separate `DEFAULT_WEEKS_FOR_GOAL` (race completion) and `DEFAULT_WEEKS_FOR_PR_ATTEMPT` (PR cycles).
+- **Effective-days logic** (`TrainingPlanBuilder::resolveEffectiveDays`) — `days_per_week` is the runner's TARGET, not a hard constraint. When the week's volume can't sustain that many meaningful sessions (each ≥ MIN_RUN_KM=4 km, long ≥ 7 km in build), the count is reduced. A low-baseline runner asking for 4 days starts at 2 and ramps up.
+- **Long-run-is-longest invariant** — post-render bump in `planSessions` ensures `long_run.target_km ≥ longest_other_session + 1 km`.
+- **Quality-pace ramps** (`tempoPace` + `intervalBlueprint` workPace) — peak at the LAST BUILD WEEK (`weeksToRace = taperLen`). Tempos end at `goal_pace + 5s` (sustainable); interval work ends at `goal_pace` (race-pace specificity in intervals, not tempos).
+- **`FitnessSnapshot`** + **`OnboardingFormInput`** + **`AmbitionAssessment`** (`app/Support/Onboarding/`) — readonly value objects. `OnboardingFormInput::fromArray()` normalises form aliases (`'pr'` → `pr_attempt`, `'fitness'` / `'weight_loss'` → `general_fitness`) and the `runTypePreferences` ranking. The ranking influences quality-slot type, easy→quality upgrade at 5+ days, and long-run length cap.
+- **`BuildPlan` tool** (`app/Ai/Tools/`) — used by BOTH agents. Wraps snapshot → ambition (two-pass) → builder → optimizer → proposal. Returns `{requires_approval, proposal_id, plan_structure, fitness_summary, ambition}`. The `ambition` field carries `level + summary + suggestion` so the agent can warn the runner naturally.
+- **`AdjustPlan` tool** (`app/Ai/Tools/`) — used by BOTH agents. Auto-targets latest pending proposal → active goal → fallback. Operations: `replace` / `add` / `remove` / `adjust` / `shift` / `set_goal`. Server clamps everything: pace ±15s tempo / ±10s interval-work, distance [4 km, 1.5× existing], race-day untouchable, `add` respects `preferred_weekdays`. Active-goal edits emit `EditActivePlan` proposals carrying a `diff` array for the "PLAN REVISION" UI.
+- **`OnboardingAgent`** (`app/Ai/Agents/`) — minimal Sonnet agent. Tools: `BuildPlan`, `AdjustPlan`, `GetRecentRuns`. Prompt has injury-aware step 2 (any mention of pain / tendonitis / "coming back from" MUST trigger `adjust_plan` to replace tempos+intervals with easy in early weeks).
+- **`RunCoachAgent`** (`app/Ai/Agents/`) — full coach-chat agent. Tools: query tools (`GetRunningProfile`, `GetRecentRuns`, `SearchActivities`, `GetActivityDetails`, `GetCurrentSchedule`, `GetCurrentProposal`, `GetGoalInfo`, `GetComplianceReport`) + `BuildPlan` + `AdjustPlan` (gated by `planMutationsAllowed()` for coach-managed clients).
 
 **Tunable constants list** (when plans need adjustment):
 - Pace cascade: `FitnessSnapshotService::STALENESS_PENALTIES` (30/60/90d penalty steps), `EASY_OFFSET_FROM_THRESHOLD` (75s default), `VO2MAX_OFFSET_FROM_THRESHOLD` (-20s).
@@ -393,9 +398,9 @@ The new code lives under `app/Services/Onboarding/`, `app/Support/Onboarding/`, 
 - Long-run cap: `LONG_RUN_CAP_BY_RANK` (gold=0.48, silver=0.44, bronze=0.40, last=0.36) + session-count boost (+0.20 for 2-day weeks, +0.10 for 3-day).
 - Interval reps: `TrainingPlanBuilder::intervalBlueprint()` (4×400 → 5×800 → 6×800 progression, sharpener at goal pace).
 - Taper: `TrainingPlanBuilder::TAPER_WEEKS` (3), `TAPER_FRACTIONS` ([0.70, 0.55, 0.40]).
-- Adjust clamps: `AdjustOnboardingPlan::TEMPO_PACE_TOLERANCE_SECONDS` (15), `INTERVAL_WORK_PACE_TOLERANCE_SECONDS` (10), `KM_MAX_MULTIPLIER` (1.5), `KM_MIN` (4).
+- Adjust clamps: `AdjustPlan::TEMPO_PACE_TOLERANCE_SECONDS` (15), `INTERVAL_WORK_PACE_TOLERANCE_SECONDS` (10), `KM_MAX_MULTIPLIER` (1.5), `KM_MIN` (4), `KM_ADD_CEILING` (30).
 
-Tests: `tests/Feature/Services/Onboarding/FitnessSnapshotServiceTest.php`, `TrainingPlanBuilderTest.php`, `tests/Feature/Ai/Tools/AdjustOnboardingPlanTest.php`. Each derivation tier, each days-per-week branch, ranking effects, low-volume long-run regressions, and adjust-tool guard rails all have coverage.
+Tests: `tests/Feature/Services/Onboarding/FitnessSnapshotServiceTest.php`, `TrainingPlanBuilderTest.php`, `tests/Feature/Ai/Tools/AdjustPlanTest.php`. Each derivation tier, each days-per-week branch, ranking effects, low-volume long-run regressions, and adjust-tool guard rails (clamps, race-day protection, shift collisions, set_goal validation, active-goal targeting + diff) all have coverage.
 
 #### The optimizer (deterministic post-processor)
 
@@ -686,6 +691,23 @@ Mutation tools (`CreateSchedule`, `ModifySchedule`) NEVER write to the database.
 {"requires_approval": true, "proposal_type": "create_schedule", "payload": {...}}
 ```
 `ProposalService::apply()` does the actual DB writes only after user approval.
+
+### Migrations — forward-only, NEVER edit committed migrations in place
+
+**Hard rule:** the moment a migration has shipped to prod (Laravel Cloud), it is frozen. Any subsequent schema change goes in a NEW forward migration. No exceptions.
+
+Why: Laravel Cloud's deploy command runs `php artisan migrate --force`, which is forward-only — it never re-runs a migration whose row already exists in `migrations`. If you add columns to an existing baseline migration, `migrate:fresh` locally produces the new schema, the test suite passes, prod deploy succeeds (because `migrate --force` skips the already-run baseline), and the next request that touches the new columns blows up with `42703 / 23502` in production. We've eaten this footgun three times — `subject_type/subject_id` on `agent_conversations` (fixed by `2026_05_08_110411_add_subject_to_agent_conversations`), `heart_rate_zones_source/date_of_birth` on `users` (fixed by `2026_05_08_210000_add_hr_zone_source_and_dob_to_users`), and `pace_score` nullability on `training_results` (fixed by `2026_05_08_220000_make_pace_score_nullable_on_training_results`). Each one took the corresponding endpoint down on prod until a follow-up migration shipped.
+
+**When you need to change schema:**
+1. `php artisan make:migration descriptive_name` — produces a timestamped file.
+2. Use `Schema::table(...)` with `Schema::hasColumn(...)` / `Schema::hasIndex(...)` guards so it stays idempotent across local-dev (which may already have the change via a prior in-place edit you're now correcting) and prod.
+3. For column type / nullability changes, `$table->...->change()` works on Laravel 11+ without `doctrine/dbal`. Re-declaring the same definition is a no-op.
+4. Test locally with `migrate:fresh --seed` AND with a mid-cycle migrate (run only the new migration on a DB that has the prior state).
+5. Ship it.
+
+**The previously-stored memory `feedback_migrations.md` ("pre-launch, rewrite migrations directly + migrate:fresh")** is now incorrect — RunCoach is past launch (TestFlight builds against `https://runcoach.free.laravel.cloud`). Treat all committed migrations as immutable.
+
+If you spot an in-place edit happening (e.g. `git diff` shows changes to a migration file whose timestamp predates the last main-branch deploy), STOP and write a forward migration instead, even if the schema is "obviously safe."
 
 ### Testing
 
