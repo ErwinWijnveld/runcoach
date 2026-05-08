@@ -5,16 +5,10 @@ import 'package:app/core/widgets/ai_glow_card.dart';
 import 'package:app/core/widgets/compliance_ring.dart';
 import 'package:app/features/coach/widgets/swooshing_star.dart';
 
-/// Combined card that replaces the separate "Coach analysis" + "Synced
-/// activity" sections on the training day detail screen. Shows:
-///   - top eyebrow "COACH ANALYSIS" + "Open ›" link (right-aligned),
-///   - circular ring with the compliance percentage on the left,
-///   - "COMPLIANCE" eyebrow + a one-line excerpt of the AI feedback,
-///   - dark arrow button on the right.
-///
-/// The whole card AND the "Open" link AND the arrow all route to the same
-/// place — the training result screen — to give the user multiple obvious
-/// entry points.
+/// Coach analysis card on the training day detail screen. Shows a large
+/// compliance ring (top-left), a multi-line excerpt of the AI feedback
+/// (right, up to 5 lines), and a clear arrow CTA bottom-right that routes
+/// to the full result screen. The whole card is tappable too.
 class CoachAnalysisCard extends StatelessWidget {
   final double complianceScore10;
   final String? aiFeedback;
@@ -33,76 +27,34 @@ class CoachAnalysisCard extends StatelessWidget {
     final isLoading = aiFeedback == null || aiFeedback!.trim().isEmpty;
     final excerpt = _excerpt(aiFeedback);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(22, 0, 22, 8),
-          child: Row(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: isLoading ? null : onOpen,
+        child: AiGlowCard(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'COACH ANALYSIS',
-                style: GoogleFonts.spaceGrotesk(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.96,
-                  color: AppColors.inkMuted,
-                ),
-              ),
-              const Spacer(),
-              if (!isLoading)
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: onOpen,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        Text(
-                          'Open',
-                          style: GoogleFonts.publicSans(
-                            fontSize: 14,
-                            color: AppColors.primaryInk,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        const Icon(
-                          CupertinoIcons.chevron_right,
-                          size: 12,
-                          color: AppColors.primaryInk,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: isLoading ? null : onOpen,
-            child: AiGlowCard(
-              padding: const EdgeInsets.all(16),
-              child: Row(
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   if (isLoading)
                     const SizedBox(
-                      width: 56,
-                      height: 56,
-                      child: Center(child: SwooshingStar(size: 28)),
+                      width: 84,
+                      height: 84,
+                      child: Center(child: SwooshingStar(size: 40)),
                     )
                   else
-                    ComplianceRing(score01: score01),
+                    ComplianceRing(score01: score01, size: 84, strokeWidth: 7),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'COMPLIANCE',
+                          'COACH ANALYSIS',
                           style: GoogleFonts.spaceGrotesk(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -110,37 +62,82 @@ class CoachAnalysisCard extends StatelessWidget {
                             color: AppColors.inkMuted,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 6),
                         Text(
-                          excerpt,
-                          style: GoogleFonts.publicSans(
-                            fontSize: 14,
-                            height: 1.4,
+                          'Compliance',
+                          style: GoogleFonts.ebGaramond(
+                            fontSize: 24,
+                            fontStyle: FontStyle.italic,
+                            fontWeight: FontWeight.w500,
                             color: AppColors.primaryInk,
+                            height: 1.05,
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
-                  if (!isLoading) ...[
-                    const SizedBox(width: 12),
-                    const _ArrowButton(),
-                  ],
                 ],
               ),
-            ),
+              const SizedBox(height: 16),
+              Text(
+                excerpt,
+                style: GoogleFonts.publicSans(
+                  fontSize: 14,
+                  height: 1.45,
+                  color: AppColors.primaryInk,
+                ),
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (!isLoading) ...[
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: onOpen,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 18,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'OPEN ANALYSIS',
+                              style: GoogleFonts.spaceGrotesk(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.96,
+                                color: CupertinoColors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(
+                              CupertinoIcons.arrow_right,
+                              size: 14,
+                              color: CupertinoColors.white,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 
-  /// Strip basic markdown markers and collapse whitespace so the text fits
-  /// cleanly in the 2-line clamp. The Text widget handles truncation; we
-  /// don't manually slice characters (was producing odd cut-offs mid-word).
-  /// Returns a placeholder only when feedback genuinely hasn't landed yet.
   static String _excerpt(String? raw) {
     if (raw == null || raw.trim().isEmpty) {
       return 'Analysing your run…';
@@ -149,27 +146,5 @@ class CoachAnalysisCard extends StatelessWidget {
         .replaceAll(RegExp(r'[#*_`>]'), '')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
-  }
-}
-
-class _ArrowButton extends StatelessWidget {
-  const _ArrowButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 36,
-      height: 36,
-      decoration: const BoxDecoration(
-        color: AppColors.primary,
-        shape: BoxShape.circle,
-      ),
-      alignment: Alignment.center,
-      child: const Icon(
-        CupertinoIcons.arrow_right,
-        size: 16,
-        color: CupertinoColors.white,
-      ),
-    );
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:app/core/storage/token_storage.dart';
 import 'package:app/features/auth/data/auth_api.dart';
+import 'package:app/features/auth/models/derived_zones.dart';
 import 'package:app/features/auth/models/hr_zone.dart';
 import 'package:app/features/auth/models/user.dart';
 import 'package:app/features/onboarding/models/plan_generation.dart';
@@ -113,6 +114,33 @@ class Auth extends _$Auth {
     final data = await api.updateProfile(body) as Map<String, dynamic>;
     final user = User.fromJson(data['user'] as Map<String, dynamic>);
     state = AsyncValue.data(user);
+  }
+
+  /// Recompute HR zones from the runner's ingested run history. Called
+  /// from the onboarding zones step (right after connect-health ingests
+  /// the workouts) and from the "Recompute" button in HeartRateZonesSheet.
+  ///
+  /// `age` and `restingHeartRate` should come from HealthKit; either may
+  /// be null when the user denied permission for that characteristic. The
+  /// backend uses them only as fallbacks when run-data is too thin.
+  ///
+  /// Refreshes [state] so any UI watching `authProvider.user.heartRateZones`
+  /// re-renders with the new values.
+  Future<DerivedZones> deriveHeartRateZones({
+    int? age,
+    int? restingHeartRate,
+  }) async {
+    final api = ref.read(authApiProvider);
+    final body = <String, dynamic>{
+      'age': ?age,
+      'resting_heart_rate': ?restingHeartRate,
+    };
+    final result = await api.deriveHeartRateZones(body);
+    // Refresh /profile so the local User reflects the persisted zones +
+    // source. Cheaper than mutating state by hand and keeps a single
+    // source of truth (the server's serialized user).
+    await loadProfile();
+    return result;
   }
 
   Future<void> deleteAccount() async {

@@ -2,8 +2,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/features/auth/models/derived_zones.dart';
 import 'package:app/features/auth/models/hr_zone.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
+import 'package:app/features/wearable/data/wearable_api.dart';
 import 'package:app/router/app_router.dart' show HidesBottomNav;
 
 /// Strava-style HR zone editor:
@@ -38,7 +40,9 @@ class _HeartRateZonesSheetState extends ConsumerState<HeartRateZonesSheet> {
   late final List<TextEditingController> _boundaryControllers;
 
   bool _saving = false;
+  bool _recomputing = false;
   String? _error;
+  String? _recomputeNotice;
 
   @override
   void initState() {
@@ -125,6 +129,167 @@ class _HeartRateZonesSheetState extends ConsumerState<HeartRateZonesSheet> {
         .toList();
   }
 
+  /// Pull a fresh derive from the backend (median-of-top-N over the
+  /// runner's recent runs, with age + restingHR fallbacks). Overwrites
+  /// every editable field in this sheet so the runner can review before
+  /// hitting Save.
+  ///
+  /// Network failures surface inline — never throws up to the caller.
+  /// The endpoint always recomputes; it overrides any prior 'manual'
+  /// source (this is an explicit user action, so we trust the intent).
+  Future<void> _recompute() async {
+    if (_recomputing || _saving) return;
+    setState(() {
+      _recomputing = true;
+      _error = null;
+      _recomputeNotice = null;
+    });
+
+    final hk = ref.read(healthKitServiceProvider);
+    int? hkAge;
+    int? restingHr;
+    try {
+      hkAge = await hk.getAge();
+      restingHr = await hk.getLatestRestingHeartRate();
+    } catch (_) {
+      // HealthKit can throw on certain permission states — keep going
+      // with whatever we got.
+    }
+
+    // Always prompt the runner to confirm/edit their age before
+    // recomputing — even when we have a value from HealthKit or stored
+    // birth_year. The prefill avoids retyping; the prompt makes the
+    // recompute deliberate (the user is overriding their saved zones).
+    final storedBirthYear = ref.read(authProvider).value?.birthYear;
+    final storedAge = storedBirthYear != null
+        ? DateTime.now().year - storedBirthYear
+        : null;
+    final prefill = hkAge ?? storedAge;
+
+    if (!mounted) return;
+    final age = await _promptForAge(initialAge: prefill);
+    if (age == null) {
+      // User cancelled — stop the recompute, don't change anything.
+      if (!mounted) return;
+      setState(() => _recomputing = false);
+      return;
+    }
+
+    try {
+      final result = await ref.read(authProvider.notifier).deriveHeartRateZones(
+            age: age,
+            restingHeartRate: restingHr,
+          );
+
+      // Mirror the persisted zones into the editable fields so the
+      // runner sees what was just saved AND can immediately tweak any
+      // boundary. Save → submits whatever's in the fields; flips source
+      // back to 'manual' on save (intentional — the values came from
+      // the deriver but the runner just signed off on them).
+      _applyZonesToFields(result.zones);
+      if (!mounted) return;
+      setState(() {
+        _recomputing = false;
+        _recomputeNotice = _noticeFor(result);
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _recomputing = false;
+        _error = "Couldn't recompute: $e";
+      });
+    }
+  }
+
+  /// Cupertino dialog asking the runner to confirm/edit their age before
+  /// recomputing zones. [initialAge] prefills the field when we already
+  /// have a value (from HealthKit or stored birth_year) — runner can
+  /// just hit Compute, OR overwrite if the prefill is wrong. Returns
+  /// null on cancel.
+  Future<int?> _promptForAge({int? initialAge}) async {
+    final controller = TextEditingController(
+      text: initialAge != null ? '$initialAge' : '',
+    );
+    final age = await showCupertinoDialog<int>(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: const Text('Your age'),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Column(
+            children: [
+              const Text(
+                'We use your age to compute heart rate zones. Confirm or edit before continuing.',
+                style: TextStyle(fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              CupertinoTextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                placeholder: 'Age',
+                autofocus: true,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(3),
+                ],
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () {
+              final v = int.tryParse(controller.text.trim());
+              if (v == null || v < 5 || v > 120) {
+                Navigator.of(ctx).pop();
+                return;
+              }
+              Navigator.of(ctx).pop(v);
+            },
+            child: const Text('Compute'),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    return age;
+  }
+
+  void _applyZonesToFields(List<HrZone> zones) {
+    if (zones.length != 5) return;
+    _boundaryControllers[0].text = '${zones[0].max}';
+    _boundaryControllers[1].text = '${zones[1].max}';
+    _boundaryControllers[2].text = '${zones[2].max}';
+    _boundaryControllers[3].text = '${zones[3].max}';
+    final inferredMaxHr = (zones[3].max / 0.9).round();
+    _maxHrController.text = '$inferredMaxHr';
+  }
+
+  String _noticeFor(DerivedZones r) {
+    switch (r.source) {
+      case 'derived_age':
+      case 'derived_empirical':
+        final age = r.age;
+        final maxHr = r.maxHr;
+        final corrected = r.sampleCount >= 3;
+        if (corrected && maxHr != null) {
+          return 'Updated — max ~$maxHr bpm (age + your hardest recent runs).';
+        }
+        if (age != null && maxHr != null) {
+          return 'Updated — max ~$maxHr bpm (estimated from age $age).';
+        }
+        return 'Updated from your age.';
+      default:
+        return "Couldn't compute zones — please set your max HR manually.";
+    }
+  }
+
   Future<void> _save() async {
     final b = _readBoundaries();
     for (var i = 0; i < b.length; i++) {
@@ -205,13 +370,23 @@ class _HeartRateZonesSheetState extends ConsumerState<HeartRateZonesSheet> {
                   style: TextStyle(fontSize: 12, color: AppColors.inkMuted, height: 1.4),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _RecomputeRow(
+                  busy: _recomputing,
+                  enabled: !_saving,
+                  notice: _recomputeNotice,
+                  onTap: _recompute,
+                ),
+              ),
+              const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: _MaxHrField(
                   controller: _maxHrController,
                   onApply: _applyMaxHr,
-                  enabled: !_saving,
+                  enabled: !_saving && !_recomputing,
                 ),
               ),
               const SizedBox(height: 16),
@@ -498,6 +673,76 @@ class _ZoneRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Compact row that exposes the "Recompute from your runs" affordance.
+/// Sits above the Max HR field — the Max HR + boundary fields are still
+/// the canonical edit path; this is a one-tap escape hatch for runners
+/// who'd rather have the app figure it out from their own data.
+///
+/// Shows three states: idle (icon + label), busy (spinner + label), and
+/// post-success (subtle notice underneath: "Updated from your last 23 runs (max ~191 bpm)").
+class _RecomputeRow extends StatelessWidget {
+  final bool busy;
+  final bool enabled;
+  final String? notice;
+  final VoidCallback onTap;
+
+  const _RecomputeRow({
+    required this.busy,
+    required this.enabled,
+    required this.notice,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CupertinoButton(
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+          color: AppColors.cardBg,
+          borderRadius: BorderRadius.circular(12),
+          minimumSize: const Size(0, 0),
+          onPressed: enabled && !busy ? onTap : null,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (busy)
+                const CupertinoActivityIndicator(radius: 8)
+              else
+                const Icon(
+                  CupertinoIcons.arrow_2_circlepath,
+                  size: 16,
+                  color: AppColors.warmBrown,
+                ),
+              const SizedBox(width: 8),
+              Text(
+                busy ? 'Recomputing…' : 'Recompute from your runs',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryInk,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (notice != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            notice!,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.inkMuted,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

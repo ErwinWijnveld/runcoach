@@ -94,6 +94,12 @@ class _Loaded extends StatelessWidget {
                         onSendToWatch: () => _sendToWatch(context, day),
                       ),
                     ),
+                    if (status == TrainingDayStatus.completed &&
+                        day.result != null) ...[
+                      const SizedBox(height: 16),
+                      _CoachAnalysisSection(dayId: day.id, day: day),
+                    ] else
+                      ..._buildDetailSection(day, status),
                     if (day.intervals != null && day.intervals!.isNotEmpty) ...[
                       const SizedBox(height: 10),
                       const _SectionTitle('Intervals'),
@@ -102,12 +108,6 @@ class _Loaded extends StatelessWidget {
                         child: TrainingIntervalsTable(intervals: day.intervals!),
                       ),
                     ],
-                    if (status == TrainingDayStatus.completed &&
-                        day.result != null) ...[
-                      const SizedBox(height: 16),
-                      _CoachAnalysisSection(dayId: day.id, day: day),
-                    ] else
-                      ..._buildDetailSection(day, status),
                   ],
                 ),
               ),

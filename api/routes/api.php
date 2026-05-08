@@ -8,6 +8,7 @@ use App\Http\Controllers\CoachController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeviceTokenController;
 use App\Http\Controllers\GoalController;
+use App\Http\Controllers\HeartRateZonesController;
 use App\Http\Controllers\OnboardingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\TrainingScheduleController;
@@ -28,6 +29,10 @@ Route::prefix('v1')->group(function () {
         Route::get('profile', [ProfileController::class, 'show']);
         Route::put('profile', [ProfileController::class, 'update']);
         Route::delete('profile', [ProfileController::class, 'destroy']);
+
+        // Heart-rate zones — auto-derive from HealthKit data (called by
+        // the onboarding zones step + the "Recompute" button in the menu sheet).
+        Route::post('profile/heart-rate-zones/derive', [HeartRateZonesController::class, 'derive']);
 
         // Goals
         Route::apiResource('goals', GoalController::class);

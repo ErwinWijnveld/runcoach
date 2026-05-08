@@ -31,6 +31,32 @@ class HeartRateZones
     ];
 
     /**
+     * "Qualifying run" filters used by HeartRateZoneDeriver's upward
+     * correction step. Strict enough that warmup walks, recovery jogs,
+     * and old fitness states don't leak into the max-HR signal.
+     */
+    public const MAX_LOOKBACK_DAYS = 365;
+
+    public const MIN_DURATION_SEC = 600;
+
+    public const MIN_AVG_HR = 130;
+
+    public const MIN_PHYSIO_HR = 100;
+
+    public const MAX_PHYSIO_HR = 220;
+
+    /** Tanaka formula: maxHR ≈ 208 − 0.7·age. Accurate ±10 bpm for ages 18-75. */
+    public const TANAKA_INTERCEPT = 208.0;
+
+    public const TANAKA_SLOPE = 0.7;
+
+    /**
+     * Upper-bound percentages for Z1..Z4 (Z5 upper is open-ended).
+     * Matches the Flutter HeartRateZonesSheet's UI math.
+     */
+    public const ZONE_PCT = [0.60, 0.70, 0.80, 0.90];
+
+    /**
      * Resolve the zone table for a user. Prefers their stored zones,
      * falls back to defaults if absent or malformed (anything shorter
      * than 5 entries).

@@ -449,6 +449,26 @@ All routes under `/api/v1/*` prefix in `routes/api.php`. Public routes: `POST /a
 
 Controllers live in `app/Http/Controllers/`: Auth, Profile, Goal, TrainingSchedule, WearableActivity, Coach, Dashboard, Onboarding, plus `Api/MembershipController` and `Api/OrganizationController`.
 
+### HR-zone auto-derivation
+
+Single endpoint `POST /api/v1/profile/heart-rate-zones/derive` (`HeartRateZonesController::derive`) computes a 5-zone table from age + (optional) resting HR + (optional) upward correction from observed peaks. Matches Strava / Polar / Apple Fitness defaults — research-grounded over the v0 "median-of-top-N from training data" approach which systematically underestimated max HR (recreational runners almost never hit true max in normal training).
+
+**Derivation order:**
+1. **Tanaka prior** (`source = derived_age`) — `maxHR = 208 − 0.7·age` from HealthKit `dateOfBirth`. Tanaka et al. 2001 meta-analysis (n≈19k), ±7 bpm SD. Replaces the older `220 − age` formula and is what most coaching tools use.
+2. **Karvonen zone bounds** when resting HR is also available — bounds = `restingHR + pct × HRR`. Apple Fitness uses this since watchOS 10. More accurate for fit runners with low resting HR (their HRR is wider than the plain `pct × maxHR` curve suggests).
+3. **Upward-only empirical correction** (Garmin model) — when ≥3 qualifying runs have `max_heartrate ≥ Tanaka + UPWARD_CORRECTION_BUFFER` (5 bpm), use the median of those top observations instead of Tanaka. Catches genuine race-PB / VO2max efforts where the runner DID hit max, without letting normal training drag the estimate downward. Same qualifying filters as the v0 path (≥10 min, avg HR ≥ 130, 100-220 physiological window, ≤365 days, running types only).
+4. **Default** (`source = default`) — when no age available. NOT persisted (leaves `users.heart_rate_zones` null so reads keep falling through to `HeartRateZones::DEFAULTS` at runtime).
+
+`App\Support\HeartRateZoneDeriver` owns the algorithm with two const knobs: `UPWARD_CORRECTION_BUFFER` (5 bpm above Tanaka), `UPWARD_CORRECTION_MIN_SAMPLES` (3 high-effort observations). `App\Support\DerivationResult` (readonly) is the return shape. `App\Support\HeartRateZones` holds the qualifying-run filter constants + `TANAKA_*` + `ZONE_PCT` (0.60/0.70/0.80/0.90).
+
+**The `derived_empirical` enum case is legacy** — kept for backward compat (existing rows in users.heart_rate_zones_source) but the deriver no longer produces it. Next recompute flips the row to `derived_age`.
+
+Source-tracking column `users.heart_rate_zones_source` (`App\Enums\HeartRateZonesSource`):
+- `manual` — set by `UpdateProfileRequest::prepareForValidation` whenever `heart_rate_zones` is in a `PUT /profile` body. Sticky against scheduled re-derives but NOT against this endpoint (the recompute flow is an explicit user action — overrides manual).
+- The endpoint always recomputes and persists when source ≠ Default. Spec: `docs/superpowers/specs/2026-05-08-hr-zones-auto-derive.md`.
+
+Removed: `RunningProfileService::analyze` no longer touches zones — derivation lives only in `HeartRateZoneDeriver` to avoid dual-write divergence.
+
 ### Reschedule training day
 
 `PATCH /api/v1/training-days/{day}` (`TrainingScheduleController::updateDay`) moves a `TrainingDay` to a new date. Validation rules:

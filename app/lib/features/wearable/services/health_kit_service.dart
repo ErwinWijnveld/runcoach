@@ -21,7 +21,18 @@ class HealthKitService {
 
   static const _workoutType = HealthDataType.WORKOUT;
   static const _hrType = HealthDataType.HEART_RATE;
-  static const _readTypes = <HealthDataType>[_workoutType, _hrType];
+  static const _restingHrType = HealthDataType.RESTING_HEART_RATE;
+  static const _birthDateType = HealthDataType.BIRTH_DATE;
+  // BIRTH_DATE + RESTING_HEART_RATE feed the HR-zone deriver. Keep them
+  // in the permission set so iOS re-prompts the next time the user lands
+  // on the connect-health screen — without that, getAge() / getRHR()
+  // silently return null and the deriver falls back to defaults.
+  static const _readTypes = <HealthDataType>[
+    _workoutType,
+    _hrType,
+    _restingHrType,
+    _birthDateType,
+  ];
 
   /// Request HealthKit read access for workouts AND heart rate in a single
   /// system prompt (iOS shows one sheet with both rows). Returns the boolean
@@ -43,9 +54,12 @@ class HealthKitService {
   Future<bool> requestPermissions() async {
     await _health.configure();
 
+    // permissions length must match _readTypes length — one access mode
+    // per requested type. All read-only.
     return await _health.requestAuthorization(
       _readTypes,
-      permissions: const [HealthDataAccess.READ, HealthDataAccess.READ],
+      permissions:
+          List<HealthDataAccess>.filled(_readTypes.length, HealthDataAccess.READ),
     );
   }
 
@@ -276,6 +290,83 @@ class HealthKitService {
       // Running on simulator without the native bridge wired up, or in a
       // unit test without a method-channel mock. Don't crash the flow.
       return const {};
+    }
+  }
+
+  /// User's age in whole years, computed from the HealthKit characteristic
+  /// `dateOfBirth`. Used by the HR-zone deriver as a fallback when the
+  /// runner doesn't have enough qualifying runs yet (Tanaka / Karvonen).
+  ///
+  /// Returns null on:
+  ///   - permission denied (system silently no-ops on characteristic reads
+  ///     the user hasn't granted),
+  ///   - DOB not set in the Health app,
+  ///   - any platform exception (we never block the deriver call on this).
+  ///
+  /// Best-effort: callers should treat null as "unknown" and let the
+  /// deriver fall through to the next signal.
+  Future<int?> getAge() async {
+    try {
+      await _health.configure();
+      // The `health` package exposes BIRTH_DATE as a HealthDataPoint with
+      // a NumericHealthValue carrying the year (cross-platform compromise).
+      // Pull the latest sample in a wide window and compute age in Dart.
+      final samples = await _health.getHealthDataFromTypes(
+        types: const [_birthDateType],
+        startTime: DateTime(1900),
+        endTime: DateTime.now(),
+      );
+      if (samples.isEmpty) return null;
+      final s = samples.last;
+      final v = s.value;
+      DateTime? dob;
+      if (v is NumericHealthValue) {
+        // year of birth — assume Jan 1 since DOB-day isn't exposed
+        final year = v.numericValue.toInt();
+        if (year > 1900 && year < DateTime.now().year) {
+          dob = DateTime(year, 1, 1);
+        }
+      }
+      // Some plugin versions emit DOB via dateFrom. Fall back to that when
+      // the value couldn't be parsed numerically.
+      dob ??= s.dateFrom;
+      final now = DateTime.now();
+      var age = now.year - dob.year;
+      if (now.month < dob.month ||
+          (now.month == dob.month && now.day < dob.day)) {
+        age -= 1;
+      }
+      if (age < 5 || age > 120) return null;
+      return age;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Latest resting heart-rate sample from HealthKit. Apple Watch updates
+  /// this throughout the day — taking the most recent sample is fine
+  /// (running 7-day averages aren't worth the extra complexity for v1).
+  /// Used as the resting-HR input to Karvonen-method zone derivation.
+  ///
+  /// Returns null when no sample exists or when permission was denied.
+  Future<int?> getLatestRestingHeartRate() async {
+    try {
+      await _health.configure();
+      final samples = await _health.getHealthDataFromTypes(
+        types: const [_restingHrType],
+        startTime: DateTime.now().subtract(const Duration(days: 90)),
+        endTime: DateTime.now(),
+      );
+      if (samples.isEmpty) return null;
+      // Latest sample wins.
+      samples.sort((a, b) => b.dateFrom.compareTo(a.dateFrom));
+      final v = samples.first.value;
+      if (v is! NumericHealthValue) return null;
+      final bpm = v.numericValue.toDouble();
+      if (bpm < 30 || bpm > 120) return null;
+      return bpm.round();
+    } catch (_) {
+      return null;
     }
   }
 

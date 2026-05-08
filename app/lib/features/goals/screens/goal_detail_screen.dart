@@ -51,12 +51,19 @@ class _Loaded extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isActive = goal.status == 'active';
 
+    final canDelete = goal.status == 'active' ||
+        goal.status == 'paused' ||
+        goal.status == 'planning';
+
     return SafeArea(
       bottom: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _BackButton(),
+          _TopBar(
+            showMore: canDelete,
+            onMore: () => _showMoreActions(context, ref),
+          ),
           Expanded(
             child: IntroFx(
               child: LayoutBuilder(
@@ -93,22 +100,7 @@ class _Loaded extends ConsumerWidget {
                               child: _SwitchToGoalCard(goal: goal),
                             ),
                           ],
-                          // Spacer pushes the delete button to sit just above
-                          // the docked prompt bar when content is short.
                           const Spacer(),
-                          if (goal.status == 'active' ||
-                              goal.status == 'paused' ||
-                              goal.status == 'planning') ...[
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-                              child: AppFilledButton(
-                                label: 'Delete goal',
-                                icon: CupertinoIcons.delete,
-                                color: AppColors.danger,
-                                onPressed: () => _confirmDelete(context, ref),
-                              ),
-                            ),
-                          ],
                           const SizedBox(height: 16),
                         ],
                       ),
@@ -129,6 +121,29 @@ class _Loaded extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showMoreActions(BuildContext context, WidgetRef ref) {
+    showCupertinoModalPopup<void>(
+      context: context,
+      builder: (sheetCtx) => CupertinoActionSheet(
+        actions: [
+          CupertinoActionSheetAction(
+            isDestructiveAction: true,
+            onPressed: () {
+              Navigator.of(sheetCtx).pop();
+              _confirmDelete(context, ref);
+            },
+            child: const Text('Delete goal'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          isDefaultAction: true,
+          onPressed: () => Navigator.of(sheetCtx).pop(),
+          child: const Text('Cancel'),
+        ),
       ),
     );
   }
@@ -317,53 +332,32 @@ class _GoalStatTiles extends StatelessWidget {
         ? formatDateString(goal.targetDate, fallback: '-')
         : (days < 0 ? 'PAST' : (days == 0 ? 'TODAY' : '$days'));
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: _Tile(label: 'DISTANCE', value: goal.distance ?? '-'),
-        ),
-        const SizedBox(width: 8),
-        Expanded(child: _Tile(label: 'GOAL TIME', value: _formatGoalTime())),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _Tile(
-            label: days == null || days < 0 ? 'TARGET' : 'DAYS LEFT',
-            value: daysStr,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _Tile extends StatelessWidget {
-  final String label;
-  final String value;
-  const _Tile({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: 1,
-      child: Container(
-        decoration: BoxDecoration(
-          color: CupertinoColors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: const [
-            BoxShadow(color: Color(0x08000000), blurRadius: 16),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+    return Container(
+      decoration: BoxDecoration(
+        color: CupertinoColors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [
+          BoxShadow(color: Color(0x08000000), blurRadius: 16),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 8),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(label, style: RunCoreText.statLabel()),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: RunCoreText.statValue(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            Expanded(
+              child: _Cell(label: 'DISTANCE', value: goal.distance ?? '-'),
+            ),
+            const _CellDivider(),
+            Expanded(
+              child: _Cell(label: 'GOAL TIME', value: _formatGoalTime()),
+            ),
+            const _CellDivider(),
+            Expanded(
+              child: _Cell(
+                label: days == null || days < 0 ? 'TARGET' : 'DAYS LEFT',
+                value: daysStr,
+              ),
             ),
           ],
         ),
@@ -372,32 +366,93 @@ class _Tile extends StatelessWidget {
   }
 }
 
+class _Cell extends StatelessWidget {
+  final String label;
+  final String value;
+  const _Cell({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(label, style: RunCoreText.statLabel()),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: RunCoreText.statValue(),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+}
+
+class _CellDivider extends StatelessWidget {
+  const _CellDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      color: AppColors.lightTan,
+    );
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Back button (same visual as schedule day detail)
 // ---------------------------------------------------------------------------
 
-class _BackButton extends StatelessWidget {
-  const _BackButton();
+class _TopBar extends StatelessWidget {
+  final bool showMore;
+  final VoidCallback onMore;
+  const _TopBar({required this.showMore, required this.onMore});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(22),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(22),
-          onTap: () => context.canPop() ? context.pop() : context.go('/goals'),
-          child: const Padding(
-            padding: EdgeInsets.all(10),
-            child: Icon(
-              CupertinoIcons.back,
-              color: AppColors.primaryInk,
-              size: 22,
+      child: Row(
+        children: [
+          Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(22),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(22),
+              onTap: () =>
+                  context.canPop() ? context.pop() : context.go('/goals'),
+              child: const Padding(
+                padding: EdgeInsets.all(10),
+                child: Icon(
+                  CupertinoIcons.back,
+                  color: AppColors.primaryInk,
+                  size: 22,
+                ),
+              ),
             ),
           ),
-        ),
+          const Spacer(),
+          if (showMore)
+            Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(22),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(22),
+                onTap: onMore,
+                child: const Padding(
+                  padding: EdgeInsets.all(10),
+                  child: Icon(
+                    CupertinoIcons.ellipsis_circle,
+                    color: AppColors.primaryInk,
+                    size: 24,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

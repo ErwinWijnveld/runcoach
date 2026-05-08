@@ -31,6 +31,7 @@ const _muted = Color(0xFF7A6A4E);
 const _muted2 = Color(0xFFA79274);
 const _inkBlack = Color(0xFF1A1510);
 const _restCell = Color(0xFFEFE7D2);
+const _upcomingCell = Color(0xFFE0D4B0);
 const _lineSoft = Color(0x2E7A6A4E);
 
 const int _weeksPerPage = 16;
@@ -251,6 +252,7 @@ class _TodayCard extends StatelessWidget {
   Widget _buildContent(TrainingDay day) {
     final date = DateTime.parse(day.date);
     final dayLabel = _relativeDayLabel(date, today).toUpperCase();
+    final isToday = dayLabel == 'TODAY';
 
     final distance = day.targetKm == null
         ? null
@@ -285,7 +287,7 @@ class _TodayCard extends StatelessWidget {
                       vertical: 3,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.goldGlow,
+                      color: isToday ? AppColors.gold : AppColors.goldGlow,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -294,7 +296,9 @@ class _TodayCard extends StatelessWidget {
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.8,
-                        color: AppColors.eyebrow,
+                        color: isToday
+                            ? CupertinoColors.white
+                            : AppColors.eyebrow,
                       ),
                     ),
                   ),
@@ -817,7 +821,7 @@ Color _cellColor(_DayCell cell) {
     case _CellState.missed:
       return AppColors.danger;
     case _CellState.upcoming:
-      return AppColors.secondary;
+      return _upcomingCell;
     case _CellState.race:
       return _inkBlack;
   }
@@ -864,7 +868,7 @@ class _Legend extends StatelessWidget {
       children: [
         _LegendDot(color: AppColors.success, label: 'Done'),
         _LegendDot(color: AppColors.danger, label: 'Missed'),
-        _LegendDot(color: AppColors.secondary, label: 'Upcoming'),
+        _LegendDot(color: _upcomingCell, label: 'Upcoming'),
       ],
     );
   }

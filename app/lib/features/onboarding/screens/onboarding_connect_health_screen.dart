@@ -9,6 +9,8 @@ import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/core/widgets/runcore_logo.dart';
+import 'package:app/features/auth/models/derived_zones.dart';
+import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/wearable/data/wearable_api.dart';
 
 /// Asks the user to grant Apple Health read access, then pulls the last
@@ -139,10 +141,29 @@ class _OnboardingConnectHealthScreenState
       _stage = _Stage.done;
     });
 
+    // Derive HR zones from the freshly-ingested data. Best-effort:
+    // age + restingHR may both be null (denied permission, not set in
+    // Health) — backend handles all combinations gracefully. Failures
+    // here MUST NOT block the rest of onboarding; we just route to
+    // /overview without a derive result and the runner can verify zones
+    // later from the menu.
+    DerivedZones? derivedZones;
+    try {
+      final age = await hk.getAge();
+      final restingHr = await hk.getLatestRestingHeartRate();
+      derivedZones = await ref.read(authProvider.notifier).deriveHeartRateZones(
+            age: age,
+            restingHeartRate: restingHr,
+          );
+    } catch (e) {
+      // ignore: avoid_print
+      print('[Onboarding] HR-zone derive failed (non-blocking): $e');
+    }
+
     // Brief moment so the user sees "Synced N runs" before we move on.
     await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
-    context.go('/onboarding/overview');
+    context.go('/onboarding/zones', extra: derivedZones);
   }
 
   /// Retry [op] up to 3 times with 1s/2s backoff. Surfaces the final error.

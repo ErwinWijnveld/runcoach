@@ -23,12 +23,14 @@ import 'package:app/features/onboarding/screens/onboarding_connect_health_screen
 import 'package:app/features/onboarding/screens/onboarding_overview_screen.dart';
 import 'package:app/features/onboarding/screens/onboarding_form_screen.dart';
 import 'package:app/features/onboarding/screens/onboarding_generating_screen.dart';
+import 'package:app/features/onboarding/screens/onboarding_zones_screen.dart';
+import 'package:app/features/auth/models/derived_zones.dart';
 import 'package:app/features/organization/screens/connections_screen.dart';
 import 'package:app/features/organization/screens/invite_detail_screen.dart';
 
 part 'app_router.g.dart';
 
-final _rootNavigatorKey = GlobalKey<NavigatorState>();
+final rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 /// Tiny Listenable bridge between Riverpod (`ref.listen(authProvider)`) and
@@ -42,7 +44,7 @@ class _AuthRefresh extends ChangeNotifier {
 GoRouter appRouter(Ref ref) {
   // The router itself must be a SINGLETON for the app's lifetime. If the
   // provider rebuilt on every auth state change, MaterialApp.router would
-  // get a new GoRouter, the top-level _rootNavigatorKey would attach to two
+  // get a new GoRouter, the top-level rootNavigatorKey would attach to two
   // navigators in the same frame, and we'd hit the "Duplicate GlobalKey
   // detected" assertion. Instead: build the router once, expose a Listenable
   // that ticks on auth changes, and let GoRouter re-evaluate redirects
@@ -52,7 +54,7 @@ GoRouter appRouter(Ref ref) {
   ref.onDispose(refresh.dispose);
 
   return GoRouter(
-    navigatorKey: _rootNavigatorKey,
+    navigatorKey: rootNavigatorKey,
     initialLocation: '/dashboard',
     refreshListenable: refresh,
     redirect: (context, state) {
@@ -122,6 +124,18 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) => const OnboardingConnectHealthScreen(),
       ),
       GoRoute(
+        path: '/onboarding/zones',
+        builder: (context, state) {
+          // The connect-health screen passes its DerivedZones result via
+          // `extra` so the subtitle copy can be source-aware without
+          // re-fetching. Falls back to null on deep-link / cold-start.
+          final extra = state.extra;
+          return OnboardingZonesScreen(
+            initialResult: extra is DerivedZones ? extra : null,
+          );
+        },
+      ),
+      GoRoute(
         path: '/onboarding/overview',
         builder: (context, state) => const OnboardingOverviewScreen(),
       ),
@@ -160,7 +174,7 @@ GoRouter appRouter(Ref ref) {
             routes: [
               GoRoute(
                 path: 'day/:dayId',
-                parentNavigatorKey: _rootNavigatorKey,
+                parentNavigatorKey: rootNavigatorKey,
                 builder: (context, state) => HidesBottomNav(
                   child: TrainingDayDetailScreen(
                     dayId: int.parse(state.pathParameters['dayId']!),
@@ -169,7 +183,7 @@ GoRouter appRouter(Ref ref) {
               ),
               GoRoute(
                 path: 'day/:dayId/result',
-                parentNavigatorKey: _rootNavigatorKey,
+                parentNavigatorKey: rootNavigatorKey,
                 builder: (context, state) => HidesBottomNav(
                   child: TrainingResultScreen(
                     dayId: int.parse(state.pathParameters['dayId']!),
@@ -186,7 +200,7 @@ GoRouter appRouter(Ref ref) {
             routes: [
               GoRoute(
                 path: 'chat/:conversationId',
-                parentNavigatorKey: _rootNavigatorKey,
+                parentNavigatorKey: rootNavigatorKey,
                 builder: (context, state) => HidesBottomNav(
                   child: CoachChatScreen(
                     conversationId: state.pathParameters['conversationId']!,
@@ -203,7 +217,7 @@ GoRouter appRouter(Ref ref) {
             routes: [
               GoRoute(
                 path: ':goalId',
-                parentNavigatorKey: _rootNavigatorKey,
+                parentNavigatorKey: rootNavigatorKey,
                 builder: (context, state) => HidesBottomNav(
                   child: GoalDetailScreen(
                     goalId: int.parse(state.pathParameters['goalId']!),
@@ -275,7 +289,7 @@ double detailScreenBottomReservedHeight(BuildContext context) =>
 /// this directly.
 final ValueNotifier<bool> _bottomNavHidden = ValueNotifier(false);
 
-/// Wrap a detail screen (any screen that pushes on `_rootNavigatorKey`) with
+/// Wrap a detail screen (any screen that pushes on `rootNavigatorKey`) with
 /// this widget to hide the shell's bottom tab bar while it's on top of the
 /// stack. Without it, the native iOS `CNTabBar`'s UiKitView shadow can bleed
 /// through during the push transition and, on some nav paths, the tab bar
@@ -285,7 +299,7 @@ final ValueNotifier<bool> _bottomNavHidden = ValueNotifier(false);
 /// ```dart
 /// GoRoute(
 ///   path: 'day/:dayId',
-///   parentNavigatorKey: _rootNavigatorKey,
+///   parentNavigatorKey: rootNavigatorKey,
 ///   builder: (context, state) => HidesBottomNav(
 ///     child: TrainingDayDetailScreen(...),
 ///   ),

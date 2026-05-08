@@ -24,7 +24,7 @@ class ComplianceRing extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final clamped = score01.clamp(0.0, 1.0);
-    final pct = (clamped * 100).round();
+    final grade = (clamped * 10).toStringAsFixed(1);
     final color = ComplianceColors.forScore01(clamped);
     return SizedBox(
       width: size,
@@ -37,10 +37,10 @@ class ComplianceRing extends StatelessWidget {
         ),
         child: Center(
           child: Text(
-            '$pct%',
+            grade,
             style: textStyle ??
                 GoogleFonts.ebGaramond(
-                  fontSize: size * 0.28,
+                  fontSize: size * 0.32,
                   fontStyle: FontStyle.italic,
                   fontWeight: FontWeight.w500,
                   color: color,

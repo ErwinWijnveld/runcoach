@@ -49,6 +49,15 @@ class _WorkoutChatOverlay extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final size = MediaQuery.sizeOf(context);
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    // Sheet height shrinks to make room for the keyboard so the input pill
+    // (and the last few messages) stay visible. Floor at 50% of screen so
+    // the chat doesn't collapse to nothing on landscape / split-view.
+    final baseHeight = size.height * 0.85;
+    final sheetHeight = (baseHeight - keyboardInset).clamp(
+      size.height * 0.5,
+      baseHeight,
+    );
 
     return GestureDetector(
       onTap: () => Navigator.of(context).pop(),
@@ -61,11 +70,12 @@ class _WorkoutChatOverlay extends ConsumerWidget {
             child: Align(
               alignment: Alignment.bottomCenter,
               child: GestureDetector(
-                // Swallow taps inside the sheet so they don't dismiss.
                 onTap: () {},
-                child: Container(
-                  height: size.height * 0.85,
-                  margin: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOut,
+                  height: sheetHeight,
+                  margin: EdgeInsets.fromLTRB(8, 0, 8, 8 + keyboardInset),
                   decoration: BoxDecoration(
                     color: AppColors.cream,
                     borderRadius: BorderRadius.circular(28),

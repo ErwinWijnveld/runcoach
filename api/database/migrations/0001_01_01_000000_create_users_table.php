@@ -25,6 +25,16 @@ return new class extends Migration
             // HR zones (5 entries, ordered Z1..Z5, each `{min, max}`; Z5 max is -1).
             // Null until we have data to derive them from.
             $table->json('heart_rate_zones')->nullable();
+            // How the row above was populated — see App\Enums\HeartRateZonesSource.
+            // 'manual' is sticky against scheduled re-derives but explicit
+            // user-triggered recompute overwrites it.
+            $table->string('heart_rate_zones_source', 32)->default('default');
+            // Manually-entered birth year, used as fallback when HealthKit
+            // can't surface dateOfBirth (denied permission OR not set in
+            // the runner's Apple Health profile). Persisted by
+            // HeartRateZonesController whenever an age is sent in the
+            // derive body — runner only types it once.
+            $table->smallInteger('birth_year')->unsigned()->nullable();
             // All-time personal records keyed by distance code (5k, 10k,
             // half, marathon). Each entry: {duration_seconds, distance_meters,
             // date, source_activity_id}. Computed natively from HealthKit

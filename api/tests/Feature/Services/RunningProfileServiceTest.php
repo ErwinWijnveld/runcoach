@@ -70,14 +70,13 @@ class RunningProfileServiceTest extends TestCase
         $this->assertEquals(99.9, $profile->metrics['weekly_avg_km']);
     }
 
-    public function test_aggregates_heart_rate_and_derives_personalized_zones(): void
+    public function test_aggregates_heart_rate_metrics(): void
     {
         $user = User::factory()->create(['heart_rate_zones' => null]);
         $now = now();
 
-        // 5 runs with HR samples, 2 without — averages should ignore the
-        // null-HR runs and personalized zones should derive from observed
-        // max HR (185).
+        // 5 runs with HR samples, 2 without — averages must ignore the
+        // null-HR runs.
         for ($i = 0; $i < 5; $i++) {
             WearableActivity::factory()->create([
                 'user_id' => $user->id,
@@ -103,18 +102,15 @@ class RunningProfileServiceTest extends TestCase
         $this->assertSame(152, $profile->metrics['avg_heart_rate']);
         $this->assertSame(183, $profile->metrics['max_heart_rate']);
         $this->assertSame(5, $profile->metrics['hr_runs_count']);
-
-        // Zones: 60/70/80/90% of 183 = 110/128/146/165, Z5 max = -1.
-        $zones = $user->fresh()->heart_rate_zones;
-        $this->assertNotNull($zones);
-        $this->assertCount(5, $zones);
-        $this->assertSame(110, $zones[0]['max']);
-        $this->assertSame(165, $zones[3]['max']);
-        $this->assertSame(-1, $zones[4]['max']);
     }
 
-    public function test_skips_zone_derivation_when_user_has_manual_zones(): void
+    public function test_analyze_does_not_touch_heart_rate_zones(): void
     {
+        // Zone derivation lives in HeartRateZoneDeriver / the dedicated
+        // POST /profile/heart-rate-zones/derive endpoint, NOT as a side
+        // effect of profile analysis. This invariant guards against a
+        // regression where analyze() starts overwriting zones again
+        // (which would clobber manual edits and dual-source the data).
         $manual = [
             ['min' => 0, 'max' => 100],
             ['min' => 100, 'max' => 130],
@@ -132,7 +128,21 @@ class RunningProfileServiceTest extends TestCase
 
         app(RunningProfileService::class)->analyze($user);
 
-        $this->assertSame($manual, $user->fresh()->heart_rate_zones,
-            "Don't clobber zones the user (or a future settings UI) set explicitly");
+        $this->assertSame($manual, $user->fresh()->heart_rate_zones);
+    }
+
+    public function test_analyze_leaves_null_zones_null(): void
+    {
+        $user = User::factory()->create(['heart_rate_zones' => null]);
+
+        WearableActivity::factory()->count(5)->create([
+            'user_id' => $user->id,
+            'average_heartrate' => 150,
+            'max_heartrate' => 195,
+        ]);
+
+        app(RunningProfileService::class)->analyze($user);
+
+        $this->assertNull($user->fresh()->heart_rate_zones);
     }
 }

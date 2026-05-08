@@ -28,35 +28,7 @@ class RunningProfileService
         $profile->data_end_date = $end;
         $profile->save();
 
-        // Personalize HR zones from observed max HR. Apple Health doesn't
-        // expose HR zones the way Strava did — derive them from the runner's
-        // own data so compliance scoring stops falling back to generic
-        // defaults. Only update when we have enough HR samples and the user
-        // hasn't already set zones manually.
-        $maxHr = (int) ($profile->metrics['max_heart_rate'] ?? 0);
-        $hrRuns = (int) ($profile->metrics['hr_runs_count'] ?? 0);
-        if ($maxHr > 0 && $hrRuns >= 3 && empty($user->heart_rate_zones)) {
-            $user->forceFill(['heart_rate_zones' => $this->deriveZonesFromMaxHr($maxHr)])->save();
-        }
-
         return $profile;
-    }
-
-    /**
-     * Standard 5-zone split as percentages of max HR. Zone 5 max is -1
-     * (open-ended) to match the convention ComplianceScoringService uses.
-     *
-     * @return array<int, array{min:int, max:int}>
-     */
-    private function deriveZonesFromMaxHr(int $maxHr): array
-    {
-        return [
-            ['min' => 0, 'max' => (int) round($maxHr * 0.60)],
-            ['min' => (int) round($maxHr * 0.60), 'max' => (int) round($maxHr * 0.70)],
-            ['min' => (int) round($maxHr * 0.70), 'max' => (int) round($maxHr * 0.80)],
-            ['min' => (int) round($maxHr * 0.80), 'max' => (int) round($maxHr * 0.90)],
-            ['min' => (int) round($maxHr * 0.90), 'max' => -1],
-        ];
     }
 
     /**

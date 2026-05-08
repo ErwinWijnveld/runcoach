@@ -402,7 +402,27 @@ When changing this layout, keep these invariants:
 
 **Interval pace tile**: on `type=='interval'` days `TrainingDay.targetPaceSecondsPerKm` is null by design (the day-level field doesn't apply to intervals — see `api/CLAUDE.md` → "Interval pace contract"). Read the displayed value via the `TrainingDayPaceX` extension's `displayPaceSecondsPerKm` getter instead — it returns the work-set average (mean of `kind=work` segment paces) for intervals and the day-level field for everything else. The pace tile also hides its `actual` value on intervals: a full-run avg that mixes warmup + recovery + cooldown isn't comparable to per-rep work pace and would render as a misleading "fail" colour. The training-result screen's `_TargetVsActualSection` doesn't need similar treatment because it already hides the pace row when the target is null.
 
-### 14. Notifications inbox (action-required items)
+### 14. HR-zone auto-derivation + onboarding step
+
+Backend computes the 5-zone table from the runner's own data; the app surfaces it in two places (full backend details in `api/CLAUDE.md` → "HR-zone auto-derivation"):
+
+**Onboarding step** (`/onboarding/zones`, between connect-health and overview):
+- `OnboardingConnectHealthScreen` ingests workouts → reads `dateOfBirth` + `restingHeartRate` from HealthKit (best-effort, both null on permission denial) → calls `auth.deriveHeartRateZones(...)` → `context.go('/onboarding/zones', extra: derivedZones)`. Failure is non-blocking — routes anyway with `extra=null`.
+- `OnboardingZonesScreen` reads the persisted zones via `authProvider.user.heartRateZones` and shows source-aware copy from the `DerivedZones` extra (e.g. "Based on your last 23 runs, your max HR is around 191 bpm"). Two CTAs: *Looks right* → `/onboarding/overview`; *Edit zones* → opens the same `HeartRateZonesSheet` used in the menu.
+- Read-only display widget `lib/core/widgets/hr_zones_readonly_list.dart` is shared between the onboarding screen and any future non-editable surface (matches the visual language of the editable sheet).
+
+**Recompute button in `HeartRateZonesSheet`** (menu → HR Zones):
+- Sits above the Max HR field as a subtle pill ("Recompute from your runs"). Tapping reads age + RHR from HealthKit, calls the derive endpoint, mirrors the result into the editable fields, and shows a notice line ("Updated from your last 23 runs (max ~191 bpm)").
+- The notice is informational; the user still needs to hit Save to persist their values (which flips source back to `manual` because the values went through the editable form). Save = "I confirm these numbers"; the Recompute button = "redo the math".
+- Network failures surface inline via `_error`; the sheet stays open.
+
+**`User.heartRateZonesSource`** (Freezed string, mirrors `users.heart_rate_zones_source`): `'default' | 'derived_empirical' | 'derived_age' | 'manual'`. Drives subtitle copy on the onboarding screen and is exposed via `/profile`.
+
+**`DerivedZones`** model (`lib/features/auth/models/derived_zones.dart`) is the wire shape for the derive response: `zones`, `source`, `maxHr`, `sampleCount`, `age`, `restingHeartRate`. All optional fields are null when the corresponding signal wasn't available.
+
+Spec: `../docs/superpowers/specs/2026-05-08-hr-zones-auto-derive.md`.
+
+### 15. Notifications inbox (action-required items)
 
 Header bell + bottom-sheet inbox + cold-start reminder for items the runner must act on. Backed by the API's `user_notifications` table (see `api/CLAUDE.md` → "Notifications inbox" for backend details).
 
@@ -428,7 +448,7 @@ Header bell + bottom-sheet inbox + cold-start reminder for items the runner must
 2. (Optional) extend `_typeLabel` switch in `notifications_sheet.dart` for a humanised eyebrow label — falls through to `replaceAll('_', ' ').toUpperCase()` if not added.
 3. (Optional) add a tertiary action arm in `_NotificationCard.build` (the `if (n.type == 'pace_adjustment')` block) when the type has a calibration sheet to surface.
 
-### 15. Screen intro animations
+### 16. Screen intro animations
 
 Tasteful Apple-style entry animations on tab roots and detail screens. Two helpers in `lib/core/widgets/intro_fx.dart`:
 

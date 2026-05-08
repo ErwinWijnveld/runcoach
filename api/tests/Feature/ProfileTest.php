@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Enums\CoachStyle;
+use App\Enums\HeartRateZonesSource;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
@@ -100,6 +101,50 @@ class ProfileTest extends TestCase
 
         $response->assertUnprocessable();
         $response->assertJsonValidationErrors(['heart_rate_zones.1.min']);
+    }
+
+    public function test_updating_zones_flips_source_to_manual(): void
+    {
+        [$user, $headers] = $this->authUser();
+        // Pretend the deriver set them earlier.
+        $user->update(['heart_rate_zones_source' => HeartRateZonesSource::DerivedEmpirical]);
+
+        $this->putJson('/api/v1/profile', [
+            'heart_rate_zones' => [
+                ['min' => 0, 'max' => 110],
+                ['min' => 110, 'max' => 145],
+                ['min' => 145, 'max' => 165],
+                ['min' => 165, 'max' => 180],
+                ['min' => 180, 'max' => -1],
+            ],
+        ], $headers)->assertOk();
+
+        $this->assertSame(HeartRateZonesSource::Manual, $user->refresh()->heart_rate_zones_source);
+    }
+
+    public function test_updating_only_name_does_not_touch_zones_source(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $user->update(['heart_rate_zones_source' => HeartRateZonesSource::DerivedEmpirical]);
+
+        $this->putJson('/api/v1/profile', [
+            'name' => 'Erwin',
+        ], $headers)->assertOk();
+
+        // Source survives an unrelated profile field edit.
+        $this->assertSame(HeartRateZonesSource::DerivedEmpirical, $user->refresh()->heart_rate_zones_source);
+    }
+
+    public function test_client_cannot_directly_set_zones_source(): void
+    {
+        [, $headers] = $this->authUser();
+
+        // Passing source=manual without zones gets rejected (rule only allows
+        // when zones are present, and prepareForValidation overwrites client
+        // values when zones ARE present, so the client never controls this).
+        $this->putJson('/api/v1/profile', [
+            'heart_rate_zones_source' => 'derived_empirical',
+        ], $headers)->assertUnprocessable();
     }
 
     public function test_update_profile_rejects_zone_5_with_finite_max(): void

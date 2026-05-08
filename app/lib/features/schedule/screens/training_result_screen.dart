@@ -272,7 +272,7 @@ class _ComplianceBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final pct = (data.score01 * 100).round();
+    final grade = (data.score01 * 10).toStringAsFixed(1);
     final color = ComplianceColors.forScore01(data.score01);
     final fillHeight = (data.score01 * _maxBarHeight).clamp(
       _minBarHeight,
@@ -288,7 +288,7 @@ class _ComplianceBar extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               Text(
-                '$pct%',
+                grade,
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,

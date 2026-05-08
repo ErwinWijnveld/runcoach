@@ -16,6 +16,15 @@ sealed class User with _$User {
     @JsonKey(name: 'coach_style') String? coachStyle,
     @JsonKey(name: 'has_completed_onboarding') @Default(false) bool hasCompletedOnboarding,
     @JsonKey(name: 'heart_rate_zones') List<HrZone>? heartRateZones,
+    // 'default' | 'derived_empirical' | 'derived_age' | 'manual' — drives
+    // the subtitle copy on the onboarding zones step + the "Recompute"
+    // button's confirm-overwrite affordance in the menu sheet.
+    @JsonKey(name: 'heart_rate_zones_source') String? heartRateZonesSource,
+    // Manually-entered birth year (persisted by HeartRateZonesController
+    // whenever an age is sent in the derive body). When set, the HR
+    // sheet's recompute button skips the manual age dialog — the
+    // backend resolves age from this on its own.
+    @JsonKey(name: 'birth_year') int? birthYear,
     @JsonKey(name: 'pending_plan_generation') PlanGeneration? pendingPlanGeneration,
     @JsonKey(name: 'current_membership') Membership? currentMembership,
     @JsonKey(name: 'pending_invites') @Default([]) List<Membership> pendingInvites,

@@ -151,9 +151,15 @@ class _BootPopupHostState extends ConsumerState<_BootPopupHost> {
         debugPrint('[boot-popup] fetched ${items.length} pending notifications');
       }
       if (!mounted || items.isEmpty) return;
-      if (!ctx.mounted) return;
+      // Pull a context from BELOW the router. The host's own context lives
+      // above the navigator (CupertinoApp.router's `builder` wraps the
+      // navigator), so showCupertinoDialog can't find a Navigator ancestor
+      // from there. The root navigator key, set on the GoRouter, gives us
+      // a context that has the navigator as an ancestor.
+      final navCtx = rootNavigatorKey.currentContext;
+      if (navCtx == null || !navCtx.mounted) return;
       final view = await showCupertinoDialog<bool>(
-        context: ctx,
+        context: navCtx,
         builder: (dialogCtx) => CupertinoAlertDialog(
           title: const Text('Action required'),
           content: Text(
@@ -174,8 +180,8 @@ class _BootPopupHostState extends ConsumerState<_BootPopupHost> {
           ],
         ),
       );
-      if (view == true && ctx.mounted) {
-        await showNotificationsSheet(ctx);
+      if (view == true && navCtx.mounted) {
+        await showNotificationsSheet(navCtx);
       }
     } catch (e, st) {
       if (kDebugMode) {

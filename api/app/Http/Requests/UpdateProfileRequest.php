@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\CoachStyle;
+use App\Enums\HeartRateZonesSource;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -20,7 +21,26 @@ class UpdateProfileRequest extends FormRequest
             // Z5 max is open-ended by convention (-1). Earlier zones are
             // bounded; allow -1 too and let withValidator enforce the rest.
             'heart_rate_zones.*.max' => ['required_with:heart_rate_zones', 'integer', 'min:-1', 'max:250'],
+            // Set internally by prepareForValidation when zones are present —
+            // never trust the client to set this directly. The validator
+            // only accepts the 'manual' value to keep the surface tight.
+            'heart_rate_zones_source' => ['sometimes', Rule::in([HeartRateZonesSource::Manual->value])],
         ];
+    }
+
+    /**
+     * When the runner edits zones via the menu sheet, flip the source to
+     * 'manual' so future scheduled re-derivations skip them. The explicit
+     * "Recompute from runs" button writes through a different endpoint
+     * that overrides this.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('heart_rate_zones')) {
+            $this->merge([
+                'heart_rate_zones_source' => HeartRateZonesSource::Manual->value,
+            ]);
+        }
     }
 
     public function withValidator(Validator $validator): void
