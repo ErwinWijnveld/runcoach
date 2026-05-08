@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/birth_date_picker.dart';
+import 'package:app/core/widgets/hr_zone_constants.dart';
 import 'package:app/features/auth/models/derived_zones.dart';
 import 'package:app/features/auth/models/hr_zone.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
@@ -29,7 +31,6 @@ class HeartRateZonesSheet extends ConsumerStatefulWidget {
       _HeartRateZonesSheetState();
 }
 
-const _kZoneNames = ['Endurance', 'Moderate', 'Tempo', 'Threshold', 'Anaerobic'];
 const _kZonePercentages = [0.60, 0.70, 0.80, 0.90];
 const _kFallbackMaxHr = 190;
 
@@ -146,29 +147,26 @@ class _HeartRateZonesSheetState extends ConsumerState<HeartRateZonesSheet> {
     });
 
     final hk = ref.read(healthKitServiceProvider);
-    int? hkAge;
+    DateTime? hkDob;
     int? restingHr;
     try {
-      hkAge = await hk.getAge();
+      hkDob = await hk.getBirthDate();
       restingHr = await hk.getLatestRestingHeartRate();
     } catch (_) {
       // HealthKit can throw on certain permission states — keep going
       // with whatever we got.
     }
 
-    // Always prompt the runner to confirm/edit their age before
-    // recomputing — even when we have a value from HealthKit or stored
-    // birth_year. The prefill avoids retyping; the prompt makes the
-    // recompute deliberate (the user is overriding their saved zones).
-    final storedBirthYear = ref.read(authProvider).value?.birthYear;
-    final storedAge = storedBirthYear != null
-        ? DateTime.now().year - storedBirthYear
-        : null;
-    final prefill = hkAge ?? storedAge;
+    // Always show the DOB picker so the recompute is deliberate (the
+    // runner is overriding their saved zones). Prefill chain: HealthKit
+    // DOB → previously stashed `user.dateOfBirth` from a manual pick →
+    // null (picker defaults to 30y ago).
+    final storedDob = ref.read(authProvider).value?.dateOfBirth;
+    final prefill = hkDob ?? storedDob;
 
     if (!mounted) return;
-    final age = await _promptForAge(initialAge: prefill);
-    if (age == null) {
+    final dob = await showBirthDatePickerSheet(context, initial: prefill);
+    if (dob == null) {
       // User cancelled — stop the recompute, don't change anything.
       if (!mounted) return;
       setState(() => _recomputing = false);
@@ -177,7 +175,7 @@ class _HeartRateZonesSheetState extends ConsumerState<HeartRateZonesSheet> {
 
     try {
       final result = await ref.read(authProvider.notifier).deriveHeartRateZones(
-            age: age,
+            dateOfBirth: dob,
             restingHeartRate: restingHr,
           );
 
@@ -201,66 +199,6 @@ class _HeartRateZonesSheetState extends ConsumerState<HeartRateZonesSheet> {
     }
   }
 
-  /// Cupertino dialog asking the runner to confirm/edit their age before
-  /// recomputing zones. [initialAge] prefills the field when we already
-  /// have a value (from HealthKit or stored birth_year) — runner can
-  /// just hit Compute, OR overwrite if the prefill is wrong. Returns
-  /// null on cancel.
-  Future<int?> _promptForAge({int? initialAge}) async {
-    final controller = TextEditingController(
-      text: initialAge != null ? '$initialAge' : '',
-    );
-    final age = await showCupertinoDialog<int>(
-      context: context,
-      builder: (ctx) => CupertinoAlertDialog(
-        title: const Text('Your age'),
-        content: Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: Column(
-            children: [
-              const Text(
-                'We use your age to compute heart rate zones. Confirm or edit before continuing.',
-                style: TextStyle(fontSize: 13),
-              ),
-              const SizedBox(height: 12),
-              CupertinoTextField(
-                controller: controller,
-                keyboardType: TextInputType.number,
-                textAlign: TextAlign.center,
-                placeholder: 'Age',
-                autofocus: true,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  LengthLimitingTextInputFormatter(3),
-                ],
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          CupertinoDialogAction(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
-          ),
-          CupertinoDialogAction(
-            isDefaultAction: true,
-            onPressed: () {
-              final v = int.tryParse(controller.text.trim());
-              if (v == null || v < 5 || v > 120) {
-                Navigator.of(ctx).pop();
-                return;
-              }
-              Navigator.of(ctx).pop(v);
-            },
-            child: const Text('Compute'),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    return age;
-  }
-
   void _applyZonesToFields(List<HrZone> zones) {
     if (zones.length != 5) return;
     _boundaryControllers[0].text = '${zones[0].max}';
@@ -277,8 +215,7 @@ class _HeartRateZonesSheetState extends ConsumerState<HeartRateZonesSheet> {
       case 'derived_empirical':
         final age = r.age;
         final maxHr = r.maxHr;
-        final corrected = r.sampleCount >= 3;
-        if (corrected && maxHr != null) {
+        if (r.wasCorrected && maxHr != null) {
           return 'Updated — max ~$maxHr bpm (age + your hardest recent runs).';
         }
         if (age != null && maxHr != null) {
@@ -441,7 +378,10 @@ class _HeartRateZonesSheetState extends ConsumerState<HeartRateZonesSheet> {
                       child: CupertinoButton.filled(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         borderRadius: BorderRadius.circular(14),
-                        onPressed: _saving ? null : _save,
+                        // Disable Save while a recompute is in flight so
+                        // the user can't persist stale field values that
+                        // are about to be overwritten by the deriver.
+                        onPressed: (_saving || _recomputing) ? null : _save,
                         child: _saving
                             ? const CupertinoActivityIndicator(
                                 color: CupertinoColors.white)
@@ -608,7 +548,7 @@ class _ZoneRow extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              _kZoneNames[index],
+              kHrZoneNames[index],
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,

@@ -29,12 +29,13 @@ return new class extends Migration
             // 'manual' is sticky against scheduled re-derives but explicit
             // user-triggered recompute overwrites it.
             $table->string('heart_rate_zones_source', 32)->default('default');
-            // Manually-entered birth year, used as fallback when HealthKit
-            // can't surface dateOfBirth (denied permission OR not set in
-            // the runner's Apple Health profile). Persisted by
-            // HeartRateZonesController whenever an age is sent in the
-            // derive body — runner only types it once.
-            $table->smallInteger('birth_year')->unsigned()->nullable();
+            // Manually-entered date of birth, used by the HR-zone deriver
+            // as a fallback when HealthKit can't surface dateOfBirth
+            // (denied permission OR not set in the runner's Apple Health
+            // profile). Persisted by HeartRateZonesController whenever a
+            // DOB is sent in the derive body — runner only enters it once.
+            // Also drives the yearly birthday push (`SendBirthdayZoneReminders`).
+            $table->date('date_of_birth')->nullable();
             // All-time personal records keyed by distance code (5k, 10k,
             // half, marathon). Each entry: {duration_seconds, distance_meters,
             // date, source_activity_id}. Computed natively from HealthKit

@@ -13,12 +13,15 @@ import 'package:app/features/onboarding/models/onboarding_form_data.dart';
 import 'package:app/features/onboarding/models/plan_generation.dart';
 import 'package:app/features/onboarding/providers/onboarding_form_provider.dart';
 
-const _pollInterval = Duration(seconds: 3);
+const _pollInterval = Duration(seconds: 2);
 
-/// Full-screen loader shown while the backend builds the plan. The agent
-/// loop runs in the queue worker (~60-110s); we poll the latest
-/// PlanGeneration row every 3s. Progress bar is a local linear animation
-/// (no real per-stage signal from the backend) — purely a UX cue.
+/// Full-screen loader shown while the backend builds the plan. The
+/// deterministic builder takes ~20ms; the OnboardingAgent's friendly
+/// reply takes 4-6s; an optional AdjustOnboardingPlan call (when
+/// additional_notes warrant injury / preference tweaks) adds another
+/// ~8s. We poll the latest PlanGeneration row every 2s. Progress bar
+/// is a local linear animation (no real per-stage signal from the
+/// backend) — purely a UX cue.
 ///
 /// Resume safety: if the user closes the app mid-generation and reopens
 /// later, the router redirect spots `user.pendingPlanGeneration` and routes
@@ -66,14 +69,21 @@ class _OnboardingGeneratingScreenState
     super.dispose();
   }
 
+  /// Estimated wall-clock for plan generation. Drives the progress bar's
+  /// fill speed only — the bar caps at 95% and animates to 100% on
+  /// completion regardless of estimate. Slight overestimate is safer
+  /// than under (under = bar sits at 95% looking stuck).
+  ///
+  /// Measured on local-dev queue worker:
+  ///   • plain build (no notes)        : 5-6s
+  ///   • build + adjust (notes present): 12-14s
+  ///
+  /// Plan length doesn't materially affect runtime — the deterministic
+  /// builder runs in ~20ms regardless of weeks. The variance is the AI
+  /// turn (Sonnet inference + optional second tool call).
   int _estimateSeconds(OnboardingFormData form) {
-    int weeks = 6;
-    if (form.targetDate != null) {
-      final target = DateTime.parse(form.targetDate!);
-      final diffDays = target.difference(DateTime.now()).inDays;
-      weeks = ((diffDays / 7).ceil()).clamp(3, 26);
-    }
-    return (weeks * 10).clamp(30, 180);
+    final hasNotes = (form.additionalNotes ?? form.notes ?? '').trim().isNotEmpty;
+    return hasNotes ? 16 : 8;
   }
 
   void _updateStage() {

@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:app/core/storage/token_storage.dart';
+import 'package:app/core/utils/json_converters.dart';
 import 'package:app/features/auth/data/auth_api.dart';
 import 'package:app/features/auth/models/derived_zones.dart';
 import 'package:app/features/auth/models/hr_zone.dart';
@@ -116,26 +117,35 @@ class Auth extends _$Auth {
     state = AsyncValue.data(user);
   }
 
-  /// Recompute HR zones from the runner's ingested run history. Called
-  /// from the onboarding zones step (right after connect-health ingests
-  /// the workouts) and from the "Recompute" button in HeartRateZonesSheet.
+  /// Recompute HR zones. Called from the onboarding zones step (right
+  /// after connect-health ingests workouts) and from the "Recompute"
+  /// button in HeartRateZonesSheet.
   ///
-  /// `age` and `restingHeartRate` should come from HealthKit; either may
-  /// be null when the user denied permission for that characteristic. The
-  /// backend uses them only as fallbacks when run-data is too thin.
+  /// `dateOfBirth` should come from HealthKit when available, OR from
+  /// the runner picking it in the DOB sheet when HealthKit can't
+  /// surface it. `restingHeartRate` is from HealthKit only — we don't
+  /// prompt for it (Karvonen is a polish; %max-HR works without it).
   ///
   /// Refreshes [state] so any UI watching `authProvider.user.heartRateZones`
   /// re-renders with the new values.
   Future<DerivedZones> deriveHeartRateZones({
-    int? age,
+    DateTime? dateOfBirth,
     int? restingHeartRate,
   }) async {
     final api = ref.read(authApiProvider);
     final body = <String, dynamic>{
-      'age': ?age,
+      // YYYY-MM-DD wire format — uses the same calendar-date helper
+      // as User.dateOfBirth's fromJson, so the round-trip is symmetric
+      // even in non-UTC timezones (toIso8601String would emit local
+      // wall time and shift the date in negative-UTC zones).
+      'date_of_birth': ?dateToJson(dateOfBirth),
       'resting_heart_rate': ?restingHeartRate,
     };
     final result = await api.deriveHeartRateZones(body);
+    // Re-entrancy: if the host widget unmounted mid-request, don't
+    // touch the disposed Notifier. `Auth` is keepAlive=true so this is
+    // belt-and-suspenders.
+    if (!ref.mounted) return result;
     // Refresh /profile so the local User reflects the persisted zones +
     // source. Cheaper than mutating state by hand and keeps a single
     // source of truth (the server's serialized user).

@@ -226,6 +226,42 @@ class HeartRateZoneDeriverTest extends TestCase
         $this->assertSame(184, $result->maxHeartRate);
     }
 
+    public function test_correction_flag_is_set_when_upward_overrode_tanaka(): void
+    {
+        $user = User::factory()->create();
+        // 3 high-effort runs, all clearly above Tanaka + 5.
+        $this->makeRun($user, maxHr: 195, daysAgo: 3);
+        $this->makeRun($user, maxHr: 193, daysAgo: 14);
+        $this->makeRun($user, maxHr: 191, daysAgo: 28);
+
+        $result = $this->deriver->derive($user, age: 35, restingHeartRate: null);
+
+        $this->assertTrue($result->wasCorrected);
+    }
+
+    public function test_correction_flag_is_unset_when_only_2_observations(): void
+    {
+        $user = User::factory()->create();
+        $this->makeRun($user, maxHr: 195, daysAgo: 3);
+        $this->makeRun($user, maxHr: 193, daysAgo: 14);
+
+        $result = $this->deriver->derive($user, age: 35, restingHeartRate: null);
+
+        $this->assertFalse($result->wasCorrected);
+    }
+
+    public function test_correction_flag_is_unset_when_no_high_efforts(): void
+    {
+        $user = User::factory()->create();
+        for ($i = 0; $i < 10; $i++) {
+            $this->makeRun($user, maxHr: 165, daysAgo: $i + 1);
+        }
+
+        $result = $this->deriver->derive($user, age: 35, restingHeartRate: null);
+
+        $this->assertFalse($result->wasCorrected);
+    }
+
     public function test_correction_with_resting_hr_uses_karvonen(): void
     {
         // Combined: high observations bump max, RHR drives Karvonen

@@ -1,5 +1,10 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Colors;
+import 'package:flutter/material.dart'
+    show
+        Colors,
+        Material,
+        ReorderableDragStartListener,
+        ReorderableListView;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -23,6 +28,7 @@ enum _Step {
   prCurrent,
   daysPerWeek,
   preferredWeekdays,
+  runTypePreferences,
   coachStyle,
   review,
 }
@@ -37,6 +43,7 @@ List<_Step> _flowFor(OnboardingGoalType? goalType) {
         _Step.goalTime,
         _Step.daysPerWeek,
         _Step.preferredWeekdays,
+        _Step.runTypePreferences,
         _Step.coachStyle,
         _Step.review,
       ],
@@ -47,6 +54,7 @@ List<_Step> _flowFor(OnboardingGoalType? goalType) {
         _Step.prCurrent,
         _Step.daysPerWeek,
         _Step.preferredWeekdays,
+        _Step.runTypePreferences,
         _Step.coachStyle,
         _Step.review,
       ],
@@ -56,6 +64,7 @@ List<_Step> _flowFor(OnboardingGoalType? goalType) {
         _Step.goalType,
         _Step.daysPerWeek,
         _Step.preferredWeekdays,
+        _Step.runTypePreferences,
         _Step.coachStyle,
         _Step.review,
       ],
@@ -155,6 +164,13 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
           onBack: _goBack,
         ),
       _Step.preferredWeekdays => _PreferredWeekdaysStep(
+          stepIndex: safeIndex,
+          stepCount: flow.length,
+          form: form,
+          onContinue: _advance,
+          onBack: _goBack,
+        ),
+      _Step.runTypePreferences => _RunTypePreferencesStep(
           stepIndex: safeIndex,
           stepCount: flow.length,
           form: form,
@@ -971,7 +987,245 @@ class _WeekdayTile extends StatelessWidget {
   }
 }
 
-// ---- Step 8: coach style ----
+// ---- Step: rank favourite run types (drag to reorder) ----
+
+class _RunTypePreferencesStep extends ConsumerStatefulWidget {
+  final int stepIndex;
+  final int stepCount;
+  final OnboardingFormData form;
+  final VoidCallback onContinue;
+  final VoidCallback onBack;
+
+  const _RunTypePreferencesStep({
+    required this.stepIndex,
+    required this.stepCount,
+    required this.form,
+    required this.onContinue,
+    required this.onBack,
+  });
+
+  @override
+  ConsumerState<_RunTypePreferencesStep> createState() =>
+      _RunTypePreferencesStepState();
+}
+
+class _RunTypePreferencesStepState
+    extends ConsumerState<_RunTypePreferencesStep> {
+  /// Default ordering used both as the starting state and as the fallback
+  /// when the runner skips. Index 0 = currently in "gold" position.
+  static const List<RunTypePreferenceOption> _defaultOrder = [
+    RunTypePreferenceOption.easy,
+    RunTypePreferenceOption.tempo,
+    RunTypePreferenceOption.interval,
+    RunTypePreferenceOption.longRun,
+  ];
+
+  late List<RunTypePreferenceOption> _order;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.form.runTypePreferences;
+    if (existing == null || existing.isEmpty) {
+      _order = List.of(_defaultOrder);
+    } else {
+      // Honour stored order; append any missing types at the end so the
+      // list always covers all four options.
+      final seen = <RunTypePreferenceOption>{};
+      final ordered = <RunTypePreferenceOption>[];
+      for (final option in existing) {
+        if (seen.add(option)) ordered.add(option);
+      }
+      for (final option in _defaultOrder) {
+        if (seen.add(option)) ordered.add(option);
+      }
+      _order = ordered;
+    }
+  }
+
+  void _handleReorder(int oldIndex, int newIndex) {
+    setState(() {
+      var to = newIndex;
+      if (to > oldIndex) to -= 1;
+      final moved = _order.removeAt(oldIndex);
+      _order.insert(to, moved);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final notifier = ref.read(onboardingFormProvider.notifier);
+
+    return StepScaffold(
+      stepIndex: widget.stepIndex,
+      stepCount: widget.stepCount,
+      title: 'Rank your favourite runs',
+      subtitle:
+          'Drag to reorder. Top ones get featured more, bottom ones less.',
+      canContinue: true,
+      onSkip: () {
+        notifier.setRunTypePreferences(null);
+        widget.onContinue();
+      },
+      onContinue: () {
+        notifier.setRunTypePreferences(_order);
+        widget.onContinue();
+      },
+      onBack: widget.onBack,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ReorderableListView(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            buildDefaultDragHandles: false,
+            proxyDecorator: (child, index, animation) => Material(
+              color: const Color(0x00000000),
+              child: child,
+            ),
+            onReorder: _handleReorder,
+            children: [
+              for (var i = 0; i < _order.length; i++)
+                Padding(
+                  key: ValueKey(_order[i]),
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _RunTypeRankCard(
+                    rank: i + 1,
+                    option: _order[i],
+                    listIndex: i,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              'Long runs stay in the plan. Ranking them last just keeps them shorter.',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: AppColors.inkMuted,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RunTypeRankCard extends StatelessWidget {
+  final int rank;
+  final RunTypePreferenceOption option;
+  final int listIndex;
+
+  const _RunTypeRankCard({
+    required this.rank,
+    required this.option,
+    required this.listIndex,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final (label, hint) = _meta(option);
+
+    // Wrapping the WHOLE card in ReorderableDragStartListener makes the
+    // entire surface draggable instead of forcing the user to hit the
+    // small handle icon. Uses immediate-drag (no long press required).
+    return ReorderableDragStartListener(
+      index: listIndex,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.inputBorder),
+        ),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 32,
+              child: Text(
+                '#$rank',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primaryInk,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primaryInk,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    hint,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppColors.inkMuted,
+                      height: 1.3,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            // Decorative drag affordance — the whole card is the drag
+            // target now, the icon is just a visual hint.
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 4),
+              child: Icon(
+                CupertinoIcons.line_horizontal_3,
+                size: 22,
+                color: AppColors.inkMuted,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static (String, String) _meta(RunTypePreferenceOption option) {
+    return switch (option) {
+      RunTypePreferenceOption.easy => (
+          'Easy runs',
+          'Conversational pace, weekly bulk.',
+        ),
+      RunTypePreferenceOption.tempo => (
+          'Tempo runs',
+          'Sustained, comfortably hard effort.',
+        ),
+      RunTypePreferenceOption.interval => (
+          'Intervals',
+          'Short hard reps with recovery.',
+        ),
+      RunTypePreferenceOption.longRun => (
+          'Long runs',
+          'Weekly endurance, builds stamina.',
+        ),
+    };
+  }
+}
+
+// ---- Step: coach style ----
 
 class _CoachStyleStep extends ConsumerStatefulWidget {
   final int stepIndex;

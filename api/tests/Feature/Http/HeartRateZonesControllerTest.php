@@ -50,12 +50,14 @@ class HeartRateZonesControllerTest extends TestCase
         $this->assertSame(HeartRateZonesSource::Default, $user->heart_rate_zones_source);
     }
 
-    public function test_age_only_persists_derived_age(): void
+    public function test_dob_persists_derived_age(): void
     {
         [$user, $headers] = $this->authUser();
 
+        $dob = now()->subYears(35)->subDays(40)->toDateString();
+
         $response = $this->postJson('/api/v1/profile/heart-rate-zones/derive', [
-            'age' => 35,
+            'date_of_birth' => $dob,
         ], $headers);
 
         $response->assertOk();
@@ -65,12 +67,13 @@ class HeartRateZonesControllerTest extends TestCase
         $this->assertSame(HeartRateZonesSource::DerivedAge, $user->heart_rate_zones_source);
         $this->assertNotNull($user->heart_rate_zones);
         $this->assertCount(5, $user->heart_rate_zones);
+        $this->assertSame($dob, $user->date_of_birth->toDateString());
     }
 
-    public function test_recompute_overwrites_manual_source_when_age_supplied(): void
+    public function test_recompute_overwrites_manual_source_when_dob_supplied(): void
     {
-        // Explicit user-triggered recompute (e.g. "Recompute from your runs"
-        // button on HeartRateZonesSheet) MUST overwrite even when the user
+        // Explicit user-triggered recompute (e.g. "Recompute" button on
+        // HeartRateZonesSheet) MUST overwrite even when the user
         // previously saved manually. Manual is sticky against automatic
         // flows but not against deliberate user actions.
         [$user, $headers] = $this->authUser();
@@ -86,7 +89,7 @@ class HeartRateZonesControllerTest extends TestCase
         ]);
 
         $response = $this->postJson('/api/v1/profile/heart-rate-zones/derive', [
-            'age' => 35,
+            'date_of_birth' => now()->subYears(35)->toDateString(),
         ], $headers);
 
         $response->assertOk();
@@ -112,7 +115,7 @@ class HeartRateZonesControllerTest extends TestCase
         }
 
         $response = $this->postJson('/api/v1/profile/heart-rate-zones/derive', [
-            'age' => 35,
+            'date_of_birth' => now()->subYears(35)->toDateString(),
         ], $headers);
 
         $response->assertOk();
@@ -122,29 +125,30 @@ class HeartRateZonesControllerTest extends TestCase
         $response->assertJsonPath('sample_count', 3);
     }
 
-    public function test_age_in_body_persists_birth_year(): void
+    public function test_dob_in_body_persists_on_user(): void
     {
-        // After the runner enters their age once via the manual dialog,
-        // the controller stashes birth_year so the dialog never has to
-        // open again on subsequent recomputes.
+        // After the runner picks a DOB once, the controller stashes it
+        // so the picker prefills (or the deriver uses it directly) on
+        // subsequent recomputes.
         [$user, $headers] = $this->authUser();
+
+        $dob = now()->subYears(35)->toDateString();
 
         $this->postJson('/api/v1/profile/heart-rate-zones/derive', [
-            'age' => 35,
+            'date_of_birth' => $dob,
         ], $headers)->assertOk();
 
-        $expected = now()->year - 35;
-        $this->assertSame($expected, $user->refresh()->birth_year);
+        $this->assertSame($dob, $user->refresh()->date_of_birth->toDateString());
     }
 
-    public function test_uses_stored_birth_year_when_no_age_in_body(): void
+    public function test_uses_stored_dob_when_body_omits_it(): void
     {
         // Second-call scenario: HealthKit still can't surface DOB, but
-        // the runner already typed their age once. Backend must derive
-        // from the stored birth_year without prompting again.
-        $birthYear = now()->year - 35;
+        // the runner already picked one. Backend must derive from
+        // the stored value without re-prompting.
+        $dob = now()->subYears(35)->subMonths(2)->toDateString();
         [$user, $headers] = $this->authUser();
-        $user->update(['birth_year' => $birthYear]);
+        $user->update(['date_of_birth' => $dob]);
 
         $response = $this->postJson('/api/v1/profile/heart-rate-zones/derive', [], $headers);
 
@@ -153,43 +157,104 @@ class HeartRateZonesControllerTest extends TestCase
         $response->assertJsonPath('age', 35);
     }
 
-    public function test_body_age_overrides_stored_birth_year(): void
+    public function test_body_dob_overrides_stored_dob(): void
     {
-        // Edge case: stored birth_year is wrong (user typed by mistake)
-        // and now retypes a different age. Body wins, birth_year updates.
+        // Edge case: stored DOB is wrong, runner re-picks. Body wins.
         [$user, $headers] = $this->authUser();
-        $user->update(['birth_year' => 1980]); // age 46-ish
+        $user->update(['date_of_birth' => '1980-01-01']);
+
+        $newDob = now()->subYears(35)->toDateString();
 
         $this->postJson('/api/v1/profile/heart-rate-zones/derive', [
-            'age' => 35,
+            'date_of_birth' => $newDob,
         ], $headers)->assertOk();
 
-        $expected = now()->year - 35;
-        $this->assertSame($expected, $user->refresh()->birth_year);
+        $this->assertSame($newDob, $user->refresh()->date_of_birth->toDateString());
     }
 
-    public function test_profile_exposes_birth_year(): void
+    public function test_profile_exposes_date_of_birth(): void
     {
-        $birthYear = now()->year - 35;
+        $dob = now()->subYears(35)->toDateString();
         [$user, $headers] = $this->authUser();
-        $user->update(['birth_year' => $birthYear]);
+        $user->update(['date_of_birth' => $dob]);
 
         $response = $this->getJson('/api/v1/profile', $headers);
 
         $response->assertOk();
-        $response->assertJsonPath('user.birth_year', $birthYear);
+        // Eloquent serialises 'date' cast as ISO 8601 with time component;
+        // the wire shape is the full datetime string. Just sanity-check
+        // the date portion.
+        $value = $response->json('user.date_of_birth');
+        $this->assertNotNull($value);
+        $this->assertStringStartsWith($dob, (string) $value);
     }
 
-    public function test_validates_age_range(): void
+    public function test_validates_dob_today_is_rejected(): void
+    {
+        // The Cupertino picker clamps maxDate to (today − 5y), so this
+        // path is guarded client-side. Backend's `before:today` rule is
+        // the belt-and-suspenders second layer: belt-and-suspenders
+        // catches anyone bypassing the picker (manual API call, future
+        // alternate UI, etc).
+        [, $headers] = $this->authUser();
+
+        $this->postJson('/api/v1/profile/heart-rate-zones/derive', [
+            'date_of_birth' => now()->toDateString(),
+        ], $headers)->assertUnprocessable();
+    }
+
+    public function test_validates_dob_in_the_future_is_rejected(): void
     {
         [, $headers] = $this->authUser();
 
         $this->postJson('/api/v1/profile/heart-rate-zones/derive', [
-            'age' => 200,
+            'date_of_birth' => now()->addYears(1)->toDateString(),
         ], $headers)->assertUnprocessable();
+    }
+
+    public function test_response_includes_was_corrected_flag(): void
+    {
+        // Wire-shape contract for the Flutter UI — without the flag,
+        // copy variants like "based on your hardest recent runs" can't
+        // distinguish "Tanaka prior" from "upward correction applied".
+        [$user, $headers] = $this->authUser();
+
+        // 3 high-effort runs above Tanaka(184) + 5.
+        foreach ([195, 193, 191] as $i => $max) {
+            WearableActivity::factory()->create([
+                'user_id' => $user->id,
+                'type' => 'Run',
+                'max_heartrate' => $max,
+                'average_heartrate' => 165,
+                'duration_seconds' => 1800,
+                'start_date' => now()->subDays($i * 7 + 1),
+            ]);
+        }
 
         $this->postJson('/api/v1/profile/heart-rate-zones/derive', [
-            'age' => -5,
+            'date_of_birth' => now()->subYears(35)->toDateString(),
+        ], $headers)
+            ->assertOk()
+            ->assertJsonPath('was_corrected', true);
+    }
+
+    public function test_response_includes_was_corrected_false_for_pure_tanaka(): void
+    {
+        [, $headers] = $this->authUser();
+
+        $this->postJson('/api/v1/profile/heart-rate-zones/derive', [
+            'date_of_birth' => now()->subYears(35)->toDateString(),
+        ], $headers)
+            ->assertOk()
+            ->assertJsonPath('was_corrected', false);
+    }
+
+    public function test_validates_implausibly_old_dob_is_rejected(): void
+    {
+        [, $headers] = $this->authUser();
+
+        $this->postJson('/api/v1/profile/heart-rate-zones/derive', [
+            'date_of_birth' => '1850-01-01',
         ], $headers)->assertUnprocessable();
     }
 

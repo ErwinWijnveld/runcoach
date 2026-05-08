@@ -23,6 +23,21 @@ enum CoachStyleOption {
   flexible,
 }
 
+/// Training-day types the runner can rank in the onboarding "favourite
+/// runs" step. Wire values match the backend's `TrainingType` enum so
+/// the ranking can flow through `run_type_preferences` straight into
+/// `App\Services\Onboarding\TrainingPlanBuilder`.
+enum RunTypePreferenceOption {
+  @JsonValue('easy')
+  easy,
+  @JsonValue('tempo')
+  tempo,
+  @JsonValue('interval')
+  interval,
+  @JsonValue('long_run')
+  longRun,
+}
+
 @freezed
 sealed class OnboardingFormData with _$OnboardingFormData {
   const factory OnboardingFormData({
@@ -37,6 +52,8 @@ sealed class OnboardingFormData with _$OnboardingFormData {
     @JsonKey(name: 'coach_style') CoachStyleOption? coachStyle,
     String? notes,
     @JsonKey(name: 'additional_notes') String? additionalNotes,
+    @JsonKey(name: 'run_type_preferences')
+    List<RunTypePreferenceOption>? runTypePreferences,
   }) = _OnboardingFormData;
 
   factory OnboardingFormData.fromJson(Map<String, dynamic> json) =>

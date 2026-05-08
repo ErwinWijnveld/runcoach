@@ -50,6 +50,15 @@ class _RunCoachAppState extends ConsumerState<RunCoachApp> {
       _initialPayloadDrained = true;
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         await _waitForAuth(ref);
+        // Drop the deep-link silently when the user isn't authenticated
+        // (token expired, signed out between sessions). Without this
+        // the router's redirect bounces them to /auth/welcome and the
+        // payload is consumed but never honoured — a stale push is
+        // worse than no push.
+        if (ref.read(authProvider).value == null) {
+          await push.consumeInitialPayload();
+          return;
+        }
         final payload = await push.consumeInitialPayload();
         if (payload == null) return;
         final path = PushService.routeFromPayload(payload);

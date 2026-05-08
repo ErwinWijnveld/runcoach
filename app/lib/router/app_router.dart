@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
+import 'package:app/features/auth/screens/heart_rate_zones_route_screen.dart';
 import 'package:app/features/auth/screens/welcome_screen.dart';
 import 'package:app/features/auth/screens/apple_auth_screen.dart';
 import 'package:app/features/dashboard/screens/dashboard_screen.dart';
@@ -150,6 +151,12 @@ GoRouter appRouter(Ref ref) {
       GoRoute(
         path: '/connections',
         builder: (context, state) => const ConnectionsScreen(),
+      ),
+      GoRoute(
+        // Deep-link target for the yearly birthday push. Opens the HR
+        // zones editor sheet on mount; user can confirm or recompute.
+        path: '/profile/heart-rate-zones',
+        builder: (context, state) => const HeartRateZonesRouteScreen(),
       ),
       GoRoute(
         path: '/invites/:token',

@@ -172,12 +172,17 @@ The AI coach conversation IDs come from the Laravel AI SDK and are UUIDs (36-cha
 
 **Onboarding flow (new user):**
 1. `/onboarding/connect-health` — `OnboardingConnectHealthScreen` requests Apple Health read permission via `HealthKitService.requestPermissions()`, pulls the last 90 days of running workouts, batches to `POST /wearable/activities`, then advances to overview
-2. `/onboarding/overview` — `OnboardingOverviewScreen` shows 4 stat cards + a one-line AI narrative computed from the freshly ingested activities
-3. `/onboarding/form` — multi-step form (goal type/distance/race-name/race-date/goal-time/days-per-week/preferred-weekdays/coach-style)
-4. `/onboarding/generating` — polls `GET /onboarding/plan-generation/latest` every 3s while the queue worker runs the agent loop (~60-110s)
-5. `/coach/chat/{conversation_id}` — final destination, `ProposalCard` rendered inside the agent chat
+2. `/onboarding/zones` — auto-derive HR zones (see section 14)
+3. `/onboarding/overview` — `OnboardingOverviewScreen` shows 4 stat cards + a one-line AI narrative computed from the freshly ingested activities
+4. `/onboarding/form` — multi-step form (goal type → distance → race-name/race-date/goal-time → days-per-week → preferred-weekdays → **run-type ranking** → coach-style → review)
+5. `/onboarding/generating` — polls `GET /onboarding/plan-generation/latest` every 2s while the queue worker runs the deterministic builder + AI reply (~5-15s)
+6. `/coach/chat/{conversation_id}` — final destination, `ProposalCard` rendered inside the agent chat
 
-Note: Level and weekly km capacity are derived by the backend from the synced run history — onboarding only asks for coach style (motivational/analytical/balanced) plus race specifics.
+The form's **run-type ranking** step is a `ReorderableListView` showing `Easy / Tempo / Intervals / Long runs` as drag-able cards (entire card is the drag target via `ReorderableDragStartListener`, no long-press needed). Top = favourite, bottom = least preferred. The order maps to `run_type_preferences` in the request payload as a list of canonical strings (`easy` / `tempo` / `interval` / `long_run`) which the backend's `TrainingPlanBuilder` reads to bias quality-slot type, easy→quality upgrades at 5+ days/week, and the long-run length cap. See `lib/features/onboarding/screens/onboarding_form_screen.dart::_RunTypePreferencesStep` and `RunTypePreferenceOption` enum.
+
+The **generating screen** estimates duration via `_estimateSeconds` based on whether `additional_notes` is set: ~8s without notes (build + reply), ~16s with notes (the AI may call `adjust_onboarding_plan` for injuries / preferences). Plan length doesn't affect runtime — the deterministic builder is ~20ms regardless of weeks.
+
+Note: Level and weekly km capacity are derived by the backend from the synced run history — onboarding only asks for coach style (motivational/analytical/balanced) plus race specifics + run-type ranking.
 
 ### 7. Design system
 
@@ -412,9 +417,13 @@ Backend computes the 5-zone table from the runner's own data; the app surfaces i
 - Read-only display widget `lib/core/widgets/hr_zones_readonly_list.dart` is shared between the onboarding screen and any future non-editable surface (matches the visual language of the editable sheet).
 
 **Recompute button in `HeartRateZonesSheet`** (menu → HR Zones):
-- Sits above the Max HR field as a subtle pill ("Recompute from your runs"). Tapping reads age + RHR from HealthKit, calls the derive endpoint, mirrors the result into the editable fields, and shows a notice line ("Updated from your last 23 runs (max ~191 bpm)").
+- Sits above the Max HR field as a subtle pill ("Recompute from your runs"). Tapping reads DOB + RHR from HealthKit, **always shows the shared `showBirthDatePickerSheet`** (Cupertino date wheel) prefilled with HealthKit DOB → stored `user.dateOfBirth` → 30y-ago default. After Done it calls the derive endpoint, mirrors the result into the editable fields, and shows a notice line ("Updated — max ~191 bpm (estimated from age 35).").
 - The notice is informational; the user still needs to hit Save to persist their values (which flips source back to `manual` because the values went through the editable form). Save = "I confirm these numbers"; the Recompute button = "redo the math".
 - Network failures surface inline via `_error`; the sheet stays open.
+
+**Shared DOB picker** (`lib/core/widgets/birth_date_picker.dart`) — `showBirthDatePickerSheet(context, {DateTime? initial})`. Modal popup with Cancel / "Date of birth" title / Done header + a `CupertinoDatePicker` in date mode. Used in three places: (1) onboarding zones screen when `source = 'default'`, (2) HR sheet recompute, (3) the deep-link landing screen for the birthday push.
+
+**Yearly birthday push** (`birthday_zone_check`) — backend dispatches `BirthdayZoneCheckReminder` daily at 09:00 to users whose `date_of_birth` matches today. `PushService.routeFromPayload` maps it to `/profile/heart-rate-zones`, a thin `HeartRateZonesRouteScreen` (in `features/auth/screens/`) that opens the HR sheet on mount and falls back to `/dashboard` after dismiss. Tap → confirm/recompute zones in one motion.
 
 **`User.heartRateZonesSource`** (Freezed string, mirrors `users.heart_rate_zones_source`): `'default' | 'derived_empirical' | 'derived_age' | 'manual'`. Drives subtitle copy on the onboarding screen and is exposed via `/profile`.
 

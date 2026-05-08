@@ -1,14 +1,19 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/birth_date_picker.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/core/widgets/heart_rate_zones_sheet.dart';
 import 'package:app/core/widgets/hr_zones_readonly_list.dart';
 import 'package:app/core/widgets/runcore_logo.dart';
 import 'package:app/features/auth/models/derived_zones.dart';
+import 'package:app/features/auth/models/user.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
+import 'package:app/features/onboarding/widgets/onboarding_primary_button.dart';
+import 'package:app/features/wearable/data/wearable_api.dart';
 
 /// Onboarding step that shows the runner the auto-derived HR zones,
 /// explains where the numbers came from, and lets them either continue or
@@ -37,9 +42,76 @@ class OnboardingZonesScreen extends ConsumerStatefulWidget {
 class _OnboardingZonesScreenState
     extends ConsumerState<OnboardingZonesScreen> {
   late DerivedZones? _result = widget.initialResult;
+  bool _didPromptOnce = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // If connect-health couldn't pull a DOB out of HealthKit, the
+    // initial derive returned `default` and we landed here with empty
+    // zones. Prompt the runner once so the screen shows real values
+    // instead of the "couldn't compute" copy. Cancel = stay on manual
+    // fallback, don't loop the dialog (`_didPromptOnce` flag).
+    SchedulerBinding.instance.addPostFrameCallback((_) => _maybePromptForAge());
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Cold-launch path: auth may still be loading when initState fires.
+    // Re-evaluate the prompt as soon as auth resolves to a non-null user.
+    ref.listen<AsyncValue<User?>>(authProvider, (prev, next) {
+      if (next.value != null && !_didPromptOnce) {
+        SchedulerBinding.instance.addPostFrameCallback(
+          (_) => _maybePromptForAge(),
+        );
+      }
+    });
+    return _build(context);
+  }
+
+  Future<void> _maybePromptForAge() async {
+    if (!mounted || _didPromptOnce) return;
+
+    final user = ref.read(authProvider).value;
+    // Auth still loading on cold-launch deep-link → don't prompt yet.
+    // The screen rebuilds when auth resolves and we can re-evaluate
+    // (we keep _didPromptOnce false so the next pass tries again).
+    if (user == null) return;
+    final source = _result?.source ?? user.heartRateZonesSource ?? 'default';
+    // Only prompt when the deriver couldn't produce a value — never
+    // when zones already came back from HealthKit DOB or stored
+    // user.dateOfBirth.
+    if (source != 'default') return;
+
+    _didPromptOnce = true;
+
+    final dob = await showBirthDatePickerSheet(
+      context,
+      initial: user.dateOfBirth,
+    );
+    if (dob == null || !mounted) return;
+
+    try {
+      // Re-fetch resting HR while we're at it — the connect-health
+      // pull may have worked even if DOB didn't (different permission
+      // toggles), so it's worth a second try here.
+      final hk = ref.read(healthKitServiceProvider);
+      final restingHr = await hk.getLatestRestingHeartRate();
+
+      final result = await ref.read(authProvider.notifier).deriveHeartRateZones(
+            dateOfBirth: dob,
+            restingHeartRate: restingHr,
+          );
+      if (!mounted) return;
+      setState(() => _result = result);
+    } catch (_) {
+      // Network blip — leave the unavailable body showing. The runner
+      // can still tap "Set zones manually" or retry by reopening this
+      // screen via the menu sheet.
+    }
+  }
+
+  Widget _build(BuildContext context) {
     final user = ref.watch(authProvider).value;
     final zones = user?.heartRateZones;
     final source = _result?.source ?? user?.heartRateZonesSource ?? 'default';
@@ -120,10 +192,7 @@ class _Body extends StatelessWidget {
         const SizedBox(height: 20),
         HrZonesReadonlyList(zones: List.from(zones)),
         const Spacer(),
-        CupertinoButton.filled(
-          onPressed: onContinue,
-          child: const Text('Looks right'),
-        ),
+        OnboardingPrimaryButton(label: 'Looks right', onTap: onContinue),
         const SizedBox(height: 8),
         CupertinoButton(
           onPressed: onEdit,
@@ -146,8 +215,7 @@ class _Body extends StatelessWidget {
       case 'derived_empirical':
         final age = r?.age;
         final maxHr = r?.maxHr;
-        final corrected = (r?.sampleCount ?? 0) >= 3;
-        if (corrected && maxHr != null) {
+        if ((r?.wasCorrected ?? false) && maxHr != null) {
           return "Based on your age and your hardest recent runs, your max heart rate looks to be around $maxHr bpm. We've split that into 5 training zones.";
         }
         if (age != null && maxHr != null) {
@@ -185,10 +253,7 @@ class _UnavailableBody extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        CupertinoButton.filled(
-          onPressed: onEdit,
-          child: const Text('Set zones manually'),
-        ),
+        OnboardingPrimaryButton(label: 'Set zones manually', onTap: onEdit),
         const SizedBox(height: 8),
         CupertinoButton(
           onPressed: onContinue,

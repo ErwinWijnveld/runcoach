@@ -50,6 +50,10 @@ class PushService {
           if (dayId == null || dayId.isEmpty) return '/dashboard';
           return '/schedule/day/$dayId/result';
         }(),
+      // Yearly birthday push → opens the HR-zone editor so the runner
+      // can verify/refresh zones now that their Tanaka-derived max HR
+      // shifted by ~0.7 bpm.
+      'birthday_zone_check' => '/profile/heart-rate-zones',
       _ => null,
     };
   }

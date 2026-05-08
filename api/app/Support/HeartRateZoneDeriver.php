@@ -78,6 +78,7 @@ class HeartRateZoneDeriver
             sampleCount: $sampleCount,
             age: $age,
             restingHeartRate: $restingHeartRate,
+            wasCorrected: $correctedMax !== null,
         );
     }
 

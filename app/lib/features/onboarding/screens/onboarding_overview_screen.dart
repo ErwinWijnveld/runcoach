@@ -8,6 +8,7 @@ import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/core/widgets/runcore_logo.dart';
 import 'package:app/features/coach/widgets/stats_card_bubble.dart';
 import 'package:app/features/onboarding/models/onboarding_profile.dart';
+import 'package:app/features/onboarding/widgets/onboarding_primary_button.dart';
 import 'package:app/features/onboarding/providers/onboarding_profile_provider.dart';
 
 /// Step 1 of the form-based onboarding: shows the user their last 12 months
@@ -104,7 +105,8 @@ class _OverviewBody extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _ContinueButton(
+          OnboardingPrimaryButton(
+            label: 'Continue',
             onTap: () => context.push('/onboarding/form'),
           ),
         ],
@@ -150,33 +152,6 @@ class _NarrativeQuote extends StatelessWidget {
   }
 }
 
-class _ContinueButton extends StatelessWidget {
-  final VoidCallback onTap;
-  const _ContinueButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return CupertinoButton(
-      padding: EdgeInsets.zero,
-      onPressed: onTap,
-      child: Container(
-        height: 56,
-        decoration: BoxDecoration(
-          color: AppColors.primaryInk,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Center(
-          child: Text(
-            'CONTINUE',
-            style: RunCoreText.buttonCaps(color: AppColors.neutral).copyWith(
-              letterSpacing: 1.4,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _SyncingState extends StatelessWidget {
   const _SyncingState();

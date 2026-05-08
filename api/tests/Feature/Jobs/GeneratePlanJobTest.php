@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Jobs;
 
-use App\Ai\Agents\RunCoachAgent;
+use App\Ai\Agents\OnboardingAgent;
 use App\Enums\PlanGenerationStatus;
 use App\Enums\ProposalStatus;
 use App\Enums\ProposalType;
@@ -10,7 +10,6 @@ use App\Jobs\GeneratePlan;
 use App\Models\CoachProposal;
 use App\Models\PlanGeneration;
 use App\Models\User;
-use App\Models\UserRunningProfile;
 use App\Notifications\PlanGenerationCompleted;
 use App\Notifications\PlanGenerationFailed;
 use App\Services\OnboardingPlanGeneratorService;
@@ -37,7 +36,6 @@ class GeneratePlanJobTest extends TestCase
     public function test_marks_processing_then_completed_on_success(): void
     {
         $user = User::factory()->create();
-        UserRunningProfile::factory()->for($user)->create();
 
         $row = PlanGeneration::factory()->for($user)->create([
             'status' => PlanGenerationStatus::Queued,
@@ -48,11 +46,16 @@ class GeneratePlanJobTest extends TestCase
             ],
         ]);
 
-        RunCoachAgent::fake(['Plan ready.']);
+        OnboardingAgent::fake(['Plan ready.']);
         $proposal = CoachProposal::factory()->create([
             'user_id' => $user->id,
             'type' => ProposalType::CreateSchedule,
             'status' => ProposalStatus::Pending,
+            'payload' => [
+                'goal_type' => 'general_fitness',
+                'goal_name' => 'General fitness',
+                'schedule' => ['weeks' => [['week_number' => 1, 'days' => []]]],
+            ],
         ]);
         $this->instance(
             ProposalService::class,

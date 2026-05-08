@@ -21,6 +21,14 @@ namespace App\Enums;
 enum HeartRateZonesSource: string
 {
     case Default = 'default';
+
+    /**
+     * @deprecated The empirical-as-primary path was removed after v0
+     * shipped — observed max from training systematically underestimated
+     * true max HR. Kept here so existing rows in `users.heart_rate_zones_source`
+     * still hydrate; the deriver no longer produces this value. Next
+     * recompute flips the row to `DerivedAge`.
+     */
     case DerivedEmpirical = 'derived_empirical';
     case DerivedAge = 'derived_age';
     case Manual = 'manual';

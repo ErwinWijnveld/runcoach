@@ -25,8 +25,9 @@ class HealthKitService {
   static const _birthDateType = HealthDataType.BIRTH_DATE;
   // BIRTH_DATE + RESTING_HEART_RATE feed the HR-zone deriver. Keep them
   // in the permission set so iOS re-prompts the next time the user lands
-  // on the connect-health screen — without that, getAge() / getRHR()
-  // silently return null and the deriver falls back to defaults.
+  // on the connect-health screen — without that, getBirthDate() /
+  // getLatestRestingHeartRate() silently return null and the deriver
+  // falls back to defaults.
   static const _readTypes = <HealthDataType>[
     _workoutType,
     _hrType,
@@ -293,24 +294,24 @@ class HealthKitService {
     }
   }
 
-  /// User's age in whole years, computed from the HealthKit characteristic
-  /// `dateOfBirth`. Used by the HR-zone deriver as a fallback when the
-  /// runner doesn't have enough qualifying runs yet (Tanaka / Karvonen).
+  /// Date of birth from HealthKit's `dateOfBirth` characteristic. Used
+  /// by the HR-zone deriver (and the yearly birthday push) — the
+  /// backend computes age from DOB at runtime so it stays accurate over
+  /// years.
   ///
   /// Returns null on:
-  ///   - permission denied (system silently no-ops on characteristic reads
-  ///     the user hasn't granted),
+  ///   - permission denied (Apple silently no-ops on characteristic
+  ///     reads the user hasn't granted),
   ///   - DOB not set in the Health app,
-  ///   - any platform exception (we never block the deriver call on this).
+  ///   - any platform exception (we never block the deriver on this).
   ///
-  /// Best-effort: callers should treat null as "unknown" and let the
-  /// deriver fall through to the next signal.
-  Future<int?> getAge() async {
+  /// The `health` package's BIRTH_DATE on iOS surfaces a single
+  /// HealthDataPoint whose value carries the DOB. Different package
+  /// versions use either NumericHealthValue (year only) or attach the
+  /// date to `dateFrom` — try both and pick the more specific one.
+  Future<DateTime?> getBirthDate() async {
     try {
       await _health.configure();
-      // The `health` package exposes BIRTH_DATE as a HealthDataPoint with
-      // a NumericHealthValue carrying the year (cross-platform compromise).
-      // Pull the latest sample in a wide window and compute age in Dart.
       final samples = await _health.getHealthDataFromTypes(
         types: const [_birthDateType],
         startTime: DateTime(1900),
@@ -321,26 +322,32 @@ class HealthKitService {
       final v = s.value;
       DateTime? dob;
       if (v is NumericHealthValue) {
-        // year of birth — assume Jan 1 since DOB-day isn't exposed
+        // Year-only — fabricate Jan 1. Better than nothing, accurate
+        // enough for Tanaka (the formula is age in whole years).
         final year = v.numericValue.toInt();
         if (year > 1900 && year < DateTime.now().year) {
           dob = DateTime(year, 1, 1);
         }
       }
-      // Some plugin versions emit DOB via dateFrom. Fall back to that when
-      // the value couldn't be parsed numerically.
+      // Fall back to the sample's start date — some plugin versions
+      // attach the full DOB there.
       dob ??= s.dateFrom;
-      final now = DateTime.now();
-      var age = now.year - dob.year;
-      if (now.month < dob.month ||
-          (now.month == dob.month && now.day < dob.day)) {
-        age -= 1;
-      }
+      // Sanity check: implausibly young or old → treat as no signal.
+      final age = _yearsBetween(dob, DateTime.now());
       if (age < 5 || age > 120) return null;
-      return age;
+      return dob;
     } catch (_) {
       return null;
     }
+  }
+
+  int _yearsBetween(DateTime from, DateTime to) {
+    var years = to.year - from.year;
+    if (to.month < from.month ||
+        (to.month == from.month && to.day < from.day)) {
+      years -= 1;
+    }
+    return years;
   }
 
   /// Latest resting heart-rate sample from HealthKit. Apple Watch updates

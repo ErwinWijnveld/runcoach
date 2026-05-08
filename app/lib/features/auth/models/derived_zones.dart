@@ -26,6 +26,10 @@ sealed class DerivedZones with _$DerivedZones {
     @JsonKey(name: 'sample_count', fromJson: toInt) required int sampleCount,
     @JsonKey(fromJson: toIntOrNull) int? age,
     @JsonKey(name: 'resting_heart_rate', fromJson: toIntOrNull) int? restingHeartRate,
+    // True when the upward-correction path overrode Tanaka with the
+    // runner's observed peaks. Drives the "based on your hardest recent
+    // runs" copy variant on the onboarding screen + recompute notice.
+    @JsonKey(name: 'was_corrected') @Default(false) bool wasCorrected,
   }) = _DerivedZones;
 
   factory DerivedZones.fromJson(Map<String, dynamic> json) =>

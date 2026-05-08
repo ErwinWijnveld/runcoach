@@ -17,7 +17,7 @@ _User _$UserFromJson(Map<String, dynamic> json) => _User(
       ?.map((e) => HrZone.fromJson(e as Map<String, dynamic>))
       .toList(),
   heartRateZonesSource: json['heart_rate_zones_source'] as String?,
-  birthYear: (json['birth_year'] as num?)?.toInt(),
+  dateOfBirth: dateFromJson(json['date_of_birth']),
   pendingPlanGeneration: json['pending_plan_generation'] == null
       ? null
       : PlanGeneration.fromJson(
@@ -47,7 +47,7 @@ Map<String, dynamic> _$UserToJson(_User instance) => <String, dynamic>{
   'has_completed_onboarding': instance.hasCompletedOnboarding,
   'heart_rate_zones': instance.heartRateZones,
   'heart_rate_zones_source': instance.heartRateZonesSource,
-  'birth_year': instance.birthYear,
+  'date_of_birth': dateToJson(instance.dateOfBirth),
   'pending_plan_generation': instance.pendingPlanGeneration,
   'current_membership': instance.currentMembership,
   'pending_invites': instance.pendingInvites,

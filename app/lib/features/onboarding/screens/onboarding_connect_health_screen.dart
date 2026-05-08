@@ -11,6 +11,7 @@ import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/core/widgets/runcore_logo.dart';
 import 'package:app/features/auth/models/derived_zones.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
+import 'package:app/features/onboarding/widgets/onboarding_primary_button.dart';
 import 'package:app/features/wearable/data/wearable_api.dart';
 
 /// Asks the user to grant Apple Health read access, then pulls the last
@@ -144,15 +145,15 @@ class _OnboardingConnectHealthScreenState
     // Derive HR zones from the freshly-ingested data. Best-effort:
     // age + restingHR may both be null (denied permission, not set in
     // Health) — backend handles all combinations gracefully. Failures
-    // here MUST NOT block the rest of onboarding; we just route to
-    // /overview without a derive result and the runner can verify zones
-    // later from the menu.
+    // here MUST NOT block the rest of onboarding; we route to /zones
+    // either way. The /zones screen handles the "no age available"
+    // case by prompting the user on mount.
     DerivedZones? derivedZones;
     try {
-      final age = await hk.getAge();
+      final dob = await hk.getBirthDate();
       final restingHr = await hk.getLatestRestingHeartRate();
       derivedZones = await ref.read(authProvider.notifier).deriveHeartRateZones(
-            age: age,
+            dateOfBirth: dob,
             restingHeartRate: restingHr,
           );
     } catch (e) {
@@ -282,7 +283,7 @@ class _IntroBody extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'We read your running workouts and heart-rate data so we can score your training and adapt your plan.',
+          'We read your running workouts, heart-rate data, age, and resting heart rate so we can score your training and personalise your zones.',
           style: GoogleFonts.inter(
             fontSize: 15,
             color: AppColors.inkMuted,
@@ -306,9 +307,9 @@ class _IntroBody extends StatelessWidget {
             ),
           ),
         const Spacer(),
-        CupertinoButton.filled(
-          onPressed: onConnect,
-          child: const Text('Connect Apple Health'),
+        OnboardingPrimaryButton(
+          label: 'Connect Apple Health',
+          onTap: onConnect,
         ),
         const SizedBox(height: 8),
         CupertinoButton(
@@ -371,9 +372,9 @@ class _EmptyHistoryBody extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        CupertinoButton.filled(
-          onPressed: onOpenSettings,
-          child: const Text('Open Settings'),
+        OnboardingPrimaryButton(
+          label: 'Open Settings',
+          onTap: onOpenSettings,
         ),
         const SizedBox(height: 8),
         CupertinoButton(

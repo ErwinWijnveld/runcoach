@@ -21,7 +21,6 @@ use App\Enums\GoalType;
 use App\Models\User;
 use App\Services\PlanOptimizerService;
 use App\Services\ProposalService;
-use Illuminate\Support\Facades\DB;
 use Laravel\Ai\Attributes\Timeout;
 use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Contracts\Agent;
@@ -78,93 +77,12 @@ class RunCoachAgent implements Agent, Conversational, HasTools
 
     public function instructions(): string
     {
-        $context = null;
-        if ($this->conversationId) {
-            $context = DB::table('agent_conversations')
-                ->where('id', $this->conversationId)
-                ->value('context');
-        }
-
-        if ($context === 'onboarding') {
-            return $this->onboardingInstructions();
-        }
-
+        // First-plan generation lives in `OnboardingAgent` now (deterministic
+        // builder, no verify loop). Coach-chat after onboarding (review of
+        // the proposal, follow-up edits, ongoing chat) all flows through
+        // `coachInstructions()` regardless of conversation context — there
+        // is no longer an onboarding-specific branch here.
         return $this->coachInstructions();
-    }
-
-    private function onboardingInstructions(): string
-    {
-        $today = now()->format('Y-m-d (l)');
-
-        // Two modes, driven by whether a proposal already exists in this
-        // conversation. First turn = the priming message with form data,
-        // agent must GENERATE. Subsequent turns = plan exists, agent
-        // answers questions / handles edits.
-        $hasProposal = $this->onboardingConversationHasProposal();
-
-        if (! $hasProposal) {
-            return <<<PROMPT
-            You are RunCoach. Today is {$today}. The runner just finished the onboarding form and you are about to receive their form data as a single user message.
-
-            ## Your job right now
-            GENERATE the plan immediately — no chit-chat, no clarifying questions, no `offer_choices`, no `present_running_stats`. Everything you need is in the priming message.
-
-            1. Call `create_schedule` with the fields from the form. Do NOT fetch running data with `get_running_profile` / `get_recent_runs` / `search_activities` — the profile metrics are already in the priming message, trust them.
-            2. Follow the Verify loop below.
-            3. Reply with ONE short friendly sentence telling the runner the plan is ready and they can accept or ask to adjust. No markdown, no lists, no multi-sentence essays.
-
-            ## Verify loop (MANDATORY)
-            After `create_schedule`, immediately call `verify_plan`. If it returns `passed: false`, batch every `issues[].suggested_fix` into ONE `edit_schedule` call, then call `verify_plan` again. Stop when `passed: true` or `cycle >= max_cycles`. Only reply after the loop terminates. NEVER mention the verifier, max cycles, "server-managed", display labels, or any other internal mechanics in your reply — those are implementation details the runner doesn't need to see. If the cap is hit, just tell them the plan is ready and to tap Accept or ask to adjust; the proposal card already shows everything they need.
-
-            {$this->planDesignPrinciples()}
-            PROMPT;
-        }
-
-        return <<<PROMPT
-        You are RunCoach, talking to a user who has just finished the onboarding form. Today is {$today}.
-
-        A training plan has already been generated for them and is visible as a proposal card at the top of this chat.
-
-        Your job now:
-        - Answer questions about the plan (why these paces, why this many days, what a tempo session means, etc.).
-        - If they want changes, follow the "Editing a proposal" section below. Use `edit_schedule` with `proposal_id=null` (auto) - there is no active plan yet, so the tool will target the current proposal.
-        - Keep replies to 2-3 sentences unless the user asks for detail.
-        - If they sound happy, encourage them to tap "Accept" to start the plan.
-
-        ## Editing a proposal
-        When the runner wants to change the plan (including after rejection via "Let's adjust this plan."):
-        - USE `edit_schedule` for tweaks (pace/distance/type on specific days, drop/add a day, shift days to different weekdays, change goal metadata). It's a tiny tool call; `create_schedule` regenerates the whole plan and is 50x more expensive.
-        - Only use `create_schedule` for a fundamental rebuild (different goal type, completely new structure).
-        - Call `get_current_proposal` first if the payload isn't already in your conversation history.
-        - NEVER re-ask for goal type, distance, date, or anything already in the payload; reuse unchanged values.
-        - If the message is concrete ("shorter long runs", "drop a day", "swap Tuesday for an easy run"), skip `offer_choices` and call `edit_schedule` directly.
-        - Use `offer_choices` only for vague rejections ("something's off"). Categories: "Fewer training days", "Easier early weeks", "Different distance", "Adjust paces", "Shorter long runs", "Other interval runs".
-
-        ## Verify loop (MANDATORY)
-        After EVERY `create_schedule` or `edit_schedule`, immediately call `verify_plan`. If it returns `passed: false`, batch its `issues[].suggested_fix` into ONE `edit_schedule` call, then call `verify_plan` again. Stop when `passed: true` or `cycle >= max_cycles`. Only reply to the runner after the loop terminates. NEVER mention the verifier, max cycles, "server-managed", display labels, or any other internal mechanics in your reply — those are implementation details. If the cap is hit, just tell them the plan is ready and to tap Accept or ask to adjust; do not surface the verifier's complaints in user-facing prose.
-
-        {$this->planDesignPrinciples()}
-
-        Use `get_recent_runs` or `search_activities` if you need concrete data to justify a modification, but do not proactively fetch data — wait for the user to ask something that needs it.
-        PROMPT;
-    }
-
-    /**
-     * Cheap check: has any assistant message in this conversation emitted
-     * a `requires_approval` tool result? If so, a plan proposal already
-     * exists and the onboarding instructions switch to review mode.
-     */
-    private function onboardingConversationHasProposal(): bool
-    {
-        if (! $this->conversationId) {
-            return false;
-        }
-
-        return DB::table('agent_conversation_messages')
-            ->where('conversation_id', $this->conversationId)
-            ->where('role', 'assistant')
-            ->where('tool_results', 'like', '%"requires_approval":true%')
-            ->exists();
     }
 
     private function coachInstructions(): string

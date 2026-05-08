@@ -319,88 +319,88 @@ class _Block extends StatelessWidget {
       height: 1.2,
     );
 
-    return IntrinsicHeight(
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.cardBg,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(width: 4, color: eyebrowColor),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (reps != null)
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: eyebrowColor,
-                            borderRadius: BorderRadius.circular(99),
-                          ),
-                          child: Text(
-                            '$reps× $eyebrow',
-                            style: GoogleFonts.spaceGrotesk(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.8,
-                              color: CupertinoColors.white,
-                            ),
-                          ),
-                        ),
-                      )
-                    else
-                      Text(
-                        eyebrow,
+    // Stack-based layout: the colored kind stripe is positioned on the left
+    // edge of the card and stretches to its natural height, avoiding the
+    // sub-pixel overflow that an IntrinsicHeight + Row(stretch) layout
+    // introduces with baseline-aligned text rows.
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardBg,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            left: 0,
+            right: null,
+            child: Container(width: 4, color: eyebrowColor),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 14, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (reps != null)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: eyebrowColor,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: Text(
+                        '$reps× $eyebrow',
                         style: GoogleFonts.spaceGrotesk(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
-                          letterSpacing: 1.0,
-                          color: eyebrowColor,
+                          letterSpacing: 0.8,
+                          color: CupertinoColors.white,
                         ),
                       ),
-                    const SizedBox(height: 8),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Expanded(child: Text(measure, style: mainStyle)),
-                        if (pace.isNotEmpty) Text(pace, style: mainStyle),
-                      ],
                     ),
-                    if (subRow != null) ...[
-                      const SizedBox(height: 6),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '${subRow!.label} · ${subRow!.measure}',
-                              style: subStyle,
-                            ),
-                          ),
-                          if (subRow!.pace.isNotEmpty)
-                            Text(subRow!.pace, style: subStyle),
-                        ],
-                      ),
-                    ],
+                  )
+                else
+                  Text(
+                    eyebrow,
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.0,
+                      color: eyebrowColor,
+                    ),
+                  ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(child: Text(measure, style: mainStyle)),
+                    if (pace.isNotEmpty) Text(pace, style: mainStyle),
                   ],
                 ),
-              ),
+                if (subRow != null) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${subRow!.label} · ${subRow!.measure}',
+                          style: subStyle,
+                        ),
+                      ),
+                      if (subRow!.pace.isNotEmpty)
+                        Text(subRow!.pace, style: subStyle),
+                    ],
+                  ),
+                ],
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

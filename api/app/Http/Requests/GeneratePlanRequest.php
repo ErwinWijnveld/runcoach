@@ -30,6 +30,8 @@ class GeneratePlanRequest extends FormRequest
             'coach_style' => 'required|in:balanced,strict,flexible,motivational,analytical',
             'notes' => 'nullable|string|max:500',
             'additional_notes' => 'nullable|string|max:500',
+            'run_type_preferences' => 'nullable|array|max:4',
+            'run_type_preferences.*' => 'string|in:easy,tempo,interval,long_run|distinct',
         ];
     }
 

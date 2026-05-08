@@ -27,6 +27,9 @@ _OnboardingFormData _$OnboardingFormDataFromJson(Map<String, dynamic> json) =>
       ),
       notes: json['notes'] as String?,
       additionalNotes: json['additional_notes'] as String?,
+      runTypePreferences: (json['run_type_preferences'] as List<dynamic>?)
+          ?.map((e) => $enumDecode(_$RunTypePreferenceOptionEnumMap, e))
+          .toList(),
     );
 
 Map<String, dynamic> _$OnboardingFormDataToJson(_OnboardingFormData instance) =>
@@ -42,6 +45,9 @@ Map<String, dynamic> _$OnboardingFormDataToJson(_OnboardingFormData instance) =>
       'coach_style': _$CoachStyleOptionEnumMap[instance.coachStyle],
       'notes': instance.notes,
       'additional_notes': instance.additionalNotes,
+      'run_type_preferences': instance.runTypePreferences
+          ?.map((e) => _$RunTypePreferenceOptionEnumMap[e]!)
+          .toList(),
     };
 
 const _$OnboardingGoalTypeEnumMap = {
@@ -55,4 +61,11 @@ const _$CoachStyleOptionEnumMap = {
   CoachStyleOption.balanced: 'balanced',
   CoachStyleOption.strict: 'strict',
   CoachStyleOption.flexible: 'flexible',
+};
+
+const _$RunTypePreferenceOptionEnumMap = {
+  RunTypePreferenceOption.easy: 'easy',
+  RunTypePreferenceOption.tempo: 'tempo',
+  RunTypePreferenceOption.interval: 'interval',
+  RunTypePreferenceOption.longRun: 'long_run',
 };

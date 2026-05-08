@@ -50,6 +50,15 @@ class OnboardingForm extends _$OnboardingForm {
     state = state.copyWith(coachStyle: style);
   }
 
+  /// Persist the runner's ordered ranking of training-day types
+  /// (gold → silver → bronze → last). Pass null/empty to clear.
+  void setRunTypePreferences(List<RunTypePreferenceOption>? ranking) {
+    final cleaned = ranking == null || ranking.isEmpty
+        ? null
+        : List<RunTypePreferenceOption>.from(ranking);
+    state = state.copyWith(runTypePreferences: cleaned);
+  }
+
   void setNotes(String? notes) {
     state = state.copyWith(notes: (notes != null && notes.trim().isEmpty) ? null : notes);
   }

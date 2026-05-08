@@ -241,9 +241,9 @@ An earlier attempt patched the SDK to yield a second ToolCall event at `content_
 
 ### Plan generation pipeline (onboarding + edits)
 
-This is the single most important pipeline in the backend. Read this before touching anything in `RunCoachAgent`, `PlanOptimizerService`, `PlanVerifierAgent`, `CreateSchedule`, `EditSchedule`, or `VerifyPlan`.
+Two distinct pipelines now share one DB schema. **Onboarding** uses a deterministic builder (no LLM authoring of the schedule). **Coach-chat edits** keep the agentic create/edit + verify loop. Read this before touching anything in `OnboardingAgent`, `RunCoachAgent`, `PlanOptimizerService`, `PlanVerifierAgent`, `BuildOnboardingPlan`, `CreateSchedule`, `EditSchedule`, or `VerifyPlan`.
 
-#### Top-down flow
+#### Onboarding (first-plan generation)
 
 ```
 [Flutter onboarding form]
@@ -261,37 +261,89 @@ POST /onboarding/generate-plan
     │   2. OnboardingPlanGeneratorService::generate($user, $row->payload)
     │       a. Reject any stale pending proposals
     │       b. Insert agent_conversations row with context='onboarding'
-    │       c. Build priming message: form data + 12-month profile metrics
-    │       d. RunCoachAgent::make(user)->continue($cid, as: $user)->prompt($priming)
+    │       c. Build priming message: just the form fields (no metrics dump)
+    │       d. OnboardingAgent::make(user)->continue($cid, as: $user)->prompt($priming)
     │   3. Mark row completed with {conversation_id, proposal_id}
     │      (on Throwable: failed() callback marks row failed + error_message)
     │
     ▼
-[RunCoachAgent.instructions()]
-    branches on agent_conversations.context:
-    └─ 'onboarding' AND no proposal yet → onboardingInstructions() [GENERATE mode]
-    └─ 'onboarding' AND proposal exists → onboardingInstructions() [REVIEW/EDIT mode]
-    └─ otherwise                        → coachInstructions()
+[OnboardingAgent — minimal LLM, 3 tools]
+    Tools: build_onboarding_plan, adjust_onboarding_plan, get_recent_runs.
+    Step 1 (always)  call build_onboarding_plan ONCE with form fields.
+    Step 2 (optional) read additional_notes:
+      - injury / pain / "coming back from" → MUST call adjust_onboarding_plan
+        to replace tempos+intervals with easy in early weeks (the
+        deterministic builder doesn't know about injuries; it can hand
+        you tempos in week 1 of an injury comeback plan).
+      - training preferences ("more intervals", "no long runs Sundays",
+        "extra day on Wed") → call adjust_onboarding_plan to swap/add/move.
+      - empty / generic → skip.
+    Step 3 (optional) get_recent_runs for activity context when notes warrant it.
+    Step 4 (always)  one short friendly reply. If ambition.level is
+        ambitious / very_ambitious, paraphrase the ambition.suggestion in
+        coach-friendly language (no "ambition_level" jargon).
     │
     ▼
-[Agent autonomous tool loop, driven by the SDK]
-    Generate mode:
-        CreateSchedule → VerifyPlan → (EditSchedule → VerifyPlan)*  → reply
-    Review/Edit mode (follow-up user message):
-        GetCurrentProposal? → EditSchedule → VerifyPlan → (EditSchedule → VerifyPlan)* → reply
+[BuildOnboardingPlan tool — deterministic pipeline]
+    a. snapshot = FitnessSnapshotService::snapshot($user)
+         → Tier 1: recent threshold-quality effort (≤30d) → High confidence
+         → Tier 2: HR-zone fastest-pace mining (≤90d, with staleness penalty) → Medium
+         → Tier 3: recent (30d) avg pace + heuristic offsets → Low
+         → Tier 4: provider defaults → None
+    b. ambition = PlanAmbitionAnalyzer::analyze (two-pass: assess base
+         weeks, derive extension, re-assess with extended weeks). Drives
+         peak-volume multiplier (1.6× / 1.7× / 1.8×) AND plan-length
+         extension (+0 / +4 / +8 weeks for realistic / ambitious / very_ambitious).
+    c. payload = TrainingPlanBuilder::build($snapshot, $form, $ambition)
+         Deterministic — volume curve, session mix per days_per_week
+         (with effective_days dropping session count when volume can't
+         sustain meaningful sessions), cutbacks/taper, per-session paces
+         ramping toward goal, interval blueprint, race-day skeleton.
+    d. payload = PlanOptimizerService::optimize($payload, $user)
+         Order: alignTargetDateToLastDay runs FIRST (sets target_date for
+         open-ended plans) so the race-day passes can enforce on the
+         final day. Same post-pass coach-chat edits also use.
+    e. proposal = ProposalService::persistPending(...)
+    f. Returns {requires_approval, proposal_id, plan_structure, fitness_summary, ambition}
+
+[AdjustOnboardingPlan tool — optional second pass, AI-driven tweaks]
+    Operates on the latest pending proposal. Operations: replace, add,
+    remove, adjust per (week, day_of_week). Pace overrides clamped to
+    ±15s tempo / ±10s interval-work. Distance clamped to [4 km, 1.5×
+    builder]. Race day untouchable. `add` respects preferred_weekdays.
+    Re-runs optimizer + persists a new pending proposal (supersedes the
+    previous).
     │
     ▼
 ProposalService::detectProposalFromConversation()
-    Reads agent_conversation_messages.tool_results, finds the last
-    `requires_approval:true` row, hydrates a CoachProposal row.
+    Same as before — reads agent_conversation_messages.tool_results.
     │
     ▼
-[Flutter] OnboardingGeneratingScreen polls GET /onboarding/plan-generation/latest
-    every 3s. completed → /coach/chat/{conversation_id} (ProposalCard).
+[Flutter] OnboardingGeneratingScreen polls /onboarding/plan-generation/latest
+    completed → /coach/chat/{conversation_id} (ProposalCard).
     failed → error UI with Try again.
 ```
 
-The same agent loop runs for follow-up coach chat, just with `coachInstructions()` driving and `CoachController::sendMessage` streaming the SSE — that path stays synchronous (already streams progress, no need to queue).
+End-to-end ~5-15s (was 60-110s):
+- ~6s for the simple build + reply path (no notes / no adjustment)
+- ~14s when notes trigger an `adjust_onboarding_plan` second tool call
+
+Same form input always produces the same base plan — the builder is deterministic, testable with PHPUnit, no agent fakes needed for the structure. The AI's adjustments (when notes warrant them) and reply text vary; tests for those paths fake the agent.
+
+#### Coach-chat edits (after onboarding, ongoing)
+
+Once the proposal is accepted (or the runner is back chatting later), every message flows through `RunCoachAgent` (`coachInstructions()`) with the full toolbox: `GetRecentRuns`, `SearchActivities`, `CreateSchedule`, `EditSchedule`, `VerifyPlan`, etc. The verify loop + optimizer post-pass + Haiku auditor are intact for that path — we only stripped the onboarding-specific branch out of `RunCoachAgent::instructions()`.
+
+```
+[user message]
+    ▼
+RunCoachAgent (coachInstructions only) ── tools ──→
+    CreateSchedule / EditSchedule → VerifyPlan → (EditSchedule → VerifyPlan)*
+        ↓
+    PlanVerifierAgent (Haiku audit)
+        ↓
+    ProposalService.detectProposalFromConversation
+```
 
 #### Plan generation lifecycle (async, onboarding only)
 
@@ -302,9 +354,11 @@ The same agent loop runs for follow-up coach chat, just with `coachInstructions(
 - **Field on /profile + auth responses**: `pending_plan_generation` is non-null only when the user should be redirected to the loading screen or the proposal chat. Once the proposal is accepted/rejected, the field goes back to null and normal routing resumes.
 - **Queue worker timeout**: deploy command must use `--timeout=600` (or higher). 120s was the historical value and would kill plan generation mid-loop.
 
-#### The mandatory verify cycle
+#### The mandatory verify cycle (coach-chat only)
 
-Hardcoded in the agent system prompt (every variant of `instructions()` includes it):
+> NB: onboarding does NOT run the verify loop — `BuildOnboardingPlan` is deterministic and produces a structurally-correct payload directly. Verify is only on the coach-chat `CreateSchedule` / `EditSchedule` paths.
+
+Hardcoded in `RunCoachAgent::coachInstructions()`:
 
 > After EVERY `create_schedule` or `edit_schedule`, immediately call `verify_plan`. If `passed:false`, batch every `issues[].suggested_fix` into ONE `edit_schedule` call, then call `verify_plan` again. Stop when `passed:true` or `cycle >= max_cycles`.
 
@@ -315,9 +369,37 @@ Hardcoded in the agent system prompt (every variant of `instructions()` includes
 - **Capped short-circuit:** when the counter exceeds `MAX_CYCLES`, `VerifyPlan` returns `{passed:true, capped:true, summary:"Max verification cycles reached..."}` WITHOUT calling Haiku. This forces the agent to terminate the loop.
 - **User-facing reply discipline:** the prompt explicitly forbids the agent from saying "max cycles", "verifier", "server-managed", "display label", or any internal mechanic in its reply when the cap fires. If you see those words leak into the chat, the prompt's been edited.
 
+#### Onboarding-specific services (the deterministic pipeline)
+
+The new code lives under `app/Services/Onboarding/`, `app/Support/Onboarding/`, plus the agent + tools under `app/Ai/`:
+
+- **`FitnessSnapshotService`** (`app/Services/Onboarding/`) — derives a recent-fitness snapshot via 4-tier cascade (recent threshold effort → HR-zone mining → recent average → fallback). Reads HR zones from `users.heart_rate_zones`. Tunable knobs are constants on the class (`STALENESS_PENALTIES`, `EASY_OFFSET_FROM_THRESHOLD`, `RECENT_THRESHOLD_LOOKBACK_DAYS`).
+- **`PlanAmbitionAnalyzer`** (`app/Services/Onboarding/`) — compares the runner's stated goal pace + volume vs realistic improvement rates (Daniels, Pfitzinger). Returns `AmbitionAssessment` with `level` (realistic / ambitious / very_ambitious), `peakVolumeMultiplier` (1.6× / 1.7× / 1.8×), `weeksExtension` (+0 / +4 / +8), `summary`, and `suggestion`. `REALISTIC_IMPROVEMENT_PER_MONTH = 12.0 sec/km/month`. Auto-extension only fires when `target_date` is null (runner committed to a date → adjust goal time instead).
+- **`TrainingPlanBuilder`** (`app/Services/Onboarding/`) — pure-PHP plan composer. Coaching judgment encoded as constants: `PEAK_KM_FOR_DISTANCE`, `MAX_PEAK_VS_BASELINE_RATIO` (default cap, AmbitionAssessment can crank), `CUTBACK_EVERY_N_WEEKS`, `TAPER_FRACTIONS`, `LONG_RUN_CAP_BY_RANK`, plus separate `DEFAULT_WEEKS_FOR_GOAL` (race completion: 5k=6, 10k=8, HM=12, M=16) and `DEFAULT_WEEKS_FOR_PR_ATTEMPT` (5k=10, 10k=12, HM=14, M=18) — PR cycles need more time to build speed AND volume.
+- **Effective-days logic** (`TrainingPlanBuilder::resolveEffectiveDays`) — `days_per_week` is the runner's TARGET, not a hard constraint. When the week's volume can't support that many meaningful sessions (each ≥ MIN_RUN_KM=4 km, long ≥ 7 km in build), the count is reduced. A low-baseline runner asking for 4 days starts at 2 and ramps up as volume grows. Avoids the "4 × 4km filler runs" anti-pattern.
+- **Long-run-is-longest invariant** — post-render bump in `planSessions` ensures `long_run.target_km ≥ longest_other_session + 1 km`. Otherwise interval-blueprint inflation can leave the long shorter than the interval session, breaking `reclassifyLongRuns` in the optimizer.
+- **Quality-pace ramps** (`tempoPace` + `intervalBlueprint` workPace) — peak at the LAST BUILD WEEK (`weeksToRace = taperLen`), not race week (no tempo/interval in race week). `taperLen` mirrors `buildWeeklyVolumeCurve`'s formula via `taperLengthForRamp()`. Tempos end at `goal_pace + 5s` (sustainable); interval work ends at `goal_pace` (race-pace specificity in intervals, not tempos).
+- **`FitnessSnapshot`** + **`OnboardingFormInput`** + **`AmbitionAssessment`** (`app/Support/Onboarding/`) — readonly value objects. `OnboardingFormInput::fromArray()` is the single ingestion point for historical form aliases (`'pr'` → `pr_attempt`, `'fitness'` / `'weight_loss'` → `general_fitness`) and the `runTypePreferences` ranking from the new onboarding step (gold → bronze → last over `easy`/`tempo`/`interval`/`long_run`). The ranking influences quality-slot type, easy→quality upgrade at 5+ days, and long-run length cap.
+- **`BuildOnboardingPlan` tool** (`app/Ai/Tools/`) — wraps snapshot → ambition (two-pass) → builder → optimizer → proposal. Returns `{requires_approval, proposal_id, plan_structure, fitness_summary, ambition}`. The `ambition` field carries `level + summary + suggestion` so the agent can warn the runner naturally.
+- **`AdjustOnboardingPlan` tool** (`app/Ai/Tools/`) — optional second pass invoked by the agent when notes warrant tweaks. Operations: `replace` / `add` / `remove` / `adjust` per (week, day_of_week). Server clamps everything: pace ±15s tempo / ±10s interval-work, distance [4 km, 1.5× builder], race-day untouchable, `add` respects `preferred_weekdays`. Re-runs optimizer and supersedes the prior pending proposal via `ProposalService::persistPending`.
+- **`OnboardingAgent`** (`app/Ai/Agents/`) — minimal Sonnet agent. Tools: `BuildOnboardingPlan`, `AdjustOnboardingPlan`, `GetRecentRuns`. No verify loop. Prompt has injury-aware step 2 (any mention of pain / tendonitis / "coming back from" MUST trigger `adjust_onboarding_plan` to replace tempos+intervals with easy in early weeks — the deterministic builder doesn't know about injuries).
+
+**Tunable constants list** (when plans need adjustment):
+- Pace cascade: `FitnessSnapshotService::STALENESS_PENALTIES` (30/60/90d penalty steps), `EASY_OFFSET_FROM_THRESHOLD` (75s default), `VO2MAX_OFFSET_FROM_THRESHOLD` (-20s).
+- Ambition thresholds: `PlanAmbitionAnalyzer::REALISTIC_IMPROVEMENT_PER_MONTH` (12 sec/km/month), `MIN_VOLUME_FOR_RACE_PREP` (5k=25, 10k=35, HM=50, M=65 km/week), `RACE_PACE_DELTA_FROM_THRESHOLD`.
+- Volume safety: `TrainingPlanBuilder::MAX_PEAK_VS_BASELINE_RATIO` (1.6× baseline default; ambition cranks to 1.7×/1.8×), `MAX_WEEKLY_GROWTH_RATIO` (1.30 W-o-W).
+- Plan length: `DEFAULT_WEEKS_FOR_GOAL` + `DEFAULT_WEEKS_FOR_PR_ATTEMPT`. `weeksExtension` adds +0/+4/+8 by ambition level (only when target_date null).
+- Session mix: `TrainingPlanBuilder::pickSessionTypes()` (the 1-7 day table). `applyEasyToQualityUpgrade()` swaps one easy for a second quality at 5+ days/week if intervals/tempo is gold-ranked.
+- Long-run cap: `LONG_RUN_CAP_BY_RANK` (gold=0.48, silver=0.44, bronze=0.40, last=0.36) + session-count boost (+0.20 for 2-day weeks, +0.10 for 3-day).
+- Interval reps: `TrainingPlanBuilder::intervalBlueprint()` (4×400 → 5×800 → 6×800 progression, sharpener at goal pace).
+- Taper: `TrainingPlanBuilder::TAPER_WEEKS` (3), `TAPER_FRACTIONS` ([0.70, 0.55, 0.40]).
+- Adjust clamps: `AdjustOnboardingPlan::TEMPO_PACE_TOLERANCE_SECONDS` (15), `INTERVAL_WORK_PACE_TOLERANCE_SECONDS` (10), `KM_MAX_MULTIPLIER` (1.5), `KM_MIN` (4).
+
+Tests: `tests/Feature/Services/Onboarding/FitnessSnapshotServiceTest.php`, `TrainingPlanBuilderTest.php`, `tests/Feature/Ai/Tools/AdjustOnboardingPlanTest.php`. Each derivation tier, each days-per-week branch, ranking effects, low-volume long-run regressions, and adjust-tool guard rails all have coverage.
+
 #### The optimizer (deterministic post-processor)
 
-`PlanOptimizerService::optimize($payload, User $user, bool $alignRaceDay = true)` runs at the END of `CreateSchedule::handle` and `EditSchedule::handle`. Everything beyond the agent's raw draft is deterministic — the AI is responsible for *coaching judgment* (volume curve, hard/easy mix, when to insert intervals), the optimizer is responsible for *structural correctness* (preferred days, race-day position, paces, titles, totals).
+`PlanOptimizerService::optimize($payload, User $user, bool $alignRaceDay = true)` runs at the END of `CreateSchedule::handle`, `EditSchedule::handle`, AND `BuildOnboardingPlan::handle`. Everything beyond the raw draft (whether agent-authored or builder-emitted) is deterministic — the optimizer is responsible for *structural correctness* (preferred days, race-day position, paces, titles, totals).
 
 **`alignRaceDay`:** `true` on create (allows `alignTargetDateToLastDay` for open-ended plans). `false` on edit (the user has already seen and reasoned about `target_date`, don't move it).
 
@@ -328,10 +410,10 @@ Hardcoded in the agent system prompt (every variant of `instructions()` includes
 | 1 | `enforcePreferredWeekdays` | Drop days whose DOW isn't in `preferred_weekdays[]`. Race-day exempt by date match. |
 | 2 | `enforceMinimumRunLength` | Bump per-run km up to `max(4, min(6, avg_run_km × 0.4))`. Prevents 3km runs for an 8.6km/run runner. |
 | 3 | `deduplicateDaysPerWeek` | Drop duplicate `day_of_week` within a single week. |
-| 4 | **`ensureRaceDayEntry`** | If no day matches `target_date`, salvage a misplaced race-like day (`type=tempo` AND `target_km` within 10% of goal_km) and relocate it; otherwise insert a skeleton on target_date. **Runs BEFORE drop** so the agent's nice description survives when the agent miscounts weeks and puts the race past target_date. See `extractMisplacedRaceDay`. |
-| 5 | `dropDaysPastTarget` | Strip everything strictly past `target_date`. |
-| 6 | `enforceRaceDay` | Force the race-day entry's `type=tempo`, `km=goal_km`, `pace=goal_pace`, **`title=null`** (so generateTitles can rewrite to goal_name). |
-| 7 | `alignTargetDateToLastDay` (create only) | For open-ended plans, snap `target_date` to the last training day's date. |
+| 4 | **`alignTargetDateToLastDay`** (create only) | For open-ended plans (no `target_date`), snap it to the last training day. **Runs BEFORE the race-day passes** — without this, `enforceRaceDay` sees `target_date=null` and becomes a no-op for PR-attempt / general-fitness goals, leaving the runner's last day mislabeled as long_run/easy at snapshot pace instead of race-pace tempo. |
+| 5 | **`ensureRaceDayEntry`** | If no day matches `target_date`, salvage a misplaced race-like day (`type=tempo` AND `target_km` within 10% of goal_km) and relocate it; otherwise insert a skeleton on target_date. Runs BEFORE drop so the agent's nice description survives when the agent miscounts weeks and puts the race past target_date. See `extractMisplacedRaceDay`. |
+| 6 | `dropDaysPastTarget` | Strip everything strictly past `target_date`. |
+| 7 | `enforceRaceDay` | Force the race-day entry's `type=tempo`, `km=goal_km`, `pace=goal_pace`, **`title=null`** (so generateTitles can rewrite to goal_name). |
 | 8 | `reclassifyLongRuns` | Demote `long_run` days under `MIN_LONG_RUN_KM` (6.0) to `easy`. |
 | 9 | `promoteLongRuns` | If a week has no `long_run` but has a clear longest `easy` ≥ MIN_LONG_RUN_KM, promote it. |
 | 10 | `computePaces` | Fill `target_pace_seconds_per_km` for null fields, using the runner's baseline pace + a type-specific delta (easy +30, long +15, tempo −25, interval −50, threshold −25). AI-set quality paces survive (only nulls get filled). |
@@ -370,7 +452,7 @@ Hardcoded in the agent system prompt (every variant of `instructions()` includes
 1. On the last tool — caches `system` + all `tools` (~7k tokens for RunCoachAgent's 13 tools).
 2. On the last content block of the last assistant message — caches the conversation history.
 
-TTL is ~5 minutes. Within onboarding (3-4 turns in 1-2 min) the cache hits hard: turn 2+ pays full input price ONLY on the new user message. Cache hits show up as `cache_read_input_tokens` in the `[ai:usage]` log and the `token_usages` table. If you see `cache_read=0` on turn 2+, something's wrong (middleware not registered, or conversation went idle past TTL).
+TTL is ~5 minutes. Onboarding is now a single LLM round-trip (the friendly reply after `BuildOnboardingPlan` returns), so caching matters less there — but coach-chat conversations span many turns and the cache reliably trims input cost ~10× from turn 2+. Cache hits show up as `cache_read_input_tokens` in the `[ai:usage]` log and the `token_usages` table.
 
 ### Token usage tracking
 
@@ -467,7 +549,22 @@ Source-tracking column `users.heart_rate_zones_source` (`App\Enums\HeartRateZone
 - `manual` — set by `UpdateProfileRequest::prepareForValidation` whenever `heart_rate_zones` is in a `PUT /profile` body. Sticky against scheduled re-derives but NOT against this endpoint (the recompute flow is an explicit user action — overrides manual).
 - The endpoint always recomputes and persists when source ≠ Default. Spec: `docs/superpowers/specs/2026-05-08-hr-zones-auto-derive.md`.
 
-Removed: `RunningProfileService::analyze` no longer touches zones — derivation lives only in `HeartRateZoneDeriver` to avoid dual-write divergence.
+**`users.date_of_birth`** (date, nullable) — manually-entered DOB stashed by the derive endpoint when `date_of_birth` is in the body. Drives:
+- Backend's age computation (`Carbon::parse($dob)->age` — handles month/day rollover correctly so age stays accurate without storing it).
+- DOB-picker prefill on subsequent recomputes (Flutter reads `user.dateOfBirth` directly).
+- The yearly birthday push (see below).
+
+**Removed**: `RunningProfileService::analyze` no longer touches zones — derivation lives only in `HeartRateZoneDeriver` to avoid dual-write divergence.
+
+### Yearly birthday push
+
+`App\Console\Commands\SendBirthdayZoneReminders` (`plan:remind-birthday`) runs daily at 09:00 in `config('app.reminder_timezone')` (default Europe/Amsterdam). Queries `users WHERE date_of_birth IS NOT NULL AND MONTH(date_of_birth) = MONTH(today) AND DAY(...) = DAY(today) AND date_of_birth < today` (the `< today` skips the runner's actual birth date so newborn fixtures don't trigger). Dispatches `App\Notifications\BirthdayZoneCheckReminder` (custom `type=birthday_zone_check`).
+
+Tap routing: Flutter `PushService.routeFromPayload` maps `birthday_zone_check` → `/profile/heart-rate-zones`, a thin route screen that opens `HeartRateZonesSheet` on mount and falls back to `/dashboard` after the sheet pops.
+
+Manual run: `php artisan plan:remind-birthday` (today) or `--date=2026-12-15`. Notification class is `ShouldQueue`, so the `Notification::fake()` pattern applies in tests (`tests/Feature/Console/SendBirthdayZoneRemindersTest.php`).
+
+Leap-year edge (Feb 29) is intentionally not handled in v1 — affected users (~0.07%) miss the push on non-leap years. Future polish: shift to Feb 28 in non-leap years.
 
 ### Reschedule training day
 

@@ -36,6 +36,11 @@ class PlanOptimizerService
     /**
      * Below this distance a day can't credibly be called a "long run",
      * regardless of the AI's labeling. Demoted to `easy`.
+     *
+     * The onboarding builder guarantees long_run ≥ 6 km via its
+     * effective-days algorithm (drops session count when volume can't
+     * sustain a meaningful long); for AI-emitted plans this acts as a
+     * sanity floor against agent sloppiness.
      */
     private const MIN_LONG_RUN_KM = 6.0;
 
@@ -84,6 +89,20 @@ class PlanOptimizerService
         $payload = $this->enforcePreferredWeekdays($payload, $strictPreferredWeekdays);
         $payload = $this->enforceMinimumRunLength($payload, $user);
         $payload = $this->deduplicateDaysPerWeek($payload);
+
+        // Create-only: when NO target_date was stated (open-ended general
+        // fitness, PR-attempt without a fixed race date) snap target_date
+        // to the plan's last training day BEFORE the race-day passes
+        // below run. Otherwise enforceRaceDay sees target_date=null and
+        // becomes a no-op, leaving the runner's last day mislabeled as
+        // long_run/easy at the snapshot's easy pace instead of the
+        // race-pace tempo at goal_distance the runner asked for. Skipped
+        // on edits because the user may have edited the plan with full
+        // knowledge of what they want the end date to be.
+        if ($alignRaceDay) {
+            $payload = $this->alignTargetDateToLastDay($payload);
+        }
+
         // ensureRaceDayEntry runs BEFORE dropDaysPastTarget so it can
         // salvage a misplaced race-like day (e.g. agent miscounted weeks
         // and put the race past target_date) and relocate it to the
@@ -94,15 +113,6 @@ class PlanOptimizerService
         $payload = $this->ensureRaceDayEntry($payload);
         $payload = $this->dropDaysPastTarget($payload);
         $payload = $this->enforceRaceDay($payload);
-
-        // Create-only: when NO target_date was stated (open-ended /
-        // general-fitness), snap target_date to the plan's last training
-        // day so the dashboard / schedule views have something to anchor
-        // on. Skipped on edits because the user may have edited the plan
-        // with full knowledge of what they want the end date to be.
-        if ($alignRaceDay) {
-            $payload = $this->alignTargetDateToLastDay($payload);
-        }
 
         $payload = $this->reclassifyLongRuns($payload);
         $payload = $this->promoteLongRuns($payload);

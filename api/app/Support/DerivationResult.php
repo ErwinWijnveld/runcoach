@@ -24,12 +24,17 @@ final readonly class DerivationResult
         public int $sampleCount,
         public ?int $age,
         public ?int $restingHeartRate,
+        // True iff the upward-correction path overrode the Tanaka prior
+        // (≥3 qualifying observations above Tanaka + buffer). Lets the
+        // UI distinguish "max from formula only" vs "formula + your real
+        // peaks" without re-deriving the threshold logic client-side.
+        public bool $wasCorrected = false,
     ) {}
 
     /**
      * Wire shape used by the API endpoint and tests.
      *
-     * @return array{zones: list<array{min:int, max:int}>, source: string, max_hr: int|null, sample_count: int, age: int|null, resting_heart_rate: int|null}
+     * @return array{zones: list<array{min:int, max:int}>, source: string, max_hr: int|null, sample_count: int, age: int|null, resting_heart_rate: int|null, was_corrected: bool}
      */
     public function toArray(): array
     {
@@ -40,6 +45,7 @@ final readonly class DerivationResult
             'sample_count' => $this->sampleCount,
             'age' => $this->age,
             'resting_heart_rate' => $this->restingHeartRate,
+            'was_corrected' => $this->wasCorrected,
         ];
     }
 }

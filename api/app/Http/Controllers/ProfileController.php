@@ -56,7 +56,7 @@ class ProfileController extends Controller
                 'id', 'name', 'email',
                 'coach_style', 'has_completed_onboarding',
                 'heart_rate_zones', 'heart_rate_zones_source',
-                'birth_year',
+                'date_of_birth',
             ]),
             'pending_plan_generation' => $pending !== null
                 ? OnboardingController::serialize($pending)

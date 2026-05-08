@@ -17,3 +17,12 @@ Schedule::command('plan:remind-today')
     ->timezone(config('app.reminder_timezone', 'Europe/Amsterdam'))
     ->withoutOverlapping()
     ->onOneServer();
+
+// Yearly birthday push — runs daily, queries users whose DOB matches
+// today's month+day. Slightly later than the training reminder so the
+// runner doesn't open the app to two pushes back-to-back.
+Schedule::command('plan:remind-birthday')
+    ->dailyAt('09:00')
+    ->timezone(config('app.reminder_timezone', 'Europe/Amsterdam'))
+    ->withoutOverlapping()
+    ->onOneServer();

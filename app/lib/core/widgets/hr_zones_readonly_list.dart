@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/hr_zone_constants.dart';
 import 'package:app/features/auth/models/hr_zone.dart';
 
 /// Non-editable rendering of a 5-zone HR table. Shape matches the editable
@@ -15,20 +16,12 @@ class HrZonesReadonlyList extends StatelessWidget {
 
   const HrZonesReadonlyList({super.key, required this.zones});
 
-  static const _names = [
-    'Endurance',
-    'Moderate',
-    'Tempo',
-    'Threshold',
-    'Anaerobic',
-  ];
-
   @override
   Widget build(BuildContext context) {
     assert(zones.length == 5, 'HR zones must always have 5 entries');
     final rows = <Widget>[];
     for (var i = 0; i < zones.length; i++) {
-      rows.add(_ZoneRow(index: i, zone: zones[i], name: _names[i]));
+      rows.add(_ZoneRow(index: i, zone: zones[i], name: kHrZoneNames[i]));
       if (i < zones.length - 1) {
         rows.add(Container(
           margin: const EdgeInsets.only(left: 16),

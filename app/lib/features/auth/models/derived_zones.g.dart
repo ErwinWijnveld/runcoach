@@ -16,6 +16,7 @@ _DerivedZones _$DerivedZonesFromJson(Map<String, dynamic> json) =>
       sampleCount: toInt(json['sample_count']),
       age: toIntOrNull(json['age']),
       restingHeartRate: toIntOrNull(json['resting_heart_rate']),
+      wasCorrected: json['was_corrected'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$DerivedZonesToJson(_DerivedZones instance) =>
@@ -26,4 +27,5 @@ Map<String, dynamic> _$DerivedZonesToJson(_DerivedZones instance) =>
       'sample_count': instance.sampleCount,
       'age': instance.age,
       'resting_heart_rate': instance.restingHeartRate,
+      'was_corrected': instance.wasCorrected,
     };

@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
+import 'package:app/features/onboarding/widgets/onboarding_primary_button.dart';
 import 'package:app/features/onboarding/widgets/progress_dots.dart';
 
 /// Layout used by every step of the onboarding form: back arrow + progress
@@ -99,7 +100,7 @@ class StepScaffold extends StatelessWidget {
                       ),
                     ),
                   Expanded(
-                    child: _PrimaryButton(
+                    child: OnboardingPrimaryButton(
                       label: continueLabel,
                       enabled: canContinue,
                       onTap: onContinue,
@@ -131,40 +132,3 @@ class _BackChevron extends StatelessWidget {
   }
 }
 
-class _PrimaryButton extends StatelessWidget {
-  final String label;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  const _PrimaryButton({
-    required this.label,
-    required this.enabled,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: enabled ? 1.0 : 0.35,
-      child: CupertinoButton(
-        padding: EdgeInsets.zero,
-        onPressed: enabled ? onTap : null,
-        child: Container(
-          height: 56,
-          decoration: BoxDecoration(
-            color: AppColors.primaryInk,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: RunCoreText.buttonCaps(color: AppColors.neutral).copyWith(
-                letterSpacing: 1.4,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
