@@ -24,18 +24,10 @@ return new class extends Migration
             $table->boolean('is_superadmin')->default(false)->index();
             // HR zones (5 entries, ordered Z1..Z5, each `{min, max}`; Z5 max is -1).
             // Null until we have data to derive them from.
+            // Source-tracking column + manual DOB are added in a forward
+            // migration (2026_05_08_*) — production is past launch so we
+            // can't rewrite this baseline in place anymore.
             $table->json('heart_rate_zones')->nullable();
-            // How the row above was populated — see App\Enums\HeartRateZonesSource.
-            // 'manual' is sticky against scheduled re-derives but explicit
-            // user-triggered recompute overwrites it.
-            $table->string('heart_rate_zones_source', 32)->default('default');
-            // Manually-entered date of birth, used by the HR-zone deriver
-            // as a fallback when HealthKit can't surface dateOfBirth
-            // (denied permission OR not set in the runner's Apple Health
-            // profile). Persisted by HeartRateZonesController whenever a
-            // DOB is sent in the derive body — runner only enters it once.
-            // Also drives the yearly birthday push (`SendBirthdayZoneReminders`).
-            $table->date('date_of_birth')->nullable();
             // All-time personal records keyed by distance code (5k, 10k,
             // half, marathon). Each entry: {duration_seconds, distance_meters,
             // date, source_activity_id}. Computed natively from HealthKit
