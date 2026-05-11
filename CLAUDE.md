@@ -180,7 +180,9 @@ Each release: bump `version: 1.0.0+N` in `app/pubspec.yaml` (the `+N` build numb
 
 ### "Noteer voor testen"
 
-On "Noteer voor testen" (or variants), create a page in the Notion "Te Testen App" database (`collection://35dbc504-7e65-8001-8892-000bc07bcab4`) via `notion-create-pages`: `Name` = short title (≤8 words), body = beknopt stappenplan als ordered list (numbered, één actie per stap). Ack met de Notion-link, geen body in chat.
+On "Noteer voor testen" (or variants), create **ONE** page in the Notion "Te Testen App" database (`collection://35dbc504-7e65-8001-8892-000bc07bcab4`) via `notion-create-pages`: `Name` = short title (≤8 words), body = beknopt stappenplan met `- [ ]` checkbox list (één actie per regel; gebruik `## H2` sub-headings als er meerdere flows in zitten, bv. Happy path / Edge cases). Ack met de Notion-link, geen body in chat.
+
+**Never split a single feature's test cases across multiple database rows.** Even when there are 8+ verification steps, they belong inside the body of one page — splitting them produces 12 separate rows in "Te Testen App" that the user has to manually clean up. One feature → one row → checkbox list inside.
 
 ### Never auto-push, build, or upload
 
