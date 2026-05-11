@@ -5,6 +5,7 @@ namespace App\Services\Onboarding;
 use App\Enums\AmbitionLevel;
 use App\Enums\GoalDistance;
 use App\Support\Onboarding\AmbitionAssessment;
+use App\Support\Onboarding\EffectiveAmbitionLevel;
 use App\Support\Onboarding\FitnessSnapshot;
 use App\Support\Onboarding\OnboardingFormInput;
 
@@ -111,22 +112,20 @@ class PlanAmbitionAnalyzer
             : null;
 
         $level = $this->classify($improvementPerMonth, $volumeRatio);
-
-        $multiplier = match ($level) {
-            AmbitionLevel::Realistic => 1.6,
-            AmbitionLevel::Ambitious => 1.7,
-            AmbitionLevel::VeryAmbitious => 1.8,
-        };
+        $effectiveLevel = EffectiveAmbitionLevel::fromAmbitionLevel($level);
 
         return new AmbitionAssessment(
             level: $level,
             paceGapSecondsPerKm: $paceGap,
             improvementPerMonthSeconds: $improvementPerMonth,
             volumeRatio: $volumeRatio,
-            peakVolumeMultiplier: $multiplier,
+            peakVolumeMultiplier: $effectiveLevel->peakVolumeMultiplier(),
             weeksExtension: $weeksExtension,
             summary: $this->buildSummary($level, $improvementPerMonth, $volumeRatio, $snapshot, $form),
             suggestion: $this->buildSuggestion($level, $form, $weeksCount, $paceGap, $currentRacePace, $weeksExtension),
+            effectiveLevel: $effectiveLevel,
+            weeklyGrowthRatio: $effectiveLevel->weeklyGrowthRatio(),
+            qualityPaceRampGain: $effectiveLevel->qualityPaceRampGain(),
         );
     }
 
