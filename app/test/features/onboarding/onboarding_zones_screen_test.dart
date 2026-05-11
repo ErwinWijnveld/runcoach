@@ -2,7 +2,6 @@ import 'package:app/features/auth/models/hr_zone.dart';
 import 'package:app/features/auth/models/user.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/onboarding/screens/onboarding_zones_screen.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
