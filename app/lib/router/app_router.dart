@@ -25,7 +25,6 @@ import 'package:app/features/onboarding/screens/onboarding_overview_screen.dart'
 import 'package:app/features/onboarding/screens/onboarding_form_screen.dart';
 import 'package:app/features/onboarding/screens/onboarding_generating_screen.dart';
 import 'package:app/features/onboarding/screens/onboarding_zones_screen.dart';
-import 'package:app/features/auth/models/derived_zones.dart';
 import 'package:app/features/organization/screens/connections_screen.dart';
 import 'package:app/features/organization/screens/invite_detail_screen.dart';
 
@@ -104,9 +103,10 @@ GoRouter appRouter(Ref ref) {
 
       // Web has no HealthKit — the connect-health screen would just sit on
       // a permission prompt that never resolves. The dev seed pre-populates
-      // activities + zones, so jump straight to the zones step.
+      // activities + zones, so jump straight to the baseline step (zones
+      // comes next in the flow).
       if (kIsWeb && state.matchedLocation == '/onboarding/connect-health') {
-        return '/onboarding/zones';
+        return '/onboarding/overview';
       }
 
       // Logged in but landed on an auth route (e.g. just signed in via
@@ -129,9 +129,9 @@ GoRouter appRouter(Ref ref) {
         path: '/onboarding',
         redirect: (context, state) {
           if (state.matchedLocation != '/onboarding') return null;
-          // Web has no HealthKit; skip directly to zones (seeded in dev).
+          // Web has no HealthKit; skip directly to baseline (zones comes next).
           return kIsWeb
-              ? '/onboarding/zones'
+              ? '/onboarding/overview'
               : '/onboarding/connect-health';
         },
       ),
@@ -141,15 +141,7 @@ GoRouter appRouter(Ref ref) {
       ),
       GoRoute(
         path: '/onboarding/zones',
-        builder: (context, state) {
-          // The connect-health screen passes its DerivedZones result via
-          // `extra` so the subtitle copy can be source-aware without
-          // re-fetching. Falls back to null on deep-link / cold-start.
-          final extra = state.extra;
-          return OnboardingZonesScreen(
-            initialResult: extra is DerivedZones ? extra : null,
-          );
-        },
+        builder: (context, state) => const OnboardingZonesScreen(),
       ),
       GoRoute(
         path: '/onboarding/overview',
