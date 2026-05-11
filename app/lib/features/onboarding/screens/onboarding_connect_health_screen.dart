@@ -11,6 +11,7 @@ import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/core/widgets/runcore_logo.dart';
 import 'package:app/features/auth/models/derived_zones.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
+import 'package:app/features/onboarding/providers/onboarding_derived_zones_provider.dart';
 import 'package:app/features/onboarding/widgets/onboarding_primary_button.dart';
 import 'package:app/features/wearable/data/wearable_api.dart';
 
@@ -164,7 +165,10 @@ class _OnboardingConnectHealthScreenState
     // Brief moment so the user sees "Synced N runs" before we move on.
     await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
-    context.go('/onboarding/zones', extra: derivedZones);
+    // Stash the derive result so the zones screen (now two steps away)
+    // can still source-aware its subtitle without a re-fetch.
+    ref.read(onboardingDerivedZonesProvider.notifier).set(derivedZones);
+    context.go('/onboarding/overview');
   }
 
   /// Retry [op] up to 3 times with 1s/2s backoff. Surfaces the final error.
@@ -196,8 +200,8 @@ class _OnboardingConnectHealthScreenState
     }
   }
 
-  void _skipToForm() {
-    context.go('/onboarding/form');
+  void _skipToOverview() {
+    context.go('/onboarding/overview');
   }
 
   @override
@@ -229,7 +233,7 @@ class _OnboardingConnectHealthScreenState
       case _Stage.idle:
         if (_showEmpty) {
           return _EmptyHistoryBody(
-            onContinue: _skipToForm,
+            onContinue: _skipToOverview,
             onOpenSettings: _openSettings,
             onTryAgain: _connectAndSync,
           );
@@ -237,7 +241,7 @@ class _OnboardingConnectHealthScreenState
         return _IntroBody(
           error: _error,
           onConnect: _connectAndSync,
-          onSkip: _skipToForm,
+          onSkip: _skipToOverview,
         );
       case _Stage.requestingPermission:
         return const _StatusBody(
