@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\GeneratePlanRequest;
+use App\Http\Requests\SelfReportedStatsRequest;
 use App\Jobs\GeneratePlan;
 use App\Models\PlanGeneration;
 use App\Services\RunningProfileService;
@@ -132,6 +133,28 @@ class OnboardingController extends Controller
         }
 
         return response()->json(self::serialize($row));
+    }
+
+    /**
+     * Persist the runner's self-reported baseline stats from the onboarding
+     * overview screen. Either field may be null (wearable user with that
+     * field still locked); writing both nulls clears the timestamp too so
+     * subsequent reads fall back to the cascade.
+     */
+    public function saveSelfReportedStats(SelfReportedStatsRequest $request): JsonResponse
+    {
+        $user = $request->user();
+        $weeklyKm = $request->validated('weekly_km');
+        $easyPace = $request->validated('easy_pace_seconds_per_km');
+        $touched = $weeklyKm !== null || $easyPace !== null;
+
+        $user->update([
+            'self_reported_weekly_km' => $weeklyKm,
+            'self_reported_easy_pace_seconds_per_km' => $easyPace,
+            'self_reported_stats_at' => $touched ? now() : null,
+        ]);
+
+        return response()->json(['status' => 'saved']);
     }
 
     /**

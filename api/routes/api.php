@@ -69,6 +69,7 @@ Route::prefix('v1')->group(function () {
         // Onboarding
         Route::prefix('onboarding')->group(function () {
             Route::get('/profile', [OnboardingController::class, 'profile']);
+            Route::post('/self-reported-stats', [OnboardingController::class, 'saveSelfReportedStats']);
             Route::post('/generate-plan', [OnboardingController::class, 'generatePlan']);
             Route::get('/plan-generation/latest', [OnboardingController::class, 'latestPlanGeneration']);
             Route::post('/start', [OnboardingController::class, 'start']); // DEPRECATED
