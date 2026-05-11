@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$User {
 
- int get id; String get name; String get email;@JsonKey(name: 'apple_sub') String? get appleSub;@JsonKey(name: 'coach_style') String? get coachStyle;@JsonKey(name: 'has_completed_onboarding') bool get hasCompletedOnboarding;@JsonKey(name: 'heart_rate_zones') List<HrZone>? get heartRateZones;// 'default' | 'derived_empirical' | 'derived_age' | 'manual' — drives
+ int get id; String get name; String get email;@JsonKey(name: 'apple_sub') String? get appleSub;@JsonKey(name: 'coach_style') String? get coachStyle;@JsonKey(name: 'intensity_bias') String get intensityBias;@JsonKey(name: 'has_completed_onboarding') bool get hasCompletedOnboarding;@JsonKey(name: 'heart_rate_zones') List<HrZone>? get heartRateZones;// 'default' | 'derived_empirical' | 'derived_age' | 'manual' — drives
 // the subtitle copy on the onboarding zones step + the "Recompute"
 // button's confirm-overwrite affordance in the menu sheet.
 @JsonKey(name: 'heart_rate_zones_source') String? get heartRateZonesSource;// Manually-picked DOB (persisted by HeartRateZonesController
@@ -40,16 +40,16 @@ $UserCopyWith<User> get copyWith => _$UserCopyWithImpl<User>(this as User, _$ide
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is User&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.appleSub, appleSub) || other.appleSub == appleSub)&&(identical(other.coachStyle, coachStyle) || other.coachStyle == coachStyle)&&(identical(other.hasCompletedOnboarding, hasCompletedOnboarding) || other.hasCompletedOnboarding == hasCompletedOnboarding)&&const DeepCollectionEquality().equals(other.heartRateZones, heartRateZones)&&(identical(other.heartRateZonesSource, heartRateZonesSource) || other.heartRateZonesSource == heartRateZonesSource)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.pendingPlanGeneration, pendingPlanGeneration) || other.pendingPlanGeneration == pendingPlanGeneration)&&(identical(other.currentMembership, currentMembership) || other.currentMembership == currentMembership)&&const DeepCollectionEquality().equals(other.pendingInvites, pendingInvites)&&const DeepCollectionEquality().equals(other.pendingRequests, pendingRequests));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is User&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.appleSub, appleSub) || other.appleSub == appleSub)&&(identical(other.coachStyle, coachStyle) || other.coachStyle == coachStyle)&&(identical(other.intensityBias, intensityBias) || other.intensityBias == intensityBias)&&(identical(other.hasCompletedOnboarding, hasCompletedOnboarding) || other.hasCompletedOnboarding == hasCompletedOnboarding)&&const DeepCollectionEquality().equals(other.heartRateZones, heartRateZones)&&(identical(other.heartRateZonesSource, heartRateZonesSource) || other.heartRateZonesSource == heartRateZonesSource)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.pendingPlanGeneration, pendingPlanGeneration) || other.pendingPlanGeneration == pendingPlanGeneration)&&(identical(other.currentMembership, currentMembership) || other.currentMembership == currentMembership)&&const DeepCollectionEquality().equals(other.pendingInvites, pendingInvites)&&const DeepCollectionEquality().equals(other.pendingRequests, pendingRequests));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,email,appleSub,coachStyle,hasCompletedOnboarding,const DeepCollectionEquality().hash(heartRateZones),heartRateZonesSource,dateOfBirth,pendingPlanGeneration,currentMembership,const DeepCollectionEquality().hash(pendingInvites),const DeepCollectionEquality().hash(pendingRequests));
+int get hashCode => Object.hash(runtimeType,id,name,email,appleSub,coachStyle,intensityBias,hasCompletedOnboarding,const DeepCollectionEquality().hash(heartRateZones),heartRateZonesSource,dateOfBirth,pendingPlanGeneration,currentMembership,const DeepCollectionEquality().hash(pendingInvites),const DeepCollectionEquality().hash(pendingRequests));
 
 @override
 String toString() {
-  return 'User(id: $id, name: $name, email: $email, appleSub: $appleSub, coachStyle: $coachStyle, hasCompletedOnboarding: $hasCompletedOnboarding, heartRateZones: $heartRateZones, heartRateZonesSource: $heartRateZonesSource, dateOfBirth: $dateOfBirth, pendingPlanGeneration: $pendingPlanGeneration, currentMembership: $currentMembership, pendingInvites: $pendingInvites, pendingRequests: $pendingRequests)';
+  return 'User(id: $id, name: $name, email: $email, appleSub: $appleSub, coachStyle: $coachStyle, intensityBias: $intensityBias, hasCompletedOnboarding: $hasCompletedOnboarding, heartRateZones: $heartRateZones, heartRateZonesSource: $heartRateZonesSource, dateOfBirth: $dateOfBirth, pendingPlanGeneration: $pendingPlanGeneration, currentMembership: $currentMembership, pendingInvites: $pendingInvites, pendingRequests: $pendingRequests)';
 }
 
 
@@ -60,7 +60,7 @@ abstract mixin class $UserCopyWith<$Res>  {
   factory $UserCopyWith(User value, $Res Function(User) _then) = _$UserCopyWithImpl;
 @useResult
 $Res call({
- int id, String name, String email,@JsonKey(name: 'apple_sub') String? appleSub,@JsonKey(name: 'coach_style') String? coachStyle,@JsonKey(name: 'has_completed_onboarding') bool hasCompletedOnboarding,@JsonKey(name: 'heart_rate_zones') List<HrZone>? heartRateZones,@JsonKey(name: 'heart_rate_zones_source') String? heartRateZonesSource,@JsonKey(name: 'date_of_birth', fromJson: dateFromJson, toJson: dateToJson) DateTime? dateOfBirth,@JsonKey(name: 'pending_plan_generation') PlanGeneration? pendingPlanGeneration,@JsonKey(name: 'current_membership') Membership? currentMembership,@JsonKey(name: 'pending_invites') List<Membership> pendingInvites,@JsonKey(name: 'pending_requests') List<Membership> pendingRequests
+ int id, String name, String email,@JsonKey(name: 'apple_sub') String? appleSub,@JsonKey(name: 'coach_style') String? coachStyle,@JsonKey(name: 'intensity_bias') String intensityBias,@JsonKey(name: 'has_completed_onboarding') bool hasCompletedOnboarding,@JsonKey(name: 'heart_rate_zones') List<HrZone>? heartRateZones,@JsonKey(name: 'heart_rate_zones_source') String? heartRateZonesSource,@JsonKey(name: 'date_of_birth', fromJson: dateFromJson, toJson: dateToJson) DateTime? dateOfBirth,@JsonKey(name: 'pending_plan_generation') PlanGeneration? pendingPlanGeneration,@JsonKey(name: 'current_membership') Membership? currentMembership,@JsonKey(name: 'pending_invites') List<Membership> pendingInvites,@JsonKey(name: 'pending_requests') List<Membership> pendingRequests
 });
 
 
@@ -77,14 +77,15 @@ class _$UserCopyWithImpl<$Res>
 
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? email = null,Object? appleSub = freezed,Object? coachStyle = freezed,Object? hasCompletedOnboarding = null,Object? heartRateZones = freezed,Object? heartRateZonesSource = freezed,Object? dateOfBirth = freezed,Object? pendingPlanGeneration = freezed,Object? currentMembership = freezed,Object? pendingInvites = null,Object? pendingRequests = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? email = null,Object? appleSub = freezed,Object? coachStyle = freezed,Object? intensityBias = null,Object? hasCompletedOnboarding = null,Object? heartRateZones = freezed,Object? heartRateZonesSource = freezed,Object? dateOfBirth = freezed,Object? pendingPlanGeneration = freezed,Object? currentMembership = freezed,Object? pendingInvites = null,Object? pendingRequests = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,appleSub: freezed == appleSub ? _self.appleSub : appleSub // ignore: cast_nullable_to_non_nullable
 as String?,coachStyle: freezed == coachStyle ? _self.coachStyle : coachStyle // ignore: cast_nullable_to_non_nullable
-as String?,hasCompletedOnboarding: null == hasCompletedOnboarding ? _self.hasCompletedOnboarding : hasCompletedOnboarding // ignore: cast_nullable_to_non_nullable
+as String?,intensityBias: null == intensityBias ? _self.intensityBias : intensityBias // ignore: cast_nullable_to_non_nullable
+as String,hasCompletedOnboarding: null == hasCompletedOnboarding ? _self.hasCompletedOnboarding : hasCompletedOnboarding // ignore: cast_nullable_to_non_nullable
 as bool,heartRateZones: freezed == heartRateZones ? _self.heartRateZones : heartRateZones // ignore: cast_nullable_to_non_nullable
 as List<HrZone>?,heartRateZonesSource: freezed == heartRateZonesSource ? _self.heartRateZonesSource : heartRateZonesSource // ignore: cast_nullable_to_non_nullable
 as String?,dateOfBirth: freezed == dateOfBirth ? _self.dateOfBirth : dateOfBirth // ignore: cast_nullable_to_non_nullable
@@ -198,10 +199,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name,  String email, @JsonKey(name: 'apple_sub')  String? appleSub, @JsonKey(name: 'coach_style')  String? coachStyle, @JsonKey(name: 'has_completed_onboarding')  bool hasCompletedOnboarding, @JsonKey(name: 'heart_rate_zones')  List<HrZone>? heartRateZones, @JsonKey(name: 'heart_rate_zones_source')  String? heartRateZonesSource, @JsonKey(name: 'date_of_birth', fromJson: dateFromJson, toJson: dateToJson)  DateTime? dateOfBirth, @JsonKey(name: 'pending_plan_generation')  PlanGeneration? pendingPlanGeneration, @JsonKey(name: 'current_membership')  Membership? currentMembership, @JsonKey(name: 'pending_invites')  List<Membership> pendingInvites, @JsonKey(name: 'pending_requests')  List<Membership> pendingRequests)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  String name,  String email, @JsonKey(name: 'apple_sub')  String? appleSub, @JsonKey(name: 'coach_style')  String? coachStyle, @JsonKey(name: 'intensity_bias')  String intensityBias, @JsonKey(name: 'has_completed_onboarding')  bool hasCompletedOnboarding, @JsonKey(name: 'heart_rate_zones')  List<HrZone>? heartRateZones, @JsonKey(name: 'heart_rate_zones_source')  String? heartRateZonesSource, @JsonKey(name: 'date_of_birth', fromJson: dateFromJson, toJson: dateToJson)  DateTime? dateOfBirth, @JsonKey(name: 'pending_plan_generation')  PlanGeneration? pendingPlanGeneration, @JsonKey(name: 'current_membership')  Membership? currentMembership, @JsonKey(name: 'pending_invites')  List<Membership> pendingInvites, @JsonKey(name: 'pending_requests')  List<Membership> pendingRequests)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _User() when $default != null:
-return $default(_that.id,_that.name,_that.email,_that.appleSub,_that.coachStyle,_that.hasCompletedOnboarding,_that.heartRateZones,_that.heartRateZonesSource,_that.dateOfBirth,_that.pendingPlanGeneration,_that.currentMembership,_that.pendingInvites,_that.pendingRequests);case _:
+return $default(_that.id,_that.name,_that.email,_that.appleSub,_that.coachStyle,_that.intensityBias,_that.hasCompletedOnboarding,_that.heartRateZones,_that.heartRateZonesSource,_that.dateOfBirth,_that.pendingPlanGeneration,_that.currentMembership,_that.pendingInvites,_that.pendingRequests);case _:
   return orElse();
 
 }
@@ -219,10 +220,10 @@ return $default(_that.id,_that.name,_that.email,_that.appleSub,_that.coachStyle,
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name,  String email, @JsonKey(name: 'apple_sub')  String? appleSub, @JsonKey(name: 'coach_style')  String? coachStyle, @JsonKey(name: 'has_completed_onboarding')  bool hasCompletedOnboarding, @JsonKey(name: 'heart_rate_zones')  List<HrZone>? heartRateZones, @JsonKey(name: 'heart_rate_zones_source')  String? heartRateZonesSource, @JsonKey(name: 'date_of_birth', fromJson: dateFromJson, toJson: dateToJson)  DateTime? dateOfBirth, @JsonKey(name: 'pending_plan_generation')  PlanGeneration? pendingPlanGeneration, @JsonKey(name: 'current_membership')  Membership? currentMembership, @JsonKey(name: 'pending_invites')  List<Membership> pendingInvites, @JsonKey(name: 'pending_requests')  List<Membership> pendingRequests)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  String name,  String email, @JsonKey(name: 'apple_sub')  String? appleSub, @JsonKey(name: 'coach_style')  String? coachStyle, @JsonKey(name: 'intensity_bias')  String intensityBias, @JsonKey(name: 'has_completed_onboarding')  bool hasCompletedOnboarding, @JsonKey(name: 'heart_rate_zones')  List<HrZone>? heartRateZones, @JsonKey(name: 'heart_rate_zones_source')  String? heartRateZonesSource, @JsonKey(name: 'date_of_birth', fromJson: dateFromJson, toJson: dateToJson)  DateTime? dateOfBirth, @JsonKey(name: 'pending_plan_generation')  PlanGeneration? pendingPlanGeneration, @JsonKey(name: 'current_membership')  Membership? currentMembership, @JsonKey(name: 'pending_invites')  List<Membership> pendingInvites, @JsonKey(name: 'pending_requests')  List<Membership> pendingRequests)  $default,) {final _that = this;
 switch (_that) {
 case _User():
-return $default(_that.id,_that.name,_that.email,_that.appleSub,_that.coachStyle,_that.hasCompletedOnboarding,_that.heartRateZones,_that.heartRateZonesSource,_that.dateOfBirth,_that.pendingPlanGeneration,_that.currentMembership,_that.pendingInvites,_that.pendingRequests);}
+return $default(_that.id,_that.name,_that.email,_that.appleSub,_that.coachStyle,_that.intensityBias,_that.hasCompletedOnboarding,_that.heartRateZones,_that.heartRateZonesSource,_that.dateOfBirth,_that.pendingPlanGeneration,_that.currentMembership,_that.pendingInvites,_that.pendingRequests);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -236,10 +237,10 @@ return $default(_that.id,_that.name,_that.email,_that.appleSub,_that.coachStyle,
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name,  String email, @JsonKey(name: 'apple_sub')  String? appleSub, @JsonKey(name: 'coach_style')  String? coachStyle, @JsonKey(name: 'has_completed_onboarding')  bool hasCompletedOnboarding, @JsonKey(name: 'heart_rate_zones')  List<HrZone>? heartRateZones, @JsonKey(name: 'heart_rate_zones_source')  String? heartRateZonesSource, @JsonKey(name: 'date_of_birth', fromJson: dateFromJson, toJson: dateToJson)  DateTime? dateOfBirth, @JsonKey(name: 'pending_plan_generation')  PlanGeneration? pendingPlanGeneration, @JsonKey(name: 'current_membership')  Membership? currentMembership, @JsonKey(name: 'pending_invites')  List<Membership> pendingInvites, @JsonKey(name: 'pending_requests')  List<Membership> pendingRequests)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  String name,  String email, @JsonKey(name: 'apple_sub')  String? appleSub, @JsonKey(name: 'coach_style')  String? coachStyle, @JsonKey(name: 'intensity_bias')  String intensityBias, @JsonKey(name: 'has_completed_onboarding')  bool hasCompletedOnboarding, @JsonKey(name: 'heart_rate_zones')  List<HrZone>? heartRateZones, @JsonKey(name: 'heart_rate_zones_source')  String? heartRateZonesSource, @JsonKey(name: 'date_of_birth', fromJson: dateFromJson, toJson: dateToJson)  DateTime? dateOfBirth, @JsonKey(name: 'pending_plan_generation')  PlanGeneration? pendingPlanGeneration, @JsonKey(name: 'current_membership')  Membership? currentMembership, @JsonKey(name: 'pending_invites')  List<Membership> pendingInvites, @JsonKey(name: 'pending_requests')  List<Membership> pendingRequests)?  $default,) {final _that = this;
 switch (_that) {
 case _User() when $default != null:
-return $default(_that.id,_that.name,_that.email,_that.appleSub,_that.coachStyle,_that.hasCompletedOnboarding,_that.heartRateZones,_that.heartRateZonesSource,_that.dateOfBirth,_that.pendingPlanGeneration,_that.currentMembership,_that.pendingInvites,_that.pendingRequests);case _:
+return $default(_that.id,_that.name,_that.email,_that.appleSub,_that.coachStyle,_that.intensityBias,_that.hasCompletedOnboarding,_that.heartRateZones,_that.heartRateZonesSource,_that.dateOfBirth,_that.pendingPlanGeneration,_that.currentMembership,_that.pendingInvites,_that.pendingRequests);case _:
   return null;
 
 }
@@ -251,7 +252,7 @@ return $default(_that.id,_that.name,_that.email,_that.appleSub,_that.coachStyle,
 @JsonSerializable()
 
 class _User implements User {
-  const _User({required this.id, required this.name, required this.email, @JsonKey(name: 'apple_sub') this.appleSub, @JsonKey(name: 'coach_style') this.coachStyle, @JsonKey(name: 'has_completed_onboarding') this.hasCompletedOnboarding = false, @JsonKey(name: 'heart_rate_zones') final  List<HrZone>? heartRateZones, @JsonKey(name: 'heart_rate_zones_source') this.heartRateZonesSource, @JsonKey(name: 'date_of_birth', fromJson: dateFromJson, toJson: dateToJson) this.dateOfBirth, @JsonKey(name: 'pending_plan_generation') this.pendingPlanGeneration, @JsonKey(name: 'current_membership') this.currentMembership, @JsonKey(name: 'pending_invites') final  List<Membership> pendingInvites = const [], @JsonKey(name: 'pending_requests') final  List<Membership> pendingRequests = const []}): _heartRateZones = heartRateZones,_pendingInvites = pendingInvites,_pendingRequests = pendingRequests;
+  const _User({required this.id, required this.name, required this.email, @JsonKey(name: 'apple_sub') this.appleSub, @JsonKey(name: 'coach_style') this.coachStyle, @JsonKey(name: 'intensity_bias') this.intensityBias = 'standard', @JsonKey(name: 'has_completed_onboarding') this.hasCompletedOnboarding = false, @JsonKey(name: 'heart_rate_zones') final  List<HrZone>? heartRateZones, @JsonKey(name: 'heart_rate_zones_source') this.heartRateZonesSource, @JsonKey(name: 'date_of_birth', fromJson: dateFromJson, toJson: dateToJson) this.dateOfBirth, @JsonKey(name: 'pending_plan_generation') this.pendingPlanGeneration, @JsonKey(name: 'current_membership') this.currentMembership, @JsonKey(name: 'pending_invites') final  List<Membership> pendingInvites = const [], @JsonKey(name: 'pending_requests') final  List<Membership> pendingRequests = const []}): _heartRateZones = heartRateZones,_pendingInvites = pendingInvites,_pendingRequests = pendingRequests;
   factory _User.fromJson(Map<String, dynamic> json) => _$UserFromJson(json);
 
 @override final  int id;
@@ -259,6 +260,7 @@ class _User implements User {
 @override final  String email;
 @override@JsonKey(name: 'apple_sub') final  String? appleSub;
 @override@JsonKey(name: 'coach_style') final  String? coachStyle;
+@override@JsonKey(name: 'intensity_bias') final  String intensityBias;
 @override@JsonKey(name: 'has_completed_onboarding') final  bool hasCompletedOnboarding;
  final  List<HrZone>? _heartRateZones;
 @override@JsonKey(name: 'heart_rate_zones') List<HrZone>? get heartRateZones {
@@ -313,16 +315,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _User&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.appleSub, appleSub) || other.appleSub == appleSub)&&(identical(other.coachStyle, coachStyle) || other.coachStyle == coachStyle)&&(identical(other.hasCompletedOnboarding, hasCompletedOnboarding) || other.hasCompletedOnboarding == hasCompletedOnboarding)&&const DeepCollectionEquality().equals(other._heartRateZones, _heartRateZones)&&(identical(other.heartRateZonesSource, heartRateZonesSource) || other.heartRateZonesSource == heartRateZonesSource)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.pendingPlanGeneration, pendingPlanGeneration) || other.pendingPlanGeneration == pendingPlanGeneration)&&(identical(other.currentMembership, currentMembership) || other.currentMembership == currentMembership)&&const DeepCollectionEquality().equals(other._pendingInvites, _pendingInvites)&&const DeepCollectionEquality().equals(other._pendingRequests, _pendingRequests));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _User&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.email, email) || other.email == email)&&(identical(other.appleSub, appleSub) || other.appleSub == appleSub)&&(identical(other.coachStyle, coachStyle) || other.coachStyle == coachStyle)&&(identical(other.intensityBias, intensityBias) || other.intensityBias == intensityBias)&&(identical(other.hasCompletedOnboarding, hasCompletedOnboarding) || other.hasCompletedOnboarding == hasCompletedOnboarding)&&const DeepCollectionEquality().equals(other._heartRateZones, _heartRateZones)&&(identical(other.heartRateZonesSource, heartRateZonesSource) || other.heartRateZonesSource == heartRateZonesSource)&&(identical(other.dateOfBirth, dateOfBirth) || other.dateOfBirth == dateOfBirth)&&(identical(other.pendingPlanGeneration, pendingPlanGeneration) || other.pendingPlanGeneration == pendingPlanGeneration)&&(identical(other.currentMembership, currentMembership) || other.currentMembership == currentMembership)&&const DeepCollectionEquality().equals(other._pendingInvites, _pendingInvites)&&const DeepCollectionEquality().equals(other._pendingRequests, _pendingRequests));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,email,appleSub,coachStyle,hasCompletedOnboarding,const DeepCollectionEquality().hash(_heartRateZones),heartRateZonesSource,dateOfBirth,pendingPlanGeneration,currentMembership,const DeepCollectionEquality().hash(_pendingInvites),const DeepCollectionEquality().hash(_pendingRequests));
+int get hashCode => Object.hash(runtimeType,id,name,email,appleSub,coachStyle,intensityBias,hasCompletedOnboarding,const DeepCollectionEquality().hash(_heartRateZones),heartRateZonesSource,dateOfBirth,pendingPlanGeneration,currentMembership,const DeepCollectionEquality().hash(_pendingInvites),const DeepCollectionEquality().hash(_pendingRequests));
 
 @override
 String toString() {
-  return 'User(id: $id, name: $name, email: $email, appleSub: $appleSub, coachStyle: $coachStyle, hasCompletedOnboarding: $hasCompletedOnboarding, heartRateZones: $heartRateZones, heartRateZonesSource: $heartRateZonesSource, dateOfBirth: $dateOfBirth, pendingPlanGeneration: $pendingPlanGeneration, currentMembership: $currentMembership, pendingInvites: $pendingInvites, pendingRequests: $pendingRequests)';
+  return 'User(id: $id, name: $name, email: $email, appleSub: $appleSub, coachStyle: $coachStyle, intensityBias: $intensityBias, hasCompletedOnboarding: $hasCompletedOnboarding, heartRateZones: $heartRateZones, heartRateZonesSource: $heartRateZonesSource, dateOfBirth: $dateOfBirth, pendingPlanGeneration: $pendingPlanGeneration, currentMembership: $currentMembership, pendingInvites: $pendingInvites, pendingRequests: $pendingRequests)';
 }
 
 
@@ -333,7 +335,7 @@ abstract mixin class _$UserCopyWith<$Res> implements $UserCopyWith<$Res> {
   factory _$UserCopyWith(_User value, $Res Function(_User) _then) = __$UserCopyWithImpl;
 @override @useResult
 $Res call({
- int id, String name, String email,@JsonKey(name: 'apple_sub') String? appleSub,@JsonKey(name: 'coach_style') String? coachStyle,@JsonKey(name: 'has_completed_onboarding') bool hasCompletedOnboarding,@JsonKey(name: 'heart_rate_zones') List<HrZone>? heartRateZones,@JsonKey(name: 'heart_rate_zones_source') String? heartRateZonesSource,@JsonKey(name: 'date_of_birth', fromJson: dateFromJson, toJson: dateToJson) DateTime? dateOfBirth,@JsonKey(name: 'pending_plan_generation') PlanGeneration? pendingPlanGeneration,@JsonKey(name: 'current_membership') Membership? currentMembership,@JsonKey(name: 'pending_invites') List<Membership> pendingInvites,@JsonKey(name: 'pending_requests') List<Membership> pendingRequests
+ int id, String name, String email,@JsonKey(name: 'apple_sub') String? appleSub,@JsonKey(name: 'coach_style') String? coachStyle,@JsonKey(name: 'intensity_bias') String intensityBias,@JsonKey(name: 'has_completed_onboarding') bool hasCompletedOnboarding,@JsonKey(name: 'heart_rate_zones') List<HrZone>? heartRateZones,@JsonKey(name: 'heart_rate_zones_source') String? heartRateZonesSource,@JsonKey(name: 'date_of_birth', fromJson: dateFromJson, toJson: dateToJson) DateTime? dateOfBirth,@JsonKey(name: 'pending_plan_generation') PlanGeneration? pendingPlanGeneration,@JsonKey(name: 'current_membership') Membership? currentMembership,@JsonKey(name: 'pending_invites') List<Membership> pendingInvites,@JsonKey(name: 'pending_requests') List<Membership> pendingRequests
 });
 
 
@@ -350,14 +352,15 @@ class __$UserCopyWithImpl<$Res>
 
 /// Create a copy of User
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? email = null,Object? appleSub = freezed,Object? coachStyle = freezed,Object? hasCompletedOnboarding = null,Object? heartRateZones = freezed,Object? heartRateZonesSource = freezed,Object? dateOfBirth = freezed,Object? pendingPlanGeneration = freezed,Object? currentMembership = freezed,Object? pendingInvites = null,Object? pendingRequests = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? email = null,Object? appleSub = freezed,Object? coachStyle = freezed,Object? intensityBias = null,Object? hasCompletedOnboarding = null,Object? heartRateZones = freezed,Object? heartRateZonesSource = freezed,Object? dateOfBirth = freezed,Object? pendingPlanGeneration = freezed,Object? currentMembership = freezed,Object? pendingInvites = null,Object? pendingRequests = null,}) {
   return _then(_User(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
 as String,appleSub: freezed == appleSub ? _self.appleSub : appleSub // ignore: cast_nullable_to_non_nullable
 as String?,coachStyle: freezed == coachStyle ? _self.coachStyle : coachStyle // ignore: cast_nullable_to_non_nullable
-as String?,hasCompletedOnboarding: null == hasCompletedOnboarding ? _self.hasCompletedOnboarding : hasCompletedOnboarding // ignore: cast_nullable_to_non_nullable
+as String?,intensityBias: null == intensityBias ? _self.intensityBias : intensityBias // ignore: cast_nullable_to_non_nullable
+as String,hasCompletedOnboarding: null == hasCompletedOnboarding ? _self.hasCompletedOnboarding : hasCompletedOnboarding // ignore: cast_nullable_to_non_nullable
 as bool,heartRateZones: freezed == heartRateZones ? _self._heartRateZones : heartRateZones // ignore: cast_nullable_to_non_nullable
 as List<HrZone>?,heartRateZonesSource: freezed == heartRateZonesSource ? _self.heartRateZonesSource : heartRateZonesSource // ignore: cast_nullable_to_non_nullable
 as String?,dateOfBirth: freezed == dateOfBirth ? _self.dateOfBirth : dateOfBirth // ignore: cast_nullable_to_non_nullable

@@ -59,6 +59,10 @@ class OnboardingForm extends _$OnboardingForm {
     state = state.copyWith(runTypePreferences: cleaned);
   }
 
+  void setIntensityBias(IntensityBias bias) {
+    state = state.copyWith(intensityBias: bias);
+  }
+
   void setNotes(String? notes) {
     state = state.copyWith(notes: (notes != null && notes.trim().isEmpty) ? null : notes);
   }

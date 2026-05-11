@@ -30,6 +30,9 @@ _OnboardingFormData _$OnboardingFormDataFromJson(Map<String, dynamic> json) =>
       runTypePreferences: (json['run_type_preferences'] as List<dynamic>?)
           ?.map((e) => $enumDecode(_$RunTypePreferenceOptionEnumMap, e))
           .toList(),
+      intensityBias:
+          $enumDecodeNullable(_$IntensityBiasEnumMap, json['intensity_bias']) ??
+          IntensityBias.standard,
     );
 
 Map<String, dynamic> _$OnboardingFormDataToJson(_OnboardingFormData instance) =>
@@ -48,6 +51,7 @@ Map<String, dynamic> _$OnboardingFormDataToJson(_OnboardingFormData instance) =>
       'run_type_preferences': instance.runTypePreferences
           ?.map((e) => _$RunTypePreferenceOptionEnumMap[e]!)
           .toList(),
+      'intensity_bias': _$IntensityBiasEnumMap[instance.intensityBias]!,
     };
 
 const _$OnboardingGoalTypeEnumMap = {
@@ -68,4 +72,10 @@ const _$RunTypePreferenceOptionEnumMap = {
   RunTypePreferenceOption.tempo: 'tempo',
   RunTypePreferenceOption.interval: 'interval',
   RunTypePreferenceOption.longRun: 'long_run',
+};
+
+const _$IntensityBiasEnumMap = {
+  IntensityBias.takeItEasy: 'take_it_easy',
+  IntensityBias.standard: 'standard',
+  IntensityBias.pushMeHarder: 'push_me_harder',
 };

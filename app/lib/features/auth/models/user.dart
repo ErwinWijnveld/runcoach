@@ -15,6 +15,7 @@ sealed class User with _$User {
     required String email,
     @JsonKey(name: 'apple_sub') String? appleSub,
     @JsonKey(name: 'coach_style') String? coachStyle,
+    @JsonKey(name: 'intensity_bias') @Default('standard') String intensityBias,
     @JsonKey(name: 'has_completed_onboarding') @Default(false) bool hasCompletedOnboarding,
     @JsonKey(name: 'heart_rate_zones') List<HrZone>? heartRateZones,
     // 'default' | 'derived_empirical' | 'derived_age' | 'manual' — drives

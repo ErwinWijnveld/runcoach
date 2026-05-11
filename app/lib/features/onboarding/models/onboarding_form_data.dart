@@ -38,6 +38,31 @@ enum RunTypePreferenceOption {
   longRun,
 }
 
+/// User-controlled bias on top of the auto-detected ambition. Captured
+/// during onboarding as a 3-position slider; persisted on
+/// `users.intensity_bias`. Shifts `EffectiveAmbitionLevel` ±1 in
+/// `AmbitionAssessment::applyBias()` on the backend.
+enum IntensityBias {
+  @JsonValue('take_it_easy')
+  takeItEasy,
+  @JsonValue('standard')
+  standard,
+  @JsonValue('push_me_harder')
+  pushMeHarder;
+
+  String get wire => switch (this) {
+        IntensityBias.takeItEasy => 'take_it_easy',
+        IntensityBias.standard => 'standard',
+        IntensityBias.pushMeHarder => 'push_me_harder',
+      };
+
+  static IntensityBias fromWire(String? s) =>
+      IntensityBias.values.firstWhere(
+        (b) => b.wire == s,
+        orElse: () => IntensityBias.standard,
+      );
+}
+
 @freezed
 sealed class OnboardingFormData with _$OnboardingFormData {
   const factory OnboardingFormData({
@@ -54,6 +79,9 @@ sealed class OnboardingFormData with _$OnboardingFormData {
     @JsonKey(name: 'additional_notes') String? additionalNotes,
     @JsonKey(name: 'run_type_preferences')
     List<RunTypePreferenceOption>? runTypePreferences,
+    @JsonKey(name: 'intensity_bias')
+    @Default(IntensityBias.standard)
+    IntensityBias intensityBias,
   }) = _OnboardingFormData;
 
   factory OnboardingFormData.fromJson(Map<String, dynamic> json) =>
