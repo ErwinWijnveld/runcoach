@@ -122,6 +122,42 @@ class FitnessSnapshotService
 
     public function snapshot(User $user): FitnessSnapshot
     {
+        $cascade = $this->deriveFromCascade($user);
+
+        return $this->applySelfReportedOverrides($user, $cascade);
+    }
+
+    /**
+     * Tier 0 — self-reported overrides. When the user has filled in their
+     * baseline numbers during onboarding (`/onboarding/overview`), those
+     * values win over the cascade. An empty self-report (both columns null)
+     * falls through to the cascade unchanged.
+     */
+    private function applySelfReportedOverrides(User $user, FitnessSnapshot $cascade): FitnessSnapshot
+    {
+        $weeklyKm = $user->self_reported_weekly_km;
+        $easyPace = $user->self_reported_easy_pace_seconds_per_km;
+
+        if ($weeklyKm === null && $easyPace === null) {
+            return $cascade;
+        }
+
+        return new FitnessSnapshot(
+            thresholdPaceSecondsPerKm: $cascade->thresholdPaceSecondsPerKm,
+            easyPaceSecondsPerKm: $easyPace ?? $cascade->easyPaceSecondsPerKm,
+            vo2maxPaceSecondsPerKm: $cascade->vo2maxPaceSecondsPerKm,
+            confidence: PaceConfidence::Low,
+            derivation: PaceDerivation::SelfReported,
+            weeklyKmRecent4Weeks: $weeklyKm !== null ? (float) $weeklyKm : $cascade->weeklyKmRecent4Weeks,
+            weeklyRunsRecent4Weeks: $cascade->weeklyRunsRecent4Weeks,
+            longestRunRecent8Weeks: $cascade->longestRunRecent8Weeks,
+            maxHeartRate: $cascade->maxHeartRate,
+            hasIntensityHistory: $cascade->hasIntensityHistory,
+        );
+    }
+
+    private function deriveFromCascade(User $user): FitnessSnapshot
+    {
         $runs = $this->loadCandidateRuns($user);
         $maxHr = $this->resolveMaxHr($user);
 

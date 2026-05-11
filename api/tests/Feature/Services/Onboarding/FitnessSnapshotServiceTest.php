@@ -289,4 +289,48 @@ class FitnessSnapshotServiceTest extends TestCase
 
         $this->assertTrue($snapshot->hasIntensityHistory);
     }
+
+    public function test_self_reported_easy_pace_overrides_cascade_easy_pace(): void
+    {
+        $user = User::factory()->create([
+            'self_reported_easy_pace_seconds_per_km' => 360,
+            'self_reported_weekly_km' => null,
+            'self_reported_stats_at' => now(),
+        ]);
+
+        $snapshot = app(FitnessSnapshotService::class)->snapshot($user->fresh());
+
+        $this->assertSame(360, $snapshot->easyPaceSecondsPerKm);
+        $this->assertSame(PaceDerivation::SelfReported, $snapshot->derivation);
+        $this->assertSame(PaceConfidence::Low, $snapshot->confidence);
+    }
+
+    public function test_self_reported_weekly_km_overrides_cascade_volume(): void
+    {
+        $user = User::factory()->create([
+            'self_reported_weekly_km' => 30.0,
+            'self_reported_easy_pace_seconds_per_km' => null,
+            'self_reported_stats_at' => now(),
+        ]);
+
+        $snapshot = app(FitnessSnapshotService::class)->snapshot($user->fresh());
+
+        $this->assertSame(30.0, $snapshot->weeklyKmRecent4Weeks);
+        $this->assertSame(PaceDerivation::SelfReported, $snapshot->derivation);
+    }
+
+    public function test_no_self_report_falls_through_to_cascade(): void
+    {
+        $user = User::factory()->create([
+            'self_reported_weekly_km' => null,
+            'self_reported_easy_pace_seconds_per_km' => null,
+            'self_reported_stats_at' => null,
+        ]);
+
+        $snapshot = app(FitnessSnapshotService::class)->snapshot($user->fresh());
+
+        // No wearable activities + no self-report → Tier 4 fallback.
+        $this->assertSame(PaceDerivation::Fallback, $snapshot->derivation);
+        $this->assertSame(360, $snapshot->easyPaceSecondsPerKm);
+    }
 }
