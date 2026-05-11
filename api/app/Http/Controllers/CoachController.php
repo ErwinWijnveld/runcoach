@@ -11,6 +11,7 @@ use App\Services\ProposalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Contracts\ConversationStore;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -127,6 +128,17 @@ class CoachController extends Controller
 
         $this->maybeAutoTitle($conversation, $content);
 
+        // Single-line user-message log for chat debugging. Mirrors the
+        // `[agent:tool]` / `[ai:usage]` pattern so the whole turn reads
+        // top-to-bottom: user message → tool calls → token usage → reply.
+        Log::info(sprintf(
+            '[chat:user] cid=%s user_id=%d ctx=%s message=%s',
+            $conversationId,
+            $user->id,
+            $conversation->context ?? 'null',
+            json_encode($content, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        ));
+
         return response()->stream(function () use ($user, $conversationId, $content) {
             $agent = RunCoachAgent::make(user: $user)
                 ->continue($conversationId, as: $user);
@@ -148,8 +160,30 @@ class CoachController extends Controller
     public function acceptProposal(Request $request, int $proposalId): JsonResponse
     {
         $proposal = CoachProposal::where('user_id', $request->user()->id)
-            ->where('status', ProposalStatus::Pending)
-            ->findOrFail($proposalId);
+            ->find($proposalId);
+
+        if (! $proposal) {
+            Log::warning(sprintf(
+                '[proposal:accept-stale] user_id=%d proposal_id=%d outcome=not_found',
+                $request->user()->id, $proposalId,
+            ));
+            abort(404, 'Proposal not found.');
+        }
+
+        if ($proposal->status !== ProposalStatus::Pending) {
+            $latest = CoachProposal::where('user_id', $request->user()->id)
+                ->where('status', ProposalStatus::Pending)
+                ->latest('id')
+                ->first();
+            Log::warning(sprintf(
+                '[proposal:accept-stale] user_id=%d proposal_id=%d status=%s latest_pending=%s',
+                $request->user()->id,
+                $proposalId,
+                $proposal->status->value,
+                $latest?->id ?? 'none',
+            ));
+            abort(409, 'This proposal was replaced by a newer one. Pull to refresh the chat.');
+        }
 
         $this->proposalService->apply($proposal, $request->user());
 
@@ -159,8 +193,22 @@ class CoachController extends Controller
     public function rejectProposal(Request $request, int $proposalId): JsonResponse
     {
         $proposal = CoachProposal::where('user_id', $request->user()->id)
-            ->where('status', ProposalStatus::Pending)
-            ->findOrFail($proposalId);
+            ->find($proposalId);
+
+        if (! $proposal) {
+            abort(404, 'Proposal not found.');
+        }
+
+        if ($proposal->status !== ProposalStatus::Pending) {
+            // Idempotent reject: already-rejected proposals return 200 so
+            // a stale-card tap doesn't surface a scary error toast.
+            Log::info(sprintf(
+                '[proposal:reject-stale] user_id=%d proposal_id=%d status=%s',
+                $request->user()->id, $proposalId, $proposal->status->value,
+            ));
+
+            return response()->json(['message' => 'Proposal already inactive']);
+        }
 
         $proposal->update(['status' => ProposalStatus::Rejected]);
 

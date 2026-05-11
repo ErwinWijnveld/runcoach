@@ -19,22 +19,30 @@ use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Tools\Request;
 
 /**
- * The single tool the `OnboardingAgent` is allowed to call. Wraps the
- * deterministic plan-build pipeline:
+ * Universal plan-builder tool — used by BOTH `OnboardingAgent` (first
+ * plan from form) AND `RunCoachAgent` (chat-driven full rebuilds when
+ * the runner switches goal type / race got cancelled / etc).
+ *
+ * Wraps the deterministic plan-build pipeline:
  *
  *   FitnessSnapshotService.snapshot(user)
  *     ↓
- *   TrainingPlanBuilder.build(snapshot, formInput)
+ *   PlanAmbitionAnalyzer.analyze (two-pass: extension based on level)
+ *     ↓
+ *   TrainingPlanBuilder.build(snapshot, formInput, assessment)
  *     ↓
  *   PlanOptimizerService.optimize(payload, user)
  *     ↓
  *   ProposalService.persistPending → CoachProposal row
  *
- * No JSON authoring by the LLM, no verify loop. The agent's only job
- * is to forward the form fields it received in the priming message
- * and then say one friendly sentence after this tool returns.
+ * No JSON authoring by the LLM, no verify loop. The agent's job is to
+ * gather the form fields (in onboarding: from the priming message; in
+ * coach-chat: via a few clarifying questions or `offer_choices` chips),
+ * call this tool ONCE, then say one short friendly sentence after the
+ * tool returns. Use `adjust_plan` for tweaks; reserve `build_plan` for
+ * fundamental restructures.
  */
-class BuildOnboardingPlan implements Tool
+class BuildPlan implements Tool
 {
     public function __construct(
         private User $user,
@@ -48,17 +56,17 @@ class BuildOnboardingPlan implements Tool
     public function description(): string
     {
         return <<<'DESC'
-        Build the runner's first training plan from the onboarding form fields.
+        Build a complete training plan from goal + days/week + preferences. Use for:
+        - The runner's FIRST plan (onboarding flow — call once with form fields).
+        - A FUNDAMENTAL REBUILD in chat (different goal_type, race cancelled and starting fresh, original goal complete and starting a new cycle, switching from race to PR attempt, etc).
 
-        Deterministic builder — pace baselines come from the runner's recent
-        activity history (HR-zone-anchored), session mix scales with days_per_week,
-        volume curve is computed server-side. Call this once with the form fields
-        from the priming message; do not author the schedule yourself.
+        DO NOT use for tweaks ("change Tuesday's pace", "add a tempo on Wed", "shorten the long runs", "race date moved 2 weeks") — call `adjust_plan` instead. `build_plan` regenerates the entire schedule and is much more expensive than a targeted edit.
 
-        Returns { requires_approval: true, proposal_id, plan_structure, fitness_summary }.
-        Reply with one short, friendly sentence after this returns ("Your plan is
-        ready — accept it or ask me to adjust"). Do NOT mention the builder, snapshot,
-        confidence, or any internal mechanics.
+        Deterministic builder — pace baselines come from the runner's recent activity history (HR-zone-anchored), session mix scales with days_per_week, volume curve + plan length adapt to ambition (longer for stretch goals). The runner's coach_style is persisted on the user model.
+
+        When called from coach-chat with an active goal: the resulting `CreateSchedule` proposal will, on acceptance, supersede the active goal (old goal goes to Completed status; the new plan becomes Active).
+
+        Returns { requires_approval, proposal_id, plan_structure, fitness_summary, ambition }. Reply with one short, friendly sentence after this returns. If `ambition.level` is `ambitious` or `very_ambitious`, paraphrase `ambition.suggestion` in coach-friendly language. Do NOT mention the builder, snapshot, confidence, or any internal mechanics.
         DESC;
     }
 

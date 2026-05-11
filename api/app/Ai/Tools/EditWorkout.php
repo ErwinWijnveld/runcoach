@@ -13,10 +13,10 @@ use Laravel\Ai\Tools\Request;
 
 /**
  * Edit THIS training day's targets only. Internally builds a single
- * `set_day` operation against the runner's active goal and delegates to
- * `EditSchedule`, so the proposal/approval pipeline is unchanged.
+ * `replace` operation against the runner's active goal and delegates to
+ * `AdjustPlan`, so the proposal/approval pipeline is unchanged.
  *
- * Scoped narrower than EditSchedule on purpose — the workout agent should
+ * Scoped narrower than AdjustPlan on purpose — the workout agent should
  * never touch other days; multi-day work belongs to the full coach.
  */
 class EditWorkout implements Tool
@@ -38,7 +38,7 @@ class EditWorkout implements Tool
         - `target_km`: positive number
         - `target_pace_seconds_per_km`: integer 60-1800 (or null to clear)
         - `target_heart_rate_zone`: integer 1-5 (or null to clear)
-        - `intervals`: array of segments (warmup/work/recovery/cooldown) — same shape `create_schedule` uses
+        - `intervals`: array of segments (warmup/work/recovery/cooldown) — same shape `build_plan` uses
         - `title`: short string, omit to let the server regenerate
         - `description`: free text
 
@@ -82,23 +82,22 @@ class EditWorkout implements Tool
         $weekNumber = (int) $day->trainingWeek->week_number;
         $dayOfWeek = (int) $day->order;
 
-        $operations = [
-            [
-                'op' => 'set_day',
-                'week' => $weekNumber,
-                'day_of_week' => $dayOfWeek,
-                'fields' => $fields,
-            ],
-        ];
+        // Translate the workout-level field bag into AdjustPlan's flat
+        // op shape (action: replace + flat fields).
+        $op = ['action' => 'replace', 'week' => $weekNumber, 'day_of_week' => $dayOfWeek];
+        foreach (['type', 'target_km', 'target_pace_seconds_per_km', 'target_heart_rate_zone', 'intervals', 'title', 'description'] as $key) {
+            if (array_key_exists($key, $fields)) {
+                $op[$key] = $fields[$key];
+            }
+        }
 
-        $editTool = new EditSchedule($this->user, $this->optimizer, $this->proposals);
+        $adjustTool = new AdjustPlan($this->user, $this->optimizer, $this->proposals);
 
-        $editRequest = new Request([
-            'proposal_id' => null,
-            'goal_id' => $goal->id,
-            'operations' => json_encode($operations),
+        $adjustRequest = new Request([
+            'reason' => 'Workout-level edit from the workout chat.',
+            'operations' => json_encode(['operations' => [$op]]),
         ]);
 
-        return $editTool->handle($editRequest);
+        return $adjustTool->handle($adjustRequest);
     }
 }

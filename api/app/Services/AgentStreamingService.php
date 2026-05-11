@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\User;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Streaming\Events\ToolResult as ToolResultEvent;
@@ -64,6 +65,26 @@ class AgentStreamingService
                     'data' => $proposal->toArray(),
                 ]);
             }
+
+            // Log the assistant's final reply for chat debugging. The
+            // SDK's `ai:usage` line only reflects the LAST iteration of
+            // the tool loop (intermediate text deltas are NOT in `out=N`),
+            // so the reply text isn't otherwise visible in the logs.
+            $lastAssistant = DB::table('agent_conversation_messages')
+                ->where('conversation_id', $conversationId)
+                ->where('role', 'assistant')
+                ->orderByDesc('id')
+                ->first();
+            $replyContent = (string) ($lastAssistant->content ?? '');
+            Log::info(sprintf(
+                '[chat:assistant] cid=%s user_id=%d ctx=%s len=%d proposal=%s reply=%s',
+                $conversationId,
+                $user->id,
+                $logContext,
+                strlen($replyContent),
+                $proposal?->id ?? 'none',
+                json_encode($replyContent, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            ));
 
             Log::info(sprintf(
                 '[agent:prompt] ctx=%s user_id=%d duration_ms=%d message_bytes=%d',

@@ -2,7 +2,8 @@
 
 namespace Tests\Feature\Ai\Tools;
 
-use App\Ai\Tools\AdjustOnboardingPlan;
+use App\Ai\Tools\AdjustPlan;
+use App\Enums\GoalStatus;
 use App\Enums\PaceConfidence;
 use App\Enums\PaceDerivation;
 use App\Enums\ProposalStatus;
@@ -19,7 +20,7 @@ use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Laravel\Ai\Tools\Request;
 use Tests\TestCase;
 
-class AdjustOnboardingPlanTest extends TestCase
+class AdjustPlanTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
@@ -39,9 +40,9 @@ class AdjustOnboardingPlanTest extends TestCase
         );
     }
 
-    private function makeTool(User $user): AdjustOnboardingPlan
+    private function makeTool(User $user): AdjustPlan
     {
-        return new AdjustOnboardingPlan(
+        return new AdjustPlan(
             user: $user,
             optimizer: app(PlanOptimizerService::class),
             proposals: app(ProposalService::class),
@@ -50,7 +51,7 @@ class AdjustOnboardingPlanTest extends TestCase
 
     /**
      * Build a draft proposal end-to-end (snapshot → builder → optimizer →
-     * persistPending) so the AdjustOnboardingPlan tool has something
+     * persistPending) so the AdjustPlan tool has something
      * realistic to operate on.
      */
     private function seedProposal(User $user, ?string $targetDate = null): CoachProposal
@@ -295,6 +296,187 @@ class AdjustOnboardingPlanTest extends TestCase
         ])), true);
 
         $this->assertArrayHasKey('error', $result);
+    }
+
+    public function test_shift_moves_day_to_different_weekday(): void
+    {
+        $user = User::factory()->create();
+        $proposal = $this->seedProposal($user);
+
+        // Find an existing day; pick a free weekday in the same week.
+        $week = $proposal->payload['schedule']['weeks'][0];
+        $existingDow = $week['days'][0]['day_of_week'];
+        $usedDows = array_map(fn ($d) => $d['day_of_week'], $week['days']);
+        $freeDow = collect([1, 2, 3, 4, 5, 6, 7])
+            ->reject(fn ($d) => in_array($d, $usedDows, true))
+            ->first();
+        if ($freeDow === null) {
+            $this->markTestSkipped('No free weekday to shift into.');
+        }
+
+        $result = json_decode($this->makeTool($user)->handle(new Request([
+            'reason' => 'Move it to Wednesday.',
+            'operations' => json_encode([
+                'operations' => [
+                    [
+                        'action' => 'shift',
+                        'week' => $week['week_number'],
+                        'from_day_of_week' => $existingDow,
+                        'to_day_of_week' => $freeDow,
+                    ],
+                ],
+            ]),
+        ])), true);
+
+        $this->assertCount(1, $result['applied']);
+        $newProposal = CoachProposal::find($result['proposal_id']);
+        $newWeek = collect($newProposal->payload['schedule']['weeks'])
+            ->firstWhere('week_number', $week['week_number']);
+        $newDows = array_map(fn ($d) => $d['day_of_week'], $newWeek['days']);
+        $this->assertContains($freeDow, $newDows);
+        $this->assertNotContains($existingDow, $newDows);
+    }
+
+    public function test_shift_into_occupied_slot_is_rejected(): void
+    {
+        $user = User::factory()->create();
+        $proposal = $this->seedProposal($user);
+
+        $week = $proposal->payload['schedule']['weeks'][0];
+        if (count($week['days']) < 2) {
+            $this->markTestSkipped('Need at least 2 days to test shift collision.');
+        }
+        $fromDow = $week['days'][0]['day_of_week'];
+        $occupiedDow = $week['days'][1]['day_of_week'];
+
+        $result = json_decode($this->makeTool($user)->handle(new Request([
+            'reason' => 'Trying to shift into a taken slot.',
+            'operations' => json_encode([
+                'operations' => [
+                    [
+                        'action' => 'shift',
+                        'week' => $week['week_number'],
+                        'from_day_of_week' => $fromDow,
+                        'to_day_of_week' => $occupiedDow,
+                    ],
+                ],
+            ]),
+        ])), true);
+
+        $this->assertEmpty($result['applied'] ?? []);
+        $this->assertNotEmpty($result['rejected']);
+    }
+
+    public function test_set_goal_updates_metadata(): void
+    {
+        $user = User::factory()->create();
+        $proposal = $this->seedProposal($user);
+
+        $newDate = now()->addWeeks(12)->endOfWeek()->toDateString();
+        $result = json_decode($this->makeTool($user)->handle(new Request([
+            'reason' => 'Race got moved.',
+            'operations' => json_encode([
+                'operations' => [
+                    [
+                        'action' => 'set_goal',
+                        'goal_name' => 'Updated Race',
+                        'goal_time_seconds' => 1800,
+                        'target_date' => $newDate,
+                    ],
+                ],
+            ]),
+        ])), true);
+
+        $this->assertCount(1, $result['applied']);
+        $newProposal = CoachProposal::find($result['proposal_id']);
+        $this->assertSame('Updated Race', $newProposal->payload['goal_name']);
+        $this->assertSame(1800, $newProposal->payload['goal_time_seconds']);
+        $this->assertSame($newDate, $newProposal->payload['target_date']);
+    }
+
+    public function test_set_goal_rejects_invalid_distance(): void
+    {
+        $user = User::factory()->create();
+        $this->seedProposal($user);
+
+        $result = json_decode($this->makeTool($user)->handle(new Request([
+            'reason' => 'Invalid distance.',
+            'operations' => json_encode([
+                'operations' => [
+                    ['action' => 'set_goal', 'distance' => '7k'],
+                ],
+            ]),
+        ])), true);
+
+        $this->assertEmpty($result['applied'] ?? []);
+        $this->assertNotEmpty($result['rejected']);
+    }
+
+    public function test_targets_active_goal_when_no_pending_proposal(): void
+    {
+        // When no pending proposal exists but the runner has an active
+        // Goal, AdjustPlan should target the goal in-place and emit an
+        // EditActivePlan proposal with `diff` attached for the UI.
+        $user = User::factory()->create();
+        $proposal = $this->seedProposal($user);
+
+        // Apply the proposal so the goal becomes active and the proposal
+        // is marked Accepted (no longer pending).
+        app(ProposalService::class)->apply($proposal, $user);
+
+        $goal = $user->goals()->where('status', GoalStatus::Active)->first();
+        $this->assertNotNull($goal, 'goal should be active after apply');
+
+        // Find the first non-race training day on the active plan.
+        $firstWeek = $goal->trainingWeeks()->orderBy('week_number')->first();
+        $firstDay = $firstWeek->trainingDays()->orderBy('order')->first();
+
+        $result = json_decode($this->makeTool($user)->handle(new Request([
+            'reason' => 'Make it a tempo.',
+            'operations' => json_encode([
+                'operations' => [
+                    [
+                        'action' => 'replace',
+                        'week' => $firstWeek->week_number,
+                        'day_of_week' => $firstDay->order,
+                        'type' => TrainingType::Tempo->value,
+                    ],
+                ],
+            ]),
+        ])), true);
+
+        $this->assertSame(ProposalType::EditActivePlan->value, $result['proposal_type']);
+        $newProposal = CoachProposal::find($result['proposal_id']);
+        $this->assertArrayHasKey('diff', $newProposal->payload, 'active-goal edits must carry a diff for the revision UI');
+        $this->assertNotEmpty($newProposal->payload['diff']);
+    }
+
+    public function test_pending_proposal_edit_does_not_carry_diff(): void
+    {
+        // Onboarding-style edits (still-pending CreateSchedule proposal)
+        // must NOT include a diff — the runner hasn't seen any prior
+        // version of the plan, so a "PLAN REVISION" card would confuse.
+        $user = User::factory()->create();
+        $proposal = $this->seedProposal($user);
+        $week = $proposal->payload['schedule']['weeks'][0];
+
+        $result = json_decode($this->makeTool($user)->handle(new Request([
+            'reason' => 'Tweak.',
+            'operations' => json_encode([
+                'operations' => [
+                    [
+                        'action' => 'replace',
+                        'week' => $week['week_number'],
+                        'day_of_week' => $week['days'][0]['day_of_week'],
+                        'type' => TrainingType::Easy->value,
+                    ],
+                ],
+            ]),
+        ])), true);
+
+        $newProposal = CoachProposal::find($result['proposal_id']);
+        $this->assertSame(ProposalType::CreateSchedule->value, $result['proposal_type']);
+        $this->assertArrayNotHasKey('diff', $newProposal->payload);
     }
 
     public function test_no_ops_means_no_new_proposal(): void

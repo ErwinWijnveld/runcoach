@@ -112,6 +112,7 @@ class CoachChat extends _$CoachChat {
       );
       state = AsyncData([...before, userMsg, current]);
 
+      var supersededBefore = before;
       try {
         await for (final event
             in stream.streamMessage(conversationId, content, chipValue: chipValue)) {
@@ -132,8 +133,18 @@ class CoachChat extends _$CoachChat {
             ToolStartEvent(:final toolName) =>
               current.copyWith(toolIndicator: toolName),
             ToolEndEvent() => current,
-            ProposalEvent(:final proposal) =>
-              current.copyWith(proposal: proposal),
+            // A new pending proposal supersedes every earlier pending one
+            // server-side (ProposalService::persistPending). Mirror that
+            // in local state so older cards switch to "Rejected." instead
+            // of inviting the user to tap a stale Accept button that will
+            // now 409.
+            ProposalEvent(:final proposal) => () {
+              supersededBefore = _markPriorProposalsRejected(
+                supersededBefore,
+                proposal.id,
+              );
+              return current.copyWith(proposal: proposal);
+            }(),
             StatsEvent(:final stats) =>
               current.copyWith(statsCard: stats),
             ChipsEvent(:final chips) => current.copyWith(chips: chips),
@@ -154,14 +165,14 @@ class CoachChat extends _$CoachChat {
             DoneEvent() =>
               current.copyWith(streaming: false, toolIndicator: null),
           };
-          state = AsyncData([...before, userMsg, current]);
+          state = AsyncData([...supersededBefore, userMsg, current]);
         }
         // Stream closed without a DoneEvent or ErrorEvent (e.g. server
         // dropped the connection mid-stream). Never leave a bubble stuck
         // on the thinking spinner.
         if (current.streaming) {
           state = AsyncData([
-            ...before,
+            ...supersededBefore,
             userMsg,
             current.copyWith(
               streaming: false,
@@ -172,7 +183,7 @@ class CoachChat extends _$CoachChat {
         }
       } catch (e) {
         state = AsyncData([
-          ...before,
+          ...supersededBefore,
           userMsg,
           current.copyWith(
             streaming: false,
@@ -192,6 +203,30 @@ class CoachChat extends _$CoachChat {
     if (failed == null) return;
     state = AsyncData(messages.where((m) => m.id != messageId).toList());
     await sendMessage(failed.content);
+  }
+
+  /// Mirror server-side proposal supersession: when the agent emits a new
+  /// pending proposal mid-stream, every earlier pending proposal in this
+  /// conversation switches to `rejected` on the backend
+  /// (`ProposalService::persistPending`). Reflect the same status flip in
+  /// the local message list so older cards render "Rejected." instead of
+  /// showing a stale Accept button that would now 409.
+  List<CoachMessage> _markPriorProposalsRejected(
+    List<CoachMessage> messages,
+    int newProposalId,
+  ) {
+    var changed = false;
+    final next = <CoachMessage>[];
+    for (final m in messages) {
+      final p = m.proposal;
+      if (p != null && p.id != newProposalId && p.status == 'pending') {
+        changed = true;
+        next.add(m.copyWith(proposal: p.copyWith(status: 'rejected')));
+      } else {
+        next.add(m);
+      }
+    }
+    return changed ? next : messages;
   }
 
   String _humanize(Object error) {

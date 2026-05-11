@@ -13,6 +13,7 @@ use App\Models\TrainingDay;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ProposalService
 {
@@ -34,18 +35,65 @@ class ProposalService
     public function persistPending(User $user, ProposalType $type, array $payload): CoachProposal
     {
         return DB::transaction(function () use ($user, $type, $payload) {
-            CoachProposal::where('user_id', $user->id)
+            $supersededIds = CoachProposal::where('user_id', $user->id)
                 ->where('status', ProposalStatus::Pending)
-                ->update(['status' => ProposalStatus::Rejected]);
+                ->pluck('id')
+                ->all();
 
-            return CoachProposal::create([
+            if ($supersededIds !== []) {
+                CoachProposal::whereIn('id', $supersededIds)
+                    ->update(['status' => ProposalStatus::Rejected]);
+            }
+
+            $proposal = CoachProposal::create([
                 'user_id' => $user->id,
                 'agent_message_id' => null,
                 'type' => $type,
                 'payload' => $payload,
                 'status' => ProposalStatus::Pending,
             ]);
+
+            Log::info(sprintf(
+                '[proposal:persisted] user_id=%d new_id=%d type=%s superseded=%s summary=%s',
+                $user->id,
+                $proposal->id,
+                $type->value,
+                json_encode($supersededIds),
+                json_encode($this->summarizePayload($payload)),
+            ));
+
+            return $proposal;
         });
+    }
+
+    /**
+     * Compact summary of a proposal payload for log lines — counts the
+     * sessions by type per week so a chat tweak ("convert tempos → intervals")
+     * is visible at a glance without dumping the entire schedule JSON.
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function summarizePayload(array $payload): array
+    {
+        $weeks = $payload['schedule']['weeks'] ?? [];
+        $byType = [];
+        $totalKm = 0.0;
+        foreach ($weeks as $week) {
+            foreach ($week['days'] ?? [] as $day) {
+                $type = $day['type'] ?? 'unknown';
+                $byType[$type] = ($byType[$type] ?? 0) + 1;
+            }
+            $totalKm += (float) ($week['total_km'] ?? 0);
+        }
+
+        return [
+            'goal_name' => $payload['goal_name'] ?? null,
+            'weeks' => count($weeks),
+            'total_km' => round($totalKm, 1),
+            'sessions_by_type' => $byType,
+            'has_diff' => isset($payload['diff']),
+        ];
     }
 
     /**
@@ -68,6 +116,11 @@ class ProposalService
             ->first();
 
         if (! $message) {
+            Log::info(sprintf(
+                '[proposal:detect] cid=%s user_id=%d outcome=no_assistant_message',
+                $conversationId, $user->id,
+            ));
+
             return null;
         }
 
@@ -77,13 +130,30 @@ class ProposalService
             ->first();
 
         if (! $proposal) {
+            Log::info(sprintf(
+                '[proposal:detect] cid=%s user_id=%d msg_id=%d outcome=no_pending_proposal',
+                $conversationId, $user->id, $message->id,
+            ));
+
             return null;
         }
 
+        $linkedBefore = $proposal->agent_message_id !== null;
         if ($proposal->agent_message_id === null) {
             $proposal->agent_message_id = $message->id;
             $proposal->save();
         }
+
+        Log::info(sprintf(
+            '[proposal:detect] cid=%s user_id=%d msg_id=%d proposal_id=%d type=%s linked_before=%s summary=%s',
+            $conversationId,
+            $user->id,
+            $message->id,
+            $proposal->id,
+            $proposal->type->value,
+            $linkedBefore ? 'yes' : 'no',
+            json_encode($this->summarizePayload($proposal->payload ?? [])),
+        ));
 
         return $proposal;
     }

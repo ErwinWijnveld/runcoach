@@ -277,9 +277,9 @@ class WorkoutChatControllerTest extends TestCase
         $diff = $proposal->payload['diff'] ?? null;
         $this->assertIsArray($diff);
         $this->assertCount(1, $diff);
-        $this->assertSame('set_day', $diff[0]['op']);
+        $this->assertSame('replace', $diff[0]['action']);
         $this->assertSame(1, $diff[0]['week']);
         $this->assertSame(3, $diff[0]['day_of_week']);
-        $this->assertEquals(8, $diff[0]['fields']['target_km']);
+        $this->assertEquals(8, $diff[0]['target_km']);
     }
 }

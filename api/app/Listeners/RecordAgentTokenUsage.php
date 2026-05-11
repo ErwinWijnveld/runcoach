@@ -3,7 +3,6 @@
 namespace App\Listeners;
 
 use App\Ai\Agents\ActivityFeedbackAgent;
-use App\Ai\Agents\PlanVerifierAgent;
 use App\Ai\Agents\RunCoachAgent;
 use App\Ai\Agents\WeeklyInsightAgent;
 use App\Models\TokenUsage;
@@ -118,7 +117,6 @@ class RecordAgentTokenUsage
         return match (true) {
             $agent instanceof ActivityFeedbackAgent => 'activity_feedback',
             $agent instanceof WeeklyInsightAgent => 'weekly_insight',
-            $agent instanceof PlanVerifierAgent => 'plan_verifier',
             default => Str::snake(class_basename($agent)),
         };
     }
