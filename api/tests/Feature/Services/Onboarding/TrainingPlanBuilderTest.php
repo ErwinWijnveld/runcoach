@@ -152,8 +152,12 @@ class TrainingPlanBuilderTest extends TestCase
             if ($prev <= 0) {
                 continue;
             }
-            // Growth cap is 30%; cutbacks/tapers can drop. We only check
-            // upward jumps.
+            // Growth cap is 30%; cutbacks/tapers can drop. The post-cutback
+            // build week is allowed to rebound above 1.30× the cutback —
+            // that's the whole point of the cutback. Skip those transitions.
+            if (($weeks[$i - 1]['focus'] ?? '') === 'Recovery / cutback') {
+                continue;
+            }
             if ($curr > $prev) {
                 $ratio = $curr / $prev;
                 $this->assertLessThanOrEqual(
@@ -163,6 +167,43 @@ class TrainingPlanBuilderTest extends TestCase
                 );
             }
         }
+    }
+
+    public function test_build_week_after_cutback_is_not_below_build_week_before_cutback(): void
+    {
+        $payload = app(TrainingPlanBuilder::class)->build(
+            $this->snapshot(weeklyKm: 22.0),
+            $this->form([
+                'goal_type' => 'pr_attempt',
+                'distance_meters' => 10000,
+                'target_date' => now()->addWeeks(10)->toDateString(),
+                'days_per_week' => 3,
+            ]),
+        );
+
+        $weeks = $payload['schedule']['weeks'];
+        $foundCutback = false;
+        for ($i = 0; $i < count($weeks); $i++) {
+            if (($weeks[$i]['focus'] ?? '') !== 'Recovery / cutback') {
+                continue;
+            }
+            // Need a build week on each side to compare.
+            if ($i === 0 || ! isset($weeks[$i + 1])) {
+                continue;
+            }
+            if (($weeks[$i + 1]['focus'] ?? '') === 'Recovery / cutback') {
+                continue;
+            }
+            $foundCutback = true;
+            $before = $weeks[$i - 1]['total_km'];
+            $after = $weeks[$i + 1]['total_km'];
+            $this->assertGreaterThanOrEqual(
+                $before,
+                $after,
+                "build week {$weeks[$i + 1]['week_number']} ({$after} km) must rebound to at least the pre-cutback build week {$weeks[$i - 1]['week_number']} ({$before} km)",
+            );
+        }
+        $this->assertTrue($foundCutback, 'expected at least one cutback week in this plan');
     }
 
     public function test_taper_reduces_volume_in_final_weeks_for_race_goals(): void
@@ -567,5 +608,42 @@ class TrainingPlanBuilderTest extends TestCase
 
         $peak = collect($payload['schedule']['weeks'])->max('total_km');
         $this->assertLessThanOrEqual(10.0 * 1.6 + 0.1, $peak, 'peak volume should not exceed 1.6× baseline');
+    }
+
+    public function test_self_reported_user_drives_volume_curve_from_their_baseline(): void
+    {
+        $user = \App\Models\User::factory()->create([
+            'self_reported_weekly_km' => 30.0,
+            'self_reported_easy_pace_seconds_per_km' => 360,
+            'self_reported_stats_at' => now(),
+        ]);
+
+        $snapshot = app(\App\Services\Onboarding\FitnessSnapshotService::class)->snapshot($user->fresh());
+
+        $this->assertSame(30.0, $snapshot->weeklyKmRecent4Weeks);
+        $this->assertSame(360, $snapshot->easyPaceSecondsPerKm);
+
+        $payload = app(TrainingPlanBuilder::class)->build(
+            $snapshot,
+            $this->form([
+                'goal_type' => 'pr_attempt',
+                'distance_meters' => 10000,
+                'target_date' => now()->addWeeks(10)->toDateString(),
+                'days_per_week' => 3,
+            ]),
+        );
+
+        // Week 1 should sit near the self-reported baseline (max(baseline,
+        // peak*0.55)) rather than near the floor of 16 km that no-baseline
+        // plans get.
+        $week1Total = $payload['schedule']['weeks'][0]['total_km'];
+        $this->assertGreaterThanOrEqual(25.0, $week1Total, "week 1 should start near self-reported 30 km baseline, got {$week1Total}");
+
+        // Easy day pace should be exactly the self-reported value, not the
+        // Tier-4 default.
+        $firstWeek = $payload['schedule']['weeks'][0]['days'];
+        $easyDay = collect($firstWeek)->firstWhere('type', 'easy');
+        $this->assertNotNull($easyDay, 'expected an easy day in week 1');
+        $this->assertSame(360, $easyDay['target_pace_seconds_per_km']);
     }
 }
