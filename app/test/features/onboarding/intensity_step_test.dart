@@ -23,12 +23,12 @@ void main() {
         ),
       );
 
-      expect(find.text('Take it easy'), findsOneWidget);
+      expect(find.text('Easier'), findsOneWidget);
       expect(find.text('Standard'), findsOneWidget);
-      expect(find.text('Push me harder'), findsOneWidget);
+      expect(find.text('Harder'), findsOneWidget);
       expect(find.text('(auto-pick)'), findsOneWidget);
 
-      await tester.tap(find.text('Push me harder'));
+      await tester.tap(find.text('Harder'));
       await tester.pump();
       expect(captured, IntensityBias.pushMeHarder);
     },

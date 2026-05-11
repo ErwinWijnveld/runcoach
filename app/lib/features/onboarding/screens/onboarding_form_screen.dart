@@ -1466,19 +1466,10 @@ class _IntensityStepState extends ConsumerState<_IntensityStep> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 28),
           IntensityBiasSegmentedControl(
             selected: selected,
             onChanged: notifier.setIntensityBias,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Tap to bias the build.',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.publicSans(
-              fontSize: 13,
-              color: AppColors.inkMuted,
-            ),
           ),
         ],
       ),

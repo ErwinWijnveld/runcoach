@@ -63,9 +63,9 @@ class IntensityBiasSegmentedControl extends StatelessWidget {
   }
 
   static String _labelFor(IntensityBias bias) => switch (bias) {
-        IntensityBias.takeItEasy => 'Take it easy',
+        IntensityBias.takeItEasy => 'Easier',
         IntensityBias.standard => 'Standard',
-        IntensityBias.pushMeHarder => 'Push me harder',
+        IntensityBias.pushMeHarder => 'Harder',
       };
 }
 
