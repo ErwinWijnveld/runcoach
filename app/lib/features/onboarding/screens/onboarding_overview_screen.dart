@@ -43,7 +43,7 @@ class OnboardingOverviewScreen extends ConsumerWidget {
                   onRetry: () => ref
                       .read(onboardingProfileControllerProvider.notifier)
                       .refresh(),
-                  onSkip: () => context.go('/onboarding/form'),
+                  onSkip: () => context.go('/onboarding/zones'),
                 ),
               ),
             ),
@@ -155,7 +155,7 @@ class _BaselineFormState extends ConsumerState<_BaselineForm> {
     try {
       await save(weeklyKm: weeklyKm, easyPaceSecondsPerKm: easyPace);
       if (!mounted) return;
-      context.push('/onboarding/form');
+      context.push('/onboarding/zones');
     } catch (e) {
       if (!mounted) return;
       setState(() => _submitError = e.toString());

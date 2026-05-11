@@ -37,7 +37,11 @@ Future<_SaveCapture> _pumpScreen(
       ),
       GoRoute(
         path: '/onboarding/form',
-        builder: (_, _) => const Material(child: Center(child: Text('FORM REACHED'))),
+        builder: (_, _) => const Material(child: Center(child: Text('ZONES REACHED'))),
+      ),
+      GoRoute(
+        path: '/onboarding/zones',
+        builder: (_, _) => const Material(child: Center(child: Text('ZONES REACHED'))),
       ),
     ],
   );
@@ -89,11 +93,11 @@ void main() {
     await tester.pumpAndSettle();
 
     // Now Continue should work.
-    expect(find.text('FORM REACHED'), findsNothing);
+    expect(find.text('ZONES REACHED'), findsNothing);
     await tester.tap(find.text('CONTINUE'));
     await tester.pumpAndSettle();
 
-    expect(find.text('FORM REACHED'), findsOneWidget);
+    expect(find.text('ZONES REACHED'), findsOneWidget);
     expect(capture.calls, 1);
     expect(capture.weeklyKm, 25.0);
     expect(capture.easyPaceSecondsPerKm, 360);
@@ -122,6 +126,6 @@ void main() {
     expect(capture.calls, 1);
     expect(capture.weeklyKm, isNull);
     expect(capture.easyPaceSecondsPerKm, isNull);
-    expect(find.text('FORM REACHED'), findsOneWidget);
+    expect(find.text('ZONES REACHED'), findsOneWidget);
   });
 }
