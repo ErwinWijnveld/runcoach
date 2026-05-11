@@ -4,6 +4,7 @@ namespace App\Support\Onboarding;
 
 use App\Enums\CoachStyle;
 use App\Enums\GoalType;
+use App\Enums\IntensityBias;
 use App\Enums\TrainingType;
 use Carbon\CarbonImmutable;
 use InvalidArgumentException;
@@ -42,6 +43,7 @@ final readonly class OnboardingFormInput
         public CoachStyle $coachStyle,
         public ?string $additionalNotes,
         public ?array $runTypePreferences = null,
+        public IntensityBias $intensityBias = IntensityBias::Standard,
     ) {}
 
     /**
@@ -118,7 +120,20 @@ final readonly class OnboardingFormInput
             coachStyle: $coachStyle,
             additionalNotes: self::resolveNotes($data),
             runTypePreferences: self::resolveRunTypePreferences($data['run_type_preferences'] ?? null),
+            intensityBias: self::resolveIntensityBias($data['intensity_bias'] ?? null),
         );
+    }
+
+    private static function resolveIntensityBias(mixed $raw): IntensityBias
+    {
+        if ($raw instanceof IntensityBias) {
+            return $raw;
+        }
+        if (! is_string($raw)) {
+            return IntensityBias::Standard;
+        }
+
+        return IntensityBias::tryFrom($raw) ?? IntensityBias::Standard;
     }
 
     /**
