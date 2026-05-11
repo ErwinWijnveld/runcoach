@@ -151,7 +151,8 @@ The AI coach conversation IDs come from the Laravel AI SDK and are UUIDs (36-cha
 - `tool-output-available` → `toolEnd()`
 - `data-stats` → backend forwards `PresentRunningStats` output, rendered as `StatsCardBubble`
 - `data-chips` → backend forwards `OfferChoices` output, rendered as `ChipSuggestionsRow` (now always appends a disabled "or type your own" chip)
-- `data-proposal` → `ProposalCard` under the assistant bubble; its "View details" button opens `PlanDetailsSheet` which fetches `GET /coach/proposals/{id}/explanation` (AI-generated name + prose, cached server-side)
+- `data-proposal` → `ProposalCard` under the assistant bubble — single gold "View Details" CTA (Accept lives in the modal). `PlanDetailsSheet` has a sticky Accept/Adjust footer (Adjust just closes the sheet + focuses the chat input — no proactive reject; the agent's `AdjustPlan` auto-targets the still-pending proposal), a fixed-height `CustomPaint` weekly-volume line chart (race week stripped, scaled to data range), and revamped `_WeekCard` (gold-glow focus-eyebrow + italic Garamond "Week N" title + per-row day pill + km/pace metrics).
+- `data-new-plan` → `NewPlanCard` widget rendered under the assistant bubble. Tap navigates to `/onboarding/form?for=new-plan&step=goal_type` (returning user enters the form at goal-type with a fresh provider; replaces the in-chat `offer_choices` chip flow for new plans).
 
 `CoachMessage.fromShowJson` normalizes historic `tool_results`: it accepts BOTH the list shape (older/OpenAI) and the map-keyed-by-step-index shape (Anthropic), and decodes `result` when it arrives as a JSON-encoded string.
 
