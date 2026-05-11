@@ -393,7 +393,8 @@ The plan-builder code lives under `app/Services/Onboarding/`, `app/Support/Onboa
 **Tunable constants list** (when plans need adjustment):
 - Pace cascade: `FitnessSnapshotService::STALENESS_PENALTIES` (30/60/90d penalty steps), `EASY_OFFSET_FROM_THRESHOLD` (75s default), `VO2MAX_OFFSET_FROM_THRESHOLD` (-20s).
 - Ambition thresholds: `PlanAmbitionAnalyzer::REALISTIC_IMPROVEMENT_PER_MONTH` (12 sec/km/month), `MIN_VOLUME_FOR_RACE_PREP` (5k=25, 10k=35, HM=50, M=65 km/week), `RACE_PACE_DELTA_FROM_THRESHOLD`.
-- Volume safety: `TrainingPlanBuilder::MAX_PEAK_VS_BASELINE_RATIO` (1.6× baseline default; ambition cranks to 1.7×/1.8×), `MAX_WEEKLY_GROWTH_RATIO` (1.30 W-o-W).
+- Volume safety: `TrainingPlanBuilder::MAX_PEAK_VS_BASELINE_RATIO` (1.6× baseline default; ambition cranks to 1.7×/1.8×, intensity-bias floor 1.45× / ceiling 1.95×), `MAX_WEEKLY_GROWTH_RATIO` (1.30 W-o-W default; bias-tiered 1.22 → 1.36).
+- Intensity bias (`users.intensity_bias` enum): `AmbitionAssessment::applyBias()` shifts the analyzer's level ±1 against `EffectiveAmbitionLevel` (Conservative / Realistic / Ambitious / VeryAmbitious / AllIn), each tier carrying its own `peakVolumeMultiplier` + `weeklyGrowthRatio` + `qualityPaceRampGain` (multiplied into `tempoPace()` / `intervalBlueprint()` progress). Builder reads via private state cached at the top of `build()`. Spec: `../docs/superpowers/specs/2026-05-11-onboarding-intensity-bias-design.md`.
 - Plan length: `DEFAULT_WEEKS_FOR_GOAL` + `DEFAULT_WEEKS_FOR_PR_ATTEMPT`. `weeksExtension` adds +0/+4/+8 by ambition level (only when target_date null).
 - Session mix: `TrainingPlanBuilder::pickSessionTypes()` (the 1-7 day table). `applyEasyToQualityUpgrade()` swaps one easy for a second quality at 5+ days/week if intervals/tempo is gold-ranked.
 - Long-run cap: `LONG_RUN_CAP_BY_RANK` (gold=0.48, silver=0.44, bronze=0.40, last=0.36) + session-count boost (+0.20 for 2-day weeks, +0.10 for 3-day).
