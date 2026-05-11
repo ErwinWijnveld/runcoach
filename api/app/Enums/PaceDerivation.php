@@ -24,4 +24,7 @@ enum PaceDerivation: string
 
     /** Tier 4 — provider defaults; no recent activity signal at all. */
     case Fallback = 'fallback';
+
+    /** Tier 0 — user-entered baseline in onboarding overrides cascade. */
+    case SelfReported = 'self_reported';
 }
