@@ -4,7 +4,7 @@ namespace Tests\Feature\Ai;
 
 use App\Ai\Agents\RunCoachAgent;
 use App\Ai\Tools\AdjustPlan;
-use App\Ai\Tools\BuildPlan;
+use App\Ai\Tools\ProposeNewPlanCard;
 use App\Models\Organization;
 use App\Models\OrganizationMembership;
 use App\Models\User;
@@ -22,7 +22,7 @@ class RunCoachAgentHybridModeTest extends TestCase
         $tools = iterator_to_array(RunCoachAgent::make($user)->tools());
         $classes = array_map('get_class', $tools);
 
-        $this->assertContains(BuildPlan::class, $classes);
+        $this->assertContains(ProposeNewPlanCard::class, $classes);
         $this->assertContains(AdjustPlan::class, $classes);
     }
 
@@ -35,7 +35,7 @@ class RunCoachAgentHybridModeTest extends TestCase
         $tools = iterator_to_array(RunCoachAgent::make($user->refresh())->tools());
         $classes = array_map('get_class', $tools);
 
-        $this->assertNotContains(BuildPlan::class, $classes);
+        $this->assertNotContains(ProposeNewPlanCard::class, $classes);
         $this->assertNotContains(AdjustPlan::class, $classes);
     }
 
@@ -48,7 +48,7 @@ class RunCoachAgentHybridModeTest extends TestCase
         $tools = iterator_to_array(RunCoachAgent::make($user->refresh())->tools());
         $classes = array_map('get_class', $tools);
 
-        $this->assertContains(BuildPlan::class, $classes);
+        $this->assertContains(ProposeNewPlanCard::class, $classes);
     }
 
     public function test_coach_role_in_org_keeps_plan_tools(): void
@@ -63,6 +63,6 @@ class RunCoachAgentHybridModeTest extends TestCase
         // Coaches/admins are not the audience for the AI plan-mutation gate;
         // they manage plans through the coach panel. The gate applies only
         // to the client role.
-        $this->assertContains(BuildPlan::class, $classes);
+        $this->assertContains(ProposeNewPlanCard::class, $classes);
     }
 }

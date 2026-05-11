@@ -14,9 +14,9 @@ class OfferChoices implements Tool
     public function description(): string
     {
         return <<<'TXT'
-        Render a row of tappable chip suggestions for the user. Use this when you have a short closed-list question: what distance, how many days per week, coach style, etc. The user can tap a chip OR type free text — both arrive back as a regular user message; you parse whichever. Provide 2–6 chips. Each chip has a display `label` and a machine-friendly `value`. Labels should be human (e.g. "Half marathon"); values should be stable keys (e.g. "half_marathon").
+        Render 2–4 tappable chip suggestions when your next turn has a small fixed answer set (closed-list questions like distance, days/week, or clarifying a vague plan rejection). Each chip has a human `label` and a machine `value`.
 
-        DO NOT use this for the final plan proposal — use create_schedule for that.
+        Do not use after `build_plan` / `adjust_plan` returns, or for open-ended follow-ups. If unsure, no chips.
         TXT;
     }
 
@@ -30,7 +30,7 @@ class OfferChoices implements Tool
                         'value' => $schema->string()->required(),
                     ])
                 )
-                ->description('2–6 chip options. Each has `label` (human) and `value` (machine).')
+                ->description('2–4 chip options. Each has `label` (human) and `value` (machine).')
                 ->required(),
         ];
     }

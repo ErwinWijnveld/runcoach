@@ -121,13 +121,16 @@ class _EffortBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final intensity = _intensityFor(interval, paceRange);
-    final color = _kindColor(interval.kind);
+    // Single gold across every bar; opacity scales with speed so the
+    // fastest segment is fully saturated and slower ones fade — never
+    // below 50% so warmup / recovery stay legible.
+    final opacity = (0.5 + intensity * 0.5).clamp(0.5, 1.0);
 
     return FractionallySizedBox(
       heightFactor: intensity,
       child: Container(
         decoration: BoxDecoration(
-          color: color,
+          color: AppColors.secondary.withValues(alpha: opacity),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
         ),
       ),

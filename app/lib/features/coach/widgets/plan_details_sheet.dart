@@ -117,7 +117,7 @@ class PlanDetailsSheet extends StatelessWidget {
                         const SizedBox(height: 10),
                         for (final w in weeks) ...[
                           _WeekCard(week: w),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 14),
                         ],
                       ],
                     ],
@@ -317,7 +317,7 @@ class _WeekCard extends StatelessWidget {
   const _WeekCard({required this.week});
 
   static const _dayNames = [
-    'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun',
+    'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN',
   ];
 
   @override
@@ -340,61 +340,69 @@ class _WeekCard extends StatelessWidget {
           (bDow is num ? bDow.toInt() : 99));
     });
 
+    final hasFocus = focus != null && focus.isNotEmpty;
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
       decoration: BoxDecoration(
         color: AppColors.neutralHighlight,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      weekNumber != null ? 'Week $weekNumber' : 'Week',
-                      style: GoogleFonts.spaceGrotesk(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.5,
-                        color: AppColors.primaryInk,
-                      ),
-                    ),
-                    if (focus != null && focus.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        focus,
-                        style: GoogleFonts.publicSans(
-                          fontSize: 12,
-                          color: AppColors.tertiary,
-                          height: 1.3,
+                    if (hasFocus) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.goldGlow,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          focus.toUpperCase(),
+                          style: GoogleFonts.spaceGrotesk(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 1.0,
+                            color: const Color(0xFF785A00),
+                          ),
                         ),
                       ),
+                      const SizedBox(height: 8),
                     ],
+                    Text(
+                      weekNumber != null ? 'Week $weekNumber' : 'Week',
+                      style: GoogleFonts.ebGaramond(
+                        fontSize: 30,
+                        fontWeight: FontWeight.w500,
+                        fontStyle: FontStyle.italic,
+                        color: AppColors.primaryInk,
+                        height: 1.0,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              if (totalKm != null) ...[
-                const SizedBox(width: 10),
-                Text(
-                  '${totalKm.toStringAsFixed(totalKm.truncateToDouble() == totalKm ? 0 : 1)} km',
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primaryInk,
-                  ),
-                ),
-              ],
+              if (totalKm != null) _KmTotal(km: totalKm),
             ],
           ),
           if (days.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
+            const Divider(
+              height: 1,
+              thickness: 1,
+              color: AppColors.border,
+            ),
             for (var i = 0; i < days.length; i++) ...[
               if (i > 0)
                 const Divider(
@@ -407,6 +415,43 @@ class _WeekCard extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+class _KmTotal extends StatelessWidget {
+  final double km;
+  const _KmTotal({required this.km});
+
+  @override
+  Widget build(BuildContext context) {
+    final label = km == km.roundToDouble()
+        ? km.toStringAsFixed(0)
+        : km.toStringAsFixed(1);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 26,
+            fontWeight: FontWeight.w700,
+            color: AppColors.secondary,
+            height: 1.0,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'KM TOTAL',
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 9,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.8,
+            color: AppColors.inkMuted,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -442,43 +487,58 @@ class _DayRow extends StatelessWidget {
       metricParts.add('${paceSecs ~/ 60}:${(paceSecs % 60).toString().padLeft(2, '0')} /km');
     }
 
+    final kmLabel = km is num && km > 0
+        ? (km % 1 == 0 ? km.toInt().toString() : km.toStringAsFixed(1))
+        : null;
+    final paceLabel = paceSecs != null && paceSecs > 0
+        ? '${paceSecs ~/ 60}:${(paceSecs % 60).toString().padLeft(2, '0')}'
+        : null;
+
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          SizedBox(
-            width: 34,
+          Container(
+            width: 40,
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            decoration: BoxDecoration(
+              color: AppColors.goldGlow,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            alignment: Alignment.center,
             child: Text(
               dayLabel,
               style: GoogleFonts.spaceGrotesk(
-                fontSize: 11,
+                fontSize: 10,
                 fontWeight: FontWeight.w700,
-                color: AppColors.tertiary,
+                letterSpacing: 0.8,
+                color: const Color(0xFF785A00),
+                height: 1.0,
               ),
             ),
           ),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               title,
               style: GoogleFonts.publicSans(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
                 color: AppColors.primaryInk,
+                height: 1.2,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          if (metricParts.isNotEmpty) ...[
+          if (kmLabel != null) ...[
             const SizedBox(width: 8),
-            Text(
-              metricParts.join(' · '),
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: AppColors.tertiary,
-              ),
-            ),
+            _DayMetric(value: kmLabel, suffix: 'km'),
+          ],
+          if (paceLabel != null) ...[
+            const SizedBox(width: 10),
+            _DayMetric(value: paceLabel, suffix: '/km', muted: true),
           ],
         ],
       ),
@@ -516,6 +576,53 @@ class _DayRow extends StatelessWidget {
     }
     if (paces.isEmpty) return null;
     return (paces.reduce((a, b) => a + b) / paces.length).round();
+  }
+}
+
+/// Numeric metric with a small unit suffix — used for "4 km" and "4:25 /km"
+/// in the day rows. `muted` is the secondary tone (pace), normal is the
+/// primary tone (km). Keeps the values eye-pulling without making the row
+/// shout.
+class _DayMetric extends StatelessWidget {
+  final String value;
+  final String suffix;
+  final bool muted;
+
+  const _DayMetric({
+    required this.value,
+    required this.suffix,
+    this.muted = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final valueColor = muted ? AppColors.tertiary : AppColors.primaryInk;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
+      children: [
+        Text(
+          value,
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: valueColor,
+            height: 1.0,
+          ),
+        ),
+        const SizedBox(width: 3),
+        Text(
+          suffix,
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.3,
+            color: AppColors.inkMuted,
+          ),
+        ),
+      ],
+    );
   }
 }
 

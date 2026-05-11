@@ -24,6 +24,11 @@ sealed class VercelStreamEvent with _$VercelStreamEvent {
   // to bust its plan cache so the schedule overview reflects the change
   // when the user navigates back.
   const factory VercelStreamEvent.planChanged() = PlanChangedEvent;
+  // "Start new training plan" CTA card. Carries the onboarding-form step
+  // the runner should drop into (`goal_type` for now; future use cases
+  // could enter at other steps).
+  const factory VercelStreamEvent.newPlanCard(String entryPoint) =
+      NewPlanCardEvent;
   const factory VercelStreamEvent.error(String message) = ErrorEvent;
   const factory VercelStreamEvent.done() = DoneEvent;
 }

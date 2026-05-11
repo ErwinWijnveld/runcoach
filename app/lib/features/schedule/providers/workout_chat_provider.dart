@@ -83,6 +83,8 @@ class WorkoutChat extends _$WorkoutChat {
               ref.read(planVersionProvider.notifier).bump();
               return current;
             }(),
+            // Workout-scoped agent never proposes a new plan; ignore.
+            NewPlanCardEvent() => current,
             ErrorEvent(:final message) => current.copyWith(
               errorDetail: message,
               streaming: false,

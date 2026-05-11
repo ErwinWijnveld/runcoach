@@ -351,6 +351,7 @@ class TrainingPlanBuilder
         $weeks = [];
 
         $previous = null;
+        $previousWasCutback = false;
         for ($i = 0; $i < $buildLen; $i++) {
             // Linear ramp from week1 to peak across the build phase.
             $progress = $buildLen <= 1 ? 1.0 : $i / max(1, $buildLen - 1);
@@ -369,14 +370,21 @@ class TrainingPlanBuilder
                 $focus = $i < $buildLen / 3 ? 'Base building' : ($i < 2 * $buildLen / 3 ? 'Build' : 'Peak build');
             }
 
-            // Cap week-over-week growth.
-            if ($previous !== null && $target > $previous * self::MAX_WEEKLY_GROWTH_RATIO) {
+            // Cap week-over-week growth. Skip the cap on the first build week
+            // after a cutback — the cutback is intentionally suppressed to
+            // 75% of the linear ramp, so applying 1.30× on top would clamp
+            // the rebound to 0.975× of the pre-cutback would-be week and
+            // produce a post-cutback build that's LOWER than the build week
+            // before the cutback. The cutback exists exactly to enable this
+            // rebound; let the linear ramp through.
+            if ($previous !== null && ! $previousWasCutback && $target > $previous * self::MAX_WEEKLY_GROWTH_RATIO) {
                 $target = $previous * self::MAX_WEEKLY_GROWTH_RATIO;
             }
 
             $target = round($target, 1);
             $weeks[] = ['phase' => $phase, 'total_km' => $target, 'focus' => $focus];
             $previous = $target;
+            $previousWasCutback = $isCutback;
         }
 
         for ($t = 0; $t < $taperLen; $t++) {

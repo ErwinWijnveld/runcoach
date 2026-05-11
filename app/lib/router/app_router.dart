@@ -157,7 +157,16 @@ GoRouter appRouter(Ref ref) {
       ),
       GoRoute(
         path: '/onboarding/form',
-        builder: (context, state) => const OnboardingFormScreen(),
+        builder: (context, state) {
+          // `?for=new-plan&step=goal_type` is set by the in-chat
+          // "Start new plan" card so a returning user lands directly on
+          // the goal-type step with a fresh form. Any other entry
+          // (the initial onboarding flow) leaves the params null and the
+          // form behaves as before.
+          return OnboardingFormScreen(
+            startStep: state.uri.queryParameters['step'],
+          );
+        },
       ),
       GoRoute(
         path: '/onboarding/generating',

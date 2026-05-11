@@ -55,7 +55,7 @@ extension VercelStreamEventPatterns on VercelStreamEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( TextDeltaEvent value)?  textDelta,TResult Function( TextEndEvent value)?  textEnd,TResult Function( ToolStartEvent value)?  toolStart,TResult Function( ToolEndEvent value)?  toolEnd,TResult Function( ProposalEvent value)?  proposal,TResult Function( StatsEvent value)?  stats,TResult Function( ChipsEvent value)?  chips,TResult Function( HandoffEvent value)?  handoff,TResult Function( PlanChangedEvent value)?  planChanged,TResult Function( ErrorEvent value)?  error,TResult Function( DoneEvent value)?  done,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( TextDeltaEvent value)?  textDelta,TResult Function( TextEndEvent value)?  textEnd,TResult Function( ToolStartEvent value)?  toolStart,TResult Function( ToolEndEvent value)?  toolEnd,TResult Function( ProposalEvent value)?  proposal,TResult Function( StatsEvent value)?  stats,TResult Function( ChipsEvent value)?  chips,TResult Function( HandoffEvent value)?  handoff,TResult Function( PlanChangedEvent value)?  planChanged,TResult Function( NewPlanCardEvent value)?  newPlanCard,TResult Function( ErrorEvent value)?  error,TResult Function( DoneEvent value)?  done,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case TextDeltaEvent() when textDelta != null:
@@ -67,7 +67,8 @@ return proposal(_that);case StatsEvent() when stats != null:
 return stats(_that);case ChipsEvent() when chips != null:
 return chips(_that);case HandoffEvent() when handoff != null:
 return handoff(_that);case PlanChangedEvent() when planChanged != null:
-return planChanged(_that);case ErrorEvent() when error != null:
+return planChanged(_that);case NewPlanCardEvent() when newPlanCard != null:
+return newPlanCard(_that);case ErrorEvent() when error != null:
 return error(_that);case DoneEvent() when done != null:
 return done(_that);case _:
   return orElse();
@@ -87,7 +88,7 @@ return done(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( TextDeltaEvent value)  textDelta,required TResult Function( TextEndEvent value)  textEnd,required TResult Function( ToolStartEvent value)  toolStart,required TResult Function( ToolEndEvent value)  toolEnd,required TResult Function( ProposalEvent value)  proposal,required TResult Function( StatsEvent value)  stats,required TResult Function( ChipsEvent value)  chips,required TResult Function( HandoffEvent value)  handoff,required TResult Function( PlanChangedEvent value)  planChanged,required TResult Function( ErrorEvent value)  error,required TResult Function( DoneEvent value)  done,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( TextDeltaEvent value)  textDelta,required TResult Function( TextEndEvent value)  textEnd,required TResult Function( ToolStartEvent value)  toolStart,required TResult Function( ToolEndEvent value)  toolEnd,required TResult Function( ProposalEvent value)  proposal,required TResult Function( StatsEvent value)  stats,required TResult Function( ChipsEvent value)  chips,required TResult Function( HandoffEvent value)  handoff,required TResult Function( PlanChangedEvent value)  planChanged,required TResult Function( NewPlanCardEvent value)  newPlanCard,required TResult Function( ErrorEvent value)  error,required TResult Function( DoneEvent value)  done,}){
 final _that = this;
 switch (_that) {
 case TextDeltaEvent():
@@ -99,7 +100,8 @@ return proposal(_that);case StatsEvent():
 return stats(_that);case ChipsEvent():
 return chips(_that);case HandoffEvent():
 return handoff(_that);case PlanChangedEvent():
-return planChanged(_that);case ErrorEvent():
+return planChanged(_that);case NewPlanCardEvent():
+return newPlanCard(_that);case ErrorEvent():
 return error(_that);case DoneEvent():
 return done(_that);}
 }
@@ -115,7 +117,7 @@ return done(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( TextDeltaEvent value)?  textDelta,TResult? Function( TextEndEvent value)?  textEnd,TResult? Function( ToolStartEvent value)?  toolStart,TResult? Function( ToolEndEvent value)?  toolEnd,TResult? Function( ProposalEvent value)?  proposal,TResult? Function( StatsEvent value)?  stats,TResult? Function( ChipsEvent value)?  chips,TResult? Function( HandoffEvent value)?  handoff,TResult? Function( PlanChangedEvent value)?  planChanged,TResult? Function( ErrorEvent value)?  error,TResult? Function( DoneEvent value)?  done,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( TextDeltaEvent value)?  textDelta,TResult? Function( TextEndEvent value)?  textEnd,TResult? Function( ToolStartEvent value)?  toolStart,TResult? Function( ToolEndEvent value)?  toolEnd,TResult? Function( ProposalEvent value)?  proposal,TResult? Function( StatsEvent value)?  stats,TResult? Function( ChipsEvent value)?  chips,TResult? Function( HandoffEvent value)?  handoff,TResult? Function( PlanChangedEvent value)?  planChanged,TResult? Function( NewPlanCardEvent value)?  newPlanCard,TResult? Function( ErrorEvent value)?  error,TResult? Function( DoneEvent value)?  done,}){
 final _that = this;
 switch (_that) {
 case TextDeltaEvent() when textDelta != null:
@@ -127,7 +129,8 @@ return proposal(_that);case StatsEvent() when stats != null:
 return stats(_that);case ChipsEvent() when chips != null:
 return chips(_that);case HandoffEvent() when handoff != null:
 return handoff(_that);case PlanChangedEvent() when planChanged != null:
-return planChanged(_that);case ErrorEvent() when error != null:
+return planChanged(_that);case NewPlanCardEvent() when newPlanCard != null:
+return newPlanCard(_that);case ErrorEvent() when error != null:
 return error(_that);case DoneEvent() when done != null:
 return done(_that);case _:
   return null;
@@ -146,7 +149,7 @@ return done(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String delta)?  textDelta,TResult Function()?  textEnd,TResult Function( String toolName)?  toolStart,TResult Function()?  toolEnd,TResult Function( CoachProposal proposal)?  proposal,TResult Function( CoachStatsCard stats)?  stats,TResult Function( List<CoachChip> chips)?  chips,TResult Function( String suggestedPrompt)?  handoff,TResult Function()?  planChanged,TResult Function( String message)?  error,TResult Function()?  done,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String delta)?  textDelta,TResult Function()?  textEnd,TResult Function( String toolName)?  toolStart,TResult Function()?  toolEnd,TResult Function( CoachProposal proposal)?  proposal,TResult Function( CoachStatsCard stats)?  stats,TResult Function( List<CoachChip> chips)?  chips,TResult Function( String suggestedPrompt)?  handoff,TResult Function()?  planChanged,TResult Function( String entryPoint)?  newPlanCard,TResult Function( String message)?  error,TResult Function()?  done,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case TextDeltaEvent() when textDelta != null:
 return textDelta(_that.delta);case TextEndEvent() when textEnd != null:
@@ -157,7 +160,8 @@ return proposal(_that.proposal);case StatsEvent() when stats != null:
 return stats(_that.stats);case ChipsEvent() when chips != null:
 return chips(_that.chips);case HandoffEvent() when handoff != null:
 return handoff(_that.suggestedPrompt);case PlanChangedEvent() when planChanged != null:
-return planChanged();case ErrorEvent() when error != null:
+return planChanged();case NewPlanCardEvent() when newPlanCard != null:
+return newPlanCard(_that.entryPoint);case ErrorEvent() when error != null:
 return error(_that.message);case DoneEvent() when done != null:
 return done();case _:
   return orElse();
@@ -177,7 +181,7 @@ return done();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String delta)  textDelta,required TResult Function()  textEnd,required TResult Function( String toolName)  toolStart,required TResult Function()  toolEnd,required TResult Function( CoachProposal proposal)  proposal,required TResult Function( CoachStatsCard stats)  stats,required TResult Function( List<CoachChip> chips)  chips,required TResult Function( String suggestedPrompt)  handoff,required TResult Function()  planChanged,required TResult Function( String message)  error,required TResult Function()  done,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String delta)  textDelta,required TResult Function()  textEnd,required TResult Function( String toolName)  toolStart,required TResult Function()  toolEnd,required TResult Function( CoachProposal proposal)  proposal,required TResult Function( CoachStatsCard stats)  stats,required TResult Function( List<CoachChip> chips)  chips,required TResult Function( String suggestedPrompt)  handoff,required TResult Function()  planChanged,required TResult Function( String entryPoint)  newPlanCard,required TResult Function( String message)  error,required TResult Function()  done,}) {final _that = this;
 switch (_that) {
 case TextDeltaEvent():
 return textDelta(_that.delta);case TextEndEvent():
@@ -188,7 +192,8 @@ return proposal(_that.proposal);case StatsEvent():
 return stats(_that.stats);case ChipsEvent():
 return chips(_that.chips);case HandoffEvent():
 return handoff(_that.suggestedPrompt);case PlanChangedEvent():
-return planChanged();case ErrorEvent():
+return planChanged();case NewPlanCardEvent():
+return newPlanCard(_that.entryPoint);case ErrorEvent():
 return error(_that.message);case DoneEvent():
 return done();}
 }
@@ -204,7 +209,7 @@ return done();}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String delta)?  textDelta,TResult? Function()?  textEnd,TResult? Function( String toolName)?  toolStart,TResult? Function()?  toolEnd,TResult? Function( CoachProposal proposal)?  proposal,TResult? Function( CoachStatsCard stats)?  stats,TResult? Function( List<CoachChip> chips)?  chips,TResult? Function( String suggestedPrompt)?  handoff,TResult? Function()?  planChanged,TResult? Function( String message)?  error,TResult? Function()?  done,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String delta)?  textDelta,TResult? Function()?  textEnd,TResult? Function( String toolName)?  toolStart,TResult? Function()?  toolEnd,TResult? Function( CoachProposal proposal)?  proposal,TResult? Function( CoachStatsCard stats)?  stats,TResult? Function( List<CoachChip> chips)?  chips,TResult? Function( String suggestedPrompt)?  handoff,TResult? Function()?  planChanged,TResult? Function( String entryPoint)?  newPlanCard,TResult? Function( String message)?  error,TResult? Function()?  done,}) {final _that = this;
 switch (_that) {
 case TextDeltaEvent() when textDelta != null:
 return textDelta(_that.delta);case TextEndEvent() when textEnd != null:
@@ -215,7 +220,8 @@ return proposal(_that.proposal);case StatsEvent() when stats != null:
 return stats(_that.stats);case ChipsEvent() when chips != null:
 return chips(_that.chips);case HandoffEvent() when handoff != null:
 return handoff(_that.suggestedPrompt);case PlanChangedEvent() when planChanged != null:
-return planChanged();case ErrorEvent() when error != null:
+return planChanged();case NewPlanCardEvent() when newPlanCard != null:
+return newPlanCard(_that.entryPoint);case ErrorEvent() when error != null:
 return error(_that.message);case DoneEvent() when done != null:
 return done();case _:
   return null;
@@ -740,6 +746,72 @@ String toString() {
 
 
 
+
+/// @nodoc
+
+
+class NewPlanCardEvent implements VercelStreamEvent {
+  const NewPlanCardEvent(this.entryPoint);
+  
+
+ final  String entryPoint;
+
+/// Create a copy of VercelStreamEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$NewPlanCardEventCopyWith<NewPlanCardEvent> get copyWith => _$NewPlanCardEventCopyWithImpl<NewPlanCardEvent>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NewPlanCardEvent&&(identical(other.entryPoint, entryPoint) || other.entryPoint == entryPoint));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,entryPoint);
+
+@override
+String toString() {
+  return 'VercelStreamEvent.newPlanCard(entryPoint: $entryPoint)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $NewPlanCardEventCopyWith<$Res> implements $VercelStreamEventCopyWith<$Res> {
+  factory $NewPlanCardEventCopyWith(NewPlanCardEvent value, $Res Function(NewPlanCardEvent) _then) = _$NewPlanCardEventCopyWithImpl;
+@useResult
+$Res call({
+ String entryPoint
+});
+
+
+
+
+}
+/// @nodoc
+class _$NewPlanCardEventCopyWithImpl<$Res>
+    implements $NewPlanCardEventCopyWith<$Res> {
+  _$NewPlanCardEventCopyWithImpl(this._self, this._then);
+
+  final NewPlanCardEvent _self;
+  final $Res Function(NewPlanCardEvent) _then;
+
+/// Create a copy of VercelStreamEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? entryPoint = null,}) {
+  return _then(NewPlanCardEvent(
+null == entryPoint ? _self.entryPoint : entryPoint // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
 
 /// @nodoc
 

@@ -72,7 +72,18 @@ List<_Step> _flowFor(OnboardingGoalType? goalType) {
 }
 
 class OnboardingFormScreen extends ConsumerStatefulWidget {
-  const OnboardingFormScreen({super.key});
+  /// Optional logical step name to enter the form at. `null` (default) means
+  /// goal-type step. Used by the in-chat "Start new plan" card to drop a
+  /// returning user into the form at the goal-type step but with the
+  /// previously-saved form fields wiped (a fresh plan, not a resumed draft).
+  ///
+  /// Valid values mirror the `_Step` enum names in snake_case:
+  /// `goal_type` / `distance` / `race_name` / `race_date` / `goal_time` /
+  /// `pr_current` / `days_per_week` / `preferred_weekdays` /
+  /// `run_type_preferences` / `coach_style` / `review`.
+  final String? startStep;
+
+  const OnboardingFormScreen({super.key, this.startStep});
 
   @override
   ConsumerState<OnboardingFormScreen> createState() => _OnboardingFormScreenState();
@@ -80,6 +91,44 @@ class OnboardingFormScreen extends ConsumerStatefulWidget {
 
 class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
   int _currentIndex = 0;
+
+  static const _stepFromName = <String, _Step>{
+    'goal_type': _Step.goalType,
+    'distance': _Step.distance,
+    'race_name': _Step.raceName,
+    'race_date': _Step.raceDate,
+    'goal_time': _Step.goalTime,
+    'pr_current': _Step.prCurrent,
+    'days_per_week': _Step.daysPerWeek,
+    'preferred_weekdays': _Step.preferredWeekdays,
+    'run_type_preferences': _Step.runTypePreferences,
+    'coach_style': _Step.coachStyle,
+    'review': _Step.review,
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    final entry = widget.startStep;
+    if (entry == null) return;
+    // Returning user re-entry (via the in-chat "Start new plan" card):
+    // wipe any saved draft from a previous form pass so the fields don't
+    // pre-fill with stale state. Done in a post-frame callback because the
+    // form provider can't be mutated during the build phase of initState.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.invalidate(onboardingFormProvider);
+      final step = _stepFromName[entry];
+      if (step == null) return;
+      // Locate the step in the default (no-goal-type-yet) flow. Once the
+      // runner picks a goal type the flow re-shapes; we don't need to map
+      // beyond the goal-type step in practice (that's the only documented
+      // entry point), but the table keeps the helper general.
+      final flow = _flowFor(ref.read(onboardingFormProvider).goalType);
+      final idx = flow.indexOf(step);
+      if (idx >= 0) setState(() => _currentIndex = idx);
+    });
+  }
 
   void _advance() {
     final flow = _flowFor(ref.read(onboardingFormProvider).goalType);

@@ -178,6 +178,10 @@ Each release: bump `version: 1.0.0+N` in `app/pubspec.yaml` (the `+N` build numb
 - Commit often, descriptive messages, never commit without running tests first
 - **Keep CLAUDE.md current.** After any relatively-large change (new feature, new endpoint, new native bridge, schema change, agent-prompt rule change, deployment quirk), append a concise bullet to the relevant CLAUDE.md (`./CLAUDE.md` for cross-cutting, `api/CLAUDE.md` for backend, `app/CLAUDE.md` for Flutter/iOS). One sentence + file:line pointer is enough — the goal is the *next* session can reconstruct the decision without re-reading every file. Skip for trivial fixes.
 
+### "Noteer voor testen"
+
+On "Noteer voor testen" (or variants), create a page in the Notion "Te Testen App" database (`collection://35dbc504-7e65-8001-8892-000bc07bcab4`) via `notion-create-pages`: `Name` = short title (≤8 words), body = beknopt stappenplan als ordered list (numbered, één actie per stap). Ack met de Notion-link, geen body in chat.
+
 ### Never auto-push, build, or upload
 
 Stop at the local commit. Wait for an explicit per-turn instruction before any of:

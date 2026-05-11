@@ -157,6 +157,8 @@ class CoachChat extends _$CoachChat {
               ref.read(planVersionProvider.notifier).bump();
               return current;
             }(),
+            NewPlanCardEvent(:final entryPoint) =>
+              current.copyWith(newPlanEntryPoint: entryPoint),
             ErrorEvent(:final message) => current.copyWith(
                 errorDetail: message,
                 streaming: false,

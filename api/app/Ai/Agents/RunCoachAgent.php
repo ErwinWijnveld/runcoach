@@ -3,7 +3,6 @@
 namespace App\Ai\Agents;
 
 use App\Ai\Tools\AdjustPlan;
-use App\Ai\Tools\BuildPlan;
 use App\Ai\Tools\GetActivityDetails;
 use App\Ai\Tools\GetComplianceReport;
 use App\Ai\Tools\GetCurrentProposal;
@@ -13,14 +12,10 @@ use App\Ai\Tools\GetRecentRuns;
 use App\Ai\Tools\GetRunningProfile;
 use App\Ai\Tools\OfferChoices;
 use App\Ai\Tools\PresentRunningStats;
+use App\Ai\Tools\ProposeNewPlanCard;
 use App\Ai\Tools\SearchActivities;
 use App\Enums\CoachStyle;
-use App\Enums\GoalDistance;
-use App\Enums\GoalType;
 use App\Models\User;
-use App\Services\Onboarding\FitnessSnapshotService;
-use App\Services\Onboarding\PlanAmbitionAnalyzer;
-use App\Services\Onboarding\TrainingPlanBuilder;
 use App\Services\PlanOptimizerService;
 use App\Services\ProposalService;
 use Laravel\Ai\Attributes\Timeout;
@@ -49,13 +44,6 @@ class RunCoachAgent implements Agent, Conversational, HasTools
         $motivational = CoachStyle::Motivational->value;
         $analytical = CoachStyle::Analytical->value;
         $balanced = CoachStyle::Balanced->value;
-        $race = GoalType::Race->value;
-        $generalFitness = GoalType::GeneralFitness->value;
-        $prAttempt = GoalType::PrAttempt->value;
-        $fiveK = GoalDistance::FiveK->value;
-        $tenK = GoalDistance::TenK->value;
-        $half = GoalDistance::HalfMarathon->value;
-        $marathon = GoalDistance::Marathon->value;
 
         return <<<PROMPT
         You are RunCoach, a personal AI running coach. Today is {$today}.
@@ -103,9 +91,7 @@ class RunCoachAgent implements Agent, Conversational, HasTools
 
         ## Plan-edit tools
 
-        Two tools for changes to the runner's plan. Pick the right one — they have very different costs.
-
-        **adjust_plan (FAST, default for tweaks)** — apply targeted edits to the active plan or the latest pending proposal. Auto-targets: pending proposal first, then active goal. Operations are JSON-encoded `{"operations":[...]}`. Each op is one of:
+        **adjust_plan (tweaks)** — targeted edits to the active plan or the latest pending proposal. Auto-targets: pending proposal first, then active goal. Operations are JSON-encoded `{"operations":[...]}`. Each op is one of:
 
         - `replace` / `add` / `remove` / `adjust` per (week, day_of_week) — change a day's type, km, pace, description, or drop / add it.
         - `shift` — move a day from one weekday to another inside the same week.
@@ -113,49 +99,7 @@ class RunCoachAgent implements Agent, Conversational, HasTools
 
         Server clamps everything: pace overrides ±15s for tempo, ±10s for interval work; distance [4 km, 1.5× existing]; race day untouchable; `add` respects preferred_weekdays. Use `adjust_plan` for EVERY tweak: changing paces, swapping session types, adding / dropping a day, shifting weekdays, updating race date or goal time, accommodating injuries by replacing tempos with easy in early weeks, etc.
 
-        **build_plan (EXPENSIVE, only for full rebuilds)** — generates a complete new plan from form-style inputs (goal_type, distance_meters, target_date, goal_time_seconds, days_per_week, preferred_weekdays, run_type_preferences, additional_notes). Use ONLY when the runner wants a fundamental restructure:
-        - Different goal_type (race → PR-attempt → general_fitness).
-        - Original race got cancelled and they're starting fresh.
-        - Original goal complete and they're starting a new training cycle.
-
-        For everything else use `adjust_plan`. `build_plan` regenerates the entire schedule from scratch and replaces the active plan on acceptance — overkill for tweaks.
-
-        ## Plan-creation flow (build_plan only)
-
-        When the runner wants a NEW plan or a fundamental rebuild, drive the flow with `offer_choices` for closed-list questions. NEVER ask chip-able questions in plain text.
-
-        STEP A — Goal type. Short intro sentence, then `offer_choices` with:
-        [
-          {label: "Race coming up!", value: "{$race}"},
-          {label: "General fitness", value: "{$generalFitness}"},
-          {label: "Get faster", value: "{$prAttempt}"}
-        ]
-
-        STEP B — Branch on the user's reply (collect race specifics in SMALL separate turns; one question per turn):
-
-        IF "{$race}":
-          - Distance chips: [{label: "5k", value: "{$fiveK}"}, {label: "10k", value: "{$tenK}"}, {label: "Half marathon", value: "{$half}"}, {label: "Marathon", value: "{$marathon}"}].
-          - Race name (free text → goal_name).
-          - Race date (free text → target_date YYYY-MM-DD).
-          - Goal time (free text → goal_time_seconds, or null).
-          - Days/week chips (1-7).
-          - Preferred weekdays (free text → ISO 1=Mon..7=Sun list, or null = any).
-          - Additional notes (free text, optional).
-
-        IF "{$generalFitness}":
-          - Days/week chips. Then preferred weekdays + notes.
-
-        IF "{$prAttempt}":
-          - Distance chips. Then current PR + goal time (free text). Then days/week + preferred weekdays + notes.
-
-        STEP C — Confirm with `offer_choices`:
-        [
-          {label: "Sounds good, build it!", value: "build"},
-          {label: "Adjust something", value: "adjust"}
-        ]
-        If "adjust", ask what to change and loop. If "build", call `build_plan` with the accumulated parameters.
-
-        STEP D — `build_plan` returns the proposal. Reply ONE short friendly sentence. If `ambition.level` is `ambitious` or `very_ambitious`, paraphrase the ambition.suggestion ("Heads up — that's a stretch from your current base; I extended your plan to N weeks for a safer build").
+        **propose_new_plan_card (full rebuild)** — when the runner wants a fundamentally new plan (different goal_type, race cancelled, original goal complete, starting a fresh cycle), call this ONCE and reply with one short sentence ("Tap the card to set up a fresh plan"). The card drops them into the onboarding form. Do NOT collect goal_type / distance / days-per-week etc. in chat — the form handles that. Do NOT chain `offer_choices` after; the card IS the next step.
 
         ## Editing flow (adjust_plan)
 
@@ -179,7 +123,7 @@ class RunCoachAgent implements Agent, Conversational, HasTools
 
         ## Follow-up chips
 
-        After most replies, call `offer_choices` with 2–4 short follow-up suggestions (labels ≤5 words, self-contained). Skip during the build_plan flow steps and on clear wrap-ups.
+        Default: no chips. Only call `offer_choices` when clarifying a vague plan rejection or when the runner explicitly asks for options. Never after `adjust_plan` / `propose_new_plan_card` returns, never after open-ended replies.
 
         ## Punctuation
 
@@ -211,14 +155,7 @@ class RunCoachAgent implements Agent, Conversational, HasTools
 
         return [
             ...$tools,
-            new BuildPlan(
-                user: $this->user,
-                snapshots: app(FitnessSnapshotService::class),
-                builder: app(TrainingPlanBuilder::class),
-                optimizer: app(PlanOptimizerService::class),
-                proposals: app(ProposalService::class),
-                ambition: app(PlanAmbitionAnalyzer::class),
-            ),
+            new ProposeNewPlanCard($this->user),
             new AdjustPlan(
                 user: $this->user,
                 optimizer: app(PlanOptimizerService::class),

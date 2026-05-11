@@ -19,7 +19,7 @@ class TrainingScheduleController extends Controller
         abort_unless($goal->user_id === $request->user()->id, 403);
 
         $weeks = $goal->trainingWeeks()
-            ->with('trainingDays.result')
+            ->with(['trainingDays' => fn ($q) => $q->orderBy('date'), 'trainingDays.result'])
             ->orderBy('week_number')
             ->get();
 
@@ -31,7 +31,7 @@ class TrainingScheduleController extends Controller
         abort_unless($goal->user_id === $request->user()->id, 403);
 
         $week = $goal->trainingWeeks()
-            ->with('trainingDays.result')
+            ->with(['trainingDays' => fn ($q) => $q->orderBy('date'), 'trainingDays.result'])
             ->where('starts_at', '<=', now())
             ->orderByDesc('starts_at')
             ->first();
@@ -102,9 +102,14 @@ class TrainingScheduleController extends Controller
             ->orderByDesc('starts_at')
             ->first();
 
+        // `order` is repurposed as day_of_week (1=Mon..7=Sun) across the
+        // app (see PlanPayload, ProposalService::applyEditActivePlan). Keep
+        // it in sync with the new date so AI-input and any order-based
+        // sorts don't go stale.
         $day->update([
             'date' => $newDate->toDateString(),
             'training_week_id' => $matchingWeek?->id ?? $day->training_week_id,
+            'order' => (int) $newDate->isoWeekday(),
         ]);
 
         return response()->json([

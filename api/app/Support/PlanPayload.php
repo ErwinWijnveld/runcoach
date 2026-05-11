@@ -68,7 +68,7 @@ class PlanPayload
         $weeks = [];
         foreach ($goal->trainingWeeks()->orderBy('week_number')->get() as $week) {
             $days = [];
-            foreach ($week->trainingDays()->orderBy('order')->get() as $day) {
+            foreach ($week->trainingDays()->orderBy('date')->orderBy('order')->get() as $day) {
                 $days[] = array_filter([
                     'day_of_week' => (int) $day->order,
                     'type' => $day->type?->value,

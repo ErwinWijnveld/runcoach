@@ -34,6 +34,11 @@ sealed class CoachMessage with _$CoachMessage {
     // shouldn't keep nagging).
     @JsonKey(includeFromJson: false, includeToJson: false)
     String? handoffPrompt,
+    // Onboarding form step name to enter at when the runner taps the
+    // in-chat "Start new plan" card. Set when `data-new-plan` arrives
+    // mid-stream. Same as `handoffPrompt`: not persisted across reloads.
+    @JsonKey(includeFromJson: false, includeToJson: false)
+    String? newPlanEntryPoint,
   }) = _CoachMessage;
 
   factory CoachMessage.fromJson(Map<String, dynamic> json) =>

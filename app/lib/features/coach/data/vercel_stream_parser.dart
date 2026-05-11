@@ -106,6 +106,9 @@ class VercelStreamParser {
             (json['data']['suggested_prompt'] as String?) ?? '',
           ),
         'data-plan-changed' => const VercelStreamEvent.planChanged(),
+        'data-new-plan' => VercelStreamEvent.newPlanCard(
+            (json['data']?['entry_point'] as String?) ?? 'goal_type',
+          ),
         _ => null,
       };
     } catch (_) {

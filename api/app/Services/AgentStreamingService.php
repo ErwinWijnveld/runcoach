@@ -14,7 +14,7 @@ use Throwable;
  * Shared SSE streaming wrapper for any conversational agent. Both the
  * coach chat and the per-workout chat funnel through here so they emit
  * the same Vercel-protocol events (`text-delta`, `tool-input-available`,
- * `data-stats`, `data-chips`, `data-proposal`, `data-handoff`, `error`,
+ * `data-stats`, `data-chips`, `data-proposal`, `data-handoff`, `data-new-plan`, `error`,
  * `[DONE]`).
  *
  * The caller writes the response headers + opens the streamed response;
@@ -142,6 +142,13 @@ class AgentStreamingService
             $this->emit([
                 'type' => 'data-plan-changed',
                 'data' => [],
+            ]);
+        } elseif ($display === 'new_plan_card') {
+            $this->emit([
+                'type' => 'data-new-plan',
+                'data' => [
+                    'entry_point' => $result['entry_point'] ?? 'goal_type',
+                ],
             ]);
         }
     }

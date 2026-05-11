@@ -1,12 +1,14 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/coach_prompt_bar.dart';
 import 'package:app/features/coach/models/coach_message.dart';
 import 'package:app/features/coach/widgets/message_bubble.dart';
+import 'package:app/features/coach/widgets/new_plan_card.dart';
 import 'package:app/features/coach/widgets/plan_details_sheet.dart';
 import 'package:app/features/coach/widgets/proposal_card.dart';
 
@@ -168,6 +170,14 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
                           prompt: msg.handoffPrompt!,
                           onTap: () =>
                               widget.onHandoff!(ref, msg.handoffPrompt!),
+                        ),
+                      ],
+                      if (msg.newPlanEntryPoint != null) ...[
+                        const SizedBox(height: 10),
+                        NewPlanCard(
+                          onTap: () => context.push(
+                            '/onboarding/form?for=new-plan&step=${msg.newPlanEntryPoint}',
+                          ),
                         ),
                       ],
                     ],
