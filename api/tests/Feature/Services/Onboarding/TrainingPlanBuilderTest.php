@@ -2,12 +2,16 @@
 
 namespace Tests\Feature\Services\Onboarding;
 
+use App\Enums\AmbitionLevel;
 use App\Enums\PaceConfidence;
 use App\Enums\PaceDerivation;
 use App\Enums\TrainingType;
 use App\Models\User;
+use App\Services\Onboarding\FitnessSnapshotService;
 use App\Services\Onboarding\TrainingPlanBuilder;
 use App\Services\PlanOptimizerService;
+use App\Support\Onboarding\AmbitionAssessment;
+use App\Support\Onboarding\EffectiveAmbitionLevel;
 use App\Support\Onboarding\FitnessSnapshot;
 use App\Support\Onboarding\OnboardingFormInput;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -612,13 +616,13 @@ class TrainingPlanBuilderTest extends TestCase
 
     public function test_self_reported_user_drives_volume_curve_from_their_baseline(): void
     {
-        $user = \App\Models\User::factory()->create([
+        $user = User::factory()->create([
             'self_reported_weekly_km' => 30.0,
             'self_reported_easy_pace_seconds_per_km' => 360,
             'self_reported_stats_at' => now(),
         ]);
 
-        $snapshot = app(\App\Services\Onboarding\FitnessSnapshotService::class)->snapshot($user->fresh());
+        $snapshot = app(FitnessSnapshotService::class)->snapshot($user->fresh());
 
         $this->assertSame(30.0, $snapshot->weeklyKmRecent4Weeks);
         $this->assertSame(360, $snapshot->easyPaceSecondsPerKm);
@@ -645,5 +649,106 @@ class TrainingPlanBuilderTest extends TestCase
         $easyDay = collect($firstWeek)->firstWhere('type', 'easy');
         $this->assertNotNull($easyDay, 'expected an easy day in week 1');
         $this->assertSame(360, $easyDay['target_pace_seconds_per_km']);
+    }
+
+    public function test_intensity_bias_peak_volume_scales_with_effective_level(): void
+    {
+        // Same form + same snapshot. Vary peakVolumeMultiplier across the
+        // 5-tier table — peak weekly km should scale monotonically.
+        $snapshot = $this->snapshot(weeklyKm: 20.0);
+        $form = $this->form([
+            'distance_meters' => 21097,
+            'target_date' => now()->addWeeks(12)->toDateString(),
+            'days_per_week' => 4,
+        ]);
+
+        $peakAtLevel = function (EffectiveAmbitionLevel $effective) use ($snapshot, $form): float {
+            $ambition = new AmbitionAssessment(
+                level: AmbitionLevel::Ambitious,
+                paceGapSecondsPerKm: 50,
+                improvementPerMonthSeconds: 12.0,
+                volumeRatio: 0.8,
+                peakVolumeMultiplier: $effective->peakVolumeMultiplier(),
+                weeksExtension: 0,
+                summary: null,
+                suggestion: null,
+                effectiveLevel: $effective,
+                weeklyGrowthRatio: $effective->weeklyGrowthRatio(),
+                qualityPaceRampGain: $effective->qualityPaceRampGain(),
+            );
+
+            $payload = app(TrainingPlanBuilder::class)->build($snapshot, $form, $ambition);
+
+            return (float) collect($payload['schedule']['weeks'])->max('total_km');
+        };
+
+        $peakConservative = $peakAtLevel(EffectiveAmbitionLevel::Conservative);
+        $peakRealistic = $peakAtLevel(EffectiveAmbitionLevel::Realistic);
+        $peakAmbitious = $peakAtLevel(EffectiveAmbitionLevel::Ambitious);
+        $peakAllIn = $peakAtLevel(EffectiveAmbitionLevel::AllIn);
+
+        $this->assertLessThanOrEqual($peakRealistic, $peakConservative, 'Conservative peak should be ≤ Realistic');
+        $this->assertLessThanOrEqual($peakAmbitious, $peakRealistic, 'Realistic peak should be ≤ Ambitious');
+        $this->assertLessThanOrEqual($peakAllIn, $peakAmbitious, 'Ambitious peak should be ≤ AllIn');
+        $this->assertGreaterThan($peakConservative, $peakAllIn, 'AllIn peak must exceed Conservative peak');
+    }
+
+    public function test_intensity_bias_quality_pace_ramp_gain_speeds_tempo_pace_approach(): void
+    {
+        // With a faster pace ramp gain, mid-plan tempo pace should be at
+        // or below (faster than) the same mid-plan slot on a slower gain.
+        $snapshot = $this->snapshot(threshold: 300, weeklyKm: 25.0);
+        $form = $this->form([
+            'distance_meters' => 10000,
+            'target_date' => now()->addWeeks(12)->toDateString(),
+            'goal_time_seconds' => 2700, // 4:30/km
+            'days_per_week' => 4,
+        ]);
+
+        $tempoAtMidWeek = function (float $gain) use ($snapshot, $form): ?int {
+            $ambition = new AmbitionAssessment(
+                level: AmbitionLevel::Ambitious,
+                paceGapSecondsPerKm: 30,
+                improvementPerMonthSeconds: 12.0,
+                volumeRatio: 0.9,
+                peakVolumeMultiplier: 1.7,
+                weeksExtension: 0,
+                summary: null,
+                suggestion: null,
+                effectiveLevel: EffectiveAmbitionLevel::Ambitious,
+                weeklyGrowthRatio: 1.30,
+                qualityPaceRampGain: $gain,
+            );
+
+            $payload = app(TrainingPlanBuilder::class)->build($snapshot, $form, $ambition);
+
+            foreach ($payload['schedule']['weeks'] as $w) {
+                if (($w['week_number'] ?? null) !== 6) {
+                    continue;
+                }
+                foreach ($w['days'] as $d) {
+                    if (($d['type'] ?? null) === TrainingType::Tempo->value && ($d['target_pace_seconds_per_km'] ?? null) !== null) {
+                        return (int) $d['target_pace_seconds_per_km'];
+                    }
+                }
+            }
+
+            return null;
+        };
+
+        $tempoSlowRamp = $tempoAtMidWeek(0.85); // Conservative
+        $tempoFastRamp = $tempoAtMidWeek(1.20); // AllIn
+
+        // If either is null, the plan didn't have a tempo at week 6 — skip
+        // assertion rather than fail noisy.
+        if ($tempoSlowRamp !== null && $tempoFastRamp !== null) {
+            $this->assertLessThanOrEqual(
+                $tempoSlowRamp,
+                $tempoFastRamp,
+                "AllIn ramp tempo at week 6 ({$tempoFastRamp}) should be ≤ Conservative tempo ({$tempoSlowRamp}) — faster pace = lower seconds/km",
+            );
+        } else {
+            $this->markTestSkipped('Tempo day not scheduled at week 6 for this form; cannot compare.');
+        }
     }
 }

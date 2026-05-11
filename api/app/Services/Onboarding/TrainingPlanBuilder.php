@@ -99,6 +99,18 @@ class TrainingPlanBuilder
     /** Week-over-week growth cap (Riegel-ish "no big jumps"). */
     public const MAX_WEEKLY_GROWTH_RATIO = 1.30;
 
+    /**
+     * Per-`build()` cache of the active intensity-bias-aware knobs. Set
+     * at the top of `build()` from the optional `AmbitionAssessment`;
+     * read by `buildWeeklyVolumeCurve()`, `tempoPace()`, and
+     * `intervalBlueprint()` without further threading. Default values
+     * mirror the legacy hardcoded constants so callers that don't pass
+     * an assessment get identical behavior.
+     */
+    private float $activeWeeklyGrowthRatio = self::MAX_WEEKLY_GROWTH_RATIO;
+
+    private float $activeQualityPaceRampGain = 1.0;
+
     /** Cutback every Nth build week, at this fraction of the would-be week. */
     public const CUTBACK_EVERY_N_WEEKS = 4;
 
@@ -165,6 +177,9 @@ class TrainingPlanBuilder
         OnboardingFormInput $form,
         ?AmbitionAssessment $ambition = null,
     ): array {
+        $this->activeWeeklyGrowthRatio = $ambition?->weeklyGrowthRatio ?? self::MAX_WEEKLY_GROWTH_RATIO;
+        $this->activeQualityPaceRampGain = $ambition?->qualityPaceRampGain ?? 1.0;
+
         $planStart = CarbonImmutable::now()->startOfWeek();
         $weeksCount = $this->resolveWeeksCount($form, $planStart, $ambition);
         $peakKm = $this->resolvePeakKm($snapshot, $form, $ambition);
@@ -377,8 +392,8 @@ class TrainingPlanBuilder
             // produce a post-cutback build that's LOWER than the build week
             // before the cutback. The cutback exists exactly to enable this
             // rebound; let the linear ramp through.
-            if ($previous !== null && ! $previousWasCutback && $target > $previous * self::MAX_WEEKLY_GROWTH_RATIO) {
-                $target = $previous * self::MAX_WEEKLY_GROWTH_RATIO;
+            if ($previous !== null && ! $previousWasCutback && $target > $previous * $this->activeWeeklyGrowthRatio) {
+                $target = $previous * $this->activeWeeklyGrowthRatio;
             }
 
             $target = round($target, 1);
@@ -945,7 +960,7 @@ class TrainingPlanBuilder
         $taperLen = $this->taperLengthForRamp($weeksCount);
         $rampLen = max(1, $weeksCount - 1 - $taperLen);
         $weeksFromStart = ($weeksCount - 1) - $weeksToRace;
-        $progress = max(0.0, min(1.0, $weeksFromStart / $rampLen));
+        $progress = max(0.0, min(1.0, ($weeksFromStart / $rampLen) * $this->activeQualityPaceRampGain));
 
         return (int) round($start + ($endpoint - $start) * $progress);
     }
@@ -1058,7 +1073,7 @@ class TrainingPlanBuilder
             $taperLen = $this->taperLengthForRamp($weeksCount);
             $rampLen = max(1, $weeksCount - 1 - $taperLen);
             $weeksFromStart = ($weeksCount - 1) - $weeksToRace;
-            $rampProgress = max(0.0, min(1.0, $weeksFromStart / $rampLen));
+            $rampProgress = max(0.0, min(1.0, ($weeksFromStart / $rampLen) * $this->activeQualityPaceRampGain));
             $workPace = (int) round($workPace + ($goalPace - $workPace) * $rampProgress);
         }
 
