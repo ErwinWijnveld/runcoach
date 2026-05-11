@@ -551,6 +551,15 @@ class PlanOptimizerService
                     continue;
                 }
                 if (! isset($day['intervals']) || ! is_array($day['intervals']) || empty($day['intervals'])) {
+                    // Naked interval day → synthesize a sensible default
+                    // skeleton (4×400m + 90s recovery, warmup, cooldown).
+                    // Reached when `AdjustPlan` replaces tempo→interval
+                    // without supplying segments, or when the agent emits
+                    // a bare interval entry. `computePaces` will fill
+                    // per-segment paces from `$baseline` downstream.
+                    $payload['schedule']['weeks'][$wi]['days'][$di]['intervals']
+                        = $this->defaultIntervalSkeleton();
+
                     continue;
                 }
 
@@ -628,6 +637,55 @@ class PlanOptimizerService
         }
 
         return $payload;
+    }
+
+    /**
+     * Skeleton used when an `interval`-type day arrives without an
+     * `intervals[]` array — e.g. AdjustPlan swapping a tempo day to
+     * interval without authoring segments. 4×400m work at VO2max pace
+     * (filled by `computePaces`), 90s recovery between each, plus a
+     * required cooldown at the end.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function defaultIntervalSkeleton(): array
+    {
+        $intervals = [[
+            'kind' => 'warmup',
+            'label' => 'Warm up',
+            'distance_m' => null,
+            'duration_seconds' => self::DEFAULT_WARMUP_SECONDS,
+            'target_pace_seconds_per_km' => null,
+        ]];
+
+        for ($i = 0; $i < 4; $i++) {
+            $intervals[] = [
+                'kind' => 'work',
+                'label' => '400m rep',
+                'distance_m' => 400,
+                'duration_seconds' => null,
+                'target_pace_seconds_per_km' => null,
+            ];
+            if ($i < 3) {
+                $intervals[] = [
+                    'kind' => 'recovery',
+                    'label' => 'Recovery',
+                    'distance_m' => null,
+                    'duration_seconds' => self::DEFAULT_RECOVERY_SECONDS,
+                    'target_pace_seconds_per_km' => null,
+                ];
+            }
+        }
+
+        $intervals[] = [
+            'kind' => 'cooldown',
+            'label' => 'Cool down',
+            'distance_m' => null,
+            'duration_seconds' => self::DEFAULT_COOLDOWN_SECONDS,
+            'target_pace_seconds_per_km' => null,
+        ];
+
+        return $intervals;
     }
 
     /**

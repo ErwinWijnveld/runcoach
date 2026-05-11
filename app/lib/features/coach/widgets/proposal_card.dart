@@ -5,13 +5,11 @@ import 'package:google_fonts/google_fonts.dart';
 
 class ProposalCard extends StatelessWidget {
   final CoachProposal proposal;
-  final VoidCallback? onAccept;
   final VoidCallback? onViewDetails;
 
   const ProposalCard({
     super.key,
     required this.proposal,
-    this.onAccept,
     this.onViewDetails,
   });
 
@@ -86,16 +84,15 @@ class ProposalCard extends StatelessWidget {
               ]),
             ],
             const SizedBox(height: 20),
-            // Primary CTA — biggest, darkest, full-width. Reviewing the
-            // plan is the most useful thing the runner can do before
-            // accepting, so it dominates the hierarchy.
+            // Single CTA — gold, full-width. Accept/Adjust live inside
+            // the details modal so the card stays a quiet preview.
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: onViewDetails,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppColors.secondary,
+                  foregroundColor: AppColors.primary,
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -110,7 +107,7 @@ class ProposalCard extends StatelessWidget {
                           ? Icons.tune_rounded
                           : Icons.visibility_outlined,
                       size: 20,
-                      color: Colors.white,
+                      color: AppColors.primary,
                     ),
                     const SizedBox(width: 10),
                     Text(
@@ -125,49 +122,7 @@ class ProposalCard extends StatelessWidget {
                 ),
               ),
             ),
-            if (_isPending) ...[
-              const SizedBox(height: 10),
-              // Secondary CTA — gold accent but intentionally slimmer
-              // than the primary. Still obvious, just not the default
-              // eye-path.
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: onAccept,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.secondary,
-                    foregroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  child: Text(
-                    'ACCEPT',
-                    style: GoogleFonts.spaceGrotesk(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.0,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              // Tertiary — not a button. Points the runner to the chat
-              // input below so they can just say what to change.
-              Center(
-                child: Text(
-                  'Tell me what to adjust below',
-                  style: GoogleFonts.inter(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.inkMuted,
-                    height: 1.3,
-                  ),
-                ),
-              ),
-            ] else ...[
+            if (!_isPending) ...[
               const SizedBox(height: 8),
               Text(
                 proposal.status == 'accepted' ? 'Plan accepted.' : 'Rejected.',

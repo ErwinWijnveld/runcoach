@@ -53,6 +53,7 @@ class CoachChatView extends ConsumerStatefulWidget {
 class _CoachChatViewState extends ConsumerState<CoachChatView> {
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
+  final _inputFocus = FocusNode();
   bool _sending = false;
 
   Future<void> _send([String? prefill, String? chipValue]) async {
@@ -89,6 +90,7 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
   void dispose() {
     _controller.dispose();
     _scrollController.dispose();
+    _inputFocus.dispose();
     super.dispose();
   }
 
@@ -140,10 +142,6 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
                         const SizedBox(height: 10),
                         ProposalCard(
                           proposal: msg.proposal!,
-                          onAccept: () async {
-                            await widget.onAccept!(ref, msg.proposal!.id);
-                            widget.onInvalidate?.call(ref);
-                          },
                           onViewDetails: () => PlanDetailsSheet.show(
                             context,
                             proposal: msg.proposal!,
@@ -151,9 +149,13 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
                               await widget.onAccept!(ref, msg.proposal!.id);
                               widget.onInvalidate?.call(ref);
                             },
+                            // Adjust just closes the modal and focuses the
+                            // chat input. The agent's AdjustPlan tool will
+                            // auto-target the still-pending proposal when
+                            // the runner types their tweak — no need to
+                            // proactively reject anything.
                             onAdjust: () async {
-                              await widget.onReject?.call(ref, msg.proposal!.id);
-                              widget.onInvalidate?.call(ref);
+                              _inputFocus.requestFocus();
                             },
                           ),
                         ),
@@ -181,6 +183,7 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
             child: CoachPromptBar.input(
               controller: _controller,
+              focusNode: _inputFocus,
               onSubmit: (_) => _send(),
               sending: _sending,
             ),

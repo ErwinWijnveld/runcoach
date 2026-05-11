@@ -82,7 +82,7 @@ class PlanDetailsSheet extends StatelessWidget {
               Expanded(
                 child: SingleChildScrollView(
                   controller: scrollController,
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -98,6 +98,11 @@ class PlanDetailsSheet extends StatelessWidget {
                           totalWeeks: weeks.length,
                           avgWeeklyKm: avgKm,
                           weeklyRuns: runsRange,
+                        ),
+                        const SizedBox(height: 20),
+                        _WeeklyVolumeChart(
+                          weeks: weeks,
+                          raceWeekNumber: _raceWeekNumber(weeks),
                         ),
                         const SizedBox(height: 24),
                         Text(
@@ -115,51 +120,15 @@ class PlanDetailsSheet extends StatelessWidget {
                           const SizedBox(height: 8),
                         ],
                       ],
-                      const SizedBox(height: 16),
-                      if (_isPending) ...[
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _PrimaryButton(
-                                label: ops != null ? 'APPLY CHANGES' : 'ACCEPT PLAN',
-                                background: AppColors.secondary,
-                                foreground: AppColors.primary,
-                                onPressed: onAccept == null
-                                    ? null
-                                    : () async {
-                                        await onAccept!();
-                                        if (context.mounted) {
-                                          Navigator.of(context).pop();
-                                        }
-                                      },
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: _PrimaryButton(
-                                label: 'ADJUST',
-                                background: AppColors.primary,
-                                foreground: AppColors.neutral,
-                                onPressed: onAdjust == null
-                                    ? null
-                                    : () {
-                                        // Close the sheet immediately so the
-                                        // user lands back in the chat and can
-                                        // type their adjustment; the reject
-                                        // API runs in the background.
-                                        Navigator.of(context).pop();
-                                        onAdjust!();
-                                      },
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-                      _CloseButton(onTap: () => Navigator.of(context).pop()),
                     ],
                   ),
                 ),
+              ),
+              _StickyFooter(
+                isPending: _isPending,
+                isRevision: ops != null,
+                onAccept: onAccept,
+                onAdjust: onAdjust,
               ),
             ],
           ),
@@ -203,6 +172,34 @@ class PlanDetailsSheet extends StatelessWidget {
     final min = counts.reduce((a, b) => a < b ? a : b);
     final max = counts.reduce((a, b) => a > b ? a : b);
     return min == max ? '$min' : '$min–$max';
+  }
+
+  /// Find the week that contains the race day (computed from `target_date`
+  /// the same way the backend optimizer does — plan starts at this week's
+  /// Monday and weeks advance by 7 days). Returns null when there's no
+  /// race day (open-ended general-fitness plans). The chart strips this
+  /// week so a taper-week dip / single race-day entry doesn't dominate
+  /// the volume curve.
+  int? _raceWeekNumber(List<Map<String, dynamic>> weeks) {
+    final target = proposal.payload['target_date'];
+    if (target is! String || target.isEmpty) return null;
+    final raceDate = DateTime.tryParse(target);
+    if (raceDate == null) return null;
+
+    final now = DateTime.now();
+    final planStart = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: (now.weekday - 1)));
+
+    for (final w in weeks) {
+      final wn = w['week_number'];
+      if (wn is! num) continue;
+      final weekStart = planStart.add(Duration(days: (wn.toInt() - 1) * 7));
+      final weekEnd = weekStart.add(const Duration(days: 7));
+      if (!raceDate.isBefore(weekStart) && raceDate.isBefore(weekEnd)) {
+        return wn.toInt();
+      }
+    }
+    return null;
   }
 }
 
@@ -430,15 +427,19 @@ class _DayRow extends StatelessWidget {
         ? day['title'] as String
         : _prettifyType(day['type'] as String?);
     final km = day['target_km'];
-    final pace = day['target_pace_seconds_per_km'];
+    // Mirror TrainingDayPaceX.displayPaceSecondsPerKm: day-level pace is
+    // always null on intervals (per the optimizer's hard invariant), so
+    // fall through to the unweighted mean of every `kind=work` segment's
+    // target pace. Keeps interval rows from showing a blank metric and
+    // matches what weekly_plan_screen / training_day_detail render.
+    final paceSecs = _displayPaceSeconds(day);
 
     final metricParts = <String>[];
     if (km is num && km > 0) {
       metricParts.add('${km % 1 == 0 ? km.toInt() : km.toStringAsFixed(1)} km');
     }
-    if (pace is num && pace > 0) {
-      final secs = pace.toInt();
-      metricParts.add('${secs ~/ 60}:${(secs % 60).toString().padLeft(2, '0')} /km');
+    if (paceSecs != null && paceSecs > 0) {
+      metricParts.add('${paceSecs ~/ 60}:${(paceSecs % 60).toString().padLeft(2, '0')} /km');
     }
 
     return Padding(
@@ -494,6 +495,28 @@ class _DayRow extends StatelessWidget {
             : p[0].toUpperCase() + p.substring(1).toLowerCase())
         .join(' ');
   }
+
+  /// Raw-map equivalent of `TrainingDayPaceX.displayPaceSecondsPerKm`. For
+  /// non-interval days returns `target_pace_seconds_per_km` directly; for
+  /// intervals returns the unweighted mean across `kind=work` segments.
+  int? _displayPaceSeconds(Map<String, dynamic> day) {
+    final type = day['type'] as String?;
+    if (type != 'interval') {
+      final raw = day['target_pace_seconds_per_km'];
+      return raw is num ? raw.toInt() : null;
+    }
+    final segments = day['intervals'];
+    if (segments is! List || segments.isEmpty) return null;
+    final paces = <int>[];
+    for (final s in segments) {
+      if (s is! Map) continue;
+      if (s['kind'] != 'work') continue;
+      final p = s['target_pace_seconds_per_km'];
+      if (p is num && p > 0) paces.add(p.toInt());
+    }
+    if (paces.isEmpty) return null;
+    return (paces.reduce((a, b) => a + b) / paces.length).round();
+  }
 }
 
 class _PrimaryButton extends StatelessWidget {
@@ -534,30 +557,267 @@ class _PrimaryButton extends StatelessWidget {
   }
 }
 
-class _CloseButton extends StatelessWidget {
-  final VoidCallback onTap;
-  const _CloseButton({required this.onTap});
+/// Pinned action bar at the bottom of the sheet — stays visible regardless
+/// of scroll position so the runner can always accept or adjust without
+/// scrolling to the end of a long plan.
+class _StickyFooter extends StatelessWidget {
+  final bool isPending;
+  final bool isRevision;
+  final Future<void> Function()? onAccept;
+  final Future<void> Function()? onAdjust;
+
+  const _StickyFooter({
+    required this.isPending,
+    required this.isRevision,
+    required this.onAccept,
+    required this.onAdjust,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton(
-      onPressed: onTap,
-      style: OutlinedButton.styleFrom(
-        backgroundColor: AppColors.neutralHighlight,
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        side: const BorderSide(color: AppColors.border),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: AppColors.border)),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 12,
+            offset: Offset(0, -2),
+          ),
+        ],
       ),
-      child: Text(
-        'CLOSE',
-        style: GoogleFonts.spaceGrotesk(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: AppColors.primary,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+          child: isPending
+              ? Row(
+                  children: [
+                    Expanded(
+                      child: _PrimaryButton(
+                        label: 'ADJUST',
+                        background: AppColors.lightTan,
+                        foreground: AppColors.primary,
+                        onPressed: onAdjust == null
+                            ? null
+                            : () {
+                                Navigator.of(context).pop();
+                                onAdjust!();
+                              },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: _PrimaryButton(
+                        label: isRevision ? 'APPLY CHANGES' : 'ACCEPT PLAN',
+                        background: AppColors.secondary,
+                        foreground: AppColors.primary,
+                        onPressed: onAccept == null
+                            ? null
+                            : () async {
+                                await onAccept!();
+                                if (context.mounted) {
+                                  Navigator.of(context).pop();
+                                }
+                              },
+                      ),
+                    ),
+                  ],
+                )
+              : _PrimaryButton(
+                  label: 'CLOSE',
+                  background: AppColors.lightTan,
+                  foreground: AppColors.primary,
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
         ),
       ),
     );
   }
+}
+
+/// Weekly km line chart. Fixed-height + CustomPainter so it lays out
+/// immediately on open with no jitter. Renders nothing when the plan has
+/// fewer than 2 weeks of data (a single point isn't a trend). The race
+/// week is stripped — its single-day entry would tank the line and
+/// distort the build-up curve runners actually care about.
+class _WeeklyVolumeChart extends StatelessWidget {
+  final List<Map<String, dynamic>> weeks;
+  final int? raceWeekNumber;
+  const _WeeklyVolumeChart({required this.weeks, this.raceWeekNumber});
+
+  @override
+  Widget build(BuildContext context) {
+    final points = weeks
+        .map((w) {
+          final wn = w['week_number'];
+          final km = w['total_km'];
+          return (
+            week: wn is num ? wn.toInt() : 0,
+            km: km is num ? km.toDouble() : 0.0,
+          );
+        })
+        .where((p) => p.week > 0 && p.week != raceWeekNumber)
+        .toList();
+    if (points.length < 2) return const SizedBox.shrink();
+
+    final maxKm = points.map((p) => p.km).reduce((a, b) => a > b ? a : b);
+    final minKm = points.map((p) => p.km).reduce((a, b) => a < b ? a : b);
+    final peakWeek = points.reduce((a, b) => a.km > b.km ? a : b);
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+      decoration: BoxDecoration(
+        color: AppColors.neutralHighlight,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'WEEKLY VOLUME',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.8,
+                  color: AppColors.inkMuted,
+                ),
+              ),
+              Text(
+                'Peak ${peakWeek.km.toStringAsFixed(0)} km · W${peakWeek.week}',
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryInk,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 110,
+            width: double.infinity,
+            child: CustomPaint(
+              painter: _VolumePainter(
+                points: points,
+                maxKm: maxKm,
+                minKm: minKm,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'W${points.first.week}',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.tertiary,
+                ),
+              ),
+              Text(
+                'W${points.last.week}',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.tertiary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VolumePainter extends CustomPainter {
+  final List<({int week, double km})> points;
+  final double maxKm;
+  final double minKm;
+
+  _VolumePainter({
+    required this.points,
+    required this.maxKm,
+    required this.minKm,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (points.isEmpty) return;
+
+    // Scale to the actual data range, not [0, max]. A build-up plan
+    // typically climbs from ~15 km to ~26 km — anchoring to zero leaves
+    // the line sitting at half-height and hides the trend. With this
+    // mapping the lowest week sits near the bottom and the peak near
+    // the top, using the full vertical canvas.
+    const topPad = 6.0;
+    const bottomPad = 6.0;
+    final usable = size.height - topPad - bottomPad;
+    final span = maxKm - minKm;
+    // If every week is identical (span = 0), render a flat line at mid
+    // height instead of dividing by zero.
+    final normalizer = span == 0 ? 1.0 : span;
+
+    final stepX = points.length == 1 ? 0.0 : size.width / (points.length - 1);
+    final coords = <Offset>[];
+    for (var i = 0; i < points.length; i++) {
+      final x = stepX * i;
+      final t = span == 0 ? 0.5 : (points[i].km - minKm) / normalizer;
+      final y = topPad + (1 - t) * usable;
+      coords.add(Offset(x, y));
+    }
+
+    final fillPath = Path()..moveTo(coords.first.dx, size.height);
+    for (final p in coords) {
+      fillPath.lineTo(p.dx, p.dy);
+    }
+    fillPath.lineTo(coords.last.dx, size.height);
+    fillPath.close();
+
+    canvas.drawPath(
+      fillPath,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0x55D4A84B), Color(0x00D4A84B)],
+        ).createShader(Rect.fromLTWH(0, 0, size.width, size.height)),
+    );
+
+    final linePath = Path()..moveTo(coords.first.dx, coords.first.dy);
+    for (final p in coords.skip(1)) {
+      linePath.lineTo(p.dx, p.dy);
+    }
+    canvas.drawPath(
+      linePath,
+      Paint()
+        ..color = const Color(0xFFC09437)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0
+        ..strokeJoin = StrokeJoin.round
+        ..strokeCap = StrokeCap.round,
+    );
+
+    final dotPaint = Paint()..color = const Color(0xFFC09437);
+    final dotCorePaint = Paint()..color = Colors.white;
+    for (final p in coords) {
+      canvas.drawCircle(p, 3.5, dotPaint);
+      canvas.drawCircle(p, 1.5, dotCorePaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _VolumePainter old) =>
+      old.points.length != points.length ||
+      old.maxKm != maxKm ||
+      old.minKm != minKm;
 }

@@ -574,9 +574,23 @@ class AdjustPlan implements Tool
         if (isset($op['type'])) {
             $type = TrainingType::tryFrom((string) $op['type']);
             if ($type !== null) {
+                $previousType = $existing['type'] ?? null;
                 $next['type'] = $type->value;
                 if ($type !== TrainingType::Interval) {
                     $next['intervals'] = null;
+                }
+                // Type changed → wipe stale type-derived fields so the
+                // optimizer regenerates them. Without this, a tempo→interval
+                // replace keeps the old "Tempo" title + tempo pace and the
+                // resulting card / details sheet looks identical to the
+                // original. Explicit title/pace in the same op (handled
+                // below) still wins.
+                if ($previousType !== null && $previousType !== $type->value) {
+                    $next['title'] = null;
+                    $next['target_pace_seconds_per_km'] = null;
+                    if ($type === TrainingType::Interval) {
+                        $next['intervals'] = null;
+                    }
                 }
             }
         }

@@ -111,6 +111,56 @@ class AdjustPlanTest extends TestCase
         $this->assertSame(TrainingType::Interval->value, $editedDay['type']);
     }
 
+    public function test_replace_swap_to_interval_regenerates_title_and_synthesizes_intervals(): void
+    {
+        $user = User::factory()->create();
+        $proposal = $this->seedProposal($user);
+
+        // Find a tempo day from the seeded plan and swap it to interval
+        // WITHOUT providing an intervals[] array. The bug we're guarding
+        // against: title stays "Tempo" + intervals stays missing → the
+        // resulting card / details sheet looks identical to the original.
+        $week = collect($proposal->payload['schedule']['weeks'])
+            ->firstWhere(fn ($w) => collect($w['days'])->contains(fn ($d) => $d['type'] === TrainingType::Tempo->value));
+        if ($week === null) {
+            $this->markTestSkipped('Seeded plan has no tempo day to swap.');
+        }
+        $tempoDay = collect($week['days'])->firstWhere('type', TrainingType::Tempo->value);
+        $this->assertSame('Tempo', $tempoDay['title']);
+
+        $result = json_decode($this->makeTool($user)->handle(new Request([
+            'reason' => 'Runner asked to swap tempo for an interval session.',
+            'operations' => json_encode([
+                'operations' => [
+                    [
+                        'action' => 'replace',
+                        'week' => $week['week_number'],
+                        'day_of_week' => $tempoDay['day_of_week'],
+                        'type' => TrainingType::Interval->value,
+                        'description' => 'Swap tempo for intervals.',
+                    ],
+                ],
+            ]),
+        ])), true);
+
+        $this->assertTrue($result['requires_approval']);
+        $newProposal = CoachProposal::find($result['proposal_id']);
+        $newWeek = collect($newProposal->payload['schedule']['weeks'])
+            ->firstWhere('week_number', $week['week_number']);
+        $editedDay = collect($newWeek['days'])->firstWhere('day_of_week', $tempoDay['day_of_week']);
+
+        $this->assertSame(TrainingType::Interval->value, $editedDay['type']);
+        $this->assertSame('Intervals', $editedDay['title']);
+        $this->assertNull($editedDay['target_pace_seconds_per_km']);
+        $this->assertIsArray($editedDay['intervals']);
+        $this->assertNotEmpty($editedDay['intervals']);
+        $kinds = array_map(fn ($s) => $s['kind'], $editedDay['intervals']);
+        $this->assertContains('warmup', $kinds);
+        $this->assertContains('work', $kinds);
+        $this->assertContains('recovery', $kinds);
+        $this->assertSame('cooldown', end($kinds), 'cooldown must be the last segment');
+    }
+
     public function test_remove_drops_session(): void
     {
         $user = User::factory()->create();

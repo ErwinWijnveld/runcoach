@@ -782,6 +782,17 @@ php artisan tinker --execute 'DB::table("agent_conversation_messages")->where("c
 - **Capture outgoing Anthropic request bodies** — in a tinker session, `Http::globalRequestMiddleware(fn($req) => tap($req, fn() => Log::info('[anthropic] '.substr((string)$req->getBody(), 0, 20000))));` then tail `storage/logs/laravel.log`. Useful when you want to see the EXACT prompt + cache_control breakpoints sent to Anthropic.
 - **Admin token dashboard at `/admin/token-usages`** — fastest way to spot cost regressions, duplicate-logging, or broken cache hits without opening the log file.
 
+### Local dev seed (`db:seed`)
+
+`AuthController::devLogin` (`POST /auth/dev-login`, local-only) returns the OLDEST user — the same one `AdminUserSeeder` creates (`admin@runcoach.local` / `admin`). Two dev seeders ship; **toggle between them by uncommenting the call you want** in `database/seeders/DatabaseSeeder.php`:
+
+- **`DevOnboardingSeeder`** (default) — drops the dev user into a **pre-onboarding state**: `has_completed_onboarding=false`, `date_of_birth=2002-06-15` (age 23), age-derived HR zones (Tanaka max 192 → Z2 ≤115, Z3 ≤134, Z4 ≤154, Z5 ≤173+), and ~140 wearable activities seeded across the last 365 days (easy/tempo/long mix, ramps with phase, `mt_srand(202206)` so it's deterministic). The `/onboarding/profile` endpoint computes a real narrative off this data. Activities are tagged with the `dev-onb-seed-` prefix so re-runs scrub cleanly.
+- **`DevPlanSeeder`** — drops the dev user into a **post-onboarding state**: 8-week half-marathon plan with last week's completed runs + AI feedback. For testing the workout agent + schedule UI + compliance scoring.
+
+Both seeders are idempotent and local-only (no-op outside `local` env). Picking one wipes the other's state on next `db:seed` so you can flip without `migrate:fresh`.
+
+When invoked, `run-dev.sh` auto-loads the seeded dev user via `Auth.loginDev()` (kicked off from `_checkAuth` when `kDebugMode && !hasToken`). Combined with the seeder default, that means `bash app/scripts/run-dev.sh` lands you on `/onboarding/zones` (or `/onboarding/connect-health` on native iOS — see app/CLAUDE.md §6 for the web-skip rule).
+
 ## Deployment (Laravel Cloud)
 
 Prod at **https://runcoach.free.laravel.cloud**. Full workaround + commands in `../.laravel-cloud/README.md` and the monorepo-level `../CLAUDE.md` → Deployment. Key points:

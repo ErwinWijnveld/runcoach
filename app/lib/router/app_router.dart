@@ -64,7 +64,6 @@ GoRouter appRouter(Ref ref) {
       final isAuthRoute = state.matchedLocation.startsWith('/auth');
 
       if (!isLoggedIn && !isAuthRoute) return '/auth/welcome';
-      if (isLoggedIn && isAuthRoute) return '/dashboard';
 
       final user = authState.value;
 
@@ -103,6 +102,18 @@ GoRouter appRouter(Ref ref) {
         return '/onboarding';
       }
 
+      // Web has no HealthKit — the connect-health screen would just sit on
+      // a permission prompt that never resolves. The dev seed pre-populates
+      // activities + zones, so jump straight to the zones step.
+      if (kIsWeb && state.matchedLocation == '/onboarding/connect-health') {
+        return '/onboarding/zones';
+      }
+
+      // Logged in but landed on an auth route (e.g. just signed in via
+      // dev-login / Apple) — bounce to the dashboard. Runs LAST so the
+      // onboarding-incomplete branch above can override for fresh users.
+      if (isLoggedIn && isAuthRoute) return '/dashboard';
+
       return null;
     },
     routes: [
@@ -116,9 +127,13 @@ GoRouter appRouter(Ref ref) {
       ),
       GoRoute(
         path: '/onboarding',
-        redirect: (context, state) => state.matchedLocation == '/onboarding'
-            ? '/onboarding/connect-health'
-            : null,
+        redirect: (context, state) {
+          if (state.matchedLocation != '/onboarding') return null;
+          // Web has no HealthKit; skip directly to zones (seeded in dev).
+          return kIsWeb
+              ? '/onboarding/zones'
+              : '/onboarding/connect-health';
+        },
       ),
       GoRoute(
         path: '/onboarding/connect-health',

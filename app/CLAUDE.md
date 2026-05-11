@@ -184,6 +184,10 @@ The **generating screen** estimates duration via `_estimateSeconds` based on whe
 
 Note: Level and weekly km capacity are derived by the backend from the synced run history — onboarding only asks for coach style (motivational/analytical/balanced) plus race specifics + run-type ranking.
 
+**Router redirect ordering** (`app_router.dart` redirect callback): the rule order matters. `isLoggedIn && isAuthRoute → /dashboard` MUST run AFTER the onboarding-incomplete check, otherwise a fresh user who just signed in via dev-login / Apple Sign-In gets shortcut to `/dashboard` and never sees onboarding. The current order is: (1) `!isLoggedIn && !isAuthRoute → /auth/welcome`, (2) pending plan-generation routing, (3) `hasCompletedOnboarding == false → /onboarding`, (4) `isLoggedIn && isAuthRoute → /dashboard` as final fallback.
+
+**Web onboarding skip:** HealthKit is unavailable in browser, so the `/onboarding/connect-health` screen would just sit on a permission prompt that never resolves. The router has two `kIsWeb` guards that skip it: (a) `/onboarding` redirects to `/onboarding/zones` instead of `/onboarding/connect-health`, and (b) a direct hit on `/onboarding/connect-health` bounces to `/onboarding/zones`. The backend `DevOnboardingSeeder` pre-populates wearable activities + age-derived HR zones for the dev user so the downstream zones/overview screens have real data (see `api/CLAUDE.md` → "Local dev seed"). On native iOS the connect-health screen still runs normally — the skip is web-only.
+
 ### 7. Design system
 
 Warm earth-tone palette in `core/theme/app_theme.dart`:
@@ -406,6 +410,8 @@ When changing this layout, keep these invariants:
 - Per-section colors come from `result.distanceScore / paceScore / heartRateScore` (NOT the overall `complianceScore`) so the runner sees which dimension drove the score.
 
 **Interval pace tile**: on `type=='interval'` days `TrainingDay.targetPaceSecondsPerKm` is null by design (the day-level field doesn't apply to intervals — see `api/CLAUDE.md` → "Interval pace contract"). Read the displayed value via the `TrainingDayPaceX` extension's `displayPaceSecondsPerKm` getter instead — it returns the work-set average (mean of `kind=work` segment paces) for intervals and the day-level field for everything else. The pace tile also hides its `actual` value on intervals: a full-run avg that mixes warmup + recovery + cooldown isn't comparable to per-rep work pace and would render as a misleading "fail" colour. The training-result screen's `_TargetVsActualSection` doesn't need similar treatment because it already hides the pace row when the target is null.
+
+**Knowingly-duplicated work-set-avg logic in `PlanDetailsSheet`** (`features/coach/widgets/plan_details_sheet.dart::_displayPaceSeconds`): the proposal modal renders directly from `proposal.payload` (raw `Map<String, dynamic>`), so it can't reuse the `TrainingDayPaceX` extension which is bound to the Freezed `TrainingDay` model. The helper inlines the same mean-of-work-segment-paces rule — keep the two in sync when changing the contract.
 
 ### 14. HR-zone auto-derivation + onboarding step
 

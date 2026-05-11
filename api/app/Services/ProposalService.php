@@ -131,7 +131,7 @@ class ProposalService
 
         if (! $proposal) {
             Log::info(sprintf(
-                '[proposal:detect] cid=%s user_id=%d msg_id=%d outcome=no_pending_proposal',
+                '[proposal:detect] cid=%s user_id=%d msg_id=%s outcome=no_pending_proposal',
                 $conversationId, $user->id, $message->id,
             ));
 
@@ -145,7 +145,7 @@ class ProposalService
         }
 
         Log::info(sprintf(
-            '[proposal:detect] cid=%s user_id=%d msg_id=%d proposal_id=%d type=%s linked_before=%s summary=%s',
+            '[proposal:detect] cid=%s user_id=%d msg_id=%s proposal_id=%d type=%s linked_before=%s summary=%s',
             $conversationId,
             $user->id,
             $message->id,
