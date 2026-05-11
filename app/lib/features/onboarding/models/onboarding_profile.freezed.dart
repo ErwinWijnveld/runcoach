@@ -279,6 +279,272 @@ as int?,
 
 
 /// @nodoc
+mixin _$OnboardingBaseline {
+
+@JsonKey(name: 'weekly_km', fromJson: toDoubleOrNull) double? get weeklyKm;@JsonKey(name: 'weekly_km_source') String? get weeklyKmSource;@JsonKey(name: 'easy_pace_seconds_per_km', fromJson: toIntOrNull) int? get easyPaceSecondsPerKm;@JsonKey(name: 'easy_pace_source') String? get easyPaceSource;
+/// Create a copy of OnboardingBaseline
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$OnboardingBaselineCopyWith<OnboardingBaseline> get copyWith => _$OnboardingBaselineCopyWithImpl<OnboardingBaseline>(this as OnboardingBaseline, _$identity);
+
+  /// Serializes this OnboardingBaseline to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OnboardingBaseline&&(identical(other.weeklyKm, weeklyKm) || other.weeklyKm == weeklyKm)&&(identical(other.weeklyKmSource, weeklyKmSource) || other.weeklyKmSource == weeklyKmSource)&&(identical(other.easyPaceSecondsPerKm, easyPaceSecondsPerKm) || other.easyPaceSecondsPerKm == easyPaceSecondsPerKm)&&(identical(other.easyPaceSource, easyPaceSource) || other.easyPaceSource == easyPaceSource));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,weeklyKm,weeklyKmSource,easyPaceSecondsPerKm,easyPaceSource);
+
+@override
+String toString() {
+  return 'OnboardingBaseline(weeklyKm: $weeklyKm, weeklyKmSource: $weeklyKmSource, easyPaceSecondsPerKm: $easyPaceSecondsPerKm, easyPaceSource: $easyPaceSource)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $OnboardingBaselineCopyWith<$Res>  {
+  factory $OnboardingBaselineCopyWith(OnboardingBaseline value, $Res Function(OnboardingBaseline) _then) = _$OnboardingBaselineCopyWithImpl;
+@useResult
+$Res call({
+@JsonKey(name: 'weekly_km', fromJson: toDoubleOrNull) double? weeklyKm,@JsonKey(name: 'weekly_km_source') String? weeklyKmSource,@JsonKey(name: 'easy_pace_seconds_per_km', fromJson: toIntOrNull) int? easyPaceSecondsPerKm,@JsonKey(name: 'easy_pace_source') String? easyPaceSource
+});
+
+
+
+
+}
+/// @nodoc
+class _$OnboardingBaselineCopyWithImpl<$Res>
+    implements $OnboardingBaselineCopyWith<$Res> {
+  _$OnboardingBaselineCopyWithImpl(this._self, this._then);
+
+  final OnboardingBaseline _self;
+  final $Res Function(OnboardingBaseline) _then;
+
+/// Create a copy of OnboardingBaseline
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? weeklyKm = freezed,Object? weeklyKmSource = freezed,Object? easyPaceSecondsPerKm = freezed,Object? easyPaceSource = freezed,}) {
+  return _then(_self.copyWith(
+weeklyKm: freezed == weeklyKm ? _self.weeklyKm : weeklyKm // ignore: cast_nullable_to_non_nullable
+as double?,weeklyKmSource: freezed == weeklyKmSource ? _self.weeklyKmSource : weeklyKmSource // ignore: cast_nullable_to_non_nullable
+as String?,easyPaceSecondsPerKm: freezed == easyPaceSecondsPerKm ? _self.easyPaceSecondsPerKm : easyPaceSecondsPerKm // ignore: cast_nullable_to_non_nullable
+as int?,easyPaceSource: freezed == easyPaceSource ? _self.easyPaceSource : easyPaceSource // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [OnboardingBaseline].
+extension OnboardingBaselinePatterns on OnboardingBaseline {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _OnboardingBaseline value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _OnboardingBaseline() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _OnboardingBaseline value)  $default,){
+final _that = this;
+switch (_that) {
+case _OnboardingBaseline():
+return $default(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _OnboardingBaseline value)?  $default,){
+final _that = this;
+switch (_that) {
+case _OnboardingBaseline() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'weekly_km', fromJson: toDoubleOrNull)  double? weeklyKm, @JsonKey(name: 'weekly_km_source')  String? weeklyKmSource, @JsonKey(name: 'easy_pace_seconds_per_km', fromJson: toIntOrNull)  int? easyPaceSecondsPerKm, @JsonKey(name: 'easy_pace_source')  String? easyPaceSource)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _OnboardingBaseline() when $default != null:
+return $default(_that.weeklyKm,_that.weeklyKmSource,_that.easyPaceSecondsPerKm,_that.easyPaceSource);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'weekly_km', fromJson: toDoubleOrNull)  double? weeklyKm, @JsonKey(name: 'weekly_km_source')  String? weeklyKmSource, @JsonKey(name: 'easy_pace_seconds_per_km', fromJson: toIntOrNull)  int? easyPaceSecondsPerKm, @JsonKey(name: 'easy_pace_source')  String? easyPaceSource)  $default,) {final _that = this;
+switch (_that) {
+case _OnboardingBaseline():
+return $default(_that.weeklyKm,_that.weeklyKmSource,_that.easyPaceSecondsPerKm,_that.easyPaceSource);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'weekly_km', fromJson: toDoubleOrNull)  double? weeklyKm, @JsonKey(name: 'weekly_km_source')  String? weeklyKmSource, @JsonKey(name: 'easy_pace_seconds_per_km', fromJson: toIntOrNull)  int? easyPaceSecondsPerKm, @JsonKey(name: 'easy_pace_source')  String? easyPaceSource)?  $default,) {final _that = this;
+switch (_that) {
+case _OnboardingBaseline() when $default != null:
+return $default(_that.weeklyKm,_that.weeklyKmSource,_that.easyPaceSecondsPerKm,_that.easyPaceSource);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+@JsonSerializable()
+
+class _OnboardingBaseline implements OnboardingBaseline {
+  const _OnboardingBaseline({@JsonKey(name: 'weekly_km', fromJson: toDoubleOrNull) this.weeklyKm, @JsonKey(name: 'weekly_km_source') this.weeklyKmSource, @JsonKey(name: 'easy_pace_seconds_per_km', fromJson: toIntOrNull) this.easyPaceSecondsPerKm, @JsonKey(name: 'easy_pace_source') this.easyPaceSource});
+  factory _OnboardingBaseline.fromJson(Map<String, dynamic> json) => _$OnboardingBaselineFromJson(json);
+
+@override@JsonKey(name: 'weekly_km', fromJson: toDoubleOrNull) final  double? weeklyKm;
+@override@JsonKey(name: 'weekly_km_source') final  String? weeklyKmSource;
+@override@JsonKey(name: 'easy_pace_seconds_per_km', fromJson: toIntOrNull) final  int? easyPaceSecondsPerKm;
+@override@JsonKey(name: 'easy_pace_source') final  String? easyPaceSource;
+
+/// Create a copy of OnboardingBaseline
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$OnboardingBaselineCopyWith<_OnboardingBaseline> get copyWith => __$OnboardingBaselineCopyWithImpl<_OnboardingBaseline>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$OnboardingBaselineToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OnboardingBaseline&&(identical(other.weeklyKm, weeklyKm) || other.weeklyKm == weeklyKm)&&(identical(other.weeklyKmSource, weeklyKmSource) || other.weeklyKmSource == weeklyKmSource)&&(identical(other.easyPaceSecondsPerKm, easyPaceSecondsPerKm) || other.easyPaceSecondsPerKm == easyPaceSecondsPerKm)&&(identical(other.easyPaceSource, easyPaceSource) || other.easyPaceSource == easyPaceSource));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,weeklyKm,weeklyKmSource,easyPaceSecondsPerKm,easyPaceSource);
+
+@override
+String toString() {
+  return 'OnboardingBaseline(weeklyKm: $weeklyKm, weeklyKmSource: $weeklyKmSource, easyPaceSecondsPerKm: $easyPaceSecondsPerKm, easyPaceSource: $easyPaceSource)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$OnboardingBaselineCopyWith<$Res> implements $OnboardingBaselineCopyWith<$Res> {
+  factory _$OnboardingBaselineCopyWith(_OnboardingBaseline value, $Res Function(_OnboardingBaseline) _then) = __$OnboardingBaselineCopyWithImpl;
+@override @useResult
+$Res call({
+@JsonKey(name: 'weekly_km', fromJson: toDoubleOrNull) double? weeklyKm,@JsonKey(name: 'weekly_km_source') String? weeklyKmSource,@JsonKey(name: 'easy_pace_seconds_per_km', fromJson: toIntOrNull) int? easyPaceSecondsPerKm,@JsonKey(name: 'easy_pace_source') String? easyPaceSource
+});
+
+
+
+
+}
+/// @nodoc
+class __$OnboardingBaselineCopyWithImpl<$Res>
+    implements _$OnboardingBaselineCopyWith<$Res> {
+  __$OnboardingBaselineCopyWithImpl(this._self, this._then);
+
+  final _OnboardingBaseline _self;
+  final $Res Function(_OnboardingBaseline) _then;
+
+/// Create a copy of OnboardingBaseline
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? weeklyKm = freezed,Object? weeklyKmSource = freezed,Object? easyPaceSecondsPerKm = freezed,Object? easyPaceSource = freezed,}) {
+  return _then(_OnboardingBaseline(
+weeklyKm: freezed == weeklyKm ? _self.weeklyKm : weeklyKm // ignore: cast_nullable_to_non_nullable
+as double?,weeklyKmSource: freezed == weeklyKmSource ? _self.weeklyKmSource : weeklyKmSource // ignore: cast_nullable_to_non_nullable
+as String?,easyPaceSecondsPerKm: freezed == easyPaceSecondsPerKm ? _self.easyPaceSecondsPerKm : easyPaceSecondsPerKm // ignore: cast_nullable_to_non_nullable
+as int?,easyPaceSource: freezed == easyPaceSource ? _self.easyPaceSource : easyPaceSource // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$PersonalRecord {
 
 @JsonKey(name: 'duration_seconds', fromJson: toInt) int get durationSeconds;@JsonKey(name: 'distance_meters', fromJson: toInt) int get distanceMeters; String? get date;
@@ -547,7 +813,7 @@ mixin _$OnboardingProfile {
  String get status;// 'ready' | 'syncing'
  OnboardingProfileMetrics? get metrics;@JsonKey(name: 'narrative_summary') String? get narrativeSummary;@JsonKey(name: 'analyzed_at') DateTime? get analyzedAt;/// All-time PRs keyed by '5k' | '10k' | 'half' | 'marathon'. Map values
 /// can be null when no qualifying workout exists for that distance.
-@JsonKey(name: 'personal_records') Map<String, PersonalRecord?>? get personalRecords;
+@JsonKey(name: 'personal_records') Map<String, PersonalRecord?>? get personalRecords; OnboardingBaseline? get baseline;
 /// Create a copy of OnboardingProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -560,16 +826,16 @@ $OnboardingProfileCopyWith<OnboardingProfile> get copyWith => _$OnboardingProfil
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OnboardingProfile&&(identical(other.status, status) || other.status == status)&&(identical(other.metrics, metrics) || other.metrics == metrics)&&(identical(other.narrativeSummary, narrativeSummary) || other.narrativeSummary == narrativeSummary)&&(identical(other.analyzedAt, analyzedAt) || other.analyzedAt == analyzedAt)&&const DeepCollectionEquality().equals(other.personalRecords, personalRecords));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OnboardingProfile&&(identical(other.status, status) || other.status == status)&&(identical(other.metrics, metrics) || other.metrics == metrics)&&(identical(other.narrativeSummary, narrativeSummary) || other.narrativeSummary == narrativeSummary)&&(identical(other.analyzedAt, analyzedAt) || other.analyzedAt == analyzedAt)&&const DeepCollectionEquality().equals(other.personalRecords, personalRecords)&&(identical(other.baseline, baseline) || other.baseline == baseline));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,status,metrics,narrativeSummary,analyzedAt,const DeepCollectionEquality().hash(personalRecords));
+int get hashCode => Object.hash(runtimeType,status,metrics,narrativeSummary,analyzedAt,const DeepCollectionEquality().hash(personalRecords),baseline);
 
 @override
 String toString() {
-  return 'OnboardingProfile(status: $status, metrics: $metrics, narrativeSummary: $narrativeSummary, analyzedAt: $analyzedAt, personalRecords: $personalRecords)';
+  return 'OnboardingProfile(status: $status, metrics: $metrics, narrativeSummary: $narrativeSummary, analyzedAt: $analyzedAt, personalRecords: $personalRecords, baseline: $baseline)';
 }
 
 
@@ -580,11 +846,11 @@ abstract mixin class $OnboardingProfileCopyWith<$Res>  {
   factory $OnboardingProfileCopyWith(OnboardingProfile value, $Res Function(OnboardingProfile) _then) = _$OnboardingProfileCopyWithImpl;
 @useResult
 $Res call({
- String status, OnboardingProfileMetrics? metrics,@JsonKey(name: 'narrative_summary') String? narrativeSummary,@JsonKey(name: 'analyzed_at') DateTime? analyzedAt,@JsonKey(name: 'personal_records') Map<String, PersonalRecord?>? personalRecords
+ String status, OnboardingProfileMetrics? metrics,@JsonKey(name: 'narrative_summary') String? narrativeSummary,@JsonKey(name: 'analyzed_at') DateTime? analyzedAt,@JsonKey(name: 'personal_records') Map<String, PersonalRecord?>? personalRecords, OnboardingBaseline? baseline
 });
 
 
-$OnboardingProfileMetricsCopyWith<$Res>? get metrics;
+$OnboardingProfileMetricsCopyWith<$Res>? get metrics;$OnboardingBaselineCopyWith<$Res>? get baseline;
 
 }
 /// @nodoc
@@ -597,14 +863,15 @@ class _$OnboardingProfileCopyWithImpl<$Res>
 
 /// Create a copy of OnboardingProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? status = null,Object? metrics = freezed,Object? narrativeSummary = freezed,Object? analyzedAt = freezed,Object? personalRecords = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? status = null,Object? metrics = freezed,Object? narrativeSummary = freezed,Object? analyzedAt = freezed,Object? personalRecords = freezed,Object? baseline = freezed,}) {
   return _then(_self.copyWith(
 status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,metrics: freezed == metrics ? _self.metrics : metrics // ignore: cast_nullable_to_non_nullable
 as OnboardingProfileMetrics?,narrativeSummary: freezed == narrativeSummary ? _self.narrativeSummary : narrativeSummary // ignore: cast_nullable_to_non_nullable
 as String?,analyzedAt: freezed == analyzedAt ? _self.analyzedAt : analyzedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,personalRecords: freezed == personalRecords ? _self.personalRecords : personalRecords // ignore: cast_nullable_to_non_nullable
-as Map<String, PersonalRecord?>?,
+as Map<String, PersonalRecord?>?,baseline: freezed == baseline ? _self.baseline : baseline // ignore: cast_nullable_to_non_nullable
+as OnboardingBaseline?,
   ));
 }
 /// Create a copy of OnboardingProfile
@@ -618,6 +885,18 @@ $OnboardingProfileMetricsCopyWith<$Res>? get metrics {
 
   return $OnboardingProfileMetricsCopyWith<$Res>(_self.metrics!, (value) {
     return _then(_self.copyWith(metrics: value));
+  });
+}/// Create a copy of OnboardingProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$OnboardingBaselineCopyWith<$Res>? get baseline {
+    if (_self.baseline == null) {
+    return null;
+  }
+
+  return $OnboardingBaselineCopyWith<$Res>(_self.baseline!, (value) {
+    return _then(_self.copyWith(baseline: value));
   });
 }
 }
@@ -698,10 +977,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String status,  OnboardingProfileMetrics? metrics, @JsonKey(name: 'narrative_summary')  String? narrativeSummary, @JsonKey(name: 'analyzed_at')  DateTime? analyzedAt, @JsonKey(name: 'personal_records')  Map<String, PersonalRecord?>? personalRecords)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String status,  OnboardingProfileMetrics? metrics, @JsonKey(name: 'narrative_summary')  String? narrativeSummary, @JsonKey(name: 'analyzed_at')  DateTime? analyzedAt, @JsonKey(name: 'personal_records')  Map<String, PersonalRecord?>? personalRecords,  OnboardingBaseline? baseline)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OnboardingProfile() when $default != null:
-return $default(_that.status,_that.metrics,_that.narrativeSummary,_that.analyzedAt,_that.personalRecords);case _:
+return $default(_that.status,_that.metrics,_that.narrativeSummary,_that.analyzedAt,_that.personalRecords,_that.baseline);case _:
   return orElse();
 
 }
@@ -719,10 +998,10 @@ return $default(_that.status,_that.metrics,_that.narrativeSummary,_that.analyzed
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String status,  OnboardingProfileMetrics? metrics, @JsonKey(name: 'narrative_summary')  String? narrativeSummary, @JsonKey(name: 'analyzed_at')  DateTime? analyzedAt, @JsonKey(name: 'personal_records')  Map<String, PersonalRecord?>? personalRecords)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String status,  OnboardingProfileMetrics? metrics, @JsonKey(name: 'narrative_summary')  String? narrativeSummary, @JsonKey(name: 'analyzed_at')  DateTime? analyzedAt, @JsonKey(name: 'personal_records')  Map<String, PersonalRecord?>? personalRecords,  OnboardingBaseline? baseline)  $default,) {final _that = this;
 switch (_that) {
 case _OnboardingProfile():
-return $default(_that.status,_that.metrics,_that.narrativeSummary,_that.analyzedAt,_that.personalRecords);}
+return $default(_that.status,_that.metrics,_that.narrativeSummary,_that.analyzedAt,_that.personalRecords,_that.baseline);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -736,10 +1015,10 @@ return $default(_that.status,_that.metrics,_that.narrativeSummary,_that.analyzed
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String status,  OnboardingProfileMetrics? metrics, @JsonKey(name: 'narrative_summary')  String? narrativeSummary, @JsonKey(name: 'analyzed_at')  DateTime? analyzedAt, @JsonKey(name: 'personal_records')  Map<String, PersonalRecord?>? personalRecords)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String status,  OnboardingProfileMetrics? metrics, @JsonKey(name: 'narrative_summary')  String? narrativeSummary, @JsonKey(name: 'analyzed_at')  DateTime? analyzedAt, @JsonKey(name: 'personal_records')  Map<String, PersonalRecord?>? personalRecords,  OnboardingBaseline? baseline)?  $default,) {final _that = this;
 switch (_that) {
 case _OnboardingProfile() when $default != null:
-return $default(_that.status,_that.metrics,_that.narrativeSummary,_that.analyzedAt,_that.personalRecords);case _:
+return $default(_that.status,_that.metrics,_that.narrativeSummary,_that.analyzedAt,_that.personalRecords,_that.baseline);case _:
   return null;
 
 }
@@ -751,7 +1030,7 @@ return $default(_that.status,_that.metrics,_that.narrativeSummary,_that.analyzed
 @JsonSerializable()
 
 class _OnboardingProfile implements OnboardingProfile {
-  const _OnboardingProfile({required this.status, this.metrics, @JsonKey(name: 'narrative_summary') this.narrativeSummary, @JsonKey(name: 'analyzed_at') this.analyzedAt, @JsonKey(name: 'personal_records') final  Map<String, PersonalRecord?>? personalRecords}): _personalRecords = personalRecords;
+  const _OnboardingProfile({required this.status, this.metrics, @JsonKey(name: 'narrative_summary') this.narrativeSummary, @JsonKey(name: 'analyzed_at') this.analyzedAt, @JsonKey(name: 'personal_records') final  Map<String, PersonalRecord?>? personalRecords, this.baseline}): _personalRecords = personalRecords;
   factory _OnboardingProfile.fromJson(Map<String, dynamic> json) => _$OnboardingProfileFromJson(json);
 
 @override final  String status;
@@ -772,6 +1051,7 @@ class _OnboardingProfile implements OnboardingProfile {
   return EqualUnmodifiableMapView(value);
 }
 
+@override final  OnboardingBaseline? baseline;
 
 /// Create a copy of OnboardingProfile
 /// with the given fields replaced by the non-null parameter values.
@@ -786,16 +1066,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OnboardingProfile&&(identical(other.status, status) || other.status == status)&&(identical(other.metrics, metrics) || other.metrics == metrics)&&(identical(other.narrativeSummary, narrativeSummary) || other.narrativeSummary == narrativeSummary)&&(identical(other.analyzedAt, analyzedAt) || other.analyzedAt == analyzedAt)&&const DeepCollectionEquality().equals(other._personalRecords, _personalRecords));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OnboardingProfile&&(identical(other.status, status) || other.status == status)&&(identical(other.metrics, metrics) || other.metrics == metrics)&&(identical(other.narrativeSummary, narrativeSummary) || other.narrativeSummary == narrativeSummary)&&(identical(other.analyzedAt, analyzedAt) || other.analyzedAt == analyzedAt)&&const DeepCollectionEquality().equals(other._personalRecords, _personalRecords)&&(identical(other.baseline, baseline) || other.baseline == baseline));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,status,metrics,narrativeSummary,analyzedAt,const DeepCollectionEquality().hash(_personalRecords));
+int get hashCode => Object.hash(runtimeType,status,metrics,narrativeSummary,analyzedAt,const DeepCollectionEquality().hash(_personalRecords),baseline);
 
 @override
 String toString() {
-  return 'OnboardingProfile(status: $status, metrics: $metrics, narrativeSummary: $narrativeSummary, analyzedAt: $analyzedAt, personalRecords: $personalRecords)';
+  return 'OnboardingProfile(status: $status, metrics: $metrics, narrativeSummary: $narrativeSummary, analyzedAt: $analyzedAt, personalRecords: $personalRecords, baseline: $baseline)';
 }
 
 
@@ -806,11 +1086,11 @@ abstract mixin class _$OnboardingProfileCopyWith<$Res> implements $OnboardingPro
   factory _$OnboardingProfileCopyWith(_OnboardingProfile value, $Res Function(_OnboardingProfile) _then) = __$OnboardingProfileCopyWithImpl;
 @override @useResult
 $Res call({
- String status, OnboardingProfileMetrics? metrics,@JsonKey(name: 'narrative_summary') String? narrativeSummary,@JsonKey(name: 'analyzed_at') DateTime? analyzedAt,@JsonKey(name: 'personal_records') Map<String, PersonalRecord?>? personalRecords
+ String status, OnboardingProfileMetrics? metrics,@JsonKey(name: 'narrative_summary') String? narrativeSummary,@JsonKey(name: 'analyzed_at') DateTime? analyzedAt,@JsonKey(name: 'personal_records') Map<String, PersonalRecord?>? personalRecords, OnboardingBaseline? baseline
 });
 
 
-@override $OnboardingProfileMetricsCopyWith<$Res>? get metrics;
+@override $OnboardingProfileMetricsCopyWith<$Res>? get metrics;@override $OnboardingBaselineCopyWith<$Res>? get baseline;
 
 }
 /// @nodoc
@@ -823,14 +1103,15 @@ class __$OnboardingProfileCopyWithImpl<$Res>
 
 /// Create a copy of OnboardingProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? status = null,Object? metrics = freezed,Object? narrativeSummary = freezed,Object? analyzedAt = freezed,Object? personalRecords = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? status = null,Object? metrics = freezed,Object? narrativeSummary = freezed,Object? analyzedAt = freezed,Object? personalRecords = freezed,Object? baseline = freezed,}) {
   return _then(_OnboardingProfile(
 status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,metrics: freezed == metrics ? _self.metrics : metrics // ignore: cast_nullable_to_non_nullable
 as OnboardingProfileMetrics?,narrativeSummary: freezed == narrativeSummary ? _self.narrativeSummary : narrativeSummary // ignore: cast_nullable_to_non_nullable
 as String?,analyzedAt: freezed == analyzedAt ? _self.analyzedAt : analyzedAt // ignore: cast_nullable_to_non_nullable
 as DateTime?,personalRecords: freezed == personalRecords ? _self._personalRecords : personalRecords // ignore: cast_nullable_to_non_nullable
-as Map<String, PersonalRecord?>?,
+as Map<String, PersonalRecord?>?,baseline: freezed == baseline ? _self.baseline : baseline // ignore: cast_nullable_to_non_nullable
+as OnboardingBaseline?,
   ));
 }
 
@@ -845,6 +1126,18 @@ $OnboardingProfileMetricsCopyWith<$Res>? get metrics {
 
   return $OnboardingProfileMetricsCopyWith<$Res>(_self.metrics!, (value) {
     return _then(_self.copyWith(metrics: value));
+  });
+}/// Create a copy of OnboardingProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$OnboardingBaselineCopyWith<$Res>? get baseline {
+    if (_self.baseline == null) {
+    return null;
+  }
+
+  return $OnboardingBaselineCopyWith<$Res>(_self.baseline!, (value) {
+    return _then(_self.copyWith(baseline: value));
   });
 }
 }

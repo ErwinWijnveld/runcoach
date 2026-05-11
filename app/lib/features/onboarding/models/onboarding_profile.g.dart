@@ -24,6 +24,22 @@ Map<String, dynamic> _$OnboardingProfileMetricsToJson(
   'session_avg_duration_seconds': instance.sessionAvgDurationSeconds,
 };
 
+_OnboardingBaseline _$OnboardingBaselineFromJson(Map<String, dynamic> json) =>
+    _OnboardingBaseline(
+      weeklyKm: toDoubleOrNull(json['weekly_km']),
+      weeklyKmSource: json['weekly_km_source'] as String?,
+      easyPaceSecondsPerKm: toIntOrNull(json['easy_pace_seconds_per_km']),
+      easyPaceSource: json['easy_pace_source'] as String?,
+    );
+
+Map<String, dynamic> _$OnboardingBaselineToJson(_OnboardingBaseline instance) =>
+    <String, dynamic>{
+      'weekly_km': instance.weeklyKm,
+      'weekly_km_source': instance.weeklyKmSource,
+      'easy_pace_seconds_per_km': instance.easyPaceSecondsPerKm,
+      'easy_pace_source': instance.easyPaceSource,
+    };
+
 _PersonalRecord _$PersonalRecordFromJson(Map<String, dynamic> json) =>
     _PersonalRecord(
       durationSeconds: toInt(json['duration_seconds']),
@@ -56,6 +72,11 @@ _OnboardingProfile _$OnboardingProfileFromJson(Map<String, dynamic> json) =>
           e == null ? null : PersonalRecord.fromJson(e as Map<String, dynamic>),
         ),
       ),
+      baseline: json['baseline'] == null
+          ? null
+          : OnboardingBaseline.fromJson(
+              json['baseline'] as Map<String, dynamic>,
+            ),
     );
 
 Map<String, dynamic> _$OnboardingProfileToJson(_OnboardingProfile instance) =>
@@ -65,4 +86,5 @@ Map<String, dynamic> _$OnboardingProfileToJson(_OnboardingProfile instance) =>
       'narrative_summary': instance.narrativeSummary,
       'analyzed_at': instance.analyzedAt?.toIso8601String(),
       'personal_records': instance.personalRecords,
+      'baseline': instance.baseline,
     };
