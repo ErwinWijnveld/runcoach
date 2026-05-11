@@ -13,6 +13,8 @@ import 'package:app/core/utils/date_formatter.dart';
 import 'package:app/features/onboarding/models/onboarding_form_data.dart';
 import 'package:app/features/onboarding/providers/onboarding_form_provider.dart';
 import 'package:app/features/onboarding/widgets/choice_group.dart';
+import 'package:app/features/onboarding/widgets/intensity_bias_chart.dart';
+import 'package:app/features/onboarding/widgets/intensity_bias_segmented_control.dart';
 import 'package:app/features/onboarding/widgets/step_scaffold.dart';
 import 'package:app/features/push/services/push_service.dart';
 import 'package:app/features/wearable/data/wearable_api.dart';
@@ -30,6 +32,7 @@ enum _Step {
   preferredWeekdays,
   runTypePreferences,
   coachStyle,
+  intensity,
   review,
 }
 
@@ -45,6 +48,7 @@ List<_Step> _flowFor(OnboardingGoalType? goalType) {
         _Step.preferredWeekdays,
         _Step.runTypePreferences,
         _Step.coachStyle,
+        _Step.intensity,
         _Step.review,
       ],
     OnboardingGoalType.pr => const [
@@ -56,6 +60,7 @@ List<_Step> _flowFor(OnboardingGoalType? goalType) {
         _Step.preferredWeekdays,
         _Step.runTypePreferences,
         _Step.coachStyle,
+        _Step.intensity,
         _Step.review,
       ],
     OnboardingGoalType.fitness ||
@@ -66,6 +71,7 @@ List<_Step> _flowFor(OnboardingGoalType? goalType) {
         _Step.preferredWeekdays,
         _Step.runTypePreferences,
         _Step.coachStyle,
+        _Step.intensity,
         _Step.review,
       ],
   };
@@ -103,6 +109,7 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
     'preferred_weekdays': _Step.preferredWeekdays,
     'run_type_preferences': _Step.runTypePreferences,
     'coach_style': _Step.coachStyle,
+    'intensity': _Step.intensity,
     'review': _Step.review,
   };
 
@@ -227,6 +234,13 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
           onBack: _goBack,
         ),
       _Step.coachStyle => _CoachStyleStep(
+          stepIndex: safeIndex,
+          stepCount: flow.length,
+          form: form,
+          onContinue: _advance,
+          onBack: _goBack,
+        ),
+      _Step.intensity => _IntensityStep(
           stepIndex: safeIndex,
           stepCount: flow.length,
           form: form,
@@ -1367,6 +1381,117 @@ class _CoachStyleStepState extends ConsumerState<_CoachStyleStep> {
   }
 }
 
+// ---- Step: intensity bias ----
+
+class _IntensityStep extends ConsumerStatefulWidget {
+  final int stepIndex;
+  final int stepCount;
+  final OnboardingFormData form;
+  final VoidCallback onContinue;
+  final VoidCallback onBack;
+
+  const _IntensityStep({
+    required this.stepIndex,
+    required this.stepCount,
+    required this.form,
+    required this.onContinue,
+    required this.onBack,
+  });
+
+  @override
+  ConsumerState<_IntensityStep> createState() => _IntensityStepState();
+}
+
+class _IntensityStepState extends ConsumerState<_IntensityStep> {
+  @override
+  Widget build(BuildContext context) {
+    final notifier = ref.read(onboardingFormProvider.notifier);
+    final selected = widget.form.intensityBias;
+
+    return StepScaffold(
+      stepIndex: widget.stepIndex,
+      stepCount: widget.stepCount,
+      title: 'How hard do you want this?',
+      subtitle:
+          'Bump up or down if you feel different — Standard matches what your goal calls for.',
+      canContinue: true,
+      onContinue: widget.onContinue,
+      onBack: widget.onBack,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: AppColors.inputBorder),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.goldGlow,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'WEEKLY KM',
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                      color: AppColors.eyebrow,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                IntensityBiasChart(bias: selected),
+                const SizedBox(height: 12),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: Text(
+                    _captionFor(selected),
+                    key: ValueKey(selected),
+                    style: GoogleFonts.ebGaramond(
+                      fontSize: 14,
+                      fontStyle: FontStyle.italic,
+                      color: AppColors.inkMuted,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          IntensityBiasSegmentedControl(
+            selected: selected,
+            onChanged: notifier.setIntensityBias,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Tap to bias the build.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.publicSans(
+              fontSize: 13,
+              color: AppColors.inkMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _captionFor(IntensityBias bias) => switch (bias) {
+        IntensityBias.takeItEasy => 'Gentler bumps, lower peak. Sustainable.',
+        IntensityBias.standard => 'Steady weekly progression. Auto-picked.',
+        IntensityBias.pushMeHarder => 'Steeper ramp, higher peak. Stay sharp.',
+      };
+}
+
 // ---- Step 9: review ----
 
 class _ReviewStep extends ConsumerStatefulWidget {
@@ -1450,6 +1575,8 @@ class _ReviewStepState extends ConsumerState<_ReviewStep> {
                   ),
                 if (form.coachStyle != null)
                   _reviewRow('Coach style', _coachStyleLabel(form.coachStyle!)),
+                if (form.intensityBias != IntensityBias.standard)
+                  _reviewRow('Intensity', _intensityLabel(form.intensityBias)),
                 if (form.notes != null && form.notes!.isNotEmpty)
                   _reviewRow('Notes', form.notes!),
               ],
@@ -1533,6 +1660,12 @@ class _ReviewStepState extends ConsumerState<_ReviewStep> {
         CoachStyleOption.balanced => 'Balanced',
         CoachStyleOption.strict => 'Strict',
         CoachStyleOption.flexible => 'Flexible',
+      };
+
+  String _intensityLabel(IntensityBias bias) => switch (bias) {
+        IntensityBias.takeItEasy => 'Take it easy',
+        IntensityBias.standard => 'Standard',
+        IntensityBias.pushMeHarder => 'Push me harder',
       };
 
   String _weekdaysLabel(List<int> days) {
