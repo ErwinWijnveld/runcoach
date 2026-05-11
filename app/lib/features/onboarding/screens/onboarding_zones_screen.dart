@@ -12,27 +12,26 @@ import 'package:app/core/widgets/runcore_logo.dart';
 import 'package:app/features/auth/models/derived_zones.dart';
 import 'package:app/features/auth/models/user.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
+import 'package:app/features/onboarding/providers/onboarding_derived_zones_provider.dart';
 import 'package:app/features/onboarding/widgets/onboarding_primary_button.dart';
 import 'package:app/features/wearable/data/wearable_api.dart';
 
-/// Onboarding step that shows the runner the auto-derived HR zones,
-/// explains where the numbers came from, and lets them either continue or
-/// open the same edit sheet they'd use later from the menu. Sits between
-/// `/onboarding/connect-health` (which both ingests workouts AND fires the
-/// initial derive call) and `/onboarding/overview` (4-stat cards + AI
-/// narrative).
+/// Onboarding step that shows the runner the auto-derived HR zones.
+/// Renders one of three state bodies based on data shape:
 ///
-/// The connect-health screen passes the [DerivedZones] result through so
-/// we can show source-aware copy ("based on N runs" vs "from your age")
-/// without a second API round-trip.
+///   - **HR-confirmed**: full bpm table + rich subtitle. Triggered when
+///     source is `manual`/`derived_empirical` OR `derived_age` with an
+///     upward-correction from real high-effort observations.
+///   - **DOB-known**: big tappable DOB row + collapsed "Show zones
+///     (advanced)" link. Triggered when DOB is set but no HR signal.
+///   - **No-DOB**: DOB-picker prompt that auto-opens on first frame.
+///     Continue disabled until DOB is picked.
+///
+/// Reads its initial `DerivedZones` from `onboardingDerivedZonesProvider`
+/// (set by connect-health after the initial derive call). Null on
+/// deep-link / cold-start — subtitle copy degrades to generic in that case.
 class OnboardingZonesScreen extends ConsumerStatefulWidget {
-  /// The derive result that produced the currently-saved zones. May be
-  /// null if the runner navigated here via deep link without a fresh
-  /// derive — in that case the screen falls back to displaying the user's
-  /// stored zones with a generic subtitle.
-  final DerivedZones? initialResult;
-
-  const OnboardingZonesScreen({super.key, this.initialResult});
+  const OnboardingZonesScreen({super.key});
 
   @override
   ConsumerState<OnboardingZonesScreen> createState() =>
@@ -41,49 +40,34 @@ class OnboardingZonesScreen extends ConsumerStatefulWidget {
 
 class _OnboardingZonesScreenState
     extends ConsumerState<OnboardingZonesScreen> {
-  late DerivedZones? _result = widget.initialResult;
-  bool _didPromptOnce = false;
+  DerivedZones? _result;
+  bool _didAutoPrompt = false;
 
   @override
   void initState() {
     super.initState();
-    // If connect-health couldn't pull a DOB out of HealthKit, the
-    // initial derive returned `default` and we landed here with empty
-    // zones. Prompt the runner once so the screen shows real values
-    // instead of the "couldn't compute" copy. Cancel = stay on manual
-    // fallback, don't loop the dialog (`_didPromptOnce` flag).
-    SchedulerBinding.instance.addPostFrameCallback((_) => _maybePromptForAge());
+    _result = ref.read(onboardingDerivedZonesProvider);
+    SchedulerBinding.instance.addPostFrameCallback((_) => _maybeAutoOpenPicker());
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // Cold-launch path: auth may still be loading when initState fires.
-    // Re-evaluate the prompt as soon as auth resolves to a non-null user.
-    ref.listen<AsyncValue<User?>>(authProvider, (prev, next) {
-      if (next.value != null && !_didPromptOnce) {
-        SchedulerBinding.instance.addPostFrameCallback(
-          (_) => _maybePromptForAge(),
-        );
-      }
-    });
-    return _build(context);
-  }
-
-  Future<void> _maybePromptForAge() async {
-    if (!mounted || _didPromptOnce) return;
-
+  /// State C only: auto-open the DOB picker once on mount so the runner
+  /// doesn't have to find the tap target on a screen they've never seen.
+  /// Cancel = stay in state C with CTA disabled. No loop (`_didAutoPrompt`).
+  Future<void> _maybeAutoOpenPicker() async {
+    if (!mounted || _didAutoPrompt) return;
     final user = ref.read(authProvider).value;
-    // Auth still loading on cold-launch deep-link → don't prompt yet.
-    // The screen rebuilds when auth resolves and we can re-evaluate
-    // (we keep _didPromptOnce false so the next pass tries again).
-    if (user == null) return;
+    if (user == null) return; // auth still loading; re-eval after listen.
+    if (user.dateOfBirth != null) return;
     final source = _result?.source ?? user.heartRateZonesSource ?? 'default';
-    // Only prompt when the deriver couldn't produce a value — never
-    // when zones already came back from HealthKit DOB or stored
-    // user.dateOfBirth.
     if (source != 'default') return;
 
-    _didPromptOnce = true;
+    _didAutoPrompt = true;
+    await _pickDob();
+  }
+
+  Future<void> _pickDob() async {
+    final user = ref.read(authProvider).value;
+    if (user == null || !mounted) return;
 
     final dob = await showBirthDatePickerSheet(
       context,
@@ -92,12 +76,10 @@ class _OnboardingZonesScreenState
     if (dob == null || !mounted) return;
 
     try {
-      // Re-fetch resting HR while we're at it — the connect-health
-      // pull may have worked even if DOB didn't (different permission
-      // toggles), so it's worth a second try here.
+      // Re-fetch resting HR while we're at it — the connect-health pull may
+      // have worked even if DOB didn't, so it's worth a second try here.
       final hk = ref.read(healthKitServiceProvider);
       final restingHr = await hk.getLatestRestingHeartRate();
-
       final result = await ref.read(authProvider.notifier).deriveHeartRateZones(
             dateOfBirth: dob,
             restingHeartRate: restingHr,
@@ -105,16 +87,39 @@ class _OnboardingZonesScreenState
       if (!mounted) return;
       setState(() => _result = result);
     } catch (_) {
-      // Network blip — leave the unavailable body showing. The runner
-      // can still tap "Set zones manually" or retry by reopening this
-      // screen via the menu sheet.
+      // Network blip — runner can retry by tapping DOB again.
     }
   }
 
-  Widget _build(BuildContext context) {
+  void _continue() => context.go('/onboarding/form');
+
+  Future<void> _openEditSheet() async {
+    await showHeartRateZonesSheet(context);
+    // After the sheet pops, source may have flipped to 'manual' — our cached
+    // result is stale. Drop it so subtitle reads off the freshly-loaded
+    // user.heartRateZonesSource instead.
+    if (mounted) setState(() => _result = null);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Re-evaluate auto-prompt when auth resolves on cold-launch.
+    ref.listen<AsyncValue<User?>>(authProvider, (prev, next) {
+      if (next.value != null && !_didAutoPrompt) {
+        SchedulerBinding.instance.addPostFrameCallback(
+          (_) => _maybeAutoOpenPicker(),
+        );
+      }
+    });
+
     final user = ref.watch(authProvider).value;
-    final zones = user?.heartRateZones;
     final source = _result?.source ?? user?.heartRateZonesSource ?? 'default';
+    final dob = user?.dateOfBirth;
+    final zones = user?.heartRateZones;
+
+    final hasHrSignal = source == 'manual'
+        || source == 'derived_empirical'
+        || (source == 'derived_age' && (_result?.wasCorrected ?? false));
 
     return GradientScaffold(
       child: SafeArea(
@@ -129,15 +134,12 @@ class _OnboardingZonesScreenState
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                child: zones == null
-                    ? _UnavailableBody(onContinue: _continue, onEdit: _openEditSheet)
-                    : _Body(
-                        zones: zones,
-                        source: source,
-                        result: _result,
-                        onContinue: _continue,
-                        onEdit: _openEditSheet,
-                      ),
+                child: _selectBody(
+                  hasHrSignal: hasHrSignal,
+                  zones: zones,
+                  dob: dob,
+                  source: source,
+                ),
               ),
             ),
           ],
@@ -146,26 +148,42 @@ class _OnboardingZonesScreenState
     );
   }
 
-  void _continue() => context.go('/onboarding/overview');
-
-  Future<void> _openEditSheet() async {
-    await showHeartRateZonesSheet(context);
-    // After the sheet pops, source may have flipped to 'manual' OR the
-    // runner may have hit "Recompute" — either way, our cached result
-    // is stale. Drop it so the subtitle reads off the freshly-loaded
-    // user.heartRateZonesSource instead of an outdated derive snapshot.
-    if (mounted) setState(() => _result = null);
+  Widget _selectBody({
+    required bool hasHrSignal,
+    required List<dynamic>? zones,
+    required DateTime? dob,
+    required String source,
+  }) {
+    if (hasHrSignal && zones != null) {
+      return _HrConfirmedBody(
+        zones: zones,
+        source: source,
+        result: _result,
+        onContinue: _continue,
+        onEdit: _openEditSheet,
+      );
+    }
+    if (dob != null) {
+      return _DobKnownBody(
+        dob: dob,
+        zones: zones,
+        onPickDob: _pickDob,
+        onContinue: _continue,
+        onEdit: _openEditSheet,
+      );
+    }
+    return _NoDobBody(onPickDob: _pickDob);
   }
 }
 
-class _Body extends StatelessWidget {
-  final List zones;
+class _HrConfirmedBody extends StatelessWidget {
+  final List<dynamic> zones;
   final String source;
   final DerivedZones? result;
   final VoidCallback onContinue;
-  final VoidCallback onEdit;
+  final Future<void> Function() onEdit;
 
-  const _Body({
+  const _HrConfirmedBody({
     required this.zones,
     required this.source,
     required this.result,
@@ -179,7 +197,7 @@ class _Body extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
-        Text('Your heart rate zones', style: RunCoreText.serifTitle(size: 30)),
+        Text('Your training zones', style: RunCoreText.serifTitle(size: 30)),
         const SizedBox(height: 8),
         Text(
           _subtitle(source, result),
@@ -209,8 +227,7 @@ class _Body extends StatelessWidget {
     switch (source) {
       // 'derived_empirical' is legacy — old rows from the v0 deriver. The
       // current deriver always returns 'derived_age' (Tanaka prior, with
-      // optional upward correction from real high-effort observations
-      // when the runner's pushed past the formula). Treat both the same.
+      // optional upward correction). Treat both the same.
       case 'derived_age':
       case 'derived_empirical':
         final age = r?.age;
@@ -230,11 +247,35 @@ class _Body extends StatelessWidget {
   }
 }
 
-class _UnavailableBody extends StatelessWidget {
+class _DobKnownBody extends StatefulWidget {
+  final DateTime dob;
+  final List<dynamic>? zones;
+  final Future<void> Function() onPickDob;
   final VoidCallback onContinue;
-  final VoidCallback onEdit;
+  final Future<void> Function() onEdit;
 
-  const _UnavailableBody({required this.onContinue, required this.onEdit});
+  const _DobKnownBody({
+    required this.dob,
+    required this.zones,
+    required this.onPickDob,
+    required this.onContinue,
+    required this.onEdit,
+  });
+
+  @override
+  State<_DobKnownBody> createState() => _DobKnownBodyState();
+}
+
+class _DobKnownBodyState extends State<_DobKnownBody> {
+  bool _expanded = false;
+
+  String _formatDob(DateTime d) {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+    return '${months[d.month - 1]} ${d.day}, ${d.year}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -242,26 +283,152 @@ class _UnavailableBody extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
-        Text('Your heart rate zones', style: RunCoreText.serifTitle(size: 30)),
+        Text('Your training zones', style: RunCoreText.serifTitle(size: 30)),
         const SizedBox(height: 8),
         Text(
-          "We couldn't compute your zones yet. You can set them manually now or come back to it later from your profile menu.",
+          "We use your age to estimate heart-rate ranges for training feedback. You can fine-tune later from the menu.",
           style: GoogleFonts.inter(
             fontSize: 14,
             color: AppColors.inkMuted,
             height: 1.45,
           ),
         ),
-        const Spacer(),
-        OnboardingPrimaryButton(label: 'Set zones manually', onTap: onEdit),
-        const SizedBox(height: 8),
-        CupertinoButton(
-          onPressed: onContinue,
-          child: Text(
-            'Skip for now',
-            style: GoogleFonts.inter(color: AppColors.inkMuted, fontSize: 14),
+        const SizedBox(height: 20),
+        GestureDetector(
+          onTap: widget.onPickDob,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: CupertinoColors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.inputBorder),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Date of birth',
+                        style: GoogleFonts.spaceGrotesk(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.8,
+                          color: AppColors.inkMuted,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _formatDob(widget.dob),
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryInk,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(CupertinoIcons.chevron_right, size: 18, color: AppColors.inkMuted),
+              ],
+            ),
           ),
         ),
+        const SizedBox(height: 16),
+        GestureDetector(
+          onTap: () => setState(() => _expanded = !_expanded),
+          behavior: HitTestBehavior.opaque,
+          child: Row(
+            children: [
+              Icon(
+                _expanded ? CupertinoIcons.chevron_down : CupertinoIcons.chevron_right,
+                size: 14,
+                color: AppColors.inkMuted,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Show zones (advanced)',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: AppColors.inkMuted,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (_expanded && widget.zones != null) ...[
+          const SizedBox(height: 12),
+          HrZonesReadonlyList(zones: List.from(widget.zones!)),
+          const SizedBox(height: 8),
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            onPressed: widget.onEdit,
+            child: Text(
+              'Edit zones',
+              style: GoogleFonts.inter(fontSize: 13, color: AppColors.inkMuted),
+            ),
+          ),
+        ],
+        const Spacer(),
+        OnboardingPrimaryButton(label: 'Continue', onTap: widget.onContinue),
+      ],
+    );
+  }
+}
+
+class _NoDobBody extends StatelessWidget {
+  final Future<void> Function() onPickDob;
+
+  const _NoDobBody({required this.onPickDob});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 8),
+        Text('Your training zones', style: RunCoreText.serifTitle(size: 30)),
+        const SizedBox(height: 8),
+        Text(
+          "To estimate your heart-rate ranges we just need your birth date. It gives us a rough max HR — accurate enough for daily training and easy to fine-tune later.",
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            color: AppColors.inkMuted,
+            height: 1.45,
+          ),
+        ),
+        const SizedBox(height: 20),
+        GestureDetector(
+          onTap: onPickDob,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: CupertinoColors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.inputBorder),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Pick your birth date',
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primaryInk,
+                    ),
+                  ),
+                ),
+                const Icon(CupertinoIcons.chevron_right, size: 18, color: AppColors.inkMuted),
+              ],
+            ),
+          ),
+        ),
+        const Spacer(),
+        const OnboardingPrimaryButton(label: 'Continue', onTap: null),
       ],
     );
   }
