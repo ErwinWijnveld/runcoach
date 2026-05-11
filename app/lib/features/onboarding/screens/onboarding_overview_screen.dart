@@ -1,19 +1,22 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Colors;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/core/widgets/runcore_logo.dart';
-import 'package:app/features/coach/widgets/stats_card_bubble.dart';
+import 'package:app/features/onboarding/data/onboarding_api.dart';
 import 'package:app/features/onboarding/models/onboarding_profile.dart';
-import 'package:app/features/onboarding/widgets/onboarding_primary_button.dart';
 import 'package:app/features/onboarding/providers/onboarding_profile_provider.dart';
+import 'package:app/features/onboarding/widgets/locked_stat_field.dart';
+import 'package:app/features/onboarding/widgets/onboarding_primary_button.dart';
+import 'package:app/features/onboarding/widgets/pace_wheel_picker.dart';
 
-/// Step 1 of the form-based onboarding: shows the user their last 12 months
-/// of running data as 4 stat cards + a one-line AI narrative, then gates
-/// progress to the multi-step form via a Continue CTA.
+/// Editable baseline-stats screen. Works for users with AND without
+/// wearable data: prefills + locks fields when cascade data is available,
+/// otherwise asks the user to fill them in.
+///
+/// Spec: `docs/superpowers/specs/2026-05-11-onboarding-self-reported-stats-design.md`
 class OnboardingOverviewScreen extends ConsumerWidget {
   const OnboardingOverviewScreen({super.key});
 
@@ -33,7 +36,7 @@ class OnboardingOverviewScreen extends ConsumerWidget {
             ),
             Expanded(
               child: profileAsync.when(
-                data: (profile) => _OverviewBody(profile: profile),
+                data: (profile) => _BaselineForm(profile: profile),
                 loading: () => const _SyncingState(),
                 error: (e, _) => _ErrorState(
                   message: e.toString(),
@@ -51,20 +54,130 @@ class OnboardingOverviewScreen extends ConsumerWidget {
   }
 }
 
-class _OverviewBody extends StatelessWidget {
+class _BaselineForm extends ConsumerStatefulWidget {
   final OnboardingProfile profile;
-  const _OverviewBody({required this.profile});
+  const _BaselineForm({required this.profile});
+
+  @override
+  ConsumerState<_BaselineForm> createState() => _BaselineFormState();
+}
+
+class _BaselineFormState extends ConsumerState<_BaselineForm> {
+  final _kmController = TextEditingController();
+
+  bool _kmLocked = false;
+  bool _paceLocked = false;
+
+  double? _wearableKm;
+  int? _wearablePace;
+
+  double? _km;
+  int? _paceSeconds;
+
+  bool _kmTouched = false;
+  bool _paceTouched = false;
+
+  bool _submitting = false;
+  String? _submitError;
+
+  @override
+  void initState() {
+    super.initState();
+    final baseline = widget.profile.baseline;
+
+    if (baseline?.weeklyKm != null) {
+      _km = baseline!.weeklyKm;
+      _wearableKm = baseline.weeklyKm;
+      _kmController.text = baseline.weeklyKm!
+          .toStringAsFixed(1)
+          .replaceAll(RegExp(r'\.0$'), '');
+      _kmLocked = baseline.weeklyKmSource == 'apple_health';
+      _kmTouched = baseline.weeklyKmSource == 'self_reported';
+    }
+
+    if (baseline?.easyPaceSecondsPerKm != null && baseline?.easyPaceSource != null) {
+      _paceSeconds = baseline!.easyPaceSecondsPerKm;
+      _wearablePace = baseline.easyPaceSecondsPerKm;
+      _paceLocked = baseline.easyPaceSource == 'apple_health';
+      _paceTouched = baseline.easyPaceSource == 'self_reported';
+    }
+  }
+
+  @override
+  void dispose() {
+    _kmController.dispose();
+    super.dispose();
+  }
+
+  bool get _canContinue {
+    final kmReady = _kmLocked || (_km != null && _km! >= 1);
+    final paceReady = _paceLocked || _paceTouched;
+    return kmReady && paceReady && !_submitting;
+  }
+
+  Future<void> _openPaceWheel() async {
+    final picked = await showPaceWheelPicker(
+      context,
+      initialSecondsPerKm: _paceSeconds ?? 360,
+    );
+    if (picked != null && mounted) {
+      setState(() {
+        _paceSeconds = picked;
+        _paceTouched = true;
+      });
+    }
+  }
+
+  void _unlockKm() {
+    setState(() {
+      _kmLocked = false;
+      _kmTouched = false;
+    });
+  }
+
+  void _unlockPace() {
+    setState(() {
+      _paceLocked = false;
+      _paceTouched = false;
+    });
+  }
+
+  Future<void> _submit() async {
+    setState(() {
+      _submitting = true;
+      _submitError = null;
+    });
+
+    final save = ref.read(saveSelfReportedStatsCallProvider);
+    final weeklyKm = _kmLocked ? null : (_kmTouched ? _km : null);
+    final easyPace = _paceLocked ? null : (_paceTouched ? _paceSeconds : null);
+
+    try {
+      await save(weeklyKm: weeklyKm, easyPaceSecondsPerKm: easyPace);
+      if (!mounted) return;
+      context.push('/onboarding/form');
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _submitError = e.toString());
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  String get _paceText {
+    if (_paceSeconds == null) return 'Tap to choose';
+    final m = _paceSeconds! ~/ 60;
+    final s = (_paceSeconds! % 60).toString().padLeft(2, '0');
+    return '$m:$s /km';
+  }
 
   @override
   Widget build(BuildContext context) {
-    final metricsMap = profile.metrics == null
-        ? const <String, dynamic>{}
-        : <String, dynamic>{
-            'weekly_avg_km': profile.metrics!.weeklyAvgKm ?? 0,
-            'weekly_avg_runs': profile.metrics!.weeklyAvgRuns ?? 0,
-            'avg_pace_seconds_per_km': profile.metrics!.avgPaceSecondsPerKm ?? 0,
-            'session_avg_duration_seconds': profile.metrics!.sessionAvgDurationSeconds ?? 0,
-          };
+    final hasAnyPrefill = _wearableKm != null || _wearablePace != null;
+    final title = hasAnyPrefill ? 'Your running baseline' : 'Tell us about your running';
+    final subtitle = hasAnyPrefill
+        ? 'We use these to calibrate your training plan.'
+        : 'We need two numbers to build an accurate plan.';
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
@@ -77,28 +190,64 @@ class _OverviewBody extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 8),
-                  Text(
-                    "Here's your last 12 months",
-                    style: RunCoreText.serifTitle(size: 32),
-                  ),
+                  Text(title, style: RunCoreText.serifTitle(size: 30)),
                   const SizedBox(height: 6),
                   Text(
-                    "A quick snapshot from your synced runs",
+                    subtitle,
                     style: GoogleFonts.inter(
                       fontSize: 15,
                       fontWeight: FontWeight.w400,
                       color: AppColors.inkMuted,
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  StatsCardBubble(
-                    metrics: metricsMap,
-                    tileColor: Colors.white,
-                    tileAspectRatio: 16 / 9,
+                  const SizedBox(height: 28),
+
+                  _kmLocked
+                      ? LockedStatField(
+                          label: 'Average weekly km (last 4 weeks)',
+                          valueText: _km == null
+                              ? '—'
+                              : '${_km!.toStringAsFixed(1).replaceAll(RegExp(r"\.0$"), "")} km',
+                          sourceLabel: 'Apple Health',
+                          locked: true,
+                          onUnlock: _unlockKm,
+                          onTapWhenUnlocked: () {},
+                        )
+                      : _KmEditField(
+                          controller: _kmController,
+                          sourceLabel: _wearableKm != null ? 'Apple Health' : null,
+                          touched: _kmTouched,
+                          onChanged: (text) {
+                            final parsed = double.tryParse(text.replaceAll(',', '.'));
+                            setState(() {
+                              _km = parsed;
+                              _kmTouched = parsed != null && parsed >= 1;
+                            });
+                          },
+                        ),
+
+                  const SizedBox(height: 24),
+
+                  LockedStatField(
+                    label: 'Easy run pace',
+                    valueText: _paceLocked
+                        ? _paceText
+                        : (_paceTouched ? _paceText : 'Tap to choose'),
+                    sourceLabel: _wearablePace != null ? 'Apple Health' : null,
+                    locked: _paceLocked,
+                    onUnlock: _unlockPace,
+                    onTapWhenUnlocked: _openPaceWheel,
                   ),
-                  if ((profile.narrativeSummary ?? '').isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    _NarrativeQuote(text: profile.narrativeSummary!),
+
+                  if (_submitError != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      _submitError!,
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: CupertinoColors.systemRed,
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -106,8 +255,8 @@ class _OverviewBody extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           OnboardingPrimaryButton(
-            label: 'Continue',
-            onTap: () => context.push('/onboarding/form'),
+            label: _submitting ? 'Saving…' : 'Continue',
+            onTap: _canContinue ? _submit : null,
           ),
         ],
       ),
@@ -115,43 +264,77 @@ class _OverviewBody extends StatelessWidget {
   }
 }
 
-class _NarrativeQuote extends StatelessWidget {
-  final String text;
-  const _NarrativeQuote({required this.text});
+class _KmEditField extends StatelessWidget {
+  final TextEditingController controller;
+  final String? sourceLabel;
+  final bool touched;
+  final ValueChanged<String> onChanged;
+
+  const _KmEditField({
+    required this.controller,
+    required this.sourceLabel,
+    required this.touched,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 3,
-            height: 38,
-            decoration: BoxDecoration(
-              color: AppColors.secondary,
-              borderRadius: BorderRadius.circular(2),
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Average weekly km (last 4 weeks)',
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.8,
+            color: AppColors.inkMuted,
           ),
-          const SizedBox(width: 12),
-          Expanded(
+        ),
+        const SizedBox(height: 6),
+        CupertinoTextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          onChanged: onChanged,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          style: GoogleFonts.inter(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppColors.primaryInk,
+          ),
+          placeholder: '0',
+          placeholderStyle: GoogleFonts.inter(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppColors.inkMuted.withValues(alpha: 0.5),
+          ),
+          suffix: Padding(
+            padding: const EdgeInsets.only(right: 12),
             child: Text(
-              text,
-              style: RunCoreText.italicSmall(size: 15).copyWith(height: 1.4),
+              'km',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: AppColors.inkMuted,
+              ),
             ),
           ),
-        ],
-      ),
+          decoration: BoxDecoration(
+            color: CupertinoColors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.inputBorder),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          sourceLabel != null
+              ? (touched ? 'Edited by you' : 'From $sourceLabel')
+              : 'Required',
+          style: GoogleFonts.inter(fontSize: 12, color: AppColors.inkMuted),
+        ),
+      ],
     );
   }
 }
-
 
 class _SyncingState extends StatelessWidget {
   const _SyncingState();
@@ -166,18 +349,9 @@ class _SyncingState extends StatelessWidget {
           const CupertinoActivityIndicator(radius: 16),
           const SizedBox(height: 20),
           Text(
-            'Syncing your runs…',
+            'Loading your baseline…',
             textAlign: TextAlign.center,
             style: RunCoreText.serifTitle(size: 24),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'This usually takes a few seconds.',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: AppColors.inkMuted,
-            ),
           ),
         ],
       ),
@@ -198,36 +372,27 @@ class _ErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(20),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            "Couldn't load your profile",
-            textAlign: TextAlign.center,
+            "We couldn't load your data.",
             style: RunCoreText.serifTitle(size: 24),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             message,
+            style: GoogleFonts.inter(fontSize: 13, color: AppColors.inkMuted),
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              color: AppColors.inkMuted,
-            ),
           ),
-          const SizedBox(height: 20),
-          CupertinoButton.filled(
-            onPressed: onRetry,
-            child: const Text('Try again'),
-          ),
+          const SizedBox(height: 16),
+          OnboardingPrimaryButton(label: 'Retry', onTap: onRetry),
           const SizedBox(height: 8),
           CupertinoButton(
             onPressed: onSkip,
-            child: Text(
-              'Skip for now',
-              style: GoogleFonts.inter(color: AppColors.inkMuted),
-            ),
+            child: const Text('Skip'),
           ),
         ],
       ),
