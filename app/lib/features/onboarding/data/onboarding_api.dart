@@ -16,6 +16,9 @@ abstract class OnboardingApi {
   /// can take a while — see `getProfileCall` for the timeout-overridden version.
   @GET('/onboarding/profile')
   Future<dynamic> getProfile();
+
+  @POST('/onboarding/self-reported-stats')
+  Future<dynamic> saveSelfReportedStats(@Body() Map<String, dynamic> body);
 }
 
 @riverpod
@@ -51,6 +54,26 @@ Future<PlanGeneration> Function(Map<String, dynamic> body) generatePlanCall(
       data: body,
     );
     return PlanGeneration.fromJson(response.data!);
+  };
+}
+
+/// Saves the runner's self-reported baseline numbers. Either field may be
+/// null when that field is still locked from the wearable cascade. Returns
+/// once the POST completes; throws on validation errors so the screen can
+/// surface them.
+@riverpod
+Future<void> Function({double? weeklyKm, int? easyPaceSecondsPerKm}) saveSelfReportedStatsCall(
+  Ref ref,
+) {
+  final dio = ref.watch(dioProvider);
+  return ({double? weeklyKm, int? easyPaceSecondsPerKm}) async {
+    await dio.post<Map<String, dynamic>>(
+      '/onboarding/self-reported-stats',
+      data: <String, dynamic>{
+        'weekly_km': weeklyKm,
+        'easy_pace_seconds_per_km': easyPaceSecondsPerKm,
+      },
+    );
   };
 }
 

@@ -40,6 +40,28 @@ class _OnboardingApi implements OnboardingApi {
     return _value;
   }
 
+  @override
+  Future<dynamic> saveSelfReportedStats(Map<String, dynamic> body) async {
+    final _extra = <String, dynamic>{};
+    final queryParameters = <String, dynamic>{};
+    final _headers = <String, dynamic>{};
+    final _data = <String, dynamic>{};
+    _data.addAll(body);
+    final _options = _setStreamType<dynamic>(
+      Options(method: 'POST', headers: _headers, extra: _extra)
+          .compose(
+            _dio.options,
+            '/onboarding/self-reported-stats',
+            queryParameters: queryParameters,
+            data: _data,
+          )
+          .copyWith(baseUrl: _combineBaseUrls(_dio.options.baseUrl, baseUrl)),
+    );
+    final _result = await _dio.fetch(_options);
+    final _value = _result.data;
+    return _value;
+  }
+
   RequestOptions _setStreamType<T>(RequestOptions requestOptions) {
     if (T != dynamic &&
         !(requestOptions.responseType == ResponseType.bytes ||
@@ -241,6 +263,79 @@ final class GeneratePlanCallProvider
 }
 
 String _$generatePlanCallHash() => r'0c33ea4c1a4ef5a5aa55bb3a9a9e12b7a35d9c96';
+
+/// Saves the runner's self-reported baseline numbers. Either field may be
+/// null when that field is still locked from the wearable cascade. Returns
+/// once the POST completes; throws on validation errors so the screen can
+/// surface them.
+
+@ProviderFor(saveSelfReportedStatsCall)
+final saveSelfReportedStatsCallProvider = SaveSelfReportedStatsCallProvider._();
+
+/// Saves the runner's self-reported baseline numbers. Either field may be
+/// null when that field is still locked from the wearable cascade. Returns
+/// once the POST completes; throws on validation errors so the screen can
+/// surface them.
+
+final class SaveSelfReportedStatsCallProvider
+    extends
+        $FunctionalProvider<
+          Future<void> Function({int? easyPaceSecondsPerKm, double? weeklyKm}),
+          Future<void> Function({int? easyPaceSecondsPerKm, double? weeklyKm}),
+          Future<void> Function({int? easyPaceSecondsPerKm, double? weeklyKm})
+        >
+    with
+        $Provider<
+          Future<void> Function({int? easyPaceSecondsPerKm, double? weeklyKm})
+        > {
+  /// Saves the runner's self-reported baseline numbers. Either field may be
+  /// null when that field is still locked from the wearable cascade. Returns
+  /// once the POST completes; throws on validation errors so the screen can
+  /// surface them.
+  SaveSelfReportedStatsCallProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'saveSelfReportedStatsCallProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$saveSelfReportedStatsCallHash();
+
+  @$internal
+  @override
+  $ProviderElement<
+    Future<void> Function({int? easyPaceSecondsPerKm, double? weeklyKm})
+  >
+  $createElement($ProviderPointer pointer) => $ProviderElement(pointer);
+
+  @override
+  Future<void> Function({int? easyPaceSecondsPerKm, double? weeklyKm}) create(
+    Ref ref,
+  ) {
+    return saveSelfReportedStatsCall(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(
+    Future<void> Function({int? easyPaceSecondsPerKm, double? weeklyKm}) value,
+  ) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride:
+          $SyncValueProvider<
+            Future<void> Function({int? easyPaceSecondsPerKm, double? weeklyKm})
+          >(value),
+    );
+  }
+}
+
+String _$saveSelfReportedStatsCallHash() =>
+    r'24fbeac1cb655213e75b89abbc4af2ba0bc9a1f3';
 
 /// Polls the latest user-actionable plan generation. Returns null when the
 /// server responds 204 (nothing pending). The screen interprets null
