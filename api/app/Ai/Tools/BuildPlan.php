@@ -118,6 +118,11 @@ class BuildPlan implements Tool
                 ->required()
                 ->nullable()
                 ->description('Optional ordered ranking of training types (gold → last). Index 0 is the runner\'s favourite. Null when the runner did not rank.'),
+            'intensity_bias' => $schema->string()
+                ->enum(['take_it_easy', 'standard', 'push_me_harder'])
+                ->required()
+                ->nullable()
+                ->description('Runner\'s own bias on top of the auto-detected ambition. Shifts the effective level ±1 within a 5-tier table (Conservative → AllIn). Null/missing → standard (identity).'),
         ];
     }
 
@@ -135,14 +140,22 @@ class BuildPlan implements Tool
             'coach_style' => $request['coach_style'] ?? null,
             'additional_notes' => $request['additional_notes'] ?? null,
             'run_type_preferences' => $request['run_type_preferences'] ?? null,
+            'intensity_bias' => $request['intensity_bias'] ?? null,
         ]);
 
-        // Persist coach_style on the user (matches the existing onboarding
-        // flow's behaviour — coach_style is a runner preference, not a
-        // per-plan field). Other onboarding-form fields stay on the
-        // proposal payload only.
+        // Persist coach_style + intensity_bias on the user (both are
+        // runner preferences, not per-plan fields — they carry over to
+        // coach-chat plan rebuilds without re-asking).
+        $userChanged = false;
         if ($this->user->coach_style !== $form->coachStyle) {
             $this->user->coach_style = $form->coachStyle;
+            $userChanged = true;
+        }
+        if ($this->user->intensity_bias !== $form->intensityBias) {
+            $this->user->intensity_bias = $form->intensityBias;
+            $userChanged = true;
+        }
+        if ($userChanged) {
             $this->user->save();
         }
 
@@ -183,6 +196,12 @@ class BuildPlan implements Tool
             $candidatePeak,
             $extension,
         );
+
+        // Apply the runner's intensity-bias slider on top of the
+        // auto-detected ambition. `Standard` is identity; the other two
+        // shift the effective level ±1 within the 5-tier table (with
+        // floor `Conservative` and ceiling `AllIn`).
+        $assessment = $assessment->applyBias($form->intensityBias);
 
         $payload = $this->builder->build($snapshot, $form, $assessment);
         $payload = $this->optimizer->optimize($payload, $this->user);

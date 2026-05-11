@@ -96,7 +96,7 @@ class AuthController extends Controller
         $pending = $user->pendingPlanGeneration();
 
         return [
-            ...$user->only(['id', 'name', 'email', 'coach_style', 'has_completed_onboarding']),
+            ...$user->only(['id', 'name', 'email', 'coach_style', 'intensity_bias', 'has_completed_onboarding']),
             'pending_plan_generation' => $pending !== null
                 ? OnboardingController::serialize($pending)
                 : null,

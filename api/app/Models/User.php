@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\CoachStyle;
 use App\Enums\GoalStatus;
 use App\Enums\HeartRateZonesSource;
+use App\Enums\IntensityBias;
 use App\Enums\MembershipStatus;
 use App\Enums\OrganizationRole;
 use App\Enums\PlanGenerationStatus;
@@ -22,7 +23,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'apple_sub', 'coach_style', 'has_completed_onboarding', 'heart_rate_zones', 'heart_rate_zones_source', 'date_of_birth', 'personal_records', 'is_superadmin', 'self_reported_weekly_km', 'self_reported_easy_pace_seconds_per_km', 'self_reported_stats_at'])]
+#[Fillable(['name', 'email', 'password', 'apple_sub', 'coach_style', 'intensity_bias', 'has_completed_onboarding', 'heart_rate_zones', 'heart_rate_zones_source', 'date_of_birth', 'personal_records', 'is_superadmin', 'self_reported_weekly_km', 'self_reported_easy_pace_seconds_per_km', 'self_reported_stats_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
@@ -35,6 +36,7 @@ class User extends Authenticatable implements FilamentUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'coach_style' => CoachStyle::class,
+            'intensity_bias' => IntensityBias::class,
             'has_completed_onboarding' => 'boolean',
             'heart_rate_zones' => 'array',
             'heart_rate_zones_source' => HeartRateZonesSource::class,

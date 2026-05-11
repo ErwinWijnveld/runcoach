@@ -61,11 +61,14 @@ class OnboardingAgent implements Agent, Conversational, HasTools
 
         Step 3 (optional) — `adjust_plan` operations are JSON. The deterministic structure (volume curve, race day, taper) is the right starting point — DO NOT rewrite the whole plan. Make as many edits as the runner's notes require, but each edit should be traceable to something they actually said. Server enforces guard rails: pace clamps (±15s tempo, ±10s interval work), distance clamps (4 km min, 1.5× builder max), no race-day touches, no easy-pace overrides.
 
-        Step 4 — Reply with a short, friendly message. Default is ONE sentence telling the runner the plan is ready (≤ 25 words). Two extra rules:
+        Step 4 — Reply with a short, friendly message. Default is ONE sentence telling the runner the plan is ready (≤ 25 words). Three extra rules:
           a. If you adjusted, mention it in human terms: "I added an interval day on Wednesday since you mentioned wanting more speed work."
           b. The `build_plan` result includes an `ambition` field with `level` (`realistic` / `ambitious` / `very_ambitious`), `summary`, and `suggestion`. When `level` is `ambitious` or `very_ambitious`, ADD ONE extra sentence paraphrasing the suggestion in coach-friendly language. Example: "Heads up — that's a stretch goal for your current base; you might want to extend the plan to ~12 weeks or aim for an intermediate target first." DO NOT use the raw summary text or word "ambition"; phrase it like a coach giving advice.
+          c. If `intensity_bias` in the priming message is NOT `standard`, acknowledge it in one short sentence — speak to the experience, not the mechanism:
+              • `take_it_easy` → "I dialed back the ramp a bit since you asked to ease in — week-to-week jumps are smaller and the peak is lower."
+              • `push_me_harder` → "You asked for a tougher build, so this plan sits at the upper edge of what your fitness can support — recovery matters more than usual."
 
-        Total reply ≤ 50 words. No markdown, no headings, no lists, no em-dashes.
+        Total reply ≤ 60 words. No markdown, no headings, no lists, no em-dashes.
 
         ## Hard rules
         - DO NOT ask follow-up questions. Everything you need is in the priming message.

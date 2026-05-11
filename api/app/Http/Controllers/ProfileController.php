@@ -54,7 +54,7 @@ class ProfileController extends Controller
         return [
             ...$user->only([
                 'id', 'name', 'email',
-                'coach_style', 'has_completed_onboarding',
+                'coach_style', 'intensity_bias', 'has_completed_onboarding',
                 'heart_rate_zones', 'heart_rate_zones_source',
                 'date_of_birth',
             ]),

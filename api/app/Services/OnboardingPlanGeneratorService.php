@@ -134,6 +134,7 @@ class OnboardingPlanGeneratorService
             '- preferred_weekdays: '.$weekdays,
             '- run_type_preferences (gold→last): '.$runTypeRanking,
             '- coach_style: '.($formData['coach_style'] ?? 'null'),
+            '- intensity_bias: '.($formData['intensity_bias'] ?? 'standard'),
             '',
             $hasNotes
                 ? 'ADDITIONAL NOTES (read carefully — translate any specific training preferences into adjust_onboarding_plan ops AFTER build_onboarding_plan returns):'
