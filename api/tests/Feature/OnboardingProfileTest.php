@@ -68,4 +68,33 @@ class OnboardingProfileTest extends TestCase
             ->assertJsonPath('status', 'ready')
             ->assertJsonPath('metrics', []);
     }
+
+    public function test_profile_baseline_block_is_null_when_no_wearable_and_no_self_report(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->getJson('/api/v1/onboarding/profile');
+
+        $response->assertOk();
+        $this->assertNull($response->json('baseline.weekly_km'));
+        $this->assertNull($response->json('baseline.weekly_km_source'));
+        $this->assertSame(360, $response->json('baseline.easy_pace_seconds_per_km'));
+        $this->assertNull($response->json('baseline.easy_pace_source'));
+    }
+
+    public function test_profile_baseline_block_marks_self_reported_source(): void
+    {
+        $user = User::factory()->create([
+            'self_reported_weekly_km' => 28.0,
+            'self_reported_easy_pace_seconds_per_km' => 330,
+            'self_reported_stats_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)->getJson('/api/v1/onboarding/profile');
+
+        $this->assertEqualsWithDelta(28.0, $response->json('baseline.weekly_km'), 0.01);
+        $this->assertSame('self_reported', $response->json('baseline.weekly_km_source'));
+        $this->assertSame(330, $response->json('baseline.easy_pace_seconds_per_km'));
+        $this->assertSame('self_reported', $response->json('baseline.easy_pace_source'));
+    }
 }

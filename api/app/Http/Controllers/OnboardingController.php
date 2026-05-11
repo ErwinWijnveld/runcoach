@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PaceDerivation;
 use App\Http\Requests\GeneratePlanRequest;
 use App\Http\Requests\SelfReportedStatsRequest;
 use App\Jobs\GeneratePlan;
 use App\Models\PlanGeneration;
+use App\Models\User;
+use App\Services\Onboarding\FitnessSnapshotService;
 use App\Services\RunningProfileService;
+use App\Support\Onboarding\FitnessSnapshot;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -59,11 +63,16 @@ class OnboardingController extends Controller
      * here — we just check whether the user has any activities locally and
      * either compute the profile from them or return ready+empty.
      */
-    public function profile(Request $request, RunningProfileService $profiles): JsonResponse
-    {
+    public function profile(
+        Request $request,
+        RunningProfileService $profiles,
+        FitnessSnapshotService $fitness,
+    ): JsonResponse {
         $user = $request->user();
 
         $profile = $profiles->getOrAnalyze($user);
+        $snapshot = $fitness->snapshot($user);
+        $baseline = $this->buildBaseline($user, $snapshot);
 
         // Empty PHP array would JSON-encode as `[]` and break the Flutter
         // Map<String, dynamic>? parse. Force null so the field round-trips
@@ -81,6 +90,7 @@ class OnboardingController extends Controller
                 'metrics' => [],
                 'narrative_summary' => null,
                 'personal_records' => $personalRecords,
+                'baseline' => $baseline,
             ]);
         }
 
@@ -92,7 +102,53 @@ class OnboardingController extends Controller
             'metrics' => $profile->metrics,
             'narrative_summary' => $profile->narrative_summary,
             'personal_records' => $personalRecords,
+            'baseline' => $baseline,
         ]);
+    }
+
+    /**
+     * Build the baseline block surfaced by the onboarding overview screen so
+     * Flutter can decide per-field lock state. Source is `self_reported`
+     * when the column is set; otherwise `apple_health` when the cascade had
+     * real signal; otherwise null.
+     *
+     * @return array{
+     *   weekly_km: float|null,
+     *   weekly_km_source: string|null,
+     *   easy_pace_seconds_per_km: int|null,
+     *   easy_pace_source: string|null,
+     * }
+     */
+    private function buildBaseline(User $user, FitnessSnapshot $snapshot): array
+    {
+        $weeklyKm = $user->self_reported_weekly_km !== null
+            ? (float) $user->self_reported_weekly_km
+            : ($snapshot->weeklyKmRecent4Weeks > 0
+                ? round($snapshot->weeklyKmRecent4Weeks, 1)
+                : null);
+
+        $weeklyKmSource = match (true) {
+            $user->self_reported_weekly_km !== null => 'self_reported',
+            $snapshot->weeklyKmRecent4Weeks > 0 => 'apple_health',
+            default => null,
+        };
+
+        $easyPace = $user->self_reported_easy_pace_seconds_per_km
+            ?? $snapshot->easyPaceSecondsPerKm;
+
+        $easyPaceSource = match (true) {
+            $user->self_reported_easy_pace_seconds_per_km !== null => 'self_reported',
+            $snapshot->derivation !== PaceDerivation::Fallback
+                && $snapshot->derivation !== PaceDerivation::SelfReported => 'apple_health',
+            default => null,
+        };
+
+        return [
+            'weekly_km' => $weeklyKm,
+            'weekly_km_source' => $weeklyKmSource,
+            'easy_pace_seconds_per_km' => $easyPace,
+            'easy_pace_source' => $easyPaceSource,
+        ];
     }
 
     /**
