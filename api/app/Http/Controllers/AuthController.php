@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Middleware\SetLocale;
 use App\Models\User;
 use App\Services\Auth\AppleIdentityTokenVerifier;
 use App\Services\Auth\InvalidAppleIdentityTokenException;
@@ -54,6 +55,16 @@ class AuthController extends Controller
                 'name' => $request->string('name')->toString() ?: 'Runner',
             ],
         );
+
+        // Capture the device's preferred language on the very first sign-in
+        // so queue workers (push notifications, agent runs) speak the right
+        // language even before the runner toggles the in-app picker. Once
+        // locale is set, this is a no-op — manual overrides win.
+        if ($user->locale === null) {
+            $detected = $request->getPreferredLanguage(SetLocale::SUPPORTED)
+                ?? config('app.fallback_locale', 'en');
+            $user->forceFill(['locale' => $detected])->save();
+        }
 
         $token = $user->createToken('api')->plainTextToken;
 
