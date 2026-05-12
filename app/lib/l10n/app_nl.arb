@@ -414,5 +414,33 @@
   "intervalKindWarmup": "Warming-up",
   "intervalKindWork": "Werk",
   "intervalKindRecovery": "Herstel",
-  "intervalKindCooldown": "Cooling-down"
+  "intervalKindCooldown": "Cooling-down",
+
+  "coachRoleYou": "Jij",
+  "coachRoleAssistant": "RunCore AI-coach",
+  "coachMessageRetry": "Opnieuw",
+
+  "coachStatsWeeklyAvgKm": "GEM. KM\nPER WEEK",
+  "coachStatsWeeklyAvgRuns": "GEM. RUNS\nPER WEEK",
+  "coachStatsAvgPace": "GEM. TEMPO",
+  "coachStatsSessionAvgTime": "GEM. SESSIE-\nTIJD",
+
+  "coachRevisionGoal": "DOEL",
+  "coachRevisionWeek": "WEEK {number}",
+  "coachRevisionChangeCount": "{count, plural, =1{1 wijziging in je plan} other{{count} wijzigingen in je plan}}",
+  "coachRevisionDayFallback": "Dag",
+  "coachRevisionAddedOn": "Toegevoegd op {day}",
+  "coachRevisionRemovedSession": "Sessie op {day} verwijderd",
+  "coachRevisionMovedTo": "Verplaatst naar {day}",
+  "coachRevisionWasOn": "Stond op {day}",
+  "coachRevisionUpdatedDay": "{day} bijgewerkt",
+  "coachRevisionGoalUpdated": "Doel-details bijgewerkt",
+  "coachRevisionGoalFieldName": "Naam: {value}",
+  "coachRevisionGoalFieldDistance": "Afstand: {value}",
+  "coachRevisionGoalFieldDate": "Datum: {value}",
+  "coachRevisionGoalFieldGoalTime": "Doeltijd: {value}",
+  "coachRevisionGoalFieldDays": "Dagen: {value}",
+  "coachRevisionRunFallback": "Run",
+
+  "coachChipOrTypeOwn": "of typ je eigen"
 }

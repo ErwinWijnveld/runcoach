@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 
 /// Stats card rendered inside the bot-message bubble. 2x2 grid of metric tiles.
@@ -17,21 +18,22 @@ class StatsCardBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final tiles = <_Tile>[
       _Tile(
-        label: 'WEEKLY\nAVG. KM',
+        label: l10n.coachStatsWeeklyAvgKm,
         value: _formatKm(metrics['weekly_avg_km']),
       ),
       _Tile(
-        label: 'WEEKLY\nAVG. RUNS',
+        label: l10n.coachStatsWeeklyAvgRuns,
         value: '${metrics['weekly_avg_runs'] ?? 0}',
       ),
       _Tile(
-        label: 'AVG PACE',
+        label: l10n.coachStatsAvgPace,
         value: _formatPace(metrics['avg_pace_seconds_per_km']),
       ),
       _Tile(
-        label: 'SESSION\nAVG. TIME',
+        label: l10n.coachStatsSessionAvgTime,
         value: _formatDuration(metrics['session_avg_duration_seconds']),
       ),
     ];

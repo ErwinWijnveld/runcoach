@@ -1247,4 +1247,106 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get intervalKindCooldown => 'Cool down';
+
+  @override
+  String get coachRoleYou => 'You';
+
+  @override
+  String get coachRoleAssistant => 'RunCore AI Coach';
+
+  @override
+  String get coachMessageRetry => 'Retry';
+
+  @override
+  String get coachStatsWeeklyAvgKm => 'WEEKLY\nAVG. KM';
+
+  @override
+  String get coachStatsWeeklyAvgRuns => 'WEEKLY\nAVG. RUNS';
+
+  @override
+  String get coachStatsAvgPace => 'AVG PACE';
+
+  @override
+  String get coachStatsSessionAvgTime => 'SESSION\nAVG. TIME';
+
+  @override
+  String get coachRevisionGoal => 'GOAL';
+
+  @override
+  String coachRevisionWeek(String number) {
+    return 'WEEK $number';
+  }
+
+  @override
+  String coachRevisionChangeCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count changes to your plan',
+      one: '1 change to your plan',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get coachRevisionDayFallback => 'Day';
+
+  @override
+  String coachRevisionAddedOn(String day) {
+    return 'Added on $day';
+  }
+
+  @override
+  String coachRevisionRemovedSession(String day) {
+    return 'Removed $day session';
+  }
+
+  @override
+  String coachRevisionMovedTo(String day) {
+    return 'Moved to $day';
+  }
+
+  @override
+  String coachRevisionWasOn(String day) {
+    return 'Was on $day';
+  }
+
+  @override
+  String coachRevisionUpdatedDay(String day) {
+    return 'Updated $day';
+  }
+
+  @override
+  String get coachRevisionGoalUpdated => 'Goal details updated';
+
+  @override
+  String coachRevisionGoalFieldName(String value) {
+    return 'Name: $value';
+  }
+
+  @override
+  String coachRevisionGoalFieldDistance(String value) {
+    return 'Distance: $value';
+  }
+
+  @override
+  String coachRevisionGoalFieldDate(String value) {
+    return 'Date: $value';
+  }
+
+  @override
+  String coachRevisionGoalFieldGoalTime(String value) {
+    return 'Goal time: $value';
+  }
+
+  @override
+  String coachRevisionGoalFieldDays(String value) {
+    return 'Days: $value';
+  }
+
+  @override
+  String get coachRevisionRunFallback => 'Run';
+
+  @override
+  String get coachChipOrTypeOwn => 'or type your own';
 }

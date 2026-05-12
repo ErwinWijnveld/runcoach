@@ -489,5 +489,69 @@
   "intervalKindWarmup": "Warm up",
   "intervalKindWork": "Work",
   "intervalKindRecovery": "Recovery",
-  "intervalKindCooldown": "Cool down"
+  "intervalKindCooldown": "Cool down",
+
+  "coachRoleYou": "You",
+  "coachRoleAssistant": "RunCore AI Coach",
+  "coachMessageRetry": "Retry",
+
+  "coachStatsWeeklyAvgKm": "WEEKLY\nAVG. KM",
+  "coachStatsWeeklyAvgRuns": "WEEKLY\nAVG. RUNS",
+  "coachStatsAvgPace": "AVG PACE",
+  "coachStatsSessionAvgTime": "SESSION\nAVG. TIME",
+
+  "coachRevisionGoal": "GOAL",
+  "coachRevisionWeek": "WEEK {number}",
+  "@coachRevisionWeek": {
+    "placeholders": { "number": { "type": "String" } }
+  },
+  "coachRevisionChangeCount": "{count, plural, =1{1 change to your plan} other{{count} changes to your plan}}",
+  "@coachRevisionChangeCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "coachRevisionDayFallback": "Day",
+  "coachRevisionAddedOn": "Added on {day}",
+  "@coachRevisionAddedOn": {
+    "placeholders": { "day": { "type": "String" } }
+  },
+  "coachRevisionRemovedSession": "Removed {day} session",
+  "@coachRevisionRemovedSession": {
+    "placeholders": { "day": { "type": "String" } }
+  },
+  "coachRevisionMovedTo": "Moved to {day}",
+  "@coachRevisionMovedTo": {
+    "placeholders": { "day": { "type": "String" } }
+  },
+  "coachRevisionWasOn": "Was on {day}",
+  "@coachRevisionWasOn": {
+    "placeholders": { "day": { "type": "String" } }
+  },
+  "coachRevisionUpdatedDay": "Updated {day}",
+  "@coachRevisionUpdatedDay": {
+    "placeholders": { "day": { "type": "String" } }
+  },
+  "coachRevisionGoalUpdated": "Goal details updated",
+  "coachRevisionGoalFieldName": "Name: {value}",
+  "@coachRevisionGoalFieldName": {
+    "placeholders": { "value": { "type": "String" } }
+  },
+  "coachRevisionGoalFieldDistance": "Distance: {value}",
+  "@coachRevisionGoalFieldDistance": {
+    "placeholders": { "value": { "type": "String" } }
+  },
+  "coachRevisionGoalFieldDate": "Date: {value}",
+  "@coachRevisionGoalFieldDate": {
+    "placeholders": { "value": { "type": "String" } }
+  },
+  "coachRevisionGoalFieldGoalTime": "Goal time: {value}",
+  "@coachRevisionGoalFieldGoalTime": {
+    "placeholders": { "value": { "type": "String" } }
+  },
+  "coachRevisionGoalFieldDays": "Days: {value}",
+  "@coachRevisionGoalFieldDays": {
+    "placeholders": { "value": { "type": "String" } }
+  },
+  "coachRevisionRunFallback": "Run",
+
+  "coachChipOrTypeOwn": "or type your own"
 }

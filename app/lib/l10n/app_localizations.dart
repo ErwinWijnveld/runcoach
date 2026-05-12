@@ -2335,6 +2335,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cool down'**
   String get intervalKindCooldown;
+
+  /// No description provided for @coachRoleYou.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get coachRoleYou;
+
+  /// No description provided for @coachRoleAssistant.
+  ///
+  /// In en, this message translates to:
+  /// **'RunCore AI Coach'**
+  String get coachRoleAssistant;
+
+  /// No description provided for @coachMessageRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get coachMessageRetry;
+
+  /// No description provided for @coachStatsWeeklyAvgKm.
+  ///
+  /// In en, this message translates to:
+  /// **'WEEKLY\nAVG. KM'**
+  String get coachStatsWeeklyAvgKm;
+
+  /// No description provided for @coachStatsWeeklyAvgRuns.
+  ///
+  /// In en, this message translates to:
+  /// **'WEEKLY\nAVG. RUNS'**
+  String get coachStatsWeeklyAvgRuns;
+
+  /// No description provided for @coachStatsAvgPace.
+  ///
+  /// In en, this message translates to:
+  /// **'AVG PACE'**
+  String get coachStatsAvgPace;
+
+  /// No description provided for @coachStatsSessionAvgTime.
+  ///
+  /// In en, this message translates to:
+  /// **'SESSION\nAVG. TIME'**
+  String get coachStatsSessionAvgTime;
+
+  /// No description provided for @coachRevisionGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'GOAL'**
+  String get coachRevisionGoal;
+
+  /// No description provided for @coachRevisionWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'WEEK {number}'**
+  String coachRevisionWeek(String number);
+
+  /// No description provided for @coachRevisionChangeCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 change to your plan} other{{count} changes to your plan}}'**
+  String coachRevisionChangeCount(int count);
+
+  /// No description provided for @coachRevisionDayFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Day'**
+  String get coachRevisionDayFallback;
+
+  /// No description provided for @coachRevisionAddedOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Added on {day}'**
+  String coachRevisionAddedOn(String day);
+
+  /// No description provided for @coachRevisionRemovedSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed {day} session'**
+  String coachRevisionRemovedSession(String day);
+
+  /// No description provided for @coachRevisionMovedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Moved to {day}'**
+  String coachRevisionMovedTo(String day);
+
+  /// No description provided for @coachRevisionWasOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Was on {day}'**
+  String coachRevisionWasOn(String day);
+
+  /// No description provided for @coachRevisionUpdatedDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated {day}'**
+  String coachRevisionUpdatedDay(String day);
+
+  /// No description provided for @coachRevisionGoalUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal details updated'**
+  String get coachRevisionGoalUpdated;
+
+  /// No description provided for @coachRevisionGoalFieldName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name: {value}'**
+  String coachRevisionGoalFieldName(String value);
+
+  /// No description provided for @coachRevisionGoalFieldDistance.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance: {value}'**
+  String coachRevisionGoalFieldDistance(String value);
+
+  /// No description provided for @coachRevisionGoalFieldDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date: {value}'**
+  String coachRevisionGoalFieldDate(String value);
+
+  /// No description provided for @coachRevisionGoalFieldGoalTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal time: {value}'**
+  String coachRevisionGoalFieldGoalTime(String value);
+
+  /// No description provided for @coachRevisionGoalFieldDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Days: {value}'**
+  String coachRevisionGoalFieldDays(String value);
+
+  /// No description provided for @coachRevisionRunFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Run'**
+  String get coachRevisionRunFallback;
+
+  /// No description provided for @coachChipOrTypeOwn.
+  ///
+  /// In en, this message translates to:
+  /// **'or type your own'**
+  String get coachChipOrTypeOwn;
 }
 
 class _AppLocalizationsDelegate

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/coach/models/coach_message.dart';
 import 'package:app/features/coach/widgets/chip_suggestions_row.dart';
@@ -129,7 +130,7 @@ class _RoleLabel extends StatelessWidget {
     );
 
     if (isUser) {
-      return Text('You', style: labelStyle);
+      return Text(context.l10n.coachRoleYou, style: labelStyle);
     }
 
     return Row(
@@ -141,7 +142,7 @@ class _RoleLabel extends StatelessWidget {
           height: 11,
         ),
         const SizedBox(width: 8),
-        Text('RunCore AI Coach', style: labelStyle),
+        Text(context.l10n.coachRoleAssistant, style: labelStyle),
       ],
     );
   }
@@ -229,18 +230,18 @@ class _ErrorStrip extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8),
             minimumSize: Size.zero,
             onPressed: onRetry,
-            child: const Row(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
+                const Icon(
                   CupertinoIcons.refresh,
                   size: 14,
                   color: AppColors.tertiary,
                 ),
-                SizedBox(width: 4),
+                const SizedBox(width: 4),
                 Text(
-                  'Retry',
-                  style: TextStyle(
+                  context.l10n.coachMessageRetry,
+                  style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.tertiary,
                   ),

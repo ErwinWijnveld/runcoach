@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/utils/date_formatter.dart';
 
@@ -11,18 +13,9 @@ class PlanRevisionContent extends StatelessWidget {
 
   const PlanRevisionContent({super.key, required this.ops});
 
-  static const _dayNames = [
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-    'Sunday',
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final byWeek = <int, List<Map<String, dynamic>>>{};
     final goalOps = <Map<String, dynamic>>[];
 
@@ -40,7 +33,7 @@ class PlanRevisionContent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '${ops.length} ${ops.length == 1 ? 'change' : 'changes'} to your plan',
+          l10n.coachRevisionChangeCount(ops.length),
           style: GoogleFonts.inter(
             fontSize: 13,
             fontWeight: FontWeight.w500,
@@ -49,22 +42,36 @@ class PlanRevisionContent extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         if (goalOps.isNotEmpty) ...[
-          _WeekGroup(label: 'GOAL', ops: goalOps),
+          _WeekGroup(label: l10n.coachRevisionGoal, ops: goalOps),
           const SizedBox(height: 10),
         ],
         for (final wk in sortedWeeks) ...[
-          _WeekGroup(label: 'WEEK $wk', ops: byWeek[wk]!),
+          _WeekGroup(label: l10n.coachRevisionWeek('$wk'), ops: byWeek[wk]!),
           const SizedBox(height: 10),
         ],
       ],
     );
   }
 
-  static String dayLabel(int? dow) {
-    if (dow == null || dow < 1 || dow > 7) return 'Day';
-    return _dayNames[dow - 1];
+  /// Locale-aware day name. Pulls from intl's DateFormat.EEEE so it
+  /// follows the current locale rather than a hardcoded English array.
+  static String dayLabel(BuildContext context, int? dow) {
+    if (dow == null || dow < 1 || dow > 7) return context.l10n.coachRevisionDayFallback;
+    final ref = DateTime(2024, 1, dow); // Jan 1 2024 = Monday
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    return _intlDayName(locale, ref);
+  }
+
+  static String _intlDayName(String locale, DateTime d) {
+    // Defer to date_formatter helpers — DateFormat.EEEE(locale).format
+    // is the locale-aware full weekday name.
+    return _dateFormatEEEE(locale).format(d);
   }
 }
+
+// Cached short-circuit to avoid pulling DateFormat into the static method
+// signature noise. Returns DateFormat.EEEE(locale).
+DateFormat _dateFormatEEEE(String locale) => DateFormat.EEEE(locale);
 
 class _WeekGroup extends StatelessWidget {
   final String label;
@@ -114,7 +121,7 @@ class _OpRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (icon, tint, headline, detail) = _render(op);
+    final (icon, tint, headline, detail) = _render(context, op);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -163,25 +170,26 @@ class _OpRow extends StatelessWidget {
     );
   }
 
-  (IconData, Color, String, String?) _render(Map<String, dynamic> op) {
+  (IconData, Color, String, String?) _render(BuildContext context, Map<String, dynamic> op) {
+    final l10n = context.l10n;
     final name = op['op']?.toString() ?? '';
     switch (name) {
       case 'add_day':
         final dow = (op['day_of_week'] as num?)?.toInt();
         final fields = (op['fields'] as Map?)?.cast<String, dynamic>() ?? {};
-        final title = fields['title']?.toString() ?? _humanType(fields['type']);
+        final title = fields['title']?.toString() ?? _humanType(context, fields['type']);
         return (
           Icons.add_rounded,
           const Color(0xFF2F8F4E),
-          'Added on ${PlanRevisionContent.dayLabel(dow)}',
-          _composeDayDetail(title, fields),
+          l10n.coachRevisionAddedOn(PlanRevisionContent.dayLabel(context, dow)),
+          _composeDayDetail(context, title, fields),
         );
       case 'remove_day':
         final dow = (op['day_of_week'] as num?)?.toInt();
         return (
           Icons.remove_rounded,
           const Color(0xFF8F3A3A),
-          'Removed ${PlanRevisionContent.dayLabel(dow)} session',
+          l10n.coachRevisionRemovedSession(PlanRevisionContent.dayLabel(context, dow)),
           null,
         );
       case 'shift_day':
@@ -190,8 +198,8 @@ class _OpRow extends StatelessWidget {
         return (
           Icons.swap_horiz_rounded,
           const Color(0xFF7A5B1F),
-          'Moved to ${PlanRevisionContent.dayLabel(to)}',
-          'Was on ${PlanRevisionContent.dayLabel(from)}',
+          l10n.coachRevisionMovedTo(PlanRevisionContent.dayLabel(context, to)),
+          l10n.coachRevisionWasOn(PlanRevisionContent.dayLabel(context, from)),
         );
       case 'set_day':
         final dow = (op['day_of_week'] as num?)?.toInt();
@@ -199,27 +207,27 @@ class _OpRow extends StatelessWidget {
         return (
           Icons.edit_rounded,
           const Color(0xFF7A5B1F),
-          'Updated ${PlanRevisionContent.dayLabel(dow)}',
-          _composeDayDetail(null, fields),
+          l10n.coachRevisionUpdatedDay(PlanRevisionContent.dayLabel(context, dow)),
+          _composeDayDetail(context, null, fields),
         );
       case 'set_goal':
         final fields = (op['fields'] as Map?)?.cast<String, dynamic>() ?? {};
         return (
           Icons.flag_rounded,
           const Color(0xFF7A5B1F),
-          'Goal details updated',
-          _composeGoalDetail(fields),
+          l10n.coachRevisionGoalUpdated,
+          _composeGoalDetail(context, fields),
         );
       default:
         return (Icons.change_circle_outlined, AppColors.inkMuted, name, null);
     }
   }
 
-  String? _composeDayDetail(String? title, Map<String, dynamic> fields) {
+  String? _composeDayDetail(BuildContext context, String? title, Map<String, dynamic> fields) {
     final parts = <String>[];
     if (title != null && title.isNotEmpty) parts.add(title);
     if (fields['type'] != null && (title == null || title.isEmpty)) {
-      parts.add(_humanType(fields['type']));
+      parts.add(_humanType(context, fields['type']));
     }
     if (fields['target_km'] != null) parts.add('${_num(fields['target_km'])} km');
     if (fields['target_pace_seconds_per_km'] != null) {
@@ -231,27 +239,33 @@ class _OpRow extends StatelessWidget {
     return parts.isEmpty ? null : parts.join(' · ');
   }
 
-  String? _composeGoalDetail(Map<String, dynamic> fields) {
+  String? _composeGoalDetail(BuildContext context, Map<String, dynamic> fields) {
+    final l10n = context.l10n;
     final parts = <String>[];
-    if (fields['goal_name'] != null) parts.add('Name: ${fields['goal_name']}');
-    if (fields['distance'] != null) parts.add('Distance: ${fields['distance']}');
+    if (fields['goal_name'] != null) parts.add(l10n.coachRevisionGoalFieldName(fields['goal_name'].toString()));
+    if (fields['distance'] != null) parts.add(l10n.coachRevisionGoalFieldDistance(fields['distance'].toString()));
     if (fields['target_date'] != null) {
-      parts.add('Date: ${formatDateString(fields['target_date']?.toString(), fallback: fields['target_date'].toString())}');
+      parts.add(l10n.coachRevisionGoalFieldDate(
+        formatDateString(fields['target_date']?.toString(), fallback: fields['target_date'].toString()),
+      ));
     }
     if (fields['goal_time_seconds'] != null) {
-      parts.add('Goal time: ${_duration(fields['goal_time_seconds'])}');
+      parts.add(l10n.coachRevisionGoalFieldGoalTime(_duration(fields['goal_time_seconds'])));
     }
     if (fields['preferred_weekdays'] != null) {
       final days = (fields['preferred_weekdays'] as List)
-          .map((d) => PlanRevisionContent.dayLabel(d is num ? d.toInt() : null).substring(0, 3))
+          .map((d) {
+            final label = PlanRevisionContent.dayLabel(context, d is num ? d.toInt() : null);
+            return label.length >= 3 ? label.substring(0, 3) : label;
+          })
           .join(', ');
-      parts.add('Days: $days');
+      parts.add(l10n.coachRevisionGoalFieldDays(days));
     }
     return parts.isEmpty ? null : parts.join(' · ');
   }
 
-  String _humanType(dynamic type) {
-    if (type == null) return 'Run';
+  String _humanType(BuildContext context, dynamic type) {
+    if (type == null) return context.l10n.coachRevisionRunFallback;
     return type.toString().replaceAll('_', ' ').split(' ').map((s) {
       if (s.isEmpty) return s;
       return s[0].toUpperCase() + s.substring(1);

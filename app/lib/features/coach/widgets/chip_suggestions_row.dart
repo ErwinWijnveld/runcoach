@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 
 class ChipSuggestionsRow extends StatefulWidget {
@@ -69,9 +70,9 @@ class _ChipSuggestionsRowState extends State<ChipSuggestionsRow> {
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: AppColors.border),
             ),
-            child: const Text(
-              'or type your own',
-              style: TextStyle(
+            child: Text(
+              context.l10n.coachChipOrTypeOwn,
+              style: const TextStyle(
                 fontSize: 14,
                 fontStyle: FontStyle.italic,
                 color: AppColors.textSecondary,
