@@ -4,6 +4,7 @@ namespace App\Support\Onboarding;
 
 use App\Enums\AmbitionLevel;
 use App\Enums\IntensityBias;
+use App\Services\Onboarding\PlanAmbitionAnalyzer;
 
 /**
  * Output of `PlanAmbitionAnalyzer`. Captures how realistic the runner's
@@ -23,6 +24,14 @@ use App\Enums\IntensityBias;
  */
 final readonly class AmbitionAssessment
 {
+    public const PACE_WEIGHT = 0.6;
+
+    public const VOLUME_WEIGHT = 0.4;
+
+    public const ZONE_OK_MIN_PCT = 70;
+
+    public const ZONE_STRETCH_MIN_PCT = 40;
+
     public function __construct(
         public AmbitionLevel $level,
         public ?int $paceGapSecondsPerKm,
@@ -110,6 +119,91 @@ final readonly class AmbitionAssessment
             weeklyGrowthRatio: $effective->weeklyGrowthRatio(),
             qualityPaceRampGain: $effective->qualityPaceRampGain(),
         );
+    }
+
+    /**
+     * Wire-shape consumed by the Flutter plan-details modal. Null when
+     * there's no measurable goal (no pace gap) — the section is skipped
+     * in that case. Numbers are pre-aggregated to integers so the app
+     * never has to do arithmetic.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function toFeasibilityPayload(): ?array
+    {
+        if ($this->paceGapSecondsPerKm === null || $this->improvementPerMonthSeconds === null) {
+            return null;
+        }
+
+        $paceFeasibility = min(
+            1.0,
+            PlanAmbitionAnalyzer::REALISTIC_IMPROVEMENT_PER_MONTH
+                / max($this->improvementPerMonthSeconds, 0.01),
+        );
+        $volumeFeasibility = $this->volumeRatio === null
+            ? 1.0
+            : max(0.0, min(1.0, $this->volumeRatio));
+
+        $feasibility01 = $paceFeasibility * self::PACE_WEIGHT
+            + $volumeFeasibility * self::VOLUME_WEIGHT;
+
+        $feasibilityPct = (int) round($feasibility01 * 100);
+        $zone = match (true) {
+            $feasibilityPct >= self::ZONE_OK_MIN_PCT => 'ok',
+            $feasibilityPct >= self::ZONE_STRETCH_MIN_PCT => 'stretch',
+            default => 'unrealistic',
+        };
+
+        return [
+            'feasibility_pct' => $feasibilityPct,
+            'pace_score_pct' => (int) round($paceFeasibility * 100),
+            'volume_score_pct' => (int) round($volumeFeasibility * 100),
+            'verdict_zone' => $zone,
+            'verdict_label' => $this->verdictLabel($zone),
+            'detail' => $this->verdictDetail($zone, $this->improvementPerMonthSeconds, $volumeFeasibility),
+            'pace_gap_seconds_per_km' => $this->paceGapSecondsPerKm,
+            'required_improvement_per_month_seconds' => (int) round($this->improvementPerMonthSeconds),
+            'adjust_prefill' => $this->adjustPrefill(),
+        ];
+    }
+
+    private function verdictLabel(string $zone): string
+    {
+        return match ($zone) {
+            'ok' => 'Goed haalbaar',
+            'stretch' => 'Pittig maar haalbaar',
+            'unrealistic' => 'Te ambitieus voor dit plan',
+            default => '',
+        };
+    }
+
+    private function verdictDetail(string $zone, float $improvementPerMonth, float $volumeFeasibility): string
+    {
+        $rate = (int) round($improvementPerMonth);
+        $volPct = (int) round($volumeFeasibility * 100);
+
+        return match ($zone) {
+            'ok' => sprintf(
+                '%d sec/km per maand verbetering nodig — binnen normaal voor jouw volume.',
+                $rate,
+            ),
+            'stretch' => sprintf(
+                'Vraagt %d sec/km per maand — bijna 2× wat realistisch is. Volume %d%% van aanbevolen.',
+                $rate,
+                $volPct,
+            ),
+            'unrealistic' => sprintf(
+                'Vraagt %d sec/km per maand — ruim boven realistische verbeteringsrate. Volume %d%% van aanbevolen.',
+                $rate,
+                $volPct,
+            ),
+            default => '',
+        };
+    }
+
+    private function adjustPrefill(): string
+    {
+        return 'Mijn doel voelt te ambitieus voor dit plan — kun je een realistischer tijd voorstellen?';
     }
 
     /**
