@@ -603,5 +603,38 @@
   "workoutChatWhatPlanPrompt": "What's the purpose of this workout and what should I focus on?",
   "workoutChatPaceCheck": "Pace check",
   "workoutChatPaceCheckPrompt": "Is the target pace realistic based on my recent runs?",
-  "workoutChatMoveItPrompt": "Can we move this workout to "
+  "workoutChatMoveItPrompt": "Can we move this workout to ",
+
+  "planDetailsGoalFallback": "Your training plan",
+  "planDetailsEyebrowRevision": "PLAN REVISION",
+  "planDetailsEyebrowRecommended": "RECOMMENDED PLAN",
+  "planDetailsRevisionTitle": "Review your changes",
+  "planDetailsBreakdownLabel": "WEEKLY BREAKDOWN",
+  "planDetailsStatWeeks": "WEEKS",
+  "planDetailsStatAvgKm": "AVG KM / WEEK",
+  "planDetailsStatRunsPerWeek": "RUNS / WEEK",
+  "planDetailsWeekLabel": "Week {number}",
+  "@planDetailsWeekLabel": {
+    "placeholders": { "number": { "type": "int" } }
+  },
+  "planDetailsWeekFallback": "Week",
+  "planDetailsKmTotal": "KM TOTAL",
+  "planDetailsDayRun": "Run",
+  "planDetailsFooterClose": "CLOSE",
+  "planDetailsFooterAdjust": "ADJUST",
+  "planDetailsFooterApplyChanges": "APPLY CHANGES",
+  "planDetailsFooterAcceptPlan": "ACCEPT PLAN",
+  "planDetailsFooterAdjustGoal": "ADJUST GOAL FOR REALISTIC PLAN",
+  "planDetailsFooterAcceptAnyway": "Accept anyway",
+  "planDetailsVolumeEyebrow": "WEEKLY VOLUME",
+  "planDetailsVolumePeak": "Peak {km} km · W{week}",
+  "@planDetailsVolumePeak": {
+    "placeholders": {
+      "km": { "type": "String" },
+      "week": { "type": "int" }
+    }
+  },
+  "planDetailsFeasibilityUnrealistic": "Unrealistic",
+  "planDetailsFeasibilityStretch": "Stretch",
+  "planDetailsFeasibilityOk": "Good"
 }

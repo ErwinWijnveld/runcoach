@@ -1477,4 +1477,78 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get workoutChatMoveItPrompt =>
       'Kunnen we deze training verplaatsen naar ';
+
+  @override
+  String get planDetailsGoalFallback => 'Je trainingsplan';
+
+  @override
+  String get planDetailsEyebrowRevision => 'PLAN-AANPASSING';
+
+  @override
+  String get planDetailsEyebrowRecommended => 'AANBEVOLEN PLAN';
+
+  @override
+  String get planDetailsRevisionTitle => 'Bekijk je wijzigingen';
+
+  @override
+  String get planDetailsBreakdownLabel => 'WEEKOVERZICHT';
+
+  @override
+  String get planDetailsStatWeeks => 'WEKEN';
+
+  @override
+  String get planDetailsStatAvgKm => 'GEM KM / WEEK';
+
+  @override
+  String get planDetailsStatRunsPerWeek => 'RUNS / WEEK';
+
+  @override
+  String planDetailsWeekLabel(int number) {
+    return 'Week $number';
+  }
+
+  @override
+  String get planDetailsWeekFallback => 'Week';
+
+  @override
+  String get planDetailsKmTotal => 'KM TOTAAL';
+
+  @override
+  String get planDetailsDayRun => 'Run';
+
+  @override
+  String get planDetailsFooterClose => 'SLUITEN';
+
+  @override
+  String get planDetailsFooterAdjust => 'PAS AAN';
+
+  @override
+  String get planDetailsFooterApplyChanges => 'WIJZIGINGEN TOEPASSEN';
+
+  @override
+  String get planDetailsFooterAcceptPlan => 'ACCEPTEER PLAN';
+
+  @override
+  String get planDetailsFooterAdjustGoal =>
+      'PAS DOEL AAN VOOR REALISTISCH PLAN';
+
+  @override
+  String get planDetailsFooterAcceptAnyway => 'Toch accepteren';
+
+  @override
+  String get planDetailsVolumeEyebrow => 'WEKELIJKS VOLUME';
+
+  @override
+  String planDetailsVolumePeak(String km, int week) {
+    return 'Piek $km km · W$week';
+  }
+
+  @override
+  String get planDetailsFeasibilityUnrealistic => 'Onhaalbaar';
+
+  @override
+  String get planDetailsFeasibilityStretch => 'Stretch';
+
+  @override
+  String get planDetailsFeasibilityOk => 'Goed';
 }

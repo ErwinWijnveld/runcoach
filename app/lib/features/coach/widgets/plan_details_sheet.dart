@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/coach/models/coach_proposal.dart';
 import 'package:app/features/coach/widgets/plan_revision_content.dart';
@@ -99,7 +101,7 @@ class PlanDetailsSheet extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _Header(
-                        goalName: _goalName(),
+                        goalName: _goalName(context),
                         isRevision: ops != null,
                       ),
                       const SizedBox(height: 16),
@@ -122,7 +124,7 @@ class PlanDetailsSheet extends StatelessWidget {
                         ),
                         const SizedBox(height: 24),
                         Text(
-                          'WEEKLY BREAKDOWN',
+                          context.l10n.planDetailsBreakdownLabel,
                           style: GoogleFonts.spaceGrotesk(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
@@ -155,10 +157,10 @@ class PlanDetailsSheet extends StatelessWidget {
     );
   }
 
-  String _goalName() {
+  String _goalName(BuildContext context) {
     final name = proposal.payload['goal_name'];
     if (name is String && name.trim().isNotEmpty) return name;
-    return 'Your training plan';
+    return context.l10n.planDetailsGoalFallback;
   }
 
   List<Map<String, dynamic>> _weeks(Map<String, dynamic> payload) {
@@ -228,6 +230,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -236,7 +239,7 @@ class _Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isRevision ? 'PLAN REVISION' : 'RECOMMENDED PLAN',
+                isRevision ? l10n.planDetailsEyebrowRevision : l10n.planDetailsEyebrowRecommended,
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
@@ -246,7 +249,7 @@ class _Header extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                isRevision ? 'Review your changes' : goalName,
+                isRevision ? l10n.planDetailsRevisionTitle : goalName,
                 style: GoogleFonts.ebGaramond(
                   fontSize: 28,
                   fontWeight: FontWeight.w400,
@@ -280,23 +283,24 @@ class _TopStats extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Row(
       children: [
         Expanded(
           child: _StatItem(
-            label: 'WEEKS',
+            label: l10n.planDetailsStatWeeks,
             value: '$totalWeeks',
           ),
         ),
         Expanded(
           child: _StatItem(
-            label: 'AVG KM / WEEK',
+            label: l10n.planDetailsStatAvgKm,
             value: avgWeeklyKm.toStringAsFixed(1),
           ),
         ),
         Expanded(
           child: _StatItem(
-            label: 'RUNS / WEEK',
+            label: l10n.planDetailsStatRunsPerWeek,
             value: weeklyRuns,
           ),
         ),
@@ -334,9 +338,11 @@ class _WeekCard extends StatelessWidget {
   final Map<String, dynamic> week;
   const _WeekCard({required this.week});
 
-  static const _dayNames = [
-    'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN',
-  ];
+  static String _dayName(BuildContext context, int weekday) {
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    final ref = DateTime(2024, 1, weekday); // Jan 1 2024 = Monday
+    return DateFormat.E(locale).format(ref).toUpperCase();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -399,7 +405,9 @@ class _WeekCard extends StatelessWidget {
                       const SizedBox(height: 8),
                     ],
                     Text(
-                      weekNumber != null ? 'Week $weekNumber' : 'Week',
+                      weekNumber != null
+                          ? context.l10n.planDetailsWeekLabel(weekNumber)
+                          : context.l10n.planDetailsWeekFallback,
                       style: GoogleFonts.ebGaramond(
                         fontSize: 30,
                         fontWeight: FontWeight.w500,
@@ -461,7 +469,7 @@ class _KmTotal extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         Text(
-          'KM TOTAL',
+          context.l10n.planDetailsKmTotal,
           style: GoogleFonts.spaceGrotesk(
             fontSize: 9,
             fontWeight: FontWeight.w700,
@@ -484,11 +492,11 @@ class _DayRow extends StatelessWidget {
         ? (day['day_of_week'] as num).toInt()
         : null;
     final dayLabel = (dow != null && dow >= 1 && dow <= 7)
-        ? _WeekCard._dayNames[dow - 1]
+        ? _WeekCard._dayName(context, dow)
         : '-';
     final title = (day['title'] as String?)?.trim().isNotEmpty == true
         ? day['title'] as String
-        : _prettifyType(day['type'] as String?);
+        : _prettifyType(context, day['type'] as String?);
     final km = day['target_km'];
     // Mirror TrainingDayPaceX.displayPaceSecondsPerKm: day-level pace is
     // always null on intervals (per the optimizer's hard invariant), so
@@ -563,8 +571,8 @@ class _DayRow extends StatelessWidget {
     );
   }
 
-  String _prettifyType(String? type) {
-    if (type == null || type.isEmpty) return 'Run';
+  String _prettifyType(BuildContext context, String? type) {
+    if (type == null || type.isEmpty) return context.l10n.planDetailsDayRun;
     return type
         .replaceAll('_', ' ')
         .split(' ')
@@ -704,10 +712,11 @@ class _StickyFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final Widget body;
     if (!isPending) {
       body = _PrimaryButton(
-        label: 'CLOSE',
+        label: l10n.planDetailsFooterClose,
         background: AppColors.lightTan,
         foreground: AppColors.primary,
         onPressed: () => Navigator.of(context).pop(),
@@ -723,7 +732,7 @@ class _StickyFooter extends StatelessWidget {
         children: [
           Expanded(
             child: _PrimaryButton(
-              label: 'ADJUST',
+              label: l10n.planDetailsFooterAdjust,
               background: AppColors.lightTan,
               foreground: AppColors.primary,
               onPressed: onAdjust == null
@@ -738,7 +747,7 @@ class _StickyFooter extends StatelessWidget {
           Expanded(
             flex: 2,
             child: _PrimaryButton(
-              label: isRevision ? 'APPLY CHANGES' : 'ACCEPT PLAN',
+              label: isRevision ? l10n.planDetailsFooterApplyChanges : l10n.planDetailsFooterAcceptPlan,
               background: AppColors.secondary,
               foreground: AppColors.primary,
               onPressed: onAccept == null
@@ -791,11 +800,12 @@ class _UnrealisticFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         _PrimaryButton(
-          label: 'ADJUST GOAL FOR REALISTIC PLAN',
+          label: l10n.planDetailsFooterAdjustGoal,
           background: AppColors.danger,
           foreground: Colors.white,
           onPressed: onAdjust == null
@@ -807,7 +817,7 @@ class _UnrealisticFooter extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         _PrimaryButton(
-          label: 'Accept anyway',
+          label: l10n.planDetailsFooterAcceptAnyway,
           background: AppColors.lightTan,
           foreground: AppColors.primary,
           onPressed: onAccept == null
@@ -867,7 +877,7 @@ class _WeeklyVolumeChart extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'WEEKLY VOLUME',
+                context.l10n.planDetailsVolumeEyebrow,
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
@@ -876,7 +886,7 @@ class _WeeklyVolumeChart extends StatelessWidget {
                 ),
               ),
               Text(
-                'Peak ${peakWeek.km.toStringAsFixed(0)} km · W${peakWeek.week}',
+                context.l10n.planDetailsVolumePeak(peakWeek.km.toStringAsFixed(0), peakWeek.week),
                 style: GoogleFonts.inter(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
@@ -1128,9 +1138,9 @@ class _FeasibilityZoneBar extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _axisLabel('Onhaalbaar'),
-              _axisLabel('Stretch'),
-              _axisLabel('Goed'),
+              _axisLabel(context.l10n.planDetailsFeasibilityUnrealistic),
+              _axisLabel(context.l10n.planDetailsFeasibilityStretch),
+              _axisLabel(context.l10n.planDetailsFeasibilityOk),
             ],
           ),
           const SizedBox(height: 12),

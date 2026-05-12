@@ -2707,6 +2707,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Can we move this workout to '**
   String get workoutChatMoveItPrompt;
+
+  /// No description provided for @planDetailsGoalFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Your training plan'**
+  String get planDetailsGoalFallback;
+
+  /// No description provided for @planDetailsEyebrowRevision.
+  ///
+  /// In en, this message translates to:
+  /// **'PLAN REVISION'**
+  String get planDetailsEyebrowRevision;
+
+  /// No description provided for @planDetailsEyebrowRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'RECOMMENDED PLAN'**
+  String get planDetailsEyebrowRecommended;
+
+  /// No description provided for @planDetailsRevisionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Review your changes'**
+  String get planDetailsRevisionTitle;
+
+  /// No description provided for @planDetailsBreakdownLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'WEEKLY BREAKDOWN'**
+  String get planDetailsBreakdownLabel;
+
+  /// No description provided for @planDetailsStatWeeks.
+  ///
+  /// In en, this message translates to:
+  /// **'WEEKS'**
+  String get planDetailsStatWeeks;
+
+  /// No description provided for @planDetailsStatAvgKm.
+  ///
+  /// In en, this message translates to:
+  /// **'AVG KM / WEEK'**
+  String get planDetailsStatAvgKm;
+
+  /// No description provided for @planDetailsStatRunsPerWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'RUNS / WEEK'**
+  String get planDetailsStatRunsPerWeek;
+
+  /// No description provided for @planDetailsWeekLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Week {number}'**
+  String planDetailsWeekLabel(int number);
+
+  /// No description provided for @planDetailsWeekFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Week'**
+  String get planDetailsWeekFallback;
+
+  /// No description provided for @planDetailsKmTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'KM TOTAL'**
+  String get planDetailsKmTotal;
+
+  /// No description provided for @planDetailsDayRun.
+  ///
+  /// In en, this message translates to:
+  /// **'Run'**
+  String get planDetailsDayRun;
+
+  /// No description provided for @planDetailsFooterClose.
+  ///
+  /// In en, this message translates to:
+  /// **'CLOSE'**
+  String get planDetailsFooterClose;
+
+  /// No description provided for @planDetailsFooterAdjust.
+  ///
+  /// In en, this message translates to:
+  /// **'ADJUST'**
+  String get planDetailsFooterAdjust;
+
+  /// No description provided for @planDetailsFooterApplyChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'APPLY CHANGES'**
+  String get planDetailsFooterApplyChanges;
+
+  /// No description provided for @planDetailsFooterAcceptPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'ACCEPT PLAN'**
+  String get planDetailsFooterAcceptPlan;
+
+  /// No description provided for @planDetailsFooterAdjustGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'ADJUST GOAL FOR REALISTIC PLAN'**
+  String get planDetailsFooterAdjustGoal;
+
+  /// No description provided for @planDetailsFooterAcceptAnyway.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept anyway'**
+  String get planDetailsFooterAcceptAnyway;
+
+  /// No description provided for @planDetailsVolumeEyebrow.
+  ///
+  /// In en, this message translates to:
+  /// **'WEEKLY VOLUME'**
+  String get planDetailsVolumeEyebrow;
+
+  /// No description provided for @planDetailsVolumePeak.
+  ///
+  /// In en, this message translates to:
+  /// **'Peak {km} km · W{week}'**
+  String planDetailsVolumePeak(String km, int week);
+
+  /// No description provided for @planDetailsFeasibilityUnrealistic.
+  ///
+  /// In en, this message translates to:
+  /// **'Unrealistic'**
+  String get planDetailsFeasibilityUnrealistic;
+
+  /// No description provided for @planDetailsFeasibilityStretch.
+  ///
+  /// In en, this message translates to:
+  /// **'Stretch'**
+  String get planDetailsFeasibilityStretch;
+
+  /// No description provided for @planDetailsFeasibilityOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Good'**
+  String get planDetailsFeasibilityOk;
 }
 
 class _AppLocalizationsDelegate

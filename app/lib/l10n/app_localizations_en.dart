@@ -1474,4 +1474,77 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get workoutChatMoveItPrompt => 'Can we move this workout to ';
+
+  @override
+  String get planDetailsGoalFallback => 'Your training plan';
+
+  @override
+  String get planDetailsEyebrowRevision => 'PLAN REVISION';
+
+  @override
+  String get planDetailsEyebrowRecommended => 'RECOMMENDED PLAN';
+
+  @override
+  String get planDetailsRevisionTitle => 'Review your changes';
+
+  @override
+  String get planDetailsBreakdownLabel => 'WEEKLY BREAKDOWN';
+
+  @override
+  String get planDetailsStatWeeks => 'WEEKS';
+
+  @override
+  String get planDetailsStatAvgKm => 'AVG KM / WEEK';
+
+  @override
+  String get planDetailsStatRunsPerWeek => 'RUNS / WEEK';
+
+  @override
+  String planDetailsWeekLabel(int number) {
+    return 'Week $number';
+  }
+
+  @override
+  String get planDetailsWeekFallback => 'Week';
+
+  @override
+  String get planDetailsKmTotal => 'KM TOTAL';
+
+  @override
+  String get planDetailsDayRun => 'Run';
+
+  @override
+  String get planDetailsFooterClose => 'CLOSE';
+
+  @override
+  String get planDetailsFooterAdjust => 'ADJUST';
+
+  @override
+  String get planDetailsFooterApplyChanges => 'APPLY CHANGES';
+
+  @override
+  String get planDetailsFooterAcceptPlan => 'ACCEPT PLAN';
+
+  @override
+  String get planDetailsFooterAdjustGoal => 'ADJUST GOAL FOR REALISTIC PLAN';
+
+  @override
+  String get planDetailsFooterAcceptAnyway => 'Accept anyway';
+
+  @override
+  String get planDetailsVolumeEyebrow => 'WEEKLY VOLUME';
+
+  @override
+  String planDetailsVolumePeak(String km, int week) {
+    return 'Peak $km km · W$week';
+  }
+
+  @override
+  String get planDetailsFeasibilityUnrealistic => 'Unrealistic';
+
+  @override
+  String get planDetailsFeasibilityStretch => 'Stretch';
+
+  @override
+  String get planDetailsFeasibilityOk => 'Good';
 }
