@@ -227,6 +227,11 @@ class BuildPlan implements Tool
             ]);
         }
 
+        $ambitionPayload = $assessment->toFeasibilityPayload();
+        if ($ambitionPayload !== null) {
+            $payload['ambition'] = $ambitionPayload;
+        }
+
         $proposal = $this->proposals->persistPending(
             $this->user,
             ProposalType::CreateSchedule,
