@@ -1,0 +1,18 @@
+{
+  "@@locale": "en",
+
+  "appTitle": "RunCoach",
+  "@appTitle": {
+    "description": "Application title — used in window title, sharing intents, etc."
+  },
+
+  "languageEnglish": "English",
+  "@languageEnglish": {
+    "description": "Label for English in a language picker."
+  },
+
+  "languageDutch": "Nederlands",
+  "@languageDutch": {
+    "description": "Label for Dutch in a language picker — always shown in Dutch (Nederlands) regardless of UI locale, by convention."
+  }
+}
