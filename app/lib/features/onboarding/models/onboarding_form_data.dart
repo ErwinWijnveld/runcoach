@@ -63,6 +63,23 @@ enum IntensityBias {
       );
 }
 
+/// Runner self-identified ability level. Drives agent communication
+/// tone only — no plan-content effect. Persisted on
+/// `users.runner_level`; the backend collapses to a 3-bucket
+/// `RunnerToneBucket` for agent prompts.
+enum RunnerLevel {
+  @JsonValue('beginner')
+  beginner,
+  @JsonValue('intermediate')
+  intermediate,
+  @JsonValue('advanced')
+  advanced,
+  @JsonValue('sub_elite')
+  subElite,
+  @JsonValue('elite')
+  elite,
+}
+
 @freezed
 sealed class OnboardingFormData with _$OnboardingFormData {
   const factory OnboardingFormData({
@@ -82,6 +99,9 @@ sealed class OnboardingFormData with _$OnboardingFormData {
     @JsonKey(name: 'intensity_bias')
     @Default(IntensityBias.standard)
     IntensityBias intensityBias,
+    @JsonKey(name: 'runner_level')
+    @Default(RunnerLevel.intermediate)
+    RunnerLevel runnerLevel,
   }) = _OnboardingFormData;
 
   factory OnboardingFormData.fromJson(Map<String, dynamic> json) =>

@@ -13,6 +13,7 @@ _User _$UserFromJson(Map<String, dynamic> json) => _User(
   appleSub: json['apple_sub'] as String?,
   coachStyle: json['coach_style'] as String?,
   intensityBias: json['intensity_bias'] as String? ?? 'standard',
+  runnerLevel: json['runner_level'] as String? ?? 'intermediate',
   hasCompletedOnboarding: json['has_completed_onboarding'] as bool? ?? false,
   heartRateZones: (json['heart_rate_zones'] as List<dynamic>?)
       ?.map((e) => HrZone.fromJson(e as Map<String, dynamic>))
@@ -46,6 +47,7 @@ Map<String, dynamic> _$UserToJson(_User instance) => <String, dynamic>{
   'apple_sub': instance.appleSub,
   'coach_style': instance.coachStyle,
   'intensity_bias': instance.intensityBias,
+  'runner_level': instance.runnerLevel,
   'has_completed_onboarding': instance.hasCompletedOnboarding,
   'heart_rate_zones': instance.heartRateZones,
   'heart_rate_zones_source': instance.heartRateZonesSource,

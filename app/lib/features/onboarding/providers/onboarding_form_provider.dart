@@ -63,6 +63,10 @@ class OnboardingForm extends _$OnboardingForm {
     state = state.copyWith(intensityBias: bias);
   }
 
+  void setRunnerLevel(RunnerLevel level) {
+    state = state.copyWith(runnerLevel: level);
+  }
+
   void setNotes(String? notes) {
     state = state.copyWith(notes: (notes != null && notes.trim().isEmpty) ? null : notes);
   }

@@ -50,7 +50,7 @@ final class OnboardingFormProvider
   }
 }
 
-String _$onboardingFormHash() => r'8b424b8bf0dd3ac905b0a1e3aecd7cc787f825e9';
+String _$onboardingFormHash() => r'14b6eb45f7795dbc208cfa87ae1c85459b21affd';
 
 /// Holds the user's choices while they step through the onboarding form.
 /// Values accumulate across steps; the generating screen reads the final
