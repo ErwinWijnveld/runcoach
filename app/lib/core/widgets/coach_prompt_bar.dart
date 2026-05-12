@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Material, InkWell;
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/animated_typing_text.dart';
 
@@ -78,7 +79,7 @@ class _NavigateBar extends StatelessWidget {
             suggestions: animatedSuggestions!,
             style: RunCoreText.body(),
           )
-        : Text('Ask your coach...', style: RunCoreText.body());
+        : Text(context.l10n.coachPromptBarPlaceholder, style: RunCoreText.body());
 
     return Material(
       color: CupertinoColors.white,
@@ -179,7 +180,7 @@ class _InputBarState extends State<_InputBar> {
                 child: CupertinoTextField(
                   controller: widget.controller,
                   focusNode: _focusNode,
-                  placeholder: 'Ask your coach...',
+                  placeholder: context.l10n.coachPromptBarPlaceholder,
                   placeholderStyle: RunCoreText.body(),
                   style: RunCoreText.body(
                     color: AppColors.primaryInk,

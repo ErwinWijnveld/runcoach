@@ -1,6 +1,6 @@
 import 'package:app/features/onboarding/widgets/locked_stat_field.dart';
+import 'package:app/l10n/app_localizations.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -9,11 +9,8 @@ void main() {
 
     await tester.pumpWidget(
       CupertinoApp(
-        localizationsDelegates: const [
-          DefaultMaterialLocalizations.delegate,
-          DefaultCupertinoLocalizations.delegate,
-          DefaultWidgetsLocalizations.delegate,
-        ],
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: CupertinoPageScaffold(
           child: LockedStatField(
             label: 'Weekly km',
@@ -45,6 +42,8 @@ void main() {
 
     await tester.pumpWidget(
       CupertinoApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: CupertinoPageScaffold(
           child: LockedStatField(
             label: 'Weekly km',
@@ -71,6 +70,8 @@ void main() {
 
     await tester.pumpWidget(
       CupertinoApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: CupertinoPageScaffold(
           child: LockedStatField(
             label: 'Weekly km',

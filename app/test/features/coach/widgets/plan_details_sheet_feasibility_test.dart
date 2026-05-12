@@ -1,5 +1,6 @@
 import 'package:app/features/coach/models/coach_proposal.dart';
 import 'package:app/features/coach/widgets/plan_details_sheet.dart';
+import 'package:app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -27,9 +28,9 @@ void main() {
 
       expect(find.text('Pittig maar haalbaar'), findsOneWidget);
       expect(find.text('78%'), findsOneWidget);
-      expect(find.text('Onhaalbaar'), findsOneWidget);
+      expect(find.text('Unrealistic'), findsOneWidget);
       expect(find.text('Stretch'), findsOneWidget);
-      expect(find.text('Goed'), findsOneWidget);
+      expect(find.text('Good'), findsOneWidget);
     });
 
     testWidgets('skips section when ambition is null', (tester) async {
@@ -43,7 +44,7 @@ void main() {
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Onhaalbaar'), findsNothing);
+      expect(find.text('Unrealistic'), findsNothing);
       expect(find.text('Pittig maar haalbaar'), findsNothing);
     });
 
@@ -147,6 +148,8 @@ Widget _host({
   required Future<void> Function({String? prefill}) onAdjust,
 }) {
   return MaterialApp(
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(
       body: Builder(
         builder: (context) => Center(

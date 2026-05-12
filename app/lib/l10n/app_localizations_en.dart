@@ -860,6 +860,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonCancel => 'Cancel';
 
   @override
+  String get commonClose => 'Close';
+
+  @override
   String get schedSectionIntervals => 'Intervals';
 
   @override
@@ -1547,4 +1550,226 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get planDetailsFeasibilityOk => 'Good';
+
+  @override
+  String get commonSave => 'Save';
+
+  @override
+  String get commonConfirm => 'Confirm';
+
+  @override
+  String get commonRunnerFallback => 'Runner';
+
+  @override
+  String get profileMenuConnections => 'Connections';
+
+  @override
+  String get profileMenuAccount => 'Account';
+
+  @override
+  String get profileMenuHrZones => 'HR Zones';
+
+  @override
+  String get profileMenuPrivacy => 'Privacy';
+
+  @override
+  String get profileMenuAbout => 'About';
+
+  @override
+  String get profileMenuDeleteData => 'Delete data';
+
+  @override
+  String get profileMenuLogout => 'Log out';
+
+  @override
+  String get profileMenuDeleteConfirmTitle => 'Delete data';
+
+  @override
+  String get profileMenuDeleteConfirmBody =>
+      'This deletes your account, goals, schedule, and chats. Cannot be undone.';
+
+  @override
+  String get profileMenuDeleteConfirmAction => 'Delete';
+
+  @override
+  String get profileMenuDeleteErrorTitle => 'Couldn\'t delete';
+
+  @override
+  String profileMenuDeleteErrorBody(String error) {
+    return 'Please try again. ($error)';
+  }
+
+  @override
+  String get profileMenuAccountTitle => 'Account';
+
+  @override
+  String get profileMenuFieldName => 'Name';
+
+  @override
+  String get profileMenuFieldEmail => 'Email';
+
+  @override
+  String get profileMenuFieldNameHint => 'Your name';
+
+  @override
+  String get profileMenuFieldNameEmptyError => 'Name cannot be empty';
+
+  @override
+  String get coachPromptBarPlaceholder => 'Ask your coach...';
+
+  @override
+  String get birthDatePickerTitle => 'Date of birth';
+
+  @override
+  String get birthDatePickerDone => 'Done';
+
+  @override
+  String lockedFieldFromSource(String source) {
+    return 'From $source';
+  }
+
+  @override
+  String get lockedFieldEditedByYou => 'Edited by you';
+
+  @override
+  String get lockedFieldOverrideTitle => 'Override Apple Health data?';
+
+  @override
+  String get lockedFieldOverrideBody =>
+      'These values are calculated from your synced run history and are likely the most accurate signal we have. Editing them may result in a less accurate training plan.';
+
+  @override
+  String get lockedFieldEditAnyway => 'Edit anyway';
+
+  @override
+  String get paceWheelPickerTitle => 'Easy pace';
+
+  @override
+  String get paceWheelPickerDone => 'Done';
+
+  @override
+  String get hrZonesSheetTitle => 'HR Zones';
+
+  @override
+  String get hrZonesSheetIntro =>
+      'Edit Max HR to recompute every zone, or change a boundary to update the adjacent zone.';
+
+  @override
+  String get hrZonesMaxHrLabel => 'Max HR';
+
+  @override
+  String get hrZonesRecomputeBusy => 'Recomputing…';
+
+  @override
+  String get hrZonesRecomputeCta => 'Recompute from your runs';
+
+  @override
+  String get hrZonesErrorMaxHrRange =>
+      'Max HR must be between 100 and 250 bpm.';
+
+  @override
+  String get hrZonesErrorInvalidBpm => 'Enter valid bpm values (0-250).';
+
+  @override
+  String get hrZonesErrorNotAscending => 'Zones must be in ascending order.';
+
+  @override
+  String hrZonesErrorSaveFailed(String error) {
+    return 'Could not save: $error';
+  }
+
+  @override
+  String hrZonesUpdatedCorrected(int maxHr) {
+    return 'Updated — max ~$maxHr bpm (age + your hardest recent runs).';
+  }
+
+  @override
+  String hrZonesUpdatedDerivedAge(int maxHr, int age) {
+    return 'Updated — max ~$maxHr bpm (estimated from age $age).';
+  }
+
+  @override
+  String get hrZonesUpdatedGenericAge => 'Updated from your age.';
+
+  @override
+  String get notificationsSheetTitle => 'NOTIFICATIONS';
+
+  @override
+  String notificationsSheetLoadError(String error) {
+    return 'Could not load notifications.\n$error';
+  }
+
+  @override
+  String get notificationsSheetEmpty => 'You\'re all caught up.';
+
+  @override
+  String get notificationsCardDismiss => 'DISMISS';
+
+  @override
+  String get notificationsCardApply => 'APPLY';
+
+  @override
+  String get notificationsTertiaryEditHrZones => 'Edit HR Zones';
+
+  @override
+  String get notificationsTypePaceAdjustment => 'PACE ADJUSTMENT';
+
+  @override
+  String get hrZoneNameZ1 => 'Endurance';
+
+  @override
+  String get hrZoneNameZ2 => 'Moderate';
+
+  @override
+  String get hrZoneNameZ3 => 'Tempo';
+
+  @override
+  String get hrZoneNameZ4 => 'Threshold';
+
+  @override
+  String get hrZoneNameZ5 => 'Anaerobic';
+
+  @override
+  String get hrZoneBpm => 'bpm';
+
+  @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get settingsLanguageTitle => 'Language';
+
+  @override
+  String get settingsLanguageSubtitle => 'Choose how RunCoach speaks to you.';
+
+  @override
+  String get settingsLanguageAuto => 'System default';
+
+  @override
+  String get settingsLanguageAutoSubtitle =>
+      'Follows your device language settings.';
+
+  @override
+  String get settingsLanguageEnglish => 'English';
+
+  @override
+  String get settingsLanguageDutch => 'Nederlands';
+
+  @override
+  String get settingsLanguageActiveBadge => 'ACTIVE';
+
+  @override
+  String weeklyPlanWeekRange(String start, String end) {
+    return '$start – $end';
+  }
+
+  @override
+  String weeklyPlanDayCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count runs',
+      one: '1 run',
+    );
+    return '$_temp0';
+  }
 }

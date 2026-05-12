@@ -286,6 +286,7 @@
 
   "commonOk": "OK",
   "commonCancel": "Annuleren",
+  "commonClose": "Sluiten",
 
   "schedSectionIntervals": "Intervals",
   "schedSectionNotes": "Notities",
@@ -510,5 +511,81 @@
   "planDetailsVolumePeak": "Piek {km} km · W{week}",
   "planDetailsFeasibilityUnrealistic": "Onhaalbaar",
   "planDetailsFeasibilityStretch": "Stretch",
-  "planDetailsFeasibilityOk": "Goed"
+  "planDetailsFeasibilityOk": "Goed",
+
+  "commonSave": "Opslaan",
+  "commonConfirm": "Bevestig",
+  "commonRunnerFallback": "Hardloper",
+
+  "profileMenuConnections": "Verbindingen",
+  "profileMenuAccount": "Account",
+  "profileMenuHrZones": "HR-zones",
+  "profileMenuPrivacy": "Privacy",
+  "profileMenuAbout": "Over",
+  "profileMenuDeleteData": "Verwijder gegevens",
+  "profileMenuLogout": "Uitloggen",
+  "profileMenuDeleteConfirmTitle": "Verwijder gegevens",
+  "profileMenuDeleteConfirmBody": "Dit verwijdert je account, doelen, trainingsschema en chats. Dit kan niet ongedaan worden gemaakt.",
+  "profileMenuDeleteConfirmAction": "Verwijder",
+  "profileMenuDeleteErrorTitle": "Kon gegevens niet verwijderen",
+  "profileMenuDeleteErrorBody": "Probeer het opnieuw. ({error})",
+  "profileMenuAccountTitle": "Account",
+  "profileMenuFieldName": "Naam",
+  "profileMenuFieldEmail": "E-mail",
+  "profileMenuFieldNameHint": "Je naam",
+  "profileMenuFieldNameEmptyError": "Naam mag niet leeg zijn",
+
+  "coachPromptBarPlaceholder": "Vraag het je coach...",
+
+  "birthDatePickerTitle": "Geboortedatum",
+  "birthDatePickerDone": "Klaar",
+
+  "lockedFieldFromSource": "Van {source}",
+  "lockedFieldEditedByYou": "Door jou bewerkt",
+  "lockedFieldOverrideTitle": "Apple Health-gegevens overschrijven?",
+  "lockedFieldOverrideBody": "Deze waarden zijn berekend uit je gesynchroniseerde rungeschiedenis en zijn waarschijnlijk het meest accurate signaal. Bewerken kan een minder accuraat trainingsplan opleveren.",
+  "lockedFieldEditAnyway": "Toch bewerken",
+
+  "paceWheelPickerTitle": "Rustige tempo",
+  "paceWheelPickerDone": "Klaar",
+
+  "hrZonesSheetTitle": "HR-zones",
+  "hrZonesSheetIntro": "Bewerk de Max HR om alle zones te herberekenen, of pas een grens aan om de aangrenzende zone bij te werken.",
+  "hrZonesMaxHrLabel": "Max HR",
+  "hrZonesRecomputeBusy": "Bezig met herberekenen…",
+  "hrZonesRecomputeCta": "Herbereken op basis van je runs",
+  "hrZonesErrorMaxHrRange": "Max HR moet tussen 100 en 250 bpm liggen.",
+  "hrZonesErrorInvalidBpm": "Voer geldige bpm-waarden in (0-250).",
+  "hrZonesErrorNotAscending": "Zones moeten oplopend zijn.",
+  "hrZonesErrorSaveFailed": "Opslaan mislukt: {error}",
+  "hrZonesUpdatedCorrected": "Bijgewerkt — max ~{maxHr} bpm (leeftijd + je zwaarste recente runs).",
+  "hrZonesUpdatedDerivedAge": "Bijgewerkt — max ~{maxHr} bpm (geschat vanaf leeftijd {age}).",
+  "hrZonesUpdatedGenericAge": "Bijgewerkt vanaf je leeftijd.",
+
+  "notificationsSheetTitle": "MELDINGEN",
+  "notificationsSheetLoadError": "Kon meldingen niet laden.\n{error}",
+  "notificationsSheetEmpty": "Je bent volledig bijgewerkt.",
+  "notificationsCardDismiss": "VERWIJDEREN",
+  "notificationsCardApply": "TOEPASSEN",
+  "notificationsTertiaryEditHrZones": "Bewerk HR-zones",
+  "notificationsTypePaceAdjustment": "TEMPO-AANPASSING",
+
+  "hrZoneNameZ1": "Duurvermogen",
+  "hrZoneNameZ2": "Matig",
+  "hrZoneNameZ3": "Tempo",
+  "hrZoneNameZ4": "Drempel",
+  "hrZoneNameZ5": "Anaeroob",
+  "hrZoneBpm": "bpm",
+
+  "settingsTitle": "Instellingen",
+  "settingsLanguageTitle": "Taal",
+  "settingsLanguageSubtitle": "Kies in welke taal RunCoach met je communiceert.",
+  "settingsLanguageAuto": "Systeemstandaard",
+  "settingsLanguageAutoSubtitle": "Volgt je apparaattaal.",
+  "settingsLanguageEnglish": "English",
+  "settingsLanguageDutch": "Nederlands",
+  "settingsLanguageActiveBadge": "ACTIEF",
+
+  "weeklyPlanWeekRange": "{start} – {end}",
+  "weeklyPlanDayCount": "{count, plural, =1{1 run} other{{count} runs}}"
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 
 /// Cupertino-native DOB picker, used wherever the runner needs to give
@@ -58,7 +59,7 @@ Future<DateTime?> showBirthDatePickerSheet(
                       padding: EdgeInsets.zero,
                       onPressed: () => Navigator.of(ctx).pop(),
                       child: Text(
-                        'Cancel',
+                        ctx.l10n.commonCancel,
                         style: GoogleFonts.inter(
                           fontSize: 15,
                           color: AppColors.inkMuted,
@@ -67,7 +68,7 @@ Future<DateTime?> showBirthDatePickerSheet(
                     ),
                     const Spacer(),
                     Text(
-                      'Date of birth',
+                      ctx.l10n.birthDatePickerTitle,
                       style: GoogleFonts.inter(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
@@ -87,7 +88,7 @@ Future<DateTime?> showBirthDatePickerSheet(
                         Navigator.of(ctx).pop(result);
                       },
                       child: Text(
-                        'Done',
+                        ctx.l10n.birthDatePickerDone,
                         style: GoogleFonts.inter(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,

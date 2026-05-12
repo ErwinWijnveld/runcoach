@@ -439,7 +439,10 @@ class _WeekRangeRow extends StatelessWidget {
     final start = DateTime.tryParse(startsAt);
     final label = start == null
         ? ''
-        : '${_format(context, start)} - ${_format(context, start.add(const Duration(days: 6)))}';
+        : context.l10n.weeklyPlanWeekRange(
+            _format(context, start),
+            _format(context, start.add(const Duration(days: 6))),
+          );
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [

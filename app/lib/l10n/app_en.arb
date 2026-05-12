@@ -337,6 +337,7 @@
 
   "commonOk": "OK",
   "commonCancel": "Cancel",
+  "commonClose": "Close",
 
   "schedSectionIntervals": "Intervals",
   "schedSectionNotes": "Notes",
@@ -636,5 +637,111 @@
   },
   "planDetailsFeasibilityUnrealistic": "Unrealistic",
   "planDetailsFeasibilityStretch": "Stretch",
-  "planDetailsFeasibilityOk": "Good"
+  "planDetailsFeasibilityOk": "Good",
+
+  "commonSave": "Save",
+  "commonConfirm": "Confirm",
+  "commonRunnerFallback": "Runner",
+
+  "profileMenuConnections": "Connections",
+  "profileMenuAccount": "Account",
+  "profileMenuHrZones": "HR Zones",
+  "profileMenuPrivacy": "Privacy",
+  "profileMenuAbout": "About",
+  "profileMenuDeleteData": "Delete data",
+  "profileMenuLogout": "Log out",
+  "profileMenuDeleteConfirmTitle": "Delete data",
+  "profileMenuDeleteConfirmBody": "This deletes your account, goals, schedule, and chats. Cannot be undone.",
+  "profileMenuDeleteConfirmAction": "Delete",
+  "profileMenuDeleteErrorTitle": "Couldn't delete",
+  "profileMenuDeleteErrorBody": "Please try again. ({error})",
+  "@profileMenuDeleteErrorBody": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "profileMenuAccountTitle": "Account",
+  "profileMenuFieldName": "Name",
+  "profileMenuFieldEmail": "Email",
+  "profileMenuFieldNameHint": "Your name",
+  "profileMenuFieldNameEmptyError": "Name cannot be empty",
+
+  "coachPromptBarPlaceholder": "Ask your coach...",
+
+  "birthDatePickerTitle": "Date of birth",
+  "birthDatePickerDone": "Done",
+
+  "lockedFieldFromSource": "From {source}",
+  "@lockedFieldFromSource": {
+    "placeholders": { "source": { "type": "String" } }
+  },
+  "lockedFieldEditedByYou": "Edited by you",
+  "lockedFieldOverrideTitle": "Override Apple Health data?",
+  "lockedFieldOverrideBody": "These values are calculated from your synced run history and are likely the most accurate signal we have. Editing them may result in a less accurate training plan.",
+  "lockedFieldEditAnyway": "Edit anyway",
+
+  "paceWheelPickerTitle": "Easy pace",
+  "paceWheelPickerDone": "Done",
+
+  "hrZonesSheetTitle": "HR Zones",
+  "hrZonesSheetIntro": "Edit Max HR to recompute every zone, or change a boundary to update the adjacent zone.",
+  "hrZonesMaxHrLabel": "Max HR",
+  "hrZonesRecomputeBusy": "Recomputing…",
+  "hrZonesRecomputeCta": "Recompute from your runs",
+  "hrZonesErrorMaxHrRange": "Max HR must be between 100 and 250 bpm.",
+  "hrZonesErrorInvalidBpm": "Enter valid bpm values (0-250).",
+  "hrZonesErrorNotAscending": "Zones must be in ascending order.",
+  "hrZonesErrorSaveFailed": "Could not save: {error}",
+  "@hrZonesErrorSaveFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "hrZonesUpdatedCorrected": "Updated — max ~{maxHr} bpm (age + your hardest recent runs).",
+  "@hrZonesUpdatedCorrected": {
+    "placeholders": { "maxHr": { "type": "int" } }
+  },
+  "hrZonesUpdatedDerivedAge": "Updated — max ~{maxHr} bpm (estimated from age {age}).",
+  "@hrZonesUpdatedDerivedAge": {
+    "placeholders": {
+      "maxHr": { "type": "int" },
+      "age": { "type": "int" }
+    }
+  },
+  "hrZonesUpdatedGenericAge": "Updated from your age.",
+
+  "notificationsSheetTitle": "NOTIFICATIONS",
+  "notificationsSheetLoadError": "Could not load notifications.\n{error}",
+  "@notificationsSheetLoadError": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+  "notificationsSheetEmpty": "You're all caught up.",
+  "notificationsCardDismiss": "DISMISS",
+  "notificationsCardApply": "APPLY",
+  "notificationsTertiaryEditHrZones": "Edit HR Zones",
+  "notificationsTypePaceAdjustment": "PACE ADJUSTMENT",
+
+  "hrZoneNameZ1": "Endurance",
+  "hrZoneNameZ2": "Moderate",
+  "hrZoneNameZ3": "Tempo",
+  "hrZoneNameZ4": "Threshold",
+  "hrZoneNameZ5": "Anaerobic",
+  "hrZoneBpm": "bpm",
+
+  "settingsTitle": "Settings",
+  "settingsLanguageTitle": "Language",
+  "settingsLanguageSubtitle": "Choose how RunCoach speaks to you.",
+  "settingsLanguageAuto": "System default",
+  "settingsLanguageAutoSubtitle": "Follows your device language settings.",
+  "settingsLanguageEnglish": "English",
+  "settingsLanguageDutch": "Nederlands",
+  "settingsLanguageActiveBadge": "ACTIVE",
+
+  "weeklyPlanWeekRange": "{start} – {end}",
+  "@weeklyPlanWeekRange": {
+    "placeholders": {
+      "start": { "type": "String" },
+      "end": { "type": "String" }
+    }
+  },
+  "weeklyPlanDayCount": "{count, plural, =1{1 run} other{{count} runs}}",
+  "@weeklyPlanDayCount": {
+    "placeholders": { "count": { "type": "int" } }
+  }
 }

@@ -201,7 +201,7 @@ class _SheetHandleBar extends StatelessWidget {
               minimumSize: Size.zero,
               onPressed: onClose,
               child: Text(
-                'Close',
+                context.l10n.commonClose,
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,

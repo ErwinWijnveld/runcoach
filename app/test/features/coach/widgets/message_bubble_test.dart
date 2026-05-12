@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:app/features/coach/models/coach_message.dart';
 import 'package:app/features/coach/widgets/message_bubble.dart';
+import 'package:app/l10n/app_localizations.dart';
 
 CoachMessage _msg({
   required String content,
@@ -23,11 +24,13 @@ void main() {
     (tester) async {
       await tester.pumpWidget(
         CupertinoApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
           home: MessageBubble(message: _msg(content: '', streaming: true)),
         ),
       );
 
-      expect(find.text('Working on your plan'), findsOneWidget);
+      expect(find.text('Thinking'), findsOneWidget);
     },
   );
 
@@ -35,6 +38,8 @@ void main() {
       (tester) async {
     await tester.pumpWidget(
       CupertinoApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: MessageBubble(
           message: _msg(
             content: '',
@@ -53,12 +58,14 @@ void main() {
       (tester) async {
     await tester.pumpWidget(
       CupertinoApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: MessageBubble(
           message: _msg(content: 'Done', streaming: false),
         ),
       ),
     );
 
-    expect(find.text('Working on your plan'), findsNothing);
+    expect(find.text('Thinking'), findsNothing);
   });
 }

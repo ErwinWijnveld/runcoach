@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 
 /// Cupertino bottom-sheet with a dual-wheel picker for selecting an easy-run
@@ -102,14 +103,14 @@ class _SheetHeader extends StatelessWidget {
             padding: EdgeInsets.zero,
             onPressed: onCancel,
             child: Text(
-              'Cancel',
+              context.l10n.commonCancel,
               style: GoogleFonts.inter(fontSize: 16, color: AppColors.inkMuted),
             ),
           ),
           Expanded(
             child: Center(
               child: Text(
-                'Easy pace',
+                context.l10n.paceWheelPickerTitle,
                 style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
@@ -118,7 +119,7 @@ class _SheetHeader extends StatelessWidget {
             padding: EdgeInsets.zero,
             onPressed: onDone,
             child: Text(
-              'Done',
+              context.l10n.paceWheelPickerDone,
               style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.primaryInk),
             ),
           ),

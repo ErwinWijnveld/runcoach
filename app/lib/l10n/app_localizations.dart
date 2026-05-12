@@ -1652,6 +1652,12 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get commonCancel;
 
+  /// No description provided for @commonClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get commonClose;
+
   /// No description provided for @schedSectionIntervals.
   ///
   /// In en, this message translates to:
@@ -2845,6 +2851,396 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Good'**
   String get planDetailsFeasibilityOk;
+
+  /// No description provided for @commonSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get commonSave;
+
+  /// No description provided for @commonConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get commonConfirm;
+
+  /// No description provided for @commonRunnerFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'Runner'**
+  String get commonRunnerFallback;
+
+  /// No description provided for @profileMenuConnections.
+  ///
+  /// In en, this message translates to:
+  /// **'Connections'**
+  String get profileMenuConnections;
+
+  /// No description provided for @profileMenuAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get profileMenuAccount;
+
+  /// No description provided for @profileMenuHrZones.
+  ///
+  /// In en, this message translates to:
+  /// **'HR Zones'**
+  String get profileMenuHrZones;
+
+  /// No description provided for @profileMenuPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy'**
+  String get profileMenuPrivacy;
+
+  /// No description provided for @profileMenuAbout.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get profileMenuAbout;
+
+  /// No description provided for @profileMenuDeleteData.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete data'**
+  String get profileMenuDeleteData;
+
+  /// No description provided for @profileMenuLogout.
+  ///
+  /// In en, this message translates to:
+  /// **'Log out'**
+  String get profileMenuLogout;
+
+  /// No description provided for @profileMenuDeleteConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete data'**
+  String get profileMenuDeleteConfirmTitle;
+
+  /// No description provided for @profileMenuDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This deletes your account, goals, schedule, and chats. Cannot be undone.'**
+  String get profileMenuDeleteConfirmBody;
+
+  /// No description provided for @profileMenuDeleteConfirmAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get profileMenuDeleteConfirmAction;
+
+  /// No description provided for @profileMenuDeleteErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete'**
+  String get profileMenuDeleteErrorTitle;
+
+  /// No description provided for @profileMenuDeleteErrorBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Please try again. ({error})'**
+  String profileMenuDeleteErrorBody(String error);
+
+  /// No description provided for @profileMenuAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get profileMenuAccountTitle;
+
+  /// No description provided for @profileMenuFieldName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get profileMenuFieldName;
+
+  /// No description provided for @profileMenuFieldEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get profileMenuFieldEmail;
+
+  /// No description provided for @profileMenuFieldNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your name'**
+  String get profileMenuFieldNameHint;
+
+  /// No description provided for @profileMenuFieldNameEmptyError.
+  ///
+  /// In en, this message translates to:
+  /// **'Name cannot be empty'**
+  String get profileMenuFieldNameEmptyError;
+
+  /// No description provided for @coachPromptBarPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask your coach...'**
+  String get coachPromptBarPlaceholder;
+
+  /// No description provided for @birthDatePickerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Date of birth'**
+  String get birthDatePickerTitle;
+
+  /// No description provided for @birthDatePickerDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get birthDatePickerDone;
+
+  /// No description provided for @lockedFieldFromSource.
+  ///
+  /// In en, this message translates to:
+  /// **'From {source}'**
+  String lockedFieldFromSource(String source);
+
+  /// No description provided for @lockedFieldEditedByYou.
+  ///
+  /// In en, this message translates to:
+  /// **'Edited by you'**
+  String get lockedFieldEditedByYou;
+
+  /// No description provided for @lockedFieldOverrideTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Override Apple Health data?'**
+  String get lockedFieldOverrideTitle;
+
+  /// No description provided for @lockedFieldOverrideBody.
+  ///
+  /// In en, this message translates to:
+  /// **'These values are calculated from your synced run history and are likely the most accurate signal we have. Editing them may result in a less accurate training plan.'**
+  String get lockedFieldOverrideBody;
+
+  /// No description provided for @lockedFieldEditAnyway.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit anyway'**
+  String get lockedFieldEditAnyway;
+
+  /// No description provided for @paceWheelPickerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Easy pace'**
+  String get paceWheelPickerTitle;
+
+  /// No description provided for @paceWheelPickerDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get paceWheelPickerDone;
+
+  /// No description provided for @hrZonesSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'HR Zones'**
+  String get hrZonesSheetTitle;
+
+  /// No description provided for @hrZonesSheetIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Max HR to recompute every zone, or change a boundary to update the adjacent zone.'**
+  String get hrZonesSheetIntro;
+
+  /// No description provided for @hrZonesMaxHrLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Max HR'**
+  String get hrZonesMaxHrLabel;
+
+  /// No description provided for @hrZonesRecomputeBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'Recomputing…'**
+  String get hrZonesRecomputeBusy;
+
+  /// No description provided for @hrZonesRecomputeCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Recompute from your runs'**
+  String get hrZonesRecomputeCta;
+
+  /// No description provided for @hrZonesErrorMaxHrRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Max HR must be between 100 and 250 bpm.'**
+  String get hrZonesErrorMaxHrRange;
+
+  /// No description provided for @hrZonesErrorInvalidBpm.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter valid bpm values (0-250).'**
+  String get hrZonesErrorInvalidBpm;
+
+  /// No description provided for @hrZonesErrorNotAscending.
+  ///
+  /// In en, this message translates to:
+  /// **'Zones must be in ascending order.'**
+  String get hrZonesErrorNotAscending;
+
+  /// No description provided for @hrZonesErrorSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save: {error}'**
+  String hrZonesErrorSaveFailed(String error);
+
+  /// No description provided for @hrZonesUpdatedCorrected.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated — max ~{maxHr} bpm (age + your hardest recent runs).'**
+  String hrZonesUpdatedCorrected(int maxHr);
+
+  /// No description provided for @hrZonesUpdatedDerivedAge.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated — max ~{maxHr} bpm (estimated from age {age}).'**
+  String hrZonesUpdatedDerivedAge(int maxHr, int age);
+
+  /// No description provided for @hrZonesUpdatedGenericAge.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated from your age.'**
+  String get hrZonesUpdatedGenericAge;
+
+  /// No description provided for @notificationsSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'NOTIFICATIONS'**
+  String get notificationsSheetTitle;
+
+  /// No description provided for @notificationsSheetLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load notifications.\n{error}'**
+  String notificationsSheetLoadError(String error);
+
+  /// No description provided for @notificationsSheetEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re all caught up.'**
+  String get notificationsSheetEmpty;
+
+  /// No description provided for @notificationsCardDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'DISMISS'**
+  String get notificationsCardDismiss;
+
+  /// No description provided for @notificationsCardApply.
+  ///
+  /// In en, this message translates to:
+  /// **'APPLY'**
+  String get notificationsCardApply;
+
+  /// No description provided for @notificationsTertiaryEditHrZones.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit HR Zones'**
+  String get notificationsTertiaryEditHrZones;
+
+  /// No description provided for @notificationsTypePaceAdjustment.
+  ///
+  /// In en, this message translates to:
+  /// **'PACE ADJUSTMENT'**
+  String get notificationsTypePaceAdjustment;
+
+  /// No description provided for @hrZoneNameZ1.
+  ///
+  /// In en, this message translates to:
+  /// **'Endurance'**
+  String get hrZoneNameZ1;
+
+  /// No description provided for @hrZoneNameZ2.
+  ///
+  /// In en, this message translates to:
+  /// **'Moderate'**
+  String get hrZoneNameZ2;
+
+  /// No description provided for @hrZoneNameZ3.
+  ///
+  /// In en, this message translates to:
+  /// **'Tempo'**
+  String get hrZoneNameZ3;
+
+  /// No description provided for @hrZoneNameZ4.
+  ///
+  /// In en, this message translates to:
+  /// **'Threshold'**
+  String get hrZoneNameZ4;
+
+  /// No description provided for @hrZoneNameZ5.
+  ///
+  /// In en, this message translates to:
+  /// **'Anaerobic'**
+  String get hrZoneNameZ5;
+
+  /// No description provided for @hrZoneBpm.
+  ///
+  /// In en, this message translates to:
+  /// **'bpm'**
+  String get hrZoneBpm;
+
+  /// No description provided for @settingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTitle;
+
+  /// No description provided for @settingsLanguageTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get settingsLanguageTitle;
+
+  /// No description provided for @settingsLanguageSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how RunCoach speaks to you.'**
+  String get settingsLanguageSubtitle;
+
+  /// No description provided for @settingsLanguageAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'System default'**
+  String get settingsLanguageAuto;
+
+  /// No description provided for @settingsLanguageAutoSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Follows your device language settings.'**
+  String get settingsLanguageAutoSubtitle;
+
+  /// No description provided for @settingsLanguageEnglish.
+  ///
+  /// In en, this message translates to:
+  /// **'English'**
+  String get settingsLanguageEnglish;
+
+  /// No description provided for @settingsLanguageDutch.
+  ///
+  /// In en, this message translates to:
+  /// **'Nederlands'**
+  String get settingsLanguageDutch;
+
+  /// No description provided for @settingsLanguageActiveBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'ACTIVE'**
+  String get settingsLanguageActiveBadge;
+
+  /// No description provided for @weeklyPlanWeekRange.
+  ///
+  /// In en, this message translates to:
+  /// **'{start} – {end}'**
+  String weeklyPlanWeekRange(String start, String end);
+
+  /// No description provided for @weeklyPlanDayCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 run} other{{count} runs}}'**
+  String weeklyPlanDayCount(int count);
 }
 
 class _AppLocalizationsDelegate

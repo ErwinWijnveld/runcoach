@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 
 /// A single onboarding-baseline field with a lock-by-default pattern.
@@ -81,7 +82,9 @@ class LockedStatField extends StatelessWidget {
         if (sourceLabel != null) ...[
           const SizedBox(height: 6),
           Text(
-            locked ? 'From $sourceLabel' : 'Edited by you',
+            locked
+                ? context.l10n.lockedFieldFromSource(sourceLabel!)
+                : context.l10n.lockedFieldEditedByYou,
             style: GoogleFonts.inter(
               fontSize: 12,
               color: AppColors.inkMuted,
@@ -93,25 +96,24 @@ class LockedStatField extends StatelessWidget {
   }
 
   Future<void> _confirmUnlock(BuildContext context) async {
+    final l10n = context.l10n;
     final confirmed = await showCupertinoDialog<bool>(
       context: context,
       builder: (dialogContext) => CupertinoAlertDialog(
-        title: const Text('Override Apple Health data?'),
-        content: const Padding(
-          padding: EdgeInsets.only(top: 8),
-          child: Text(
-            'These values are calculated from your synced run history and are likely the most accurate signal we have. Editing them may result in a less accurate training plan.',
-          ),
+        title: Text(l10n.lockedFieldOverrideTitle),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(l10n.lockedFieldOverrideBody),
         ),
         actions: [
           CupertinoDialogAction(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           CupertinoDialogAction(
             isDestructiveAction: true,
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Edit anyway'),
+            child: Text(l10n.lockedFieldEditAnyway),
           ),
         ],
       ),

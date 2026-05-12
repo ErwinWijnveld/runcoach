@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/hr_zone_constants.dart';
 import 'package:app/features/auth/models/hr_zone.dart';
@@ -19,9 +20,10 @@ class HrZonesReadonlyList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     assert(zones.length == 5, 'HR zones must always have 5 entries');
+    final names = hrZoneNames(context.l10n);
     final rows = <Widget>[];
     for (var i = 0; i < zones.length; i++) {
-      rows.add(_ZoneRow(index: i, zone: zones[i], name: kHrZoneNames[i]));
+      rows.add(_ZoneRow(index: i, zone: zones[i], name: names[i]));
       if (i < zones.length - 1) {
         rows.add(Container(
           margin: const EdgeInsets.only(left: 16),
@@ -108,9 +110,9 @@ class _ZoneRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 6),
-          const Text(
-            'bpm',
-            style: TextStyle(fontSize: 12, color: AppColors.inkMuted),
+          Text(
+            context.l10n.hrZoneBpm,
+            style: const TextStyle(fontSize: 12, color: AppColors.inkMuted),
           ),
         ],
       ),

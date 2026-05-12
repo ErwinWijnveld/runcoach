@@ -491,9 +491,9 @@ Side-effects of `setOverride`: writes `currentAppLocaleTag` (top-level mutable i
 
 **Backend communication**: `LocaleInterceptor` (`lib/core/api/locale_interceptor.dart`, registered before `AuthInterceptor` in `dio_client.dart`) adds `Accept-Language: <BCP-47>` to every outgoing request. The Laravel `SetLocale` middleware reads it and sets `App::setLocale()` per request so validation errors, push notifications dispatched in that request's flow, and agent output (Phase 4) all come back in the runner's language.
 
-**Phase 3 (UI string extraction) hasn't started yet** — the ~700 hardcoded `Text('…')` calls across `features/**/` are still English-only. `lib/l10n/app_en.arb` ships with only three seed keys (`appTitle`, `languageEnglish`, `languageDutch`) just to prove the pipeline.
+**Phase 3 (UI string extraction) is complete** — all user-facing copy in `features/**/` and `core/widgets/**/` reads from `context.l10n.*`. Both ARB files (`app_en.arb` / `app_nl.arb`) carry the full key set; `flutter gen-l10n` re-runs on `flutter pub get`.
 
-**Settings → Language picker is deferred** until Phase 3 lands extracted strings. For now, to test the Dutch path: flip iOS Settings → General → Language & Region → Preferred Languages so Dutch is first, then reinstall the app to clear `shared_preferences`.
+**Settings → Language picker** (`lib/core/widgets/language_picker_sheet.dart`) is mounted in the profile menu via `_SettingRow(icon: CupertinoIcons.globe, …, onTap: showLanguagePickerSheet)`. Three options: English, Nederlands, System default (auto-detect). Tapping a language calls `appLocaleProvider.notifier.setOverride(locale)` → instant UI re-render + fire-and-forget `PUT /profile`.
 
 Spec: `../docs/superpowers/specs/2026-05-12-i18n-multilingual-research.md`. Phase 1+2 plan: `../docs/superpowers/plans/2026-05-12-i18n-foundation.md`.
 

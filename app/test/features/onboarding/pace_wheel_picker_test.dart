@@ -1,4 +1,5 @@
 import 'package:app/features/onboarding/widgets/pace_wheel_picker.dart';
+import 'package:app/l10n/app_localizations.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -8,6 +9,8 @@ void main() {
 
     await tester.pumpWidget(
       CupertinoApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Builder(
           builder: (context) => CupertinoButton(
             onPressed: () async {
@@ -36,6 +39,8 @@ void main() {
 
     await tester.pumpWidget(
       CupertinoApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Builder(
           builder: (context) => CupertinoButton(
             onPressed: () async {

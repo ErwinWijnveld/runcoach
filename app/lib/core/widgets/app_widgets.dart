@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show IconData, InkWell, Material;
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 
 class AppCard extends StatelessWidget {
@@ -249,7 +250,7 @@ class AppErrorState extends StatelessWidget {
             const SizedBox(height: 12),
             CupertinoButton(
               onPressed: onRetry,
-              child: const Text('Retry'),
+              child: Text(context.l10n.commonRetry),
             ),
           ],
         ],
@@ -317,6 +318,7 @@ Future<void> showAppAlert(
   required String title,
   String? message,
 }) {
+  final okLabel = context.l10n.commonOk;
   return showCupertinoDialog<void>(
     context: context,
     builder: (ctx) => CupertinoAlertDialog(
@@ -325,7 +327,7 @@ Future<void> showAppAlert(
       actions: [
         CupertinoDialogAction(
           onPressed: () => Navigator.of(ctx).pop(),
-          child: const Text('OK'),
+          child: Text(okLabel),
         ),
       ],
     ),
@@ -336,10 +338,13 @@ Future<bool> showAppConfirm(
   BuildContext context, {
   required String title,
   required String message,
-  String confirmLabel = 'Confirm',
-  String cancelLabel = 'Cancel',
+  String? confirmLabel,
+  String? cancelLabel,
   bool destructive = false,
 }) async {
+  final l10n = context.l10n;
+  final confirm = confirmLabel ?? l10n.commonConfirm;
+  final cancel = cancelLabel ?? l10n.commonCancel;
   final result = await showCupertinoDialog<bool>(
     context: context,
     builder: (ctx) => CupertinoAlertDialog(
@@ -348,12 +353,12 @@ Future<bool> showAppConfirm(
       actions: [
         CupertinoDialogAction(
           onPressed: () => Navigator.of(ctx).pop(false),
-          child: Text(cancelLabel),
+          child: Text(cancel),
         ),
         CupertinoDialogAction(
           isDestructiveAction: destructive,
           onPressed: () => Navigator.of(ctx).pop(true),
-          child: Text(confirmLabel),
+          child: Text(confirm),
         ),
       ],
     ),

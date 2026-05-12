@@ -862,6 +862,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get commonCancel => 'Annuleren';
 
   @override
+  String get commonClose => 'Sluiten';
+
+  @override
   String get schedSectionIntervals => 'Intervals';
 
   @override
@@ -1551,4 +1554,226 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get planDetailsFeasibilityOk => 'Goed';
+
+  @override
+  String get commonSave => 'Opslaan';
+
+  @override
+  String get commonConfirm => 'Bevestig';
+
+  @override
+  String get commonRunnerFallback => 'Hardloper';
+
+  @override
+  String get profileMenuConnections => 'Verbindingen';
+
+  @override
+  String get profileMenuAccount => 'Account';
+
+  @override
+  String get profileMenuHrZones => 'HR-zones';
+
+  @override
+  String get profileMenuPrivacy => 'Privacy';
+
+  @override
+  String get profileMenuAbout => 'Over';
+
+  @override
+  String get profileMenuDeleteData => 'Verwijder gegevens';
+
+  @override
+  String get profileMenuLogout => 'Uitloggen';
+
+  @override
+  String get profileMenuDeleteConfirmTitle => 'Verwijder gegevens';
+
+  @override
+  String get profileMenuDeleteConfirmBody =>
+      'Dit verwijdert je account, doelen, trainingsschema en chats. Dit kan niet ongedaan worden gemaakt.';
+
+  @override
+  String get profileMenuDeleteConfirmAction => 'Verwijder';
+
+  @override
+  String get profileMenuDeleteErrorTitle => 'Kon gegevens niet verwijderen';
+
+  @override
+  String profileMenuDeleteErrorBody(String error) {
+    return 'Probeer het opnieuw. ($error)';
+  }
+
+  @override
+  String get profileMenuAccountTitle => 'Account';
+
+  @override
+  String get profileMenuFieldName => 'Naam';
+
+  @override
+  String get profileMenuFieldEmail => 'E-mail';
+
+  @override
+  String get profileMenuFieldNameHint => 'Je naam';
+
+  @override
+  String get profileMenuFieldNameEmptyError => 'Naam mag niet leeg zijn';
+
+  @override
+  String get coachPromptBarPlaceholder => 'Vraag het je coach...';
+
+  @override
+  String get birthDatePickerTitle => 'Geboortedatum';
+
+  @override
+  String get birthDatePickerDone => 'Klaar';
+
+  @override
+  String lockedFieldFromSource(String source) {
+    return 'Van $source';
+  }
+
+  @override
+  String get lockedFieldEditedByYou => 'Door jou bewerkt';
+
+  @override
+  String get lockedFieldOverrideTitle => 'Apple Health-gegevens overschrijven?';
+
+  @override
+  String get lockedFieldOverrideBody =>
+      'Deze waarden zijn berekend uit je gesynchroniseerde rungeschiedenis en zijn waarschijnlijk het meest accurate signaal. Bewerken kan een minder accuraat trainingsplan opleveren.';
+
+  @override
+  String get lockedFieldEditAnyway => 'Toch bewerken';
+
+  @override
+  String get paceWheelPickerTitle => 'Rustige tempo';
+
+  @override
+  String get paceWheelPickerDone => 'Klaar';
+
+  @override
+  String get hrZonesSheetTitle => 'HR-zones';
+
+  @override
+  String get hrZonesSheetIntro =>
+      'Bewerk de Max HR om alle zones te herberekenen, of pas een grens aan om de aangrenzende zone bij te werken.';
+
+  @override
+  String get hrZonesMaxHrLabel => 'Max HR';
+
+  @override
+  String get hrZonesRecomputeBusy => 'Bezig met herberekenen…';
+
+  @override
+  String get hrZonesRecomputeCta => 'Herbereken op basis van je runs';
+
+  @override
+  String get hrZonesErrorMaxHrRange =>
+      'Max HR moet tussen 100 en 250 bpm liggen.';
+
+  @override
+  String get hrZonesErrorInvalidBpm => 'Voer geldige bpm-waarden in (0-250).';
+
+  @override
+  String get hrZonesErrorNotAscending => 'Zones moeten oplopend zijn.';
+
+  @override
+  String hrZonesErrorSaveFailed(String error) {
+    return 'Opslaan mislukt: $error';
+  }
+
+  @override
+  String hrZonesUpdatedCorrected(int maxHr) {
+    return 'Bijgewerkt — max ~$maxHr bpm (leeftijd + je zwaarste recente runs).';
+  }
+
+  @override
+  String hrZonesUpdatedDerivedAge(int maxHr, int age) {
+    return 'Bijgewerkt — max ~$maxHr bpm (geschat vanaf leeftijd $age).';
+  }
+
+  @override
+  String get hrZonesUpdatedGenericAge => 'Bijgewerkt vanaf je leeftijd.';
+
+  @override
+  String get notificationsSheetTitle => 'MELDINGEN';
+
+  @override
+  String notificationsSheetLoadError(String error) {
+    return 'Kon meldingen niet laden.\n$error';
+  }
+
+  @override
+  String get notificationsSheetEmpty => 'Je bent volledig bijgewerkt.';
+
+  @override
+  String get notificationsCardDismiss => 'VERWIJDEREN';
+
+  @override
+  String get notificationsCardApply => 'TOEPASSEN';
+
+  @override
+  String get notificationsTertiaryEditHrZones => 'Bewerk HR-zones';
+
+  @override
+  String get notificationsTypePaceAdjustment => 'TEMPO-AANPASSING';
+
+  @override
+  String get hrZoneNameZ1 => 'Duurvermogen';
+
+  @override
+  String get hrZoneNameZ2 => 'Matig';
+
+  @override
+  String get hrZoneNameZ3 => 'Tempo';
+
+  @override
+  String get hrZoneNameZ4 => 'Drempel';
+
+  @override
+  String get hrZoneNameZ5 => 'Anaeroob';
+
+  @override
+  String get hrZoneBpm => 'bpm';
+
+  @override
+  String get settingsTitle => 'Instellingen';
+
+  @override
+  String get settingsLanguageTitle => 'Taal';
+
+  @override
+  String get settingsLanguageSubtitle =>
+      'Kies in welke taal RunCoach met je communiceert.';
+
+  @override
+  String get settingsLanguageAuto => 'Systeemstandaard';
+
+  @override
+  String get settingsLanguageAutoSubtitle => 'Volgt je apparaattaal.';
+
+  @override
+  String get settingsLanguageEnglish => 'English';
+
+  @override
+  String get settingsLanguageDutch => 'Nederlands';
+
+  @override
+  String get settingsLanguageActiveBadge => 'ACTIEF';
+
+  @override
+  String weeklyPlanWeekRange(String start, String end) {
+    return '$start – $end';
+  }
+
+  @override
+  String weeklyPlanDayCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count runs',
+      one: '1 run',
+    );
+    return '$_temp0';
+  }
 }

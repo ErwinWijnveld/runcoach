@@ -1,9 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/heart_rate_zones_sheet.dart';
+import 'package:app/core/widgets/language_picker_sheet.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/router/app_router.dart';
 
@@ -52,7 +54,7 @@ class ProfileMenuSheet extends ConsumerWidget {
             ),
             const SizedBox(height: 20),
             _UserHeader(
-              name: user?.name ?? 'Runner',
+              name: user?.name ?? context.l10n.commonRunnerFallback,
               email: user?.email ?? '',
             ),
             const SizedBox(height: 24),
@@ -60,7 +62,7 @@ class ProfileMenuSheet extends ConsumerWidget {
               children: [
                 _SettingRow(
                   icon: CupertinoIcons.person_2,
-                  label: 'Connections',
+                  label: context.l10n.profileMenuConnections,
                   onTap: () {
                     Navigator.of(context).pop();
                     context.push('/connections');
@@ -68,16 +70,21 @@ class ProfileMenuSheet extends ConsumerWidget {
                 ),
                 _SettingRow(
                   icon: CupertinoIcons.person_circle,
-                  label: 'Account',
+                  label: context.l10n.profileMenuAccount,
                   onTap: () => _openAccountSheet(context),
                 ),
                 _SettingRow(
                   icon: CupertinoIcons.heart,
-                  label: 'HR Zones',
+                  label: context.l10n.profileMenuHrZones,
                   onTap: () => showHeartRateZonesSheet(context),
                 ),
-                const _SettingRow(icon: CupertinoIcons.lock, label: 'Privacy'),
-                const _SettingRow(icon: CupertinoIcons.info_circle, label: 'Over'),
+                _SettingRow(
+                  icon: CupertinoIcons.globe,
+                  label: context.l10n.settingsLanguageTitle,
+                  onTap: () => showLanguagePickerSheet(context),
+                ),
+                _SettingRow(icon: CupertinoIcons.lock, label: context.l10n.profileMenuPrivacy),
+                _SettingRow(icon: CupertinoIcons.info_circle, label: context.l10n.profileMenuAbout),
               ],
             ),
             const SizedBox(height: 24),
@@ -231,9 +238,9 @@ class _DeleteButton extends ConsumerWidget {
         color: AppColors.cardBg,
         borderRadius: BorderRadius.circular(14),
         onPressed: () => _confirmAndDelete(context, ref),
-        child: const Text(
-          'Verwijder gegevens',
-          style: TextStyle(
+        child: Text(
+          context.l10n.profileMenuDeleteData,
+          style: const TextStyle(
             color: CupertinoColors.systemRed,
             fontSize: 15,
             fontWeight: FontWeight.w600,
@@ -244,13 +251,13 @@ class _DeleteButton extends ConsumerWidget {
   }
 
   Future<void> _confirmAndDelete(BuildContext context, WidgetRef ref) async {
+    final l10n = context.l10n;
     final confirmed = await showAppConfirm(
       context,
-      title: 'Verwijder gegevens',
-      message:
-          'Dit verwijdert je account, doelen, trainingsschema en chats. Dit kan niet ongedaan worden gemaakt.',
-      confirmLabel: 'Verwijder',
-      cancelLabel: 'Annuleer',
+      title: l10n.profileMenuDeleteConfirmTitle,
+      message: l10n.profileMenuDeleteConfirmBody,
+      confirmLabel: l10n.profileMenuDeleteConfirmAction,
+      cancelLabel: l10n.commonCancel,
       destructive: true,
     );
     if (!confirmed) return;
@@ -264,8 +271,8 @@ class _DeleteButton extends ConsumerWidget {
       if (!context.mounted) return;
       await showAppAlert(
         context,
-        title: 'Kon gegevens niet verwijderen',
-        message: 'Probeer het opnieuw. ($e)',
+        title: l10n.profileMenuDeleteErrorTitle,
+        message: l10n.profileMenuDeleteErrorBody(e.toString()),
       );
     }
   }
@@ -287,9 +294,9 @@ class _LogoutButton extends ConsumerWidget {
           if (!context.mounted) return;
           Navigator.of(context).pop();
         },
-        child: const Text(
-          'Uitloggen',
-          style: TextStyle(
+        child: Text(
+          context.l10n.profileMenuLogout,
+          style: const TextStyle(
             color: AppColors.primaryInk,
             fontSize: 15,
             fontWeight: FontWeight.w600,
@@ -328,7 +335,7 @@ class _AccountEditSheetState extends ConsumerState<_AccountEditSheet> {
   Future<void> _save() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      setState(() => _error = 'Name cannot be empty');
+      setState(() => _error = context.l10n.profileMenuFieldNameEmptyError);
       return;
     }
     setState(() {
@@ -377,9 +384,9 @@ class _AccountEditSheetState extends ConsumerState<_AccountEditSheet> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Account',
-                style: TextStyle(
+              Text(
+                context.l10n.profileMenuAccountTitle,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: AppColors.primaryInk,
@@ -391,11 +398,11 @@ class _AccountEditSheetState extends ConsumerState<_AccountEditSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const _FieldLabel('Name'),
+                    _FieldLabel(context.l10n.profileMenuFieldName),
                     const SizedBox(height: 6),
                     CupertinoTextField(
                       controller: _nameController,
-                      placeholder: 'Your name',
+                      placeholder: context.l10n.profileMenuFieldNameHint,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 14,
                         vertical: 12,
@@ -408,7 +415,7 @@ class _AccountEditSheetState extends ConsumerState<_AccountEditSheet> {
                       enabled: !_saving,
                     ),
                     const SizedBox(height: 16),
-                    const _FieldLabel('Email'),
+                    _FieldLabel(context.l10n.profileMenuFieldEmail),
                     const SizedBox(height: 6),
                     Container(
                       width: double.infinity,
@@ -455,9 +462,9 @@ class _AccountEditSheetState extends ConsumerState<_AccountEditSheet> {
                         onPressed: _saving
                             ? null
                             : () => Navigator.of(context).pop(),
-                        child: const Text(
-                          'Cancel',
-                          style: TextStyle(
+                        child: Text(
+                          context.l10n.commonCancel,
+                          style: const TextStyle(
                             color: AppColors.primaryInk,
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -475,9 +482,9 @@ class _AccountEditSheetState extends ConsumerState<_AccountEditSheet> {
                             ? const CupertinoActivityIndicator(
                                 color: CupertinoColors.white,
                               )
-                            : const Text(
-                                'Save',
-                                style: TextStyle(
+                            : Text(
+                                context.l10n.commonSave,
+                                style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
                                 ),

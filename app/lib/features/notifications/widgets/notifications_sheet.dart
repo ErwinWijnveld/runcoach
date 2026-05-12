@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show ElevatedButton, Icons;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/heart_rate_zones_sheet.dart';
@@ -48,7 +49,7 @@ class _NotificationsSheet extends ConsumerWidget {
               ),
               const SizedBox(height: 18),
               Text(
-                'NOTIFICATIONS',
+                context.l10n.notificationsSheetTitle,
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
@@ -66,7 +67,7 @@ class _NotificationsSheet extends ConsumerWidget {
                   error: (e, _) => Padding(
                     padding: const EdgeInsets.all(24),
                     child: Text(
-                      'Could not load notifications.\n$e',
+                      context.l10n.notificationsSheetLoadError(e.toString()),
                       style: GoogleFonts.publicSans(
                         fontSize: 14,
                         color: AppColors.inkMuted,
@@ -112,7 +113,7 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'You\'re all caught up.',
+            context.l10n.notificationsSheetEmpty,
             style: GoogleFonts.publicSans(
               fontSize: 15,
               color: AppColors.inkMuted,
@@ -212,7 +213,7 @@ class _NotificationCardState extends ConsumerState<_NotificationCard> {
             children: [
               Expanded(
                 child: _SecondaryButton(
-                  label: 'DISMISS',
+                  label: context.l10n.notificationsCardDismiss,
                   onPressed: _busy
                       ? null
                       : () => _act(() => ref
@@ -224,7 +225,7 @@ class _NotificationCardState extends ConsumerState<_NotificationCard> {
               Expanded(
                 flex: 2,
                 child: _PrimaryButton(
-                  label: 'APPLY',
+                  label: context.l10n.notificationsCardApply,
                   busy: _busy,
                   onPressed: _busy
                       ? null
@@ -243,7 +244,7 @@ class _NotificationCardState extends ConsumerState<_NotificationCard> {
           if (n.type == 'pace_adjustment') ...[
             const SizedBox(height: 8),
             _TertiaryButton(
-              label: 'Edit HR Zones',
+              label: context.l10n.notificationsTertiaryEditHrZones,
               icon: Icons.edit_outlined,
               onPressed: _busy ? null : () => showHeartRateZonesSheet(context),
             ),
@@ -254,7 +255,7 @@ class _NotificationCardState extends ConsumerState<_NotificationCard> {
   }
 
   String _typeLabel(String type) => switch (type) {
-        'pace_adjustment' => 'PACE ADJUSTMENT',
+        'pace_adjustment' => context.l10n.notificationsTypePaceAdjustment,
         _ => type.replaceAll('_', ' ').toUpperCase(),
       };
 }

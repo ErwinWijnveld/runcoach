@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/birth_date_picker.dart';
 import 'package:app/core/widgets/hr_zone_constants.dart';
@@ -91,7 +92,7 @@ class _HeartRateZonesSheetState extends ConsumerState<HeartRateZonesSheet> {
   void _applyMaxHr() {
     final value = int.tryParse(_maxHrController.text.trim());
     if (value == null || value < 100 || value > 250) {
-      setState(() => _error = 'Max HR must be between 100 and 250 bpm.');
+      setState(() => _error = context.l10n.hrZonesErrorMaxHrRange);
       return;
     }
     final derived = _deriveBoundaries(value);
@@ -210,20 +211,21 @@ class _HeartRateZonesSheetState extends ConsumerState<HeartRateZonesSheet> {
   }
 
   String _noticeFor(DerivedZones r) {
+    final l10n = context.l10n;
     switch (r.source) {
       case 'derived_age':
       case 'derived_empirical':
         final age = r.age;
         final maxHr = r.maxHr;
         if (r.wasCorrected && maxHr != null) {
-          return 'Updated — max ~$maxHr bpm (age + your hardest recent runs).';
+          return l10n.hrZonesUpdatedCorrected(maxHr);
         }
         if (age != null && maxHr != null) {
-          return 'Updated — max ~$maxHr bpm (estimated from age $age).';
+          return l10n.hrZonesUpdatedDerivedAge(maxHr, age);
         }
-        return 'Updated from your age.';
+        return l10n.hrZonesUpdatedGenericAge;
       default:
-        return "Couldn't compute zones — please set your max HR manually.";
+        return l10n.onbZonesSubtitleDefault;
     }
   }
 
@@ -231,11 +233,11 @@ class _HeartRateZonesSheetState extends ConsumerState<HeartRateZonesSheet> {
     final b = _readBoundaries();
     for (var i = 0; i < b.length; i++) {
       if (b[i] <= 0 || b[i] >= 250) {
-        setState(() => _error = 'Enter valid bpm values (0-250).');
+        setState(() => _error = context.l10n.hrZonesErrorInvalidBpm);
         return;
       }
       if (i > 0 && b[i] <= b[i - 1]) {
-        setState(() => _error = 'Zones must be in ascending order.');
+        setState(() => _error = context.l10n.hrZonesErrorNotAscending);
         return;
       }
     }
@@ -259,7 +261,7 @@ class _HeartRateZonesSheetState extends ConsumerState<HeartRateZonesSheet> {
       if (mounted) {
         setState(() {
           _saving = false;
-          _error = 'Could not save: $e';
+          _error = context.l10n.hrZonesErrorSaveFailed(e.toString());
         });
       }
     }
@@ -290,21 +292,21 @@ class _HeartRateZonesSheetState extends ConsumerState<HeartRateZonesSheet> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'HR Zones',
-                style: TextStyle(
+              Text(
+                context.l10n.hrZonesSheetTitle,
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: AppColors.primaryInk,
                 ),
               ),
               const SizedBox(height: 4),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Text(
-                  'Edit Max HR to recompute every zone, or change a boundary to update the adjacent zone.',
+                  context.l10n.hrZonesSheetIntro,
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 12, color: AppColors.inkMuted, height: 1.4),
+                  style: const TextStyle(fontSize: 12, color: AppColors.inkMuted, height: 1.4),
                 ),
               ),
               const SizedBox(height: 12),
@@ -363,9 +365,9 @@ class _HeartRateZonesSheetState extends ConsumerState<HeartRateZonesSheet> {
                         onPressed: _saving
                             ? null
                             : () => Navigator.of(context).pop(),
-                        child: const Text(
-                          'Cancel',
-                          style: TextStyle(
+                        child: Text(
+                          context.l10n.commonCancel,
+                          style: const TextStyle(
                             color: AppColors.primaryInk,
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -385,9 +387,9 @@ class _HeartRateZonesSheetState extends ConsumerState<HeartRateZonesSheet> {
                         child: _saving
                             ? const CupertinoActivityIndicator(
                                 color: CupertinoColors.white)
-                            : const Text(
-                                'Save',
-                                style: TextStyle(
+                            : Text(
+                                context.l10n.commonSave,
+                                style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -428,10 +430,10 @@ class _MaxHrField extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Expanded(
+          Expanded(
             child: Text(
-              'Max HR',
-              style: TextStyle(
+              context.l10n.hrZonesMaxHrLabel,
+              style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
                 color: AppColors.primaryInk,
@@ -548,7 +550,7 @@ class _ZoneRow extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              kHrZoneNames[index],
+              hrZoneNames(context.l10n)[index],
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -607,9 +609,9 @@ class _ZoneRow extends StatelessWidget {
               ),
             ),
           const SizedBox(width: 6),
-          const Text(
-            'bpm',
-            style: TextStyle(fontSize: 12, color: AppColors.inkMuted),
+          Text(
+            context.l10n.hrZoneBpm,
+            style: const TextStyle(fontSize: 12, color: AppColors.inkMuted),
           ),
         ],
       ),
@@ -661,7 +663,7 @@ class _RecomputeRow extends StatelessWidget {
                 ),
               const SizedBox(width: 8),
               Text(
-                busy ? 'Recomputing…' : 'Recompute from your runs',
+                busy ? context.l10n.hrZonesRecomputeBusy : context.l10n.hrZonesRecomputeCta,
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
