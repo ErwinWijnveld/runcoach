@@ -25,6 +25,9 @@ class UpdateProfileRequest extends FormRequest
             // never trust the client to set this directly. The validator
             // only accepts the 'manual' value to keep the surface tight.
             'heart_rate_zones_source' => ['sometimes', Rule::in([HeartRateZonesSource::Manual->value])],
+            // Locale override. `null` clears the override and reverts to
+            // SetLocale middleware auto-detection on subsequent requests.
+            'locale' => ['sometimes', 'nullable', 'string', 'in:en,nl'],
         ];
     }
 
