@@ -1349,4 +1349,129 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get coachChipOrTypeOwn => 'or type your own';
+
+  @override
+  String get trainingResultHeader => 'Training result';
+
+  @override
+  String get trainingResultEyebrowCompliance => 'COMPLIANCE';
+
+  @override
+  String get trainingResultEyebrowTargetVsActual => 'TARGET VS ACTUAL';
+
+  @override
+  String get trainingResultEyebrowCoachFeedback => 'COACH FEEDBACK';
+
+  @override
+  String get trainingResultCompTarget => 'TARGET';
+
+  @override
+  String get trainingResultCompActual => 'ACTUAL';
+
+  @override
+  String get trainingResultRowDistance => 'Distance';
+
+  @override
+  String get trainingResultRowPace => 'Pace';
+
+  @override
+  String get trainingResultRowHeartRate => 'Heart rate';
+
+  @override
+  String trainingResultHrZoneTarget(int zone) {
+    return 'Zone $zone';
+  }
+
+  @override
+  String get trainingResultUnlinkConfirmTitle => 'Unlink activity?';
+
+  @override
+  String get trainingResultUnlinkConfirmBody =>
+      'The run stays in Apple Health; it just stops being matched to this training day.';
+
+  @override
+  String get trainingResultUnlinkAction => 'Unlink';
+
+  @override
+  String get trainingResultUnlinkButton => 'Unlink activity';
+
+  @override
+  String get trainingResultUnlinkErrorTitle => 'Couldn\'t unlink';
+
+  @override
+  String get coachAnalysisEyebrow => 'COACH ANALYSIS';
+
+  @override
+  String get coachAnalysisCompliance => 'Compliance';
+
+  @override
+  String get coachAnalysisOpenCta => 'OPEN ANALYSIS';
+
+  @override
+  String get coachAnalysisAnalysing => 'Analysing your run…';
+
+  @override
+  String get selectActivityTitle => 'Pick an activity';
+
+  @override
+  String get selectActivitySubtitle =>
+      'Runs from the last week, synced from Apple Health.';
+
+  @override
+  String get selectActivityLoadError => 'Couldn\'t load your activities.';
+
+  @override
+  String get selectActivityNoneRecent => 'No recent activities';
+
+  @override
+  String get selectActivityMatchErrorTitle => 'Couldn\'t match that run';
+
+  @override
+  String get selectActivitySyncedBadge => 'SYNCED';
+
+  @override
+  String get selectActivityNoneRecentDetail =>
+      'Nothing synced from Apple Health in the past week.';
+
+  @override
+  String get rescheduleConfirmErrorTitle => 'Could not reschedule';
+
+  @override
+  String rescheduleMoveTo(String date) {
+    return 'Move to $date';
+  }
+
+  @override
+  String get wearableSummaryDistance => 'DISTANCE';
+
+  @override
+  String get wearableSummaryDuration => 'DURATION';
+
+  @override
+  String get wearableSummaryAvgHr => 'AVG HR';
+
+  @override
+  String get workoutChatEmptyTitle => 'Ask about this workout';
+
+  @override
+  String get workoutChatEmptySubtitle =>
+      'I know your target stats, splits, and how it fits this week.';
+
+  @override
+  String get workoutChatAdjustPrompt =>
+      'Can we tweak this workout? I\'d like to ';
+
+  @override
+  String get workoutChatWhatPlanPrompt =>
+      'What\'s the purpose of this workout and what should I focus on?';
+
+  @override
+  String get workoutChatPaceCheck => 'Pace check';
+
+  @override
+  String get workoutChatPaceCheckPrompt =>
+      'Is the target pace realistic based on my recent runs?';
+
+  @override
+  String get workoutChatMoveItPrompt => 'Can we move this workout to ';
 }

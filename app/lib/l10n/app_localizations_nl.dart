@@ -1351,4 +1351,130 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get coachChipOrTypeOwn => 'of typ je eigen';
+
+  @override
+  String get trainingResultHeader => 'Trainingsresultaat';
+
+  @override
+  String get trainingResultEyebrowCompliance => 'COMPLIANCE';
+
+  @override
+  String get trainingResultEyebrowTargetVsActual => 'DOEL VS WERKELIJK';
+
+  @override
+  String get trainingResultEyebrowCoachFeedback => 'COACH-FEEDBACK';
+
+  @override
+  String get trainingResultCompTarget => 'DOEL';
+
+  @override
+  String get trainingResultCompActual => 'WERKELIJK';
+
+  @override
+  String get trainingResultRowDistance => 'Afstand';
+
+  @override
+  String get trainingResultRowPace => 'Tempo';
+
+  @override
+  String get trainingResultRowHeartRate => 'Hartslag';
+
+  @override
+  String trainingResultHrZoneTarget(int zone) {
+    return 'Zone $zone';
+  }
+
+  @override
+  String get trainingResultUnlinkConfirmTitle => 'Activiteit ontkoppelen?';
+
+  @override
+  String get trainingResultUnlinkConfirmBody =>
+      'De run blijft in Apple Health; hij wordt alleen niet meer gekoppeld aan deze trainingsdag.';
+
+  @override
+  String get trainingResultUnlinkAction => 'Ontkoppel';
+
+  @override
+  String get trainingResultUnlinkButton => 'Activiteit ontkoppelen';
+
+  @override
+  String get trainingResultUnlinkErrorTitle => 'Ontkoppelen mislukt';
+
+  @override
+  String get coachAnalysisEyebrow => 'COACH-ANALYSE';
+
+  @override
+  String get coachAnalysisCompliance => 'Compliance';
+
+  @override
+  String get coachAnalysisOpenCta => 'OPEN ANALYSE';
+
+  @override
+  String get coachAnalysisAnalysing => 'Je run wordt geanalyseerd…';
+
+  @override
+  String get selectActivityTitle => 'Kies een activiteit';
+
+  @override
+  String get selectActivitySubtitle =>
+      'Runs uit de afgelopen week, gesynchroniseerd vanuit Apple Health.';
+
+  @override
+  String get selectActivityLoadError => 'Kon je activiteiten niet laden.';
+
+  @override
+  String get selectActivityNoneRecent => 'Geen recente activiteiten';
+
+  @override
+  String get selectActivityMatchErrorTitle => 'Run kon niet gekoppeld worden';
+
+  @override
+  String get selectActivitySyncedBadge => 'GESYNCHRONISEERD';
+
+  @override
+  String get selectActivityNoneRecentDetail =>
+      'Niets gesynchroniseerd vanuit Apple Health in de afgelopen week.';
+
+  @override
+  String get rescheduleConfirmErrorTitle => 'Verplaatsen mislukt';
+
+  @override
+  String rescheduleMoveTo(String date) {
+    return 'Verplaats naar $date';
+  }
+
+  @override
+  String get wearableSummaryDistance => 'AFSTAND';
+
+  @override
+  String get wearableSummaryDuration => 'DUUR';
+
+  @override
+  String get wearableSummaryAvgHr => 'GEM HR';
+
+  @override
+  String get workoutChatEmptyTitle => 'Vraag iets over deze training';
+
+  @override
+  String get workoutChatEmptySubtitle =>
+      'Ik ken je doelstats, splits en hoe het past in deze week.';
+
+  @override
+  String get workoutChatAdjustPrompt =>
+      'Kunnen we deze training aanpassen? Ik zou graag ';
+
+  @override
+  String get workoutChatWhatPlanPrompt =>
+      'Wat is het doel van deze training en waar moet ik op letten?';
+
+  @override
+  String get workoutChatPaceCheck => 'Tempocontrole';
+
+  @override
+  String get workoutChatPaceCheckPrompt =>
+      'Is het richttempo realistisch op basis van mijn recente runs?';
+
+  @override
+  String get workoutChatMoveItPrompt =>
+      'Kunnen we deze training verplaatsen naar ';
 }

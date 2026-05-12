@@ -2479,6 +2479,234 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'or type your own'**
   String get coachChipOrTypeOwn;
+
+  /// No description provided for @trainingResultHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Training result'**
+  String get trainingResultHeader;
+
+  /// No description provided for @trainingResultEyebrowCompliance.
+  ///
+  /// In en, this message translates to:
+  /// **'COMPLIANCE'**
+  String get trainingResultEyebrowCompliance;
+
+  /// No description provided for @trainingResultEyebrowTargetVsActual.
+  ///
+  /// In en, this message translates to:
+  /// **'TARGET VS ACTUAL'**
+  String get trainingResultEyebrowTargetVsActual;
+
+  /// No description provided for @trainingResultEyebrowCoachFeedback.
+  ///
+  /// In en, this message translates to:
+  /// **'COACH FEEDBACK'**
+  String get trainingResultEyebrowCoachFeedback;
+
+  /// No description provided for @trainingResultCompTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'TARGET'**
+  String get trainingResultCompTarget;
+
+  /// No description provided for @trainingResultCompActual.
+  ///
+  /// In en, this message translates to:
+  /// **'ACTUAL'**
+  String get trainingResultCompActual;
+
+  /// No description provided for @trainingResultRowDistance.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance'**
+  String get trainingResultRowDistance;
+
+  /// No description provided for @trainingResultRowPace.
+  ///
+  /// In en, this message translates to:
+  /// **'Pace'**
+  String get trainingResultRowPace;
+
+  /// No description provided for @trainingResultRowHeartRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Heart rate'**
+  String get trainingResultRowHeartRate;
+
+  /// No description provided for @trainingResultHrZoneTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Zone {zone}'**
+  String trainingResultHrZoneTarget(int zone);
+
+  /// No description provided for @trainingResultUnlinkConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink activity?'**
+  String get trainingResultUnlinkConfirmTitle;
+
+  /// No description provided for @trainingResultUnlinkConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The run stays in Apple Health; it just stops being matched to this training day.'**
+  String get trainingResultUnlinkConfirmBody;
+
+  /// No description provided for @trainingResultUnlinkAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink'**
+  String get trainingResultUnlinkAction;
+
+  /// No description provided for @trainingResultUnlinkButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink activity'**
+  String get trainingResultUnlinkButton;
+
+  /// No description provided for @trainingResultUnlinkErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t unlink'**
+  String get trainingResultUnlinkErrorTitle;
+
+  /// No description provided for @coachAnalysisEyebrow.
+  ///
+  /// In en, this message translates to:
+  /// **'COACH ANALYSIS'**
+  String get coachAnalysisEyebrow;
+
+  /// No description provided for @coachAnalysisCompliance.
+  ///
+  /// In en, this message translates to:
+  /// **'Compliance'**
+  String get coachAnalysisCompliance;
+
+  /// No description provided for @coachAnalysisOpenCta.
+  ///
+  /// In en, this message translates to:
+  /// **'OPEN ANALYSIS'**
+  String get coachAnalysisOpenCta;
+
+  /// No description provided for @coachAnalysisAnalysing.
+  ///
+  /// In en, this message translates to:
+  /// **'Analysing your run…'**
+  String get coachAnalysisAnalysing;
+
+  /// No description provided for @selectActivityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick an activity'**
+  String get selectActivityTitle;
+
+  /// No description provided for @selectActivitySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Runs from the last week, synced from Apple Health.'**
+  String get selectActivitySubtitle;
+
+  /// No description provided for @selectActivityLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your activities.'**
+  String get selectActivityLoadError;
+
+  /// No description provided for @selectActivityNoneRecent.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent activities'**
+  String get selectActivityNoneRecent;
+
+  /// No description provided for @selectActivityMatchErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t match that run'**
+  String get selectActivityMatchErrorTitle;
+
+  /// No description provided for @selectActivitySyncedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'SYNCED'**
+  String get selectActivitySyncedBadge;
+
+  /// No description provided for @selectActivityNoneRecentDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing synced from Apple Health in the past week.'**
+  String get selectActivityNoneRecentDetail;
+
+  /// No description provided for @rescheduleConfirmErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not reschedule'**
+  String get rescheduleConfirmErrorTitle;
+
+  /// No description provided for @rescheduleMoveTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Move to {date}'**
+  String rescheduleMoveTo(String date);
+
+  /// No description provided for @wearableSummaryDistance.
+  ///
+  /// In en, this message translates to:
+  /// **'DISTANCE'**
+  String get wearableSummaryDistance;
+
+  /// No description provided for @wearableSummaryDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'DURATION'**
+  String get wearableSummaryDuration;
+
+  /// No description provided for @wearableSummaryAvgHr.
+  ///
+  /// In en, this message translates to:
+  /// **'AVG HR'**
+  String get wearableSummaryAvgHr;
+
+  /// No description provided for @workoutChatEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask about this workout'**
+  String get workoutChatEmptyTitle;
+
+  /// No description provided for @workoutChatEmptySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'I know your target stats, splits, and how it fits this week.'**
+  String get workoutChatEmptySubtitle;
+
+  /// No description provided for @workoutChatAdjustPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Can we tweak this workout? I\'d like to '**
+  String get workoutChatAdjustPrompt;
+
+  /// No description provided for @workoutChatWhatPlanPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s the purpose of this workout and what should I focus on?'**
+  String get workoutChatWhatPlanPrompt;
+
+  /// No description provided for @workoutChatPaceCheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Pace check'**
+  String get workoutChatPaceCheck;
+
+  /// No description provided for @workoutChatPaceCheckPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Is the target pace realistic based on my recent runs?'**
+  String get workoutChatPaceCheckPrompt;
+
+  /// No description provided for @workoutChatMoveItPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Can we move this workout to '**
+  String get workoutChatMoveItPrompt;
 }
 
 class _AppLocalizationsDelegate

@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/ai_glow_card.dart';
 import 'package:app/core/widgets/compliance_ring.dart';
@@ -23,9 +24,10 @@ class CoachAnalysisCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final score01 = (complianceScore10 / 10).clamp(0.0, 1.0);
     final isLoading = aiFeedback == null || aiFeedback!.trim().isEmpty;
-    final excerpt = _excerpt(aiFeedback);
+    final excerpt = _excerpt(l10n.coachAnalysisAnalysing, aiFeedback);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -54,7 +56,7 @@ class CoachAnalysisCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'COACH ANALYSIS',
+                          l10n.coachAnalysisEyebrow,
                           style: GoogleFonts.spaceGrotesk(
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
@@ -64,7 +66,7 @@ class CoachAnalysisCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Compliance',
+                          l10n.coachAnalysisCompliance,
                           style: GoogleFonts.ebGaramond(
                             fontSize: 24,
                             fontStyle: FontStyle.italic,
@@ -110,7 +112,7 @@ class CoachAnalysisCard extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              'OPEN ANALYSIS',
+                              l10n.coachAnalysisOpenCta,
                               style: GoogleFonts.spaceGrotesk(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
@@ -138,9 +140,9 @@ class CoachAnalysisCard extends StatelessWidget {
     );
   }
 
-  static String _excerpt(String? raw) {
+  static String _excerpt(String loadingLabel, String? raw) {
     if (raw == null || raw.trim().isEmpty) {
-      return 'Analysing your run…';
+      return loadingLabel;
     }
     return raw
         .replaceAll(RegExp(r'[#*_`>]'), '')

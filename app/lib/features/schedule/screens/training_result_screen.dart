@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors, InkWell, Material;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:gpt_markdown/gpt_markdown.dart';
@@ -31,7 +32,7 @@ class TrainingResultScreen extends ConsumerWidget {
             Expanded(
               child: resultAsync.when(
                 loading: () => const AppSpinner(),
-                error: (err, _) => AppErrorState(title: 'Error: $err'),
+                error: (err, _) => AppErrorState(title: context.l10n.commonErrorWithMessage(err.toString())),
                 data: (result) {
                   if (result == null) {
                     return Center(
@@ -160,7 +161,7 @@ class _Header extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           Text(
-            'Training result',
+            context.l10n.trainingResultHeader,
             style: GoogleFonts.ebGaramond(
               fontSize: 22,
               fontWeight: FontWeight.w500,
@@ -200,18 +201,19 @@ class _ComplianceSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final overall01 = (result.complianceScore / 10).clamp(0.0, 1.0);
 
+    final l10n = context.l10n;
     final bars = <_BarData>[
       _BarData(
-        label: 'DISTANCE',
+        label: l10n.schedDayDistance,
         score01: (result.distanceScore / 10).clamp(0.0, 1.0),
       ),
       _BarData(
-        label: 'PACE',
+        label: l10n.schedDayPace,
         score01: (result.paceScore / 10).clamp(0.0, 1.0),
       ),
       if (result.heartRateScore != null)
         _BarData(
-          label: 'HEART',
+          label: l10n.schedDayHr,
           score01: (result.heartRateScore! / 10).clamp(0.0, 1.0),
         ),
     ];
@@ -221,7 +223,7 @@ class _ComplianceSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _Eyebrow('COMPLIANCE'),
+          _Eyebrow(l10n.trainingResultEyebrowCompliance),
           const SizedBox(height: 16),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -347,10 +349,11 @@ class _TargetVsActualSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final rows = <_ComparisonRow>[];
     if (targetKm != null) {
       rows.add(_ComparisonRow(
-        label: 'Distance',
+        label: l10n.trainingResultRowDistance,
         target: '${_trimDouble(targetKm!)} km',
         actual: '${_trimDouble(actualKm)} km',
         actualColor: ComplianceColors.forScore10(distanceScore10),
@@ -358,7 +361,7 @@ class _TargetVsActualSection extends StatelessWidget {
     }
     if (targetPaceSecondsPerKm != null) {
       rows.add(_ComparisonRow(
-        label: 'Pace',
+        label: l10n.trainingResultRowPace,
         target: _formatPace(targetPaceSecondsPerKm!),
         actual: _formatPace(actualPaceSecondsPerKm),
         actualColor: ComplianceColors.forScore10(paceScore10),
@@ -366,8 +369,8 @@ class _TargetVsActualSection extends StatelessWidget {
     }
     if (targetHeartRateZone != null || actualAvgHeartRate != null) {
       rows.add(_ComparisonRow(
-        label: 'Heart rate',
-        target: targetHeartRateZone != null ? 'Zone $targetHeartRateZone' : '—',
+        label: l10n.trainingResultRowHeartRate,
+        target: targetHeartRateZone != null ? l10n.trainingResultHrZoneTarget(targetHeartRateZone!) : '—',
         actual: actualAvgHeartRate != null
             ? '${actualAvgHeartRate!.round()} bpm'
             : '—',
@@ -380,7 +383,7 @@ class _TargetVsActualSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _Eyebrow('TARGET VS ACTUAL'),
+          _Eyebrow(l10n.trainingResultEyebrowTargetVsActual),
           const SizedBox(height: 14),
           DecoratedBox(
             decoration: BoxDecoration(
@@ -443,17 +446,18 @@ class _ComparisonHeader extends StatelessWidget {
       color: AppColors.tertiary,
     );
 
+    final l10n = context.l10n;
     return Row(
       children: [
         const Expanded(flex: 4, child: SizedBox()),
         Expanded(
           flex: 3,
-          child: Text('TARGET', textAlign: TextAlign.end, style: style),
+          child: Text(l10n.trainingResultCompTarget, textAlign: TextAlign.end, style: style),
         ),
         const SizedBox(width: 16),
         Expanded(
           flex: 3,
-          child: Text('ACTUAL', textAlign: TextAlign.end, style: style),
+          child: Text(l10n.trainingResultCompActual, textAlign: TextAlign.end, style: style),
         ),
       ],
     );
@@ -531,7 +535,7 @@ class _CoachFeedbackSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _Eyebrow('COACH FEEDBACK'),
+          _Eyebrow(context.l10n.trainingResultEyebrowCoachFeedback),
           const SizedBox(height: 14),
           AiGlowCard(
             child: GptMarkdown(
@@ -567,21 +571,21 @@ class _UnlinkActivityButtonState extends ConsumerState<_UnlinkActivityButton> {
   Future<void> _confirmAndUnlink() async {
     if (_busy) return;
 
+    final l10n = context.l10n;
     final confirmed = await showCupertinoDialog<bool>(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
-        title: const Text('Unlink activity?'),
-        content: const Text(
-            'The run stays in Apple Health; it just stops being matched to this training day.'),
+        title: Text(l10n.trainingResultUnlinkConfirmTitle),
+        content: Text(l10n.trainingResultUnlinkConfirmBody),
         actions: [
           CupertinoDialogAction(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           CupertinoDialogAction(
             isDestructiveAction: true,
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Unlink'),
+            child: Text(l10n.trainingResultUnlinkAction),
           ),
         ],
       ),
@@ -612,12 +616,12 @@ class _UnlinkActivityButtonState extends ConsumerState<_UnlinkActivityButton> {
       await showCupertinoDialog<void>(
         context: context,
         builder: (ctx) => CupertinoAlertDialog(
-          title: const Text("Couldn't unlink"),
+          title: Text(context.l10n.trainingResultUnlinkErrorTitle),
           content: Text('$e'),
           actions: [
             CupertinoDialogAction(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('OK'),
+              child: Text(context.l10n.commonOk),
             ),
           ],
         ),
@@ -629,7 +633,7 @@ class _UnlinkActivityButtonState extends ConsumerState<_UnlinkActivityButton> {
   @override
   Widget build(BuildContext context) {
     return AppFilledButton(
-      label: 'Unlink activity',
+      label: context.l10n.trainingResultUnlinkButton,
       icon: CupertinoIcons.link,
       color: AppColors.danger,
       loading: _busy,

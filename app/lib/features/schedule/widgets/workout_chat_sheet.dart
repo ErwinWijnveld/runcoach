@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/coach/providers/coach_provider.dart';
 import 'package:app/features/coach/widgets/coach_chat_view.dart';
@@ -132,36 +133,32 @@ class _WorkoutChatOverlay extends ConsumerWidget {
                               seedMessage: prompt,
                             );
                           },
-                          emptyStateTitle: 'Ask about this workout',
-                          emptyStateSubtitle:
-                              'I know your target stats, splits, and how it fits this week.',
-                          emptyStateSuggestions: const [
+                          emptyStateTitle: context.l10n.workoutChatEmptyTitle,
+                          emptyStateSubtitle: context.l10n.workoutChatEmptySubtitle,
+                          emptyStateSuggestions: [
                             (
                               icon: CupertinoIcons.wrench_fill,
-                              label: 'Adjust this workout',
-                              subtitle: 'Distance, pace, intervals.',
-                              prompt:
-                                  'Can we tweak this workout? I\'d like to ',
+                              label: context.l10n.workoutChatAdjust,
+                              subtitle: context.l10n.workoutChatAdjustSub,
+                              prompt: context.l10n.workoutChatAdjustPrompt,
                             ),
                             (
                               icon: CupertinoIcons.info_circle_fill,
-                              label: 'What\'s the point?',
-                              subtitle: 'Why this workout, why today.',
-                              prompt:
-                                  'What\'s the purpose of this workout and what should I focus on?',
+                              label: context.l10n.workoutChatWhatPlan,
+                              subtitle: context.l10n.workoutChatWhatPlanSub,
+                              prompt: context.l10n.workoutChatWhatPlanPrompt,
                             ),
                             (
                               icon: CupertinoIcons.timer_fill,
-                              label: 'Pace check',
-                              subtitle: 'Is the target pace right for me?',
-                              prompt:
-                                  'Is the target pace realistic based on my recent runs?',
+                              label: context.l10n.workoutChatPaceCheck,
+                              subtitle: context.l10n.workoutChatPaceCheckSub,
+                              prompt: context.l10n.workoutChatPaceCheckPrompt,
                             ),
                             (
                               icon: CupertinoIcons.calendar_today,
-                              label: 'Move it',
-                              subtitle: 'Reschedule to another day.',
-                              prompt: 'Can we move this workout to ',
+                              label: context.l10n.workoutChatMoveIt,
+                              subtitle: context.l10n.workoutChatMoveItSub,
+                              prompt: context.l10n.workoutChatMoveItPrompt,
                             ),
                           ],
                         ),

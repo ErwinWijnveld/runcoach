@@ -442,5 +442,49 @@
   "coachRevisionGoalFieldDays": "Dagen: {value}",
   "coachRevisionRunFallback": "Run",
 
-  "coachChipOrTypeOwn": "of typ je eigen"
+  "coachChipOrTypeOwn": "of typ je eigen",
+
+  "trainingResultHeader": "Trainingsresultaat",
+  "trainingResultEyebrowCompliance": "COMPLIANCE",
+  "trainingResultEyebrowTargetVsActual": "DOEL VS WERKELIJK",
+  "trainingResultEyebrowCoachFeedback": "COACH-FEEDBACK",
+  "trainingResultCompTarget": "DOEL",
+  "trainingResultCompActual": "WERKELIJK",
+  "trainingResultRowDistance": "Afstand",
+  "trainingResultRowPace": "Tempo",
+  "trainingResultRowHeartRate": "Hartslag",
+  "trainingResultHrZoneTarget": "Zone {zone}",
+  "trainingResultUnlinkConfirmTitle": "Activiteit ontkoppelen?",
+  "trainingResultUnlinkConfirmBody": "De run blijft in Apple Health; hij wordt alleen niet meer gekoppeld aan deze trainingsdag.",
+  "trainingResultUnlinkAction": "Ontkoppel",
+  "trainingResultUnlinkButton": "Activiteit ontkoppelen",
+  "trainingResultUnlinkErrorTitle": "Ontkoppelen mislukt",
+
+  "coachAnalysisEyebrow": "COACH-ANALYSE",
+  "coachAnalysisCompliance": "Compliance",
+  "coachAnalysisOpenCta": "OPEN ANALYSE",
+  "coachAnalysisAnalysing": "Je run wordt geanalyseerd…",
+
+  "selectActivityTitle": "Kies een activiteit",
+  "selectActivitySubtitle": "Runs uit de afgelopen week, gesynchroniseerd vanuit Apple Health.",
+  "selectActivityLoadError": "Kon je activiteiten niet laden.",
+  "selectActivityNoneRecent": "Geen recente activiteiten",
+  "selectActivityMatchErrorTitle": "Run kon niet gekoppeld worden",
+  "selectActivitySyncedBadge": "GESYNCHRONISEERD",
+  "selectActivityNoneRecentDetail": "Niets gesynchroniseerd vanuit Apple Health in de afgelopen week.",
+
+  "rescheduleConfirmErrorTitle": "Verplaatsen mislukt",
+  "rescheduleMoveTo": "Verplaats naar {date}",
+
+  "wearableSummaryDistance": "AFSTAND",
+  "wearableSummaryDuration": "DUUR",
+  "wearableSummaryAvgHr": "GEM HR",
+
+  "workoutChatEmptyTitle": "Vraag iets over deze training",
+  "workoutChatEmptySubtitle": "Ik ken je doelstats, splits en hoe het past in deze week.",
+  "workoutChatAdjustPrompt": "Kunnen we deze training aanpassen? Ik zou graag ",
+  "workoutChatWhatPlanPrompt": "Wat is het doel van deze training en waar moet ik op letten?",
+  "workoutChatPaceCheck": "Tempocontrole",
+  "workoutChatPaceCheckPrompt": "Is het richttempo realistisch op basis van mijn recente runs?",
+  "workoutChatMoveItPrompt": "Kunnen we deze training verplaatsen naar "
 }

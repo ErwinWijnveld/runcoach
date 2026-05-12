@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/schedule/models/available_activity.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
@@ -81,7 +83,7 @@ class _SelectActivitySheetState extends ConsumerState<SelectActivitySheet> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Pick an activity',
+                            context.l10n.selectActivityTitle,
                             style: GoogleFonts.ebGaramond(
                               fontSize: 26,
                               fontWeight: FontWeight.w400,
@@ -91,7 +93,7 @@ class _SelectActivitySheetState extends ConsumerState<SelectActivitySheet> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Runs from the last week, synced from Apple Health.',
+                            context.l10n.selectActivitySubtitle,
                             style: GoogleFonts.publicSans(
                               fontSize: 13,
                               color: AppColors.tertiary,
@@ -120,15 +122,14 @@ class _SelectActivitySheetState extends ConsumerState<SelectActivitySheet> {
                     child: CupertinoActivityIndicator(radius: 14),
                   ),
                   error: (err, _) => _ErrorState(
-                    message: "Couldn't load your activities.",
+                    message: context.l10n.selectActivityLoadError,
                     detail: '$err',
                   ),
                   data: (activities) {
                     if (activities.isEmpty) {
-                      return const _ErrorState(
-                        message: 'No recent activities',
-                        detail:
-                            "Nothing synced from Apple Health in the past week.",
+                      return _ErrorState(
+                        message: context.l10n.selectActivityNoneRecent,
+                        detail: context.l10n.selectActivityNoneRecentDetail,
                       );
                     }
                     return ListView.separated(
@@ -184,12 +185,12 @@ class _SelectActivitySheetState extends ConsumerState<SelectActivitySheet> {
       await showCupertinoDialog<void>(
         context: context,
         builder: (ctx) => CupertinoAlertDialog(
-          title: const Text("Couldn't match that run"),
+          title: Text(context.l10n.selectActivityMatchErrorTitle),
           content: Text('$e'),
           actions: [
             CupertinoDialogAction(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('OK'),
+              child: Text(context.l10n.commonOk),
             ),
           ],
         ),
@@ -304,7 +305,7 @@ class _ActivityRow extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                'SYNCED',
+                                context.l10n.selectActivitySyncedBadge,
                                 style: GoogleFonts.spaceGrotesk(
                                   fontSize: 9,
                                   fontWeight: FontWeight.w700,
@@ -317,7 +318,7 @@ class _ActivityRow extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        _subtitle(),
+                        _subtitle(context),
                         style: GoogleFonts.publicSans(
                           fontSize: 13,
                           color: AppColors.tertiary,
@@ -350,10 +351,10 @@ class _ActivityRow extends StatelessWidget {
     );
   }
 
-  String _subtitle() {
+  String _subtitle(BuildContext context) {
     final parts = <String>[];
     if (run.startDate != null) {
-      parts.add(_formatDate(run.startDate!));
+      parts.add(_formatDate(context, run.startDate!));
     }
     final pace = run.averagePaceSecondsPerKm;
     if (pace != null && pace > 0) {
@@ -364,11 +365,12 @@ class _ActivityRow extends StatelessWidget {
     return parts.join(' · ');
   }
 
-  String _formatDate(String iso) {
+  String _formatDate(BuildContext context, String iso) {
     try {
       final dt = DateTime.parse(iso).toLocal();
+      final locale = Localizations.localeOf(context).toLanguageTag();
       final day = dt.day.toString().padLeft(2, '0');
-      final mo = _months[dt.month - 1];
+      final mo = DateFormat.MMM(locale).format(dt);
       final time =
           '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
       return '$day $mo · $time';
@@ -376,9 +378,4 @@ class _ActivityRow extends StatelessWidget {
       return iso;
     }
   }
-
-  static const _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-  ];
 }

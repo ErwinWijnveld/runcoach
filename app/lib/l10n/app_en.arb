@@ -553,5 +553,55 @@
   },
   "coachRevisionRunFallback": "Run",
 
-  "coachChipOrTypeOwn": "or type your own"
+  "coachChipOrTypeOwn": "or type your own",
+
+  "trainingResultHeader": "Training result",
+  "trainingResultEyebrowCompliance": "COMPLIANCE",
+  "trainingResultEyebrowTargetVsActual": "TARGET VS ACTUAL",
+  "trainingResultEyebrowCoachFeedback": "COACH FEEDBACK",
+  "trainingResultCompTarget": "TARGET",
+  "trainingResultCompActual": "ACTUAL",
+  "trainingResultRowDistance": "Distance",
+  "trainingResultRowPace": "Pace",
+  "trainingResultRowHeartRate": "Heart rate",
+  "trainingResultHrZoneTarget": "Zone {zone}",
+  "@trainingResultHrZoneTarget": {
+    "placeholders": { "zone": { "type": "int" } }
+  },
+  "trainingResultUnlinkConfirmTitle": "Unlink activity?",
+  "trainingResultUnlinkConfirmBody": "The run stays in Apple Health; it just stops being matched to this training day.",
+  "trainingResultUnlinkAction": "Unlink",
+  "trainingResultUnlinkButton": "Unlink activity",
+  "trainingResultUnlinkErrorTitle": "Couldn't unlink",
+
+  "coachAnalysisEyebrow": "COACH ANALYSIS",
+  "coachAnalysisCompliance": "Compliance",
+  "coachAnalysisOpenCta": "OPEN ANALYSIS",
+  "coachAnalysisAnalysing": "Analysing your run…",
+
+  "selectActivityTitle": "Pick an activity",
+  "selectActivitySubtitle": "Runs from the last week, synced from Apple Health.",
+  "selectActivityLoadError": "Couldn't load your activities.",
+  "selectActivityNoneRecent": "No recent activities",
+  "selectActivityMatchErrorTitle": "Couldn't match that run",
+  "selectActivitySyncedBadge": "SYNCED",
+  "selectActivityNoneRecentDetail": "Nothing synced from Apple Health in the past week.",
+
+  "rescheduleConfirmErrorTitle": "Could not reschedule",
+  "rescheduleMoveTo": "Move to {date}",
+  "@rescheduleMoveTo": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+
+  "wearableSummaryDistance": "DISTANCE",
+  "wearableSummaryDuration": "DURATION",
+  "wearableSummaryAvgHr": "AVG HR",
+
+  "workoutChatEmptyTitle": "Ask about this workout",
+  "workoutChatEmptySubtitle": "I know your target stats, splits, and how it fits this week.",
+  "workoutChatAdjustPrompt": "Can we tweak this workout? I'd like to ",
+  "workoutChatWhatPlanPrompt": "What's the purpose of this workout and what should I focus on?",
+  "workoutChatPaceCheck": "Pace check",
+  "workoutChatPaceCheckPrompt": "Is the target pace realistic based on my recent runs?",
+  "workoutChatMoveItPrompt": "Can we move this workout to "
 }

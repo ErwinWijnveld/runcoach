@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors, Icons, InkWell, Material;
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/schedule/models/wearable_activity_summary.dart';
 
@@ -91,19 +92,19 @@ class WearableSummaryCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _SummaryStat(
-                        label: 'DISTANCE',
+                        label: context.l10n.wearableSummaryDistance,
                         value: _formatDistanceKm(activity.distanceMeters),
                       ),
                     ),
                     Expanded(
                       child: _SummaryStat(
-                        label: 'DURATION',
+                        label: context.l10n.wearableSummaryDuration,
                         value: _formatDuration(activity.durationSeconds),
                       ),
                     ),
                     Expanded(
                       child: _SummaryStat(
-                        label: 'AVG HR',
+                        label: context.l10n.wearableSummaryAvgHr,
                         value: activity.averageHeartrate != null
                             ? activity.averageHeartrate!.toStringAsFixed(0)
                             : '-',

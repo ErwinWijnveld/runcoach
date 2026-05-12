@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
 import 'package:app/features/schedule/services/workout_scheduler_service.dart';
@@ -92,12 +94,12 @@ class _RescheduleDaySheetState extends ConsumerState<RescheduleDaySheet> {
       await showCupertinoDialog<void>(
         context: context,
         builder: (ctx) => CupertinoAlertDialog(
-          title: const Text('Could not reschedule'),
+          title: Text(context.l10n.rescheduleConfirmErrorTitle),
           content: Text('$e'),
           actions: [
             CupertinoDialogAction(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('OK'),
+              child: Text(context.l10n.commonOk),
             ),
           ],
         ),
@@ -165,7 +167,7 @@ class _RescheduleDaySheetState extends ConsumerState<RescheduleDaySheet> {
                           color: CupertinoColors.white,
                         )
                       : Text(
-                          'Move to ${_formatHumanDate(_selected)}',
+                          context.l10n.rescheduleMoveTo(_formatHumanDate(context, _selected)),
                           style: GoogleFonts.spaceGrotesk(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
@@ -181,21 +183,12 @@ class _RescheduleDaySheetState extends ConsumerState<RescheduleDaySheet> {
     );
   }
 
-  static String _formatHumanDate(DateTime d) {
-    return '${_weekday(d)} ${d.day} ${_monthShort(d.month)}';
-  }
-
-  static String _weekday(DateTime d) {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return days[d.weekday - 1];
-  }
-
-  static String _monthShort(int month) {
-    const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-    ];
-    return months[month - 1];
+  static String _formatHumanDate(BuildContext context, DateTime d) {
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    // e.g. "Mon 15 Jan" (en) / "ma 15 jan" (nl).
+    final dow = DateFormat.E(locale).format(d);
+    final mo = DateFormat.MMM(locale).format(d);
+    return '$dow ${d.day} $mo';
   }
 }
 
@@ -213,7 +206,7 @@ class _Header extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             onPressed: onCancel,
             child: Text(
-              'Cancel',
+              context.l10n.commonCancel,
               style: GoogleFonts.publicSans(
                 fontSize: 15,
                 color: AppColors.tertiary,
@@ -222,7 +215,7 @@ class _Header extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              'Reschedule',
+              context.l10n.schedDayRescheduleAction,
               textAlign: TextAlign.center,
               style: GoogleFonts.ebGaramond(
                 fontSize: 20,
@@ -342,11 +335,12 @@ class _MonthHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = Localizations.localeOf(context).toLanguageTag();
     return Row(
       children: [
         const SizedBox(width: 4),
         Text(
-          '${_monthLong(month.month)} ${month.year}',
+          '${DateFormat.MMMM(locale).format(month)} ${month.year}',
           style: GoogleFonts.ebGaramond(
             fontSize: 18,
             fontWeight: FontWeight.w500,
@@ -368,23 +362,6 @@ class _MonthHeader extends StatelessWidget {
     );
   }
 
-  static String _monthLong(int month) {
-    const names = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    return names[month - 1];
-  }
 }
 
 class _ChevronButton extends StatelessWidget {
@@ -415,7 +392,15 @@ class _WeekdayRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    // Locale-aware first-letter labels — DateFormat.E gives short
+    // weekday names; we take the first character. Jan 1 2024 = Monday
+    // so we iterate the week from there.
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    final labels = List.generate(7, (i) {
+      final d = DateTime(2024, 1, i + 1);
+      final short = DateFormat.E(locale).format(d);
+      return short.isEmpty ? '' : short[0].toUpperCase();
+    });
     final style = GoogleFonts.spaceGrotesk(
       fontSize: 11,
       fontWeight: FontWeight.w700,
