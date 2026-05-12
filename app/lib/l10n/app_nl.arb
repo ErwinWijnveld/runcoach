@@ -5,5 +5,25 @@
 
   "languageEnglish": "English",
 
-  "languageDutch": "Nederlands"
+  "languageDutch": "Nederlands",
+
+  "authWelcomeEyebrow": "JOUW AI-HARDLOOPCOACH",
+
+  "authWelcomeHeadlineLine1": "Slimmer trainen,",
+
+  "authWelcomeHeadlineLine2": "Niet zwaarder",
+
+  "authWelcomeSignInButton": "INLOGGEN MET APPLE",
+
+  "authAppleScreenTitle": "Inloggen met Apple",
+
+  "authAppleErrorNoIdentityToken": "Apple gaf geen identity-token terug.",
+
+  "authAppleErrorBackendRejected": "De backend wees het Apple identity-token af.",
+
+  "authAppleErrorAuthEmpty": "Authenticatie is leeg na succesvol inloggen. Controleer de API-URL en backend-logs.",
+
+  "authAppleErrorTitle": "Inloggen mislukt",
+
+  "authAppleErrorRetry": "Probeer opnieuw"
 }

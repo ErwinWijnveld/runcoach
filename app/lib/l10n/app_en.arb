@@ -14,5 +14,55 @@
   "languageDutch": "Nederlands",
   "@languageDutch": {
     "description": "Label for Dutch in a language picker — always shown in Dutch (Nederlands) regardless of UI locale, by convention."
+  },
+
+  "authWelcomeEyebrow": "YOUR AI RUNCOACH",
+  "@authWelcomeEyebrow": {
+    "description": "Welcome screen — small uppercase label above the logo."
+  },
+
+  "authWelcomeHeadlineLine1": "Train Smarter,",
+  "@authWelcomeHeadlineLine1": {
+    "description": "Welcome screen — first line of the two-line tagline."
+  },
+
+  "authWelcomeHeadlineLine2": "Not Harder",
+  "@authWelcomeHeadlineLine2": {
+    "description": "Welcome screen — second line of the tagline (rendered italic)."
+  },
+
+  "authWelcomeSignInButton": "SIGN IN WITH APPLE",
+  "@authWelcomeSignInButton": {
+    "description": "Welcome screen — primary CTA. Triggers the native Apple Sign-In flow."
+  },
+
+  "authAppleScreenTitle": "Sign in with Apple",
+  "@authAppleScreenTitle": {
+    "description": "Nav bar title on the Apple sign-in screen."
+  },
+
+  "authAppleErrorNoIdentityToken": "Apple did not return an identity token.",
+  "@authAppleErrorNoIdentityToken": {
+    "description": "Apple sign-in error shown when iOS doesn't return a JWT (rare — usually a configuration issue)."
+  },
+
+  "authAppleErrorBackendRejected": "Backend rejected the Apple identity token.",
+  "@authAppleErrorBackendRejected": {
+    "description": "Apple sign-in error shown when the backend rejects the Apple JWT (audience/issuer mismatch, expired)."
+  },
+
+  "authAppleErrorAuthEmpty": "Auth state is empty after successful sign-in. Check the API base URL and backend logs.",
+  "@authAppleErrorAuthEmpty": {
+    "description": "Apple sign-in error shown when the backend reply parsed cleanly but no user is in scope. Almost always a misconfigured API base URL."
+  },
+
+  "authAppleErrorTitle": "Sign in failed",
+  "@authAppleErrorTitle": {
+    "description": "Heading above the Apple sign-in error message + Try again button."
+  },
+
+  "authAppleErrorRetry": "Try again",
+  "@authAppleErrorRetry": {
+    "description": "Retry button below the Apple sign-in error message."
   }
 }

@@ -115,6 +115,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nederlands'**
   String get languageDutch;
+
+  /// Welcome screen — small uppercase label above the logo.
+  ///
+  /// In en, this message translates to:
+  /// **'YOUR AI RUNCOACH'**
+  String get authWelcomeEyebrow;
+
+  /// Welcome screen — first line of the two-line tagline.
+  ///
+  /// In en, this message translates to:
+  /// **'Train Smarter,'**
+  String get authWelcomeHeadlineLine1;
+
+  /// Welcome screen — second line of the tagline (rendered italic).
+  ///
+  /// In en, this message translates to:
+  /// **'Not Harder'**
+  String get authWelcomeHeadlineLine2;
+
+  /// Welcome screen — primary CTA. Triggers the native Apple Sign-In flow.
+  ///
+  /// In en, this message translates to:
+  /// **'SIGN IN WITH APPLE'**
+  String get authWelcomeSignInButton;
+
+  /// Nav bar title on the Apple sign-in screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with Apple'**
+  String get authAppleScreenTitle;
+
+  /// Apple sign-in error shown when iOS doesn't return a JWT (rare — usually a configuration issue).
+  ///
+  /// In en, this message translates to:
+  /// **'Apple did not return an identity token.'**
+  String get authAppleErrorNoIdentityToken;
+
+  /// Apple sign-in error shown when the backend rejects the Apple JWT (audience/issuer mismatch, expired).
+  ///
+  /// In en, this message translates to:
+  /// **'Backend rejected the Apple identity token.'**
+  String get authAppleErrorBackendRejected;
+
+  /// Apple sign-in error shown when the backend reply parsed cleanly but no user is in scope. Almost always a misconfigured API base URL.
+  ///
+  /// In en, this message translates to:
+  /// **'Auth state is empty after successful sign-in. Check the API base URL and backend logs.'**
+  String get authAppleErrorAuthEmpty;
+
+  /// Heading above the Apple sign-in error message + Try again button.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in failed'**
+  String get authAppleErrorTitle;
+
+  /// Retry button below the Apple sign-in error message.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get authAppleErrorRetry;
 }
 
 class _AppLocalizationsDelegate

@@ -16,4 +16,37 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get languageDutch => 'Nederlands';
+
+  @override
+  String get authWelcomeEyebrow => 'JOUW AI-HARDLOOPCOACH';
+
+  @override
+  String get authWelcomeHeadlineLine1 => 'Slimmer trainen,';
+
+  @override
+  String get authWelcomeHeadlineLine2 => 'Niet zwaarder';
+
+  @override
+  String get authWelcomeSignInButton => 'INLOGGEN MET APPLE';
+
+  @override
+  String get authAppleScreenTitle => 'Inloggen met Apple';
+
+  @override
+  String get authAppleErrorNoIdentityToken =>
+      'Apple gaf geen identity-token terug.';
+
+  @override
+  String get authAppleErrorBackendRejected =>
+      'De backend wees het Apple identity-token af.';
+
+  @override
+  String get authAppleErrorAuthEmpty =>
+      'Authenticatie is leeg na succesvol inloggen. Controleer de API-URL en backend-logs.';
+
+  @override
+  String get authAppleErrorTitle => 'Inloggen mislukt';
+
+  @override
+  String get authAppleErrorRetry => 'Probeer opnieuw';
 }
