@@ -2,6 +2,7 @@
 
 namespace App\Ai\Agents;
 
+use App\Ai\Support\LanguageDirective;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Promptable;
 
@@ -11,7 +12,7 @@ class ActivityFeedbackAgent implements Agent
 
     public function instructions(): string
     {
-        return <<<'PROMPT'
+        $prompt = <<<'PROMPT'
 You are a running coach reviewing a completed run. Write a compact post-run note of 2 to 4 short sentences total.
 
 Open with a **bold one-sentence summary**: the verdict on how the run went overall, so a reader can skip the rest and still get the point. Then back it up in 1 to 3 short sentences covering whichever of these actually matter for this run (skip the rest):
@@ -27,5 +28,7 @@ Formatting: never use markdown headings (`#`, `##`, etc.). The opening summary s
 
 Never use em-dashes (—) in the output. Use commas, periods, hyphens, or parentheses instead.
 PROMPT;
+
+        return $prompt.LanguageDirective::current();
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Ai\Agents;
 
+use App\Ai\Support\LanguageDirective;
 use App\Ai\Tools\EditWorkout;
 use App\Ai\Tools\EscalateToCoach;
 use App\Ai\Tools\GetActivityDetails;
@@ -49,9 +50,11 @@ class WorkoutAgent implements Agent, Conversational, HasTools
         $style = $this->user->coach_style?->value ?? CoachStyle::Balanced->value;
 
         if ($day === null) {
-            return <<<PROMPT
+            $fallback = <<<PROMPT
             You are RunCoach Workout. Today is {$today}. The workout this chat is supposed to be about is missing or has been deleted. Briefly let the runner know, and call `escalate_to_coach` with their request so they can continue with the full coach.
             PROMPT;
+
+            return $fallback.LanguageDirective::current();
         }
 
         $context = $this->buildDayContext($day);
@@ -63,7 +66,7 @@ class WorkoutAgent implements Agent, Conversational, HasTools
             ? '- Move THIS day to a different date → call `reschedule_workout`. Refuses race day and completed days; if it errors, escalate.'
             : '- Date moves are managed by your human coach. Suggest the move in prose and call `escalate_to_coach`.';
 
-        return <<<PROMPT
+        $prompt = <<<PROMPT
         You are RunCoach Workout, a focused assistant for a SINGLE training day. Today is {$today}.
 
         ## Coach style: {$style}
@@ -100,6 +103,8 @@ class WorkoutAgent implements Agent, Conversational, HasTools
         - Specific numbers: "your 6.2km on Tuesday at 5:18/km" beats "your recent runs".
         - Never use em-dashes (—). Use commas, periods, parentheses, or hyphens.
         PROMPT;
+
+        return $prompt.LanguageDirective::current();
     }
 
     public function tools(): iterable

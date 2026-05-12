@@ -7,6 +7,7 @@ use App\Enums\ProposalStatus;
 use App\Enums\RunnerLevel;
 use App\Models\CoachProposal;
 use App\Models\User;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -35,6 +36,11 @@ class OnboardingPlanGeneratorService
      */
     public function generate(User $user, array $formData): array
     {
+        // Called from GeneratePlan queue job — no HTTP request, so the
+        // SetLocale middleware never ran. Set the runner's locale before
+        // dispatching the agent so LanguageDirective resolves correctly.
+        App::setLocale($user->preferredLocale());
+
         Log::info(sprintf(
             '[onboarding:start] user_id=%d goal_type=%s distance=%s target_date=%s days=%s weekdays=%s style=%s',
             $user->id,

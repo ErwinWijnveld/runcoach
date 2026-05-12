@@ -2,6 +2,7 @@
 
 namespace App\Ai\Agents;
 
+use App\Ai\Support\LanguageDirective;
 use App\Ai\Tools\AdjustPlan;
 use App\Ai\Tools\BuildPlan;
 use App\Ai\Tools\GetRecentRuns;
@@ -47,7 +48,7 @@ class OnboardingAgent implements Agent, Conversational, HasTools
     {
         $today = now()->format('Y-m-d (l)');
 
-        return <<<PROMPT
+        $prompt = <<<PROMPT
         You are RunCoach. Today is {$today}. The runner just finished onboarding and you are about to receive their form data as a single user message.
 
         ## Your job
@@ -83,6 +84,8 @@ class OnboardingAgent implements Agent, Conversational, HasTools
         - If the goal is `realistic`, do NOT add a warning — just confirm the plan is ready.
         - If `build_plan` returned an error, apologise in one sentence and suggest the runner widen their preferred weekdays or pick a later goal date.
         PROMPT;
+
+        return $prompt.LanguageDirective::current();
     }
 
     public function tools(): iterable

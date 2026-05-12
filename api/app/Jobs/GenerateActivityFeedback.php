@@ -13,6 +13,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\App;
 
 class GenerateActivityFeedback implements ShouldQueue
 {
@@ -28,6 +29,14 @@ class GenerateActivityFeedback implements ShouldQueue
             return;
         }
 
+        // Queue worker context — no HTTP request, so SetLocale middleware
+        // never ran. Read the runner's stored locale so the agent's
+        // LanguageDirective resolves to the right language.
+        $user = $result->wearableActivity?->user;
+        if ($user) {
+            App::setLocale($user->preferredLocale());
+        }
+
         $response = ActivityFeedbackAgent::make()->prompt($this->buildPrompt($result));
 
         $result->update(['ai_feedback' => $response->text]);
@@ -37,7 +46,6 @@ class GenerateActivityFeedback implements ShouldQueue
         // a job retry a no-op — meaning whatever runs last in the success
         // path is "all-or-nothing" on retry. The push is user-visible and
         // critical; the evaluator is opportunistic. Order them accordingly.
-        $user = $result->wearableActivity?->user;
         if ($user) {
             $user->notify(new WorkoutAnalyzed($result->id));
         }

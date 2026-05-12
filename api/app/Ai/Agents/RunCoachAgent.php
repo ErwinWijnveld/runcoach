@@ -2,6 +2,7 @@
 
 namespace App\Ai\Agents;
 
+use App\Ai\Support\LanguageDirective;
 use App\Ai\Tools\AdjustPlan;
 use App\Ai\Tools\GetActivityDetails;
 use App\Ai\Tools\GetComplianceReport;
@@ -48,7 +49,7 @@ class RunCoachAgent implements Agent, Conversational, HasTools
         $level = $this->user->runner_level?->value ?? RunnerLevel::Intermediate->value;
         $tone = ($this->user->runner_level ?? RunnerLevel::Intermediate)->toneBucket()->value;
 
-        return <<<PROMPT
+        $prompt = <<<PROMPT
         You are RunCoach, a personal AI running coach. Today is {$today}.
 
         ## Your runner
@@ -143,6 +144,8 @@ class RunCoachAgent implements Agent, Conversational, HasTools
 
         Never use em-dashes (—) in your replies. Use commas, periods, parentheses, or hyphens.
         PROMPT;
+
+        return $prompt.LanguageDirective::current();
     }
 
     public function tools(): iterable

@@ -9,6 +9,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\App;
 
 class GenerateWeeklyInsight implements ShouldQueue
 {
@@ -20,10 +21,17 @@ class GenerateWeeklyInsight implements ShouldQueue
 
     public function handle(): void
     {
-        $week = TrainingWeek::with('trainingDays.result', 'goal')->find($this->trainingWeekId);
+        $week = TrainingWeek::with('trainingDays.result', 'goal.user')->find($this->trainingWeekId);
 
         if (! $week) {
             return;
+        }
+
+        // Queue worker context — no SetLocale middleware ran. Honour the
+        // runner's stored locale so LanguageDirective resolves correctly.
+        $user = $week->goal?->user;
+        if ($user) {
+            App::setLocale($user->preferredLocale());
         }
 
         $completedDays = $week->trainingDays->filter(fn ($d) => $d->result !== null);
