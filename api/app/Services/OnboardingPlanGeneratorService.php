@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Ai\Agents\OnboardingAgent;
 use App\Enums\ProposalStatus;
+use App\Enums\RunnerLevel;
 use App\Models\CoachProposal;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -135,6 +136,7 @@ class OnboardingPlanGeneratorService
             '- run_type_preferences (gold→last): '.$runTypeRanking,
             '- coach_style: '.($formData['coach_style'] ?? 'null'),
             '- intensity_bias: '.($formData['intensity_bias'] ?? 'standard'),
+            '- runner_level: '.($formData['runner_level'] ?? 'intermediate').' (tone: '.RunnerLevel::tryFrom($formData['runner_level'] ?? 'intermediate')->toneBucket()->value.')',
             '',
             $hasNotes
                 ? 'ADDITIONAL NOTES (read carefully — translate any specific training preferences into adjust_onboarding_plan ops AFTER build_onboarding_plan returns):'

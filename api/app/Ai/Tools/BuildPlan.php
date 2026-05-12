@@ -123,6 +123,11 @@ class BuildPlan implements Tool
                 ->required()
                 ->nullable()
                 ->description('Runner\'s own bias on top of the auto-detected ambition. Shifts the effective level ±1 within a 5-tier table (Conservative → AllIn). Null/missing → standard (identity).'),
+            'runner_level' => $schema->string()
+                ->enum(['beginner', 'intermediate', 'advanced', 'sub_elite', 'elite'])
+                ->required()
+                ->nullable()
+                ->description('Runner self-identified level. Drives agent communication tone only — has no effect on plan content. Null falls back to intermediate.'),
         ];
     }
 
@@ -141,6 +146,7 @@ class BuildPlan implements Tool
             'additional_notes' => $request['additional_notes'] ?? null,
             'run_type_preferences' => $request['run_type_preferences'] ?? null,
             'intensity_bias' => $request['intensity_bias'] ?? null,
+            'runner_level' => $request['runner_level'] ?? null,
         ]);
 
         // Persist coach_style + intensity_bias on the user (both are
@@ -153,6 +159,10 @@ class BuildPlan implements Tool
         }
         if ($this->user->intensity_bias !== $form->intensityBias) {
             $this->user->intensity_bias = $form->intensityBias;
+            $userChanged = true;
+        }
+        if ($this->user->runner_level !== $form->runnerLevel) {
+            $this->user->runner_level = $form->runnerLevel;
             $userChanged = true;
         }
         if ($userChanged) {

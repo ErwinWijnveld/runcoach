@@ -33,6 +33,7 @@ class GeneratePlanRequest extends FormRequest
             'run_type_preferences' => 'nullable|array|max:4',
             'run_type_preferences.*' => 'string|in:easy,tempo,interval,long_run|distinct',
             'intensity_bias' => 'nullable|string|in:take_it_easy,standard,push_me_harder',
+            'runner_level' => 'nullable|string|in:beginner,intermediate,advanced,sub_elite,elite',
         ];
     }
 
