@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 
 /// One tile's worth of data: the planned target value (always shown big),
@@ -48,11 +49,11 @@ class TrainingDayStatTiles extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(child: _Tile(label: 'DISTANCE', data: distance)),
+            Expanded(child: _Tile(label: context.l10n.schedDayDistance, data: distance)),
             const _Divider(),
-            Expanded(child: _Tile(label: 'PACE', data: pace)),
+            Expanded(child: _Tile(label: context.l10n.schedDayPace, data: pace)),
             const _Divider(),
-            Expanded(child: _Tile(label: 'HR ZONE', data: hrZone)),
+            Expanded(child: _Tile(label: context.l10n.schedDayHrZone, data: hrZone)),
           ],
         ),
       ),

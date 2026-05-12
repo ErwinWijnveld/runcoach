@@ -1212,4 +1212,41 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get coachEmptyStateSubtitle =>
       'Ik ken je trainingshistorie en kan je schema beheren.';
+
+  @override
+  String get workoutChatAdjust => 'Pas deze training aan';
+
+  @override
+  String get workoutChatAdjustSub => 'Afstand, tempo, intervals.';
+
+  @override
+  String get workoutChatWhatPlan => 'Wat is het plan';
+
+  @override
+  String get workoutChatWhatPlanSub => 'Waarom deze training, waarom vandaag.';
+
+  @override
+  String get workoutChatPaceCheckSub => 'Past het richttempo bij mij?';
+
+  @override
+  String get workoutChatMoveIt => 'Verplaatsen';
+
+  @override
+  String get workoutChatMoveItSub => 'Verplaats naar een andere dag.';
+
+  @override
+  String get trainingResultUnlinkErrorBody =>
+      'Activiteit ontkoppelen mislukt. Probeer opnieuw.';
+
+  @override
+  String get intervalKindWarmup => 'Warming-up';
+
+  @override
+  String get intervalKindWork => 'Werk';
+
+  @override
+  String get intervalKindRecovery => 'Herstel';
+
+  @override
+  String get intervalKindCooldown => 'Cooling-down';
 }

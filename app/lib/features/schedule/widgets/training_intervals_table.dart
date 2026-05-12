@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/schedule/models/training_interval.dart';
+import 'package:app/l10n/app_localizations.dart';
 
 /// Visualisation of a structured interval session in two stacked views:
 /// 1. A Zwift-style effort-curve bar chart at the top — each segment is one
@@ -254,15 +256,16 @@ class _GroupRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return switch (group) {
       _SingleStep(:final step) => _Block(
-          eyebrow: _kindLabel(step.kind).toUpperCase(),
+          eyebrow: _kindLabel(l10n, step.kind).toUpperCase(),
           eyebrowColor: _kindColor(step.kind),
           measure: _formatMeasure(step),
           pace: _formatPace(step),
         ),
       _RepBlock(:final reps, :final work, :final recovery) => _Block(
-          eyebrow: _kindLabel(work.kind).toUpperCase(),
+          eyebrow: _kindLabel(l10n, work.kind).toUpperCase(),
           eyebrowColor: _kindColor(work.kind),
           reps: reps,
           measure: _formatMeasure(work),
@@ -270,7 +273,7 @@ class _GroupRow extends StatelessWidget {
           subRow: recovery == null
               ? null
               : _SubRow(
-                  label: 'Recovery',
+                  label: l10n.intervalKindRecovery,
                   measure: _formatMeasure(recovery),
                   pace: _formatPace(recovery),
                 ),
@@ -409,11 +412,11 @@ class _Block extends StatelessWidget {
   }
 }
 
-String _kindLabel(String kind) => switch (kind) {
-      'warmup' => 'Warm up',
-      'work' => 'Work',
-      'recovery' => 'Recovery',
-      'cooldown' => 'Cool down',
+String _kindLabel(AppLocalizations l, String kind) => switch (kind) {
+      'warmup' => l.intervalKindWarmup,
+      'work' => l.intervalKindWork,
+      'recovery' => l.intervalKindRecovery,
+      'cooldown' => l.intervalKindCooldown,
       _ => kind,
     };
 

@@ -1210,4 +1210,41 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get coachEmptyStateSubtitle =>
       'I know your training history and can manage your schedule.';
+
+  @override
+  String get workoutChatAdjust => 'Adjust this workout';
+
+  @override
+  String get workoutChatAdjustSub => 'Distance, pace, intervals.';
+
+  @override
+  String get workoutChatWhatPlan => 'What\'s the plan';
+
+  @override
+  String get workoutChatWhatPlanSub => 'Why this workout, why today.';
+
+  @override
+  String get workoutChatPaceCheckSub => 'Is the target pace right for me?';
+
+  @override
+  String get workoutChatMoveIt => 'Move it';
+
+  @override
+  String get workoutChatMoveItSub => 'Reschedule to another day.';
+
+  @override
+  String get trainingResultUnlinkErrorBody =>
+      'Couldn\'t unlink the activity. Please try again.';
+
+  @override
+  String get intervalKindWarmup => 'Warm up';
+
+  @override
+  String get intervalKindWork => 'Work';
+
+  @override
+  String get intervalKindRecovery => 'Recovery';
+
+  @override
+  String get intervalKindCooldown => 'Cool down';
 }

@@ -399,5 +399,20 @@
   "coachSuggestionAdjustPrompt": "Kun je mijn trainingsschema voor deze week aanpassen?",
 
   "coachEmptyStateTitle": "Waar kan ik mee helpen?",
-  "coachEmptyStateSubtitle": "Ik ken je trainingshistorie en kan je schema beheren."
+  "coachEmptyStateSubtitle": "Ik ken je trainingshistorie en kan je schema beheren.",
+
+  "workoutChatAdjust": "Pas deze training aan",
+  "workoutChatAdjustSub": "Afstand, tempo, intervals.",
+  "workoutChatWhatPlan": "Wat is het plan",
+  "workoutChatWhatPlanSub": "Waarom deze training, waarom vandaag.",
+  "workoutChatPaceCheckSub": "Past het richttempo bij mij?",
+  "workoutChatMoveIt": "Verplaatsen",
+  "workoutChatMoveItSub": "Verplaats naar een andere dag.",
+
+  "trainingResultUnlinkErrorBody": "Activiteit ontkoppelen mislukt. Probeer opnieuw.",
+
+  "intervalKindWarmup": "Warming-up",
+  "intervalKindWork": "Werk",
+  "intervalKindRecovery": "Herstel",
+  "intervalKindCooldown": "Cooling-down"
 }

@@ -474,5 +474,20 @@
   "coachSuggestionAdjustPrompt": "Can you adjust this week's training schedule?",
 
   "coachEmptyStateTitle": "What can I help you with?",
-  "coachEmptyStateSubtitle": "I know your training history and can manage your schedule."
+  "coachEmptyStateSubtitle": "I know your training history and can manage your schedule.",
+
+  "workoutChatAdjust": "Adjust this workout",
+  "workoutChatAdjustSub": "Distance, pace, intervals.",
+  "workoutChatWhatPlan": "What's the plan",
+  "workoutChatWhatPlanSub": "Why this workout, why today.",
+  "workoutChatPaceCheckSub": "Is the target pace right for me?",
+  "workoutChatMoveIt": "Move it",
+  "workoutChatMoveItSub": "Reschedule to another day.",
+
+  "trainingResultUnlinkErrorBody": "Couldn't unlink the activity. Please try again.",
+
+  "intervalKindWarmup": "Warm up",
+  "intervalKindWork": "Work",
+  "intervalKindRecovery": "Recovery",
+  "intervalKindCooldown": "Cool down"
 }

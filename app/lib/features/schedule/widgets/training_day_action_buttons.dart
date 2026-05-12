@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show ElevatedButton;
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/schedule/widgets/training_day_status.dart';
 
@@ -26,7 +27,7 @@ class TrainingDayActionButtons extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       child: _PrimaryButton(
-        label: 'SEND TO WATCH',
+        label: context.l10n.schedDaySendToWatch,
         onPressed: onSendToWatch,
       ),
     );

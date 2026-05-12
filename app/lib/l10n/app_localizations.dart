@@ -2263,6 +2263,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'I know your training history and can manage your schedule.'**
   String get coachEmptyStateSubtitle;
+
+  /// No description provided for @workoutChatAdjust.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust this workout'**
+  String get workoutChatAdjust;
+
+  /// No description provided for @workoutChatAdjustSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance, pace, intervals.'**
+  String get workoutChatAdjustSub;
+
+  /// No description provided for @workoutChatWhatPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s the plan'**
+  String get workoutChatWhatPlan;
+
+  /// No description provided for @workoutChatWhatPlanSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Why this workout, why today.'**
+  String get workoutChatWhatPlanSub;
+
+  /// No description provided for @workoutChatPaceCheckSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Is the target pace right for me?'**
+  String get workoutChatPaceCheckSub;
+
+  /// No description provided for @workoutChatMoveIt.
+  ///
+  /// In en, this message translates to:
+  /// **'Move it'**
+  String get workoutChatMoveIt;
+
+  /// No description provided for @workoutChatMoveItSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Reschedule to another day.'**
+  String get workoutChatMoveItSub;
+
+  /// No description provided for @trainingResultUnlinkErrorBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t unlink the activity. Please try again.'**
+  String get trainingResultUnlinkErrorBody;
+
+  /// No description provided for @intervalKindWarmup.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm up'**
+  String get intervalKindWarmup;
+
+  /// No description provided for @intervalKindWork.
+  ///
+  /// In en, this message translates to:
+  /// **'Work'**
+  String get intervalKindWork;
+
+  /// No description provided for @intervalKindRecovery.
+  ///
+  /// In en, this message translates to:
+  /// **'Recovery'**
+  String get intervalKindRecovery;
+
+  /// No description provided for @intervalKindCooldown.
+  ///
+  /// In en, this message translates to:
+  /// **'Cool down'**
+  String get intervalKindCooldown;
 }
 
 class _AppLocalizationsDelegate
