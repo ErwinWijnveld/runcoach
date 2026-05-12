@@ -2,6 +2,7 @@ import 'package:app/features/auth/models/hr_zone.dart';
 import 'package:app/features/auth/models/user.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/onboarding/screens/onboarding_zones_screen.dart';
+import 'package:app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -36,7 +37,11 @@ Future<void> _pumpScreen(WidgetTester tester, {User? user}) async {
       overrides: [
         authProvider.overrideWith(() => _StubAuth(user)),
       ],
-      child: MaterialApp.router(routerConfig: router),
+      child: MaterialApp.router(
+        routerConfig: router,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+      ),
     ),
   );
   await tester.pumpAndSettle();

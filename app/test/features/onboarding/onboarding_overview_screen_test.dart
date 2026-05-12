@@ -2,6 +2,7 @@ import 'package:app/features/onboarding/data/onboarding_api.dart';
 import 'package:app/features/onboarding/models/onboarding_profile.dart';
 import 'package:app/features/onboarding/providers/onboarding_profile_provider.dart';
 import 'package:app/features/onboarding/screens/onboarding_overview_screen.dart';
+import 'package:app/l10n/app_localizations.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -60,7 +61,11 @@ Future<_SaveCapture> _pumpScreen(
           },
         ),
       ],
-      child: MaterialApp.router(routerConfig: router),
+      child: MaterialApp.router(
+        routerConfig: router,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+      ),
     ),
   );
   await tester.pumpAndSettle();

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:app/features/onboarding/models/onboarding_form_data.dart';
 import 'package:app/features/onboarding/widgets/intensity_bias_segmented_control.dart';
+import 'package:app/l10n/app_localizations.dart';
 
 void main() {
   testWidgets(
@@ -13,6 +14,8 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Material(
               child: IntensityBiasSegmentedControl(
                 selected: IntensityBias.standard,
@@ -40,6 +43,8 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
             home: Material(
               child: IntensityBiasSegmentedControl(
                 selected: IntensityBias.pushMeHarder,
