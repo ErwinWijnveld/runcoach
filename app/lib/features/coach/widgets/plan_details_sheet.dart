@@ -63,6 +63,11 @@ class PlanDetailsSheet extends StatelessWidget {
     final avgKm = _averageWeeklyKm(weeks);
     final runsRange = _weeklyRunsRange(weeks);
     final ambition = _ambition(proposal.payload);
+    final warnUnrealistic =
+        ambition != null && ambition['verdict_zone'] == 'unrealistic';
+    final adjustPrefill = warnUnrealistic
+        ? ambition['adjust_prefill'] as String?
+        : null;
 
     return DraggableScrollableSheet(
       initialChildSize: 0.9,
@@ -138,6 +143,8 @@ class PlanDetailsSheet extends StatelessWidget {
               _StickyFooter(
                 isPending: _isPending,
                 isRevision: ops != null,
+                warnUnrealistic: warnUnrealistic,
+                adjustPrefill: adjustPrefill,
                 onAccept: onAccept,
                 onAdjust: onAdjust,
               ),
@@ -681,18 +688,73 @@ class _PrimaryButton extends StatelessWidget {
 class _StickyFooter extends StatelessWidget {
   final bool isPending;
   final bool isRevision;
+  final bool warnUnrealistic;
+  final String? adjustPrefill;
   final Future<void> Function()? onAccept;
   final Future<void> Function({String? prefill})? onAdjust;
 
   const _StickyFooter({
     required this.isPending,
     required this.isRevision,
+    required this.warnUnrealistic,
+    required this.adjustPrefill,
     required this.onAccept,
     required this.onAdjust,
   });
 
   @override
   Widget build(BuildContext context) {
+    final Widget body;
+    if (!isPending) {
+      body = _PrimaryButton(
+        label: 'CLOSE',
+        background: AppColors.lightTan,
+        foreground: AppColors.primary,
+        onPressed: () => Navigator.of(context).pop(),
+      );
+    } else if (warnUnrealistic) {
+      body = _UnrealisticFooter(
+        adjustPrefill: adjustPrefill,
+        onAccept: onAccept,
+        onAdjust: onAdjust,
+      );
+    } else {
+      body = Row(
+        children: [
+          Expanded(
+            child: _PrimaryButton(
+              label: 'ADJUST',
+              background: AppColors.lightTan,
+              foreground: AppColors.primary,
+              onPressed: onAdjust == null
+                  ? null
+                  : () {
+                      Navigator.of(context).pop();
+                      onAdjust!();
+                    },
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 2,
+            child: _PrimaryButton(
+              label: isRevision ? 'APPLY CHANGES' : 'ACCEPT PLAN',
+              background: AppColors.secondary,
+              foreground: AppColors.primary,
+              onPressed: onAccept == null
+                  ? null
+                  : () async {
+                      await onAccept!();
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                      }
+                    },
+            ),
+          ),
+        ],
+      );
+    }
+
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -709,49 +771,55 @@ class _StickyFooter extends StatelessWidget {
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-          child: isPending
-              ? Row(
-                  children: [
-                    Expanded(
-                      child: _PrimaryButton(
-                        label: 'ADJUST',
-                        background: AppColors.lightTan,
-                        foreground: AppColors.primary,
-                        onPressed: onAdjust == null
-                            ? null
-                            : () {
-                                Navigator.of(context).pop();
-                                onAdjust!();
-                              },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      flex: 2,
-                      child: _PrimaryButton(
-                        label: isRevision ? 'APPLY CHANGES' : 'ACCEPT PLAN',
-                        background: AppColors.secondary,
-                        foreground: AppColors.primary,
-                        onPressed: onAccept == null
-                            ? null
-                            : () async {
-                                await onAccept!();
-                                if (context.mounted) {
-                                  Navigator.of(context).pop();
-                                }
-                              },
-                      ),
-                    ),
-                  ],
-                )
-              : _PrimaryButton(
-                  label: 'CLOSE',
-                  background: AppColors.lightTan,
-                  foreground: AppColors.primary,
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
+          child: body,
         ),
       ),
+    );
+  }
+}
+
+class _UnrealisticFooter extends StatelessWidget {
+  final String? adjustPrefill;
+  final Future<void> Function()? onAccept;
+  final Future<void> Function({String? prefill})? onAdjust;
+
+  const _UnrealisticFooter({
+    required this.adjustPrefill,
+    required this.onAccept,
+    required this.onAdjust,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _PrimaryButton(
+          label: 'ADJUST GOAL FOR REALISTIC PLAN',
+          background: AppColors.danger,
+          foreground: Colors.white,
+          onPressed: onAdjust == null
+              ? null
+              : () {
+                  Navigator.of(context).pop();
+                  onAdjust!(prefill: adjustPrefill);
+                },
+        ),
+        const SizedBox(height: 8),
+        _PrimaryButton(
+          label: 'Accept anyway',
+          background: AppColors.lightTan,
+          foreground: AppColors.primary,
+          onPressed: onAccept == null
+              ? null
+              : () async {
+                  await onAccept!();
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                  }
+                },
+        ),
+      ],
     );
   }
 }
