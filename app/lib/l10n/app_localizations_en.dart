@@ -764,4 +764,153 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dashEmptyCta => 'Go to Goals';
+
+  @override
+  String get schedWeeklyPlanTitle => 'Weekly Plan';
+
+  @override
+  String get schedKmTotal => 'KM TOTAL';
+
+  @override
+  String get schedBackToToday => 'Back to today';
+
+  @override
+  String get schedNoTrainingWeek => 'No training week found';
+
+  @override
+  String get schedEmptyTitle => 'No active goal';
+
+  @override
+  String get schedEmptyBody =>
+      'Pick a goal (or ask the coach to build one) to see its schedule here.';
+
+  @override
+  String get schedEmptyCta => 'Go to Goals';
+
+  @override
+  String get schedDayTarget => 'TARGET';
+
+  @override
+  String get schedDayActual => 'ACTUAL';
+
+  @override
+  String get schedDayDistance => 'DISTANCE';
+
+  @override
+  String get schedDayPace => 'PACE';
+
+  @override
+  String get schedDayPaceField => 'Pace';
+
+  @override
+  String get schedDayDuration => 'DURATION';
+
+  @override
+  String get schedDayHr => 'HEART';
+
+  @override
+  String get schedDayHrZone => 'HR ZONE';
+
+  @override
+  String get schedDayAvgHr => 'AVG HR';
+
+  @override
+  String get schedDayHeartRate => 'Heart rate';
+
+  @override
+  String get schedDayRecovery => 'Recovery';
+
+  @override
+  String get schedDayPaceCheckTitle => 'Pace check';
+
+  @override
+  String get schedDaySendToWatch => 'SEND TO WATCH';
+
+  @override
+  String get schedDaySendingToWatch => 'Sending to your watch…';
+
+  @override
+  String get schedDayAdjustWorkout => 'Adjust this workout';
+
+  @override
+  String get schedDayPickActivity => 'Pick activity';
+
+  @override
+  String get schedDayUnlinkActivity => 'Unlink activity';
+
+  @override
+  String get schedDayUnlinkConfirmTitle => 'Unlink activity?';
+
+  @override
+  String get schedDayUnlinkAction => 'Unlink';
+
+  @override
+  String get schedDayMoveItAction => 'Move it';
+
+  @override
+  String get schedDayRescheduleAction => 'Reschedule';
+
+  @override
+  String get schedDayCouldNotReschedule => 'Could not reschedule';
+
+  @override
+  String get commonOk => 'OK';
+
+  @override
+  String get commonCancel => 'Cancel';
+
+  @override
+  String get schedSectionIntervals => 'Intervals';
+
+  @override
+  String get schedSectionNotes => 'Notes';
+
+  @override
+  String get schedWatchNoDistanceBody =>
+      'This workout has no distance set, so it can\'t be scheduled on the watch.';
+
+  @override
+  String get schedWatchNoStepsBody =>
+      'This interval session has no work reps to send to the watch.';
+
+  @override
+  String get schedWatchSentTitle => 'Sent to your watch';
+
+  @override
+  String get schedWatchSentBody =>
+      'Open the Fitness app on your iPhone or Apple Watch to start it.';
+
+  @override
+  String get schedWatchDuplicateTitle => 'Already scheduled';
+
+  @override
+  String get schedWatchDuplicateBody =>
+      'You already have a workout planned for this day in the Fitness app.';
+
+  @override
+  String get schedWatchPermissionTitle => 'Permission needed';
+
+  @override
+  String get schedWatchPermissionBody =>
+      'Allow workout scheduling in Settings → RunCoach to send this run to your watch.';
+
+  @override
+  String get schedWatchUnavailableTitle => 'Not available';
+
+  @override
+  String get schedWatchUnavailableBody =>
+      'Sending workouts to the Apple Watch needs iOS 17 or newer.';
+
+  @override
+  String get schedWatchGenericError => 'Something went wrong. Try again.';
+
+  @override
+  String get schedWatchNothingToSendTitle => 'Nothing to send';
+
+  @override
+  String get schedWatchInvalidDateBody =>
+      'This training day has an invalid date — try refreshing the schedule.';
+
+  @override
+  String get schedWatchFailedTitle => 'Couldn\'t send';
 }

@@ -1465,6 +1465,288 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Go to Goals'**
   String get dashEmptyCta;
+
+  /// No description provided for @schedWeeklyPlanTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly Plan'**
+  String get schedWeeklyPlanTitle;
+
+  /// No description provided for @schedKmTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'KM TOTAL'**
+  String get schedKmTotal;
+
+  /// No description provided for @schedBackToToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to today'**
+  String get schedBackToToday;
+
+  /// No description provided for @schedNoTrainingWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'No training week found'**
+  String get schedNoTrainingWeek;
+
+  /// No description provided for @schedEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No active goal'**
+  String get schedEmptyTitle;
+
+  /// No description provided for @schedEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a goal (or ask the coach to build one) to see its schedule here.'**
+  String get schedEmptyBody;
+
+  /// No description provided for @schedEmptyCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Goals'**
+  String get schedEmptyCta;
+
+  /// No description provided for @schedDayTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'TARGET'**
+  String get schedDayTarget;
+
+  /// No description provided for @schedDayActual.
+  ///
+  /// In en, this message translates to:
+  /// **'ACTUAL'**
+  String get schedDayActual;
+
+  /// No description provided for @schedDayDistance.
+  ///
+  /// In en, this message translates to:
+  /// **'DISTANCE'**
+  String get schedDayDistance;
+
+  /// No description provided for @schedDayPace.
+  ///
+  /// In en, this message translates to:
+  /// **'PACE'**
+  String get schedDayPace;
+
+  /// No description provided for @schedDayPaceField.
+  ///
+  /// In en, this message translates to:
+  /// **'Pace'**
+  String get schedDayPaceField;
+
+  /// No description provided for @schedDayDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'DURATION'**
+  String get schedDayDuration;
+
+  /// No description provided for @schedDayHr.
+  ///
+  /// In en, this message translates to:
+  /// **'HEART'**
+  String get schedDayHr;
+
+  /// No description provided for @schedDayHrZone.
+  ///
+  /// In en, this message translates to:
+  /// **'HR ZONE'**
+  String get schedDayHrZone;
+
+  /// No description provided for @schedDayAvgHr.
+  ///
+  /// In en, this message translates to:
+  /// **'AVG HR'**
+  String get schedDayAvgHr;
+
+  /// No description provided for @schedDayHeartRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Heart rate'**
+  String get schedDayHeartRate;
+
+  /// No description provided for @schedDayRecovery.
+  ///
+  /// In en, this message translates to:
+  /// **'Recovery'**
+  String get schedDayRecovery;
+
+  /// No description provided for @schedDayPaceCheckTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pace check'**
+  String get schedDayPaceCheckTitle;
+
+  /// No description provided for @schedDaySendToWatch.
+  ///
+  /// In en, this message translates to:
+  /// **'SEND TO WATCH'**
+  String get schedDaySendToWatch;
+
+  /// No description provided for @schedDaySendingToWatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending to your watch…'**
+  String get schedDaySendingToWatch;
+
+  /// No description provided for @schedDayAdjustWorkout.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust this workout'**
+  String get schedDayAdjustWorkout;
+
+  /// No description provided for @schedDayPickActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick activity'**
+  String get schedDayPickActivity;
+
+  /// No description provided for @schedDayUnlinkActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink activity'**
+  String get schedDayUnlinkActivity;
+
+  /// No description provided for @schedDayUnlinkConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink activity?'**
+  String get schedDayUnlinkConfirmTitle;
+
+  /// No description provided for @schedDayUnlinkAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink'**
+  String get schedDayUnlinkAction;
+
+  /// No description provided for @schedDayMoveItAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Move it'**
+  String get schedDayMoveItAction;
+
+  /// No description provided for @schedDayRescheduleAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Reschedule'**
+  String get schedDayRescheduleAction;
+
+  /// No description provided for @schedDayCouldNotReschedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not reschedule'**
+  String get schedDayCouldNotReschedule;
+
+  /// No description provided for @commonOk.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get commonOk;
+
+  /// No description provided for @commonCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get commonCancel;
+
+  /// No description provided for @schedSectionIntervals.
+  ///
+  /// In en, this message translates to:
+  /// **'Intervals'**
+  String get schedSectionIntervals;
+
+  /// No description provided for @schedSectionNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get schedSectionNotes;
+
+  /// No description provided for @schedWatchNoDistanceBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This workout has no distance set, so it can\'t be scheduled on the watch.'**
+  String get schedWatchNoDistanceBody;
+
+  /// No description provided for @schedWatchNoStepsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This interval session has no work reps to send to the watch.'**
+  String get schedWatchNoStepsBody;
+
+  /// No description provided for @schedWatchSentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent to your watch'**
+  String get schedWatchSentTitle;
+
+  /// No description provided for @schedWatchSentBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the Fitness app on your iPhone or Apple Watch to start it.'**
+  String get schedWatchSentBody;
+
+  /// No description provided for @schedWatchDuplicateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Already scheduled'**
+  String get schedWatchDuplicateTitle;
+
+  /// No description provided for @schedWatchDuplicateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have a workout planned for this day in the Fitness app.'**
+  String get schedWatchDuplicateBody;
+
+  /// No description provided for @schedWatchPermissionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Permission needed'**
+  String get schedWatchPermissionTitle;
+
+  /// No description provided for @schedWatchPermissionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow workout scheduling in Settings → RunCoach to send this run to your watch.'**
+  String get schedWatchPermissionBody;
+
+  /// No description provided for @schedWatchUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available'**
+  String get schedWatchUnavailableTitle;
+
+  /// No description provided for @schedWatchUnavailableBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending workouts to the Apple Watch needs iOS 17 or newer.'**
+  String get schedWatchUnavailableBody;
+
+  /// No description provided for @schedWatchGenericError.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Try again.'**
+  String get schedWatchGenericError;
+
+  /// No description provided for @schedWatchNothingToSendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to send'**
+  String get schedWatchNothingToSendTitle;
+
+  /// No description provided for @schedWatchInvalidDateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This training day has an invalid date — try refreshing the schedule.'**
+  String get schedWatchInvalidDateBody;
+
+  /// No description provided for @schedWatchFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t send'**
+  String get schedWatchFailedTitle;
 }
 
 class _AppLocalizationsDelegate

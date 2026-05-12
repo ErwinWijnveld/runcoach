@@ -766,4 +766,153 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get dashEmptyCta => 'Naar Doelen';
+
+  @override
+  String get schedWeeklyPlanTitle => 'Weekplan';
+
+  @override
+  String get schedKmTotal => 'KM TOTAAL';
+
+  @override
+  String get schedBackToToday => 'Terug naar vandaag';
+
+  @override
+  String get schedNoTrainingWeek => 'Geen trainingsweek gevonden';
+
+  @override
+  String get schedEmptyTitle => 'Geen actief doel';
+
+  @override
+  String get schedEmptyBody =>
+      'Kies een doel (of vraag de coach er een te bouwen) om je schema hier te zien.';
+
+  @override
+  String get schedEmptyCta => 'Naar Doelen';
+
+  @override
+  String get schedDayTarget => 'DOEL';
+
+  @override
+  String get schedDayActual => 'WERKELIJK';
+
+  @override
+  String get schedDayDistance => 'AFSTAND';
+
+  @override
+  String get schedDayPace => 'TEMPO';
+
+  @override
+  String get schedDayPaceField => 'Tempo';
+
+  @override
+  String get schedDayDuration => 'DUUR';
+
+  @override
+  String get schedDayHr => 'HARTSLAG';
+
+  @override
+  String get schedDayHrZone => 'HR-ZONE';
+
+  @override
+  String get schedDayAvgHr => 'GEM HR';
+
+  @override
+  String get schedDayHeartRate => 'Hartslag';
+
+  @override
+  String get schedDayRecovery => 'Herstel';
+
+  @override
+  String get schedDayPaceCheckTitle => 'Tempocontrole';
+
+  @override
+  String get schedDaySendToWatch => 'STUUR NAAR WATCH';
+
+  @override
+  String get schedDaySendingToWatch => 'Wordt naar je watch gestuurd…';
+
+  @override
+  String get schedDayAdjustWorkout => 'Pas deze training aan';
+
+  @override
+  String get schedDayPickActivity => 'Kies activiteit';
+
+  @override
+  String get schedDayUnlinkActivity => 'Activiteit ontkoppelen';
+
+  @override
+  String get schedDayUnlinkConfirmTitle => 'Activiteit ontkoppelen?';
+
+  @override
+  String get schedDayUnlinkAction => 'Ontkoppel';
+
+  @override
+  String get schedDayMoveItAction => 'Verplaats';
+
+  @override
+  String get schedDayRescheduleAction => 'Verplaatsen';
+
+  @override
+  String get schedDayCouldNotReschedule => 'Verplaatsen mislukt';
+
+  @override
+  String get commonOk => 'OK';
+
+  @override
+  String get commonCancel => 'Annuleren';
+
+  @override
+  String get schedSectionIntervals => 'Intervals';
+
+  @override
+  String get schedSectionNotes => 'Notities';
+
+  @override
+  String get schedWatchNoDistanceBody =>
+      'Deze training heeft geen afstand, dus kan niet op de watch worden ingepland.';
+
+  @override
+  String get schedWatchNoStepsBody =>
+      'Deze intervalsessie heeft geen werkblokken om naar de watch te sturen.';
+
+  @override
+  String get schedWatchSentTitle => 'Verzonden naar je watch';
+
+  @override
+  String get schedWatchSentBody =>
+      'Open de Fitness-app op je iPhone of Apple Watch om te beginnen.';
+
+  @override
+  String get schedWatchDuplicateTitle => 'Al ingepland';
+
+  @override
+  String get schedWatchDuplicateBody =>
+      'Je hebt al een workout gepland voor deze dag in de Fitness-app.';
+
+  @override
+  String get schedWatchPermissionTitle => 'Toestemming nodig';
+
+  @override
+  String get schedWatchPermissionBody =>
+      'Sta workout-planning toe via Instellingen → RunCoach om deze run naar je watch te sturen.';
+
+  @override
+  String get schedWatchUnavailableTitle => 'Niet beschikbaar';
+
+  @override
+  String get schedWatchUnavailableBody =>
+      'Workouts naar de Apple Watch sturen vereist iOS 17 of nieuwer.';
+
+  @override
+  String get schedWatchGenericError => 'Er ging iets mis. Probeer opnieuw.';
+
+  @override
+  String get schedWatchNothingToSendTitle => 'Niets om te sturen';
+
+  @override
+  String get schedWatchInvalidDateBody =>
+      'Deze trainingsdag heeft een ongeldige datum — vernieuw het schema.';
+
+  @override
+  String get schedWatchFailedTitle => 'Versturen mislukt';
 }

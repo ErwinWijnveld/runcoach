@@ -3,6 +3,8 @@ import 'package:flutter/material.dart' show Icons, InkWell, Material;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_header.dart';
 import 'package:app/core/widgets/app_widgets.dart';
@@ -41,7 +43,7 @@ class WeeklyPlanScreen extends ConsumerWidget {
                 Expanded(
                   child: dashboardAsync.when(
                     loading: () => const AppSpinner(),
-                    error: (err, _) => AppErrorState(title: 'Error: $err'),
+                    error: (err, _) => AppErrorState(title: context.l10n.commonErrorWithMessage(err.toString())),
                     data: (dashboard) {
                       final race = dashboard.activeGoal;
                       if (race == null) {
@@ -50,11 +52,11 @@ class WeeklyPlanScreen extends ConsumerWidget {
                       final weeksAsync = ref.watch(scheduleProvider(race.id));
                       return weeksAsync.when(
                         loading: () => const AppSpinner(),
-                        error: (err, _) => AppErrorState(title: 'Error: $err'),
+                        error: (err, _) => AppErrorState(title: context.l10n.commonErrorWithMessage(err.toString())),
                         data: (weeks) {
                           if (weeks.isEmpty) {
-                            return const Center(
-                              child: Text('No training week found'),
+                            return Center(
+                              child: Text(context.l10n.schedNoTrainingWeek),
                             );
                           }
                           return IntroFx(
@@ -116,22 +118,22 @@ class _EmptyState extends StatelessWidget {
               color: AppColors.textSecondary,
             ),
             const SizedBox(height: 16),
-            const Text(
-              'No active goal',
-              style: TextStyle(
+            Text(
+              context.l10n.schedEmptyTitle,
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 6),
-            const Text(
-              'Pick a goal (or ask the coach to build one) to see its schedule here.',
+            Text(
+              context.l10n.schedEmptyBody,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),
-            AppFilledButton(label: 'Go to Goals', onPressed: onOpenGoals),
+            AppFilledButton(label: context.l10n.schedEmptyCta, onPressed: onOpenGoals),
           ],
         ),
       ),
@@ -398,7 +400,7 @@ class _WeekHeader extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Weekly Plan',
+                context.l10n.schedWeeklyPlanTitle,
                 style: RunCoreText.serifTitle(size: 38, height: 1.0),
               ),
             ],
@@ -427,19 +429,17 @@ class _WeekRangeRow extends StatelessWidget {
     required this.onBackToToday,
   });
 
-  static const _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-  ];
-
-  String _format(DateTime d) => '${_months[d.month - 1]} ${d.day}';
+  String _format(BuildContext context, DateTime d) {
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    return DateFormat.MMMd(locale).format(d);
+  }
 
   @override
   Widget build(BuildContext context) {
     final start = DateTime.tryParse(startsAt);
     final label = start == null
         ? ''
-        : '${_format(start)} - ${_format(start.add(const Duration(days: 6)))}';
+        : '${_format(context, start)} - ${_format(context, start.add(const Duration(days: 6)))}';
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -496,7 +496,7 @@ class _BackToTodayPill extends StatelessWidget {
               ),
               const SizedBox(width: 4),
               Text(
-                'Back to today',
+                context.l10n.schedBackToToday,
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
@@ -569,7 +569,7 @@ class _KmTotal extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         Text(
-          'KM TOTAL',
+          context.l10n.schedKmTotal,
           style: GoogleFonts.spaceGrotesk(
             fontSize: 10,
             fontWeight: FontWeight.w400,
@@ -595,7 +595,12 @@ class _DayTile extends StatelessWidget {
     required this.onTap,
   });
 
-  static const _dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
+  static String _dayName(BuildContext context, int weekday) {
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    // weekday is 1=Mon..7=Sun (DateTime convention).
+    final ref = DateTime(2024, 1, weekday); // Jan 1 2024 = Monday.
+    return DateFormat.E(locale).format(ref).toUpperCase();
+  }
 
   DateTime? get _date => DateTime.tryParse(day.date);
 
@@ -779,7 +784,7 @@ class _DayStamp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final d = date;
-    final dayLabel = d == null ? '' : _DayTile._dayNames[d.weekday - 1];
+    final dayLabel = d == null ? '' : _DayTile._dayName(context, d.weekday);
     final dayNumber = d == null ? '' : '${d.day}';
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,

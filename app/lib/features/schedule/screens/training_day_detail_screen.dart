@@ -3,6 +3,7 @@ import 'package:flutter/material.dart' show Colors, InkWell, Material;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/theme/compliance_colors.dart';
 import 'package:app/core/widgets/app_widgets.dart';
@@ -35,7 +36,7 @@ class TrainingDayDetailScreen extends ConsumerWidget {
     return GradientScaffold(
       child: dayAsync.when(
         loading: () => const SafeArea(child: AppSpinner()),
-        error: (err, _) => SafeArea(child: AppErrorState(title: 'Error: $err')),
+        error: (err, _) => SafeArea(child: AppErrorState(title: context.l10n.commonErrorWithMessage(err.toString()))),
         data: (day) => _Loaded(day: day, ref: ref),
       ),
     );
@@ -99,10 +100,10 @@ class _Loaded extends StatelessWidget {
                       const SizedBox(height: 16),
                       _CoachAnalysisSection(dayId: day.id, day: day),
                     ] else
-                      ..._buildDetailSection(day, status),
+                      ..._buildDetailSection(context, day, status),
                     if (day.intervals != null && day.intervals!.isNotEmpty) ...[
                       const SizedBox(height: 10),
-                      const _SectionTitle('Intervals'),
+                      _SectionTitle(context.l10n.schedSectionIntervals),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                         child: TrainingIntervalsTable(intervals: day.intervals!),
@@ -186,14 +187,14 @@ class _Loaded extends StatelessWidget {
 
   /// Notes section for upcoming/today/missed days. Completed days route to
   /// `_CoachAnalysisSection` instead — never reaches here.
-  List<Widget> _buildDetailSection(TrainingDay day, TrainingDayStatus status) {
+  List<Widget> _buildDetailSection(BuildContext context, TrainingDay day, TrainingDayStatus status) {
     final description = day.description?.trim();
     if (description == null || description.isEmpty) {
       return const [];
     }
     return [
       const SizedBox(height: 16),
-      const _SectionTitle('Notes'),
+      _SectionTitle(context.l10n.schedSectionNotes),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
         child: _DetailCard(child: Text(description, style: _detailTextStyle)),
@@ -227,7 +228,7 @@ class _Loaded extends StatelessWidget {
                 onMatched: () {},
               );
             },
-            child: const Text('Pick activity'),
+            child: Text(context.l10n.schedDayPickActivity),
           ),
           CupertinoActionSheetAction(
             onPressed: () {
@@ -239,13 +240,13 @@ class _Loaded extends StatelessWidget {
                 onRescheduled: () {},
               );
             },
-            child: const Text('Reschedule'),
+            child: Text(context.l10n.schedDayRescheduleAction),
           ),
         ],
         cancelButton: CupertinoActionSheetAction(
           isDefaultAction: true,
           onPressed: () => Navigator.of(sheetCtx).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.commonCancel),
         ),
       ),
     );
@@ -271,7 +272,7 @@ class _Loaded extends StatelessWidget {
       await _showResultDialog(context,
           title: "Couldn't send",
           body:
-              "This training day has an invalid date — try refreshing the schedule.");
+              context.l10n.schedWatchInvalidDateBody);
       return;
     }
 
@@ -280,9 +281,8 @@ class _Loaded extends StatelessWidget {
 
     if (!hasIntervals && (km == null || km <= 0)) {
       await _showResultDialog(context,
-          title: "Nothing to send",
-          body:
-              'This workout has no distance set, so it can\'t be scheduled on the watch.');
+          title: context.l10n.schedWatchNothingToSendTitle,
+          body: context.l10n.schedWatchNoDistanceBody);
       return;
     }
 
@@ -291,9 +291,8 @@ class _Loaded extends StatelessWidget {
     final intervalPlan = hasIntervals ? _buildIntervalPlan(day) : null;
     if (intervalPlan != null && intervalPlan.steps.isEmpty) {
       await _showResultDialog(context,
-          title: "Nothing to send",
-          body:
-              'This interval session has no work reps to send to the watch.');
+          title: context.l10n.schedWatchNothingToSendTitle,
+          body: context.l10n.schedWatchNoStepsBody);
       return;
     }
 
@@ -321,30 +320,27 @@ class _Loaded extends StatelessWidget {
     if (!context.mounted) return;
     Navigator.of(context, rootNavigator: true).pop(); // close progress
 
+    final l10n = context.l10n;
     final (title, body) = switch (result.status) {
       WorkoutScheduleStatus.scheduled => (
-          'Sent to your watch',
-          result.message ??
-              'Open the Fitness app on your iPhone or Apple Watch to start it.'
+          l10n.schedWatchSentTitle,
+          result.message ?? l10n.schedWatchSentBody,
         ),
       WorkoutScheduleStatus.duplicate => (
-          'Already scheduled',
-          result.message ??
-              'You already have a workout planned for this day in the Fitness app.'
+          l10n.schedWatchDuplicateTitle,
+          result.message ?? l10n.schedWatchDuplicateBody,
         ),
       WorkoutScheduleStatus.denied => (
-          'Permission needed',
-          result.message ??
-              'Allow workout scheduling in Settings → RunCoach to send this run to your watch.'
+          l10n.schedWatchPermissionTitle,
+          result.message ?? l10n.schedWatchPermissionBody,
         ),
       WorkoutScheduleStatus.unavailable => (
-          'Not available',
-          result.message ??
-              'Sending workouts to the Apple Watch needs iOS 17 or newer.'
+          l10n.schedWatchUnavailableTitle,
+          result.message ?? l10n.schedWatchUnavailableBody,
         ),
       WorkoutScheduleStatus.failed => (
-          "Couldn't send",
-          result.message ?? 'Something went wrong. Try again.'
+          l10n.schedWatchFailedTitle,
+          result.message ?? l10n.schedWatchGenericError,
         ),
     };
 
@@ -444,7 +440,7 @@ class _Loaded extends StatelessWidget {
         actions: [
           CupertinoDialogAction(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('OK'),
+            child: Text(context.l10n.commonOk),
           ),
         ],
       ),
@@ -472,15 +468,15 @@ class _SendingDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const CupertinoAlertDialog(
+    return CupertinoAlertDialog(
       content: Padding(
-        padding: EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CupertinoActivityIndicator(radius: 14),
-            SizedBox(height: 12),
-            Text('Sending to your watch…'),
+            const CupertinoActivityIndicator(radius: 14),
+            const SizedBox(height: 12),
+            Text(context.l10n.schedDaySendingToWatch),
           ],
         ),
       ),
