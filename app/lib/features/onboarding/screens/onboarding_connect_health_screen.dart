@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
@@ -62,7 +63,7 @@ class _OnboardingConnectHealthScreenState
       if (!mounted) return;
       setState(() {
         _stage = _Stage.idle;
-        _error = "Couldn't reach Apple Health. Try again?";
+        _error = context.l10n.onbConnectHealthErrorPermission;
       });
       return;
     }
@@ -83,7 +84,7 @@ class _OnboardingConnectHealthScreenState
       if (!mounted) return;
       setState(() {
         _stage = _Stage.idle;
-        _error = "Couldn't read your runs from Apple Health. Try again?";
+        _error = context.l10n.onbConnectHealthErrorRead;
       });
       return;
     }
@@ -116,7 +117,7 @@ class _OnboardingConnectHealthScreenState
       if (!mounted) return;
       setState(() {
         _stage = _Stage.idle;
-        _error = "We couldn't sync your runs to the server. Check your connection and try again.";
+        _error = context.l10n.onbConnectHealthErrorSync;
       });
       return;
     }
@@ -195,7 +196,7 @@ class _OnboardingConnectHealthScreenState
       // we can do is surface the error; the user can navigate manually.
       if (!mounted) return;
       setState(() {
-        _error = "Couldn't open Settings automatically. Go to Settings → Health → Data Access & Devices → RunCoach.";
+        _error = context.l10n.onbConnectHealthErrorSettings;
       });
     }
   }
@@ -244,19 +245,19 @@ class _OnboardingConnectHealthScreenState
           onSkip: _skipToOverview,
         );
       case _Stage.requestingPermission:
-        return const _StatusBody(
-          title: 'Asking Apple Health…',
-          subtitle: 'Tap "Allow" on the system prompt.',
+        return _StatusBody(
+          title: context.l10n.onbConnectHealthStageRequesting,
+          subtitle: context.l10n.onbConnectHealthStageRequestingSub,
         );
       case _Stage.syncing:
-        return const _StatusBody(
-          title: 'Pulling your runs…',
-          subtitle: 'Reading the last 12 months from Apple Health.',
+        return _StatusBody(
+          title: context.l10n.onbConnectHealthStageSyncing,
+          subtitle: context.l10n.onbConnectHealthStageSyncingSub,
         );
       case _Stage.done:
         return _StatusBody(
-          title: 'Synced $_synced runs',
-          subtitle: 'Building your profile…',
+          title: context.l10n.onbConnectHealthStageDone(_synced),
+          subtitle: context.l10n.onbConnectHealthStageDoneSub,
           done: true,
         );
     }
@@ -277,17 +278,18 @@ class _IntroBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
         Text(
-          'Connect Apple Health',
+          l10n.onbConnectHealthIntroTitle,
           style: RunCoreText.serifTitle(size: 32),
         ),
         const SizedBox(height: 6),
         Text(
-          'We read your running workouts, heart-rate data, age, and resting heart rate so we can score your training and personalise your zones.',
+          l10n.onbConnectHealthIntroBody,
           style: GoogleFonts.inter(
             fontSize: 15,
             color: AppColors.inkMuted,
@@ -312,20 +314,20 @@ class _IntroBody extends StatelessWidget {
           ),
         const Spacer(),
         OnboardingPrimaryButton(
-          label: 'Connect Apple Health',
+          label: l10n.onbConnectHealthConnectCta,
           onTap: onConnect,
         ),
         const SizedBox(height: 8),
         CupertinoButton(
           onPressed: onSkip,
           child: Text(
-            'Continue without syncing',
+            l10n.onbConnectHealthSkipCta,
             style: GoogleFonts.inter(color: AppColors.inkMuted, fontSize: 14),
           ),
         ),
         const SizedBox(height: 4),
         Text(
-          'Garmin, Polar and Strava are coming soon.',
+          l10n.onbConnectHealthFooter,
           textAlign: TextAlign.center,
           style: GoogleFonts.inter(
             fontSize: 12,
@@ -349,17 +351,18 @@ class _EmptyHistoryBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
         Text(
-          "No runs found yet",
+          l10n.onbConnectHealthEmptyTitle,
           style: RunCoreText.serifTitle(size: 28),
         ),
         const SizedBox(height: 8),
         Text(
-          "We couldn't read any running workouts from Apple Health. Either there aren't any in the last 12 months, or read access wasn't granted.",
+          l10n.onbConnectHealthEmptyBody,
           style: GoogleFonts.inter(
             fontSize: 15,
             color: AppColors.inkMuted,
@@ -368,7 +371,7 @@ class _EmptyHistoryBody extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          "If you DO have runs, open Settings → Health → Data Access & Devices → RunCoach and turn on Workouts + Heart Rate.",
+          l10n.onbConnectHealthEmptyHint,
           style: GoogleFonts.inter(
             fontSize: 13,
             color: AppColors.inkMuted,
@@ -377,14 +380,14 @@ class _EmptyHistoryBody extends StatelessWidget {
         ),
         const Spacer(),
         OnboardingPrimaryButton(
-          label: 'Open Settings',
+          label: l10n.commonOpenSettings,
           onTap: onOpenSettings,
         ),
         const SizedBox(height: 8),
         CupertinoButton(
           onPressed: onTryAgain,
           child: Text(
-            'Try again',
+            l10n.commonTryAgain,
             style: GoogleFonts.inter(color: AppColors.inkMuted),
           ),
         ),
@@ -392,7 +395,7 @@ class _EmptyHistoryBody extends StatelessWidget {
         CupertinoButton(
           onPressed: onContinue,
           child: Text(
-            'Continue without syncing',
+            l10n.onbConnectHealthSkipCta,
             style: GoogleFonts.inter(color: AppColors.inkMuted, fontSize: 14),
           ),
         ),

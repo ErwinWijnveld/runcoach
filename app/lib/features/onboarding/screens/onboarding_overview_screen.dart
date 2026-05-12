@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/core/widgets/runcore_logo.dart';
@@ -164,8 +165,8 @@ class _BaselineFormState extends ConsumerState<_BaselineForm> {
     }
   }
 
-  String get _paceText {
-    if (_paceSeconds == null) return 'Tap to choose';
+  String _paceTextFor(BuildContext context) {
+    if (_paceSeconds == null) return context.l10n.onbOverviewPaceTapPrompt;
     final m = _paceSeconds! ~/ 60;
     final s = (_paceSeconds! % 60).toString().padLeft(2, '0');
     return '$m:$s /km';
@@ -173,11 +174,13 @@ class _BaselineFormState extends ConsumerState<_BaselineForm> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final hasAnyPrefill = _wearableKm != null || _wearablePace != null;
-    final title = hasAnyPrefill ? 'Your running baseline' : 'Tell us about your running';
+    final title = hasAnyPrefill ? l10n.onbOverviewTitlePrefilled : l10n.onbOverviewTitleEmpty;
     final subtitle = hasAnyPrefill
-        ? 'We use these to calibrate your training plan.'
-        : 'We need two numbers to build an accurate plan.';
+        ? l10n.onbOverviewSubtitlePrefilled
+        : l10n.onbOverviewSubtitleEmpty;
+    final paceText = _paceTextFor(context);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
@@ -204,18 +207,18 @@ class _BaselineFormState extends ConsumerState<_BaselineForm> {
 
                   _kmLocked
                       ? LockedStatField(
-                          label: 'Average weekly km (last 4 weeks)',
+                          label: l10n.onbOverviewKmLabel,
                           valueText: _km == null
                               ? '—'
                               : '${_km!.toStringAsFixed(1).replaceAll(RegExp(r"\.0$"), "")} km',
-                          sourceLabel: 'Apple Health',
+                          sourceLabel: l10n.commonAppleHealth,
                           locked: true,
                           onUnlock: _unlockKm,
                           onTapWhenUnlocked: () {},
                         )
                       : _KmEditField(
                           controller: _kmController,
-                          sourceLabel: _wearableKm != null ? 'Apple Health' : null,
+                          sourceLabel: _wearableKm != null ? l10n.commonAppleHealth : null,
                           touched: _kmTouched,
                           onChanged: (text) {
                             final parsed = double.tryParse(text.replaceAll(',', '.'));
@@ -229,11 +232,11 @@ class _BaselineFormState extends ConsumerState<_BaselineForm> {
                   const SizedBox(height: 24),
 
                   LockedStatField(
-                    label: 'Easy run pace',
+                    label: l10n.onbOverviewPaceLabel,
                     valueText: _paceLocked
-                        ? _paceText
-                        : (_paceTouched ? _paceText : 'Tap to choose'),
-                    sourceLabel: _wearablePace != null ? 'Apple Health' : null,
+                        ? paceText
+                        : (_paceTouched ? paceText : l10n.onbOverviewPaceTapPrompt),
+                    sourceLabel: _wearablePace != null ? l10n.commonAppleHealth : null,
                     locked: _paceLocked,
                     onUnlock: _unlockPace,
                     onTapWhenUnlocked: _openPaceWheel,
@@ -255,7 +258,7 @@ class _BaselineFormState extends ConsumerState<_BaselineForm> {
           ),
           const SizedBox(height: 16),
           OnboardingPrimaryButton(
-            label: _submitting ? 'Saving…' : 'Continue',
+            label: _submitting ? l10n.commonSaving : l10n.commonContinue,
             onTap: _canContinue ? _submit : null,
           ),
         ],
@@ -279,11 +282,12 @@ class _KmEditField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Average weekly km (last 4 weeks)',
+          l10n.onbOverviewKmLabel,
           style: GoogleFonts.spaceGrotesk(
             fontSize: 12,
             fontWeight: FontWeight.w700,
@@ -327,8 +331,8 @@ class _KmEditField extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           sourceLabel != null
-              ? (touched ? 'Edited by you' : 'From $sourceLabel')
-              : 'Required',
+              ? (touched ? l10n.commonEditedByYou : l10n.commonFromSource(sourceLabel!))
+              : l10n.commonRequired,
           style: GoogleFonts.inter(fontSize: 12, color: AppColors.inkMuted),
         ),
       ],
@@ -349,7 +353,7 @@ class _SyncingState extends StatelessWidget {
           const CupertinoActivityIndicator(radius: 16),
           const SizedBox(height: 20),
           Text(
-            'Loading your baseline…',
+            context.l10n.onbOverviewLoadingTitle,
             textAlign: TextAlign.center,
             style: RunCoreText.serifTitle(size: 24),
           ),
@@ -371,13 +375,14 @@ class _ErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            "We couldn't load your data.",
+            l10n.onbOverviewErrorTitle,
             style: RunCoreText.serifTitle(size: 24),
             textAlign: TextAlign.center,
           ),
@@ -388,11 +393,11 @@ class _ErrorState extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
-          OnboardingPrimaryButton(label: 'Retry', onTap: onRetry),
+          OnboardingPrimaryButton(label: l10n.commonRetry, onTap: onRetry),
           const SizedBox(height: 8),
           CupertinoButton(
             onPressed: onSkip,
-            child: const Text('Skip'),
+            child: Text(l10n.commonSkip),
           ),
         ],
       ),

@@ -4,26 +4,84 @@
   "appTitle": "RunCoach",
 
   "languageEnglish": "English",
-
   "languageDutch": "Nederlands",
 
+  "commonContinue": "Doorgaan",
+  "commonTryAgain": "Probeer opnieuw",
+  "commonRetry": "Opnieuw proberen",
+  "commonSkip": "Overslaan",
+  "commonRequired": "Verplicht",
+  "commonSaving": "Bezig met opslaan…",
+  "commonOpenSettings": "Open Instellingen",
+  "commonAppleHealth": "Apple Health",
+  "commonEditedByYou": "Door jou bewerkt",
+  "commonFromSource": "Van {source}",
+  "commonEditZones": "Zones bewerken",
+
   "authWelcomeEyebrow": "JOUW AI-HARDLOOPCOACH",
-
   "authWelcomeHeadlineLine1": "Slimmer trainen,",
-
   "authWelcomeHeadlineLine2": "Niet zwaarder",
-
   "authWelcomeSignInButton": "INLOGGEN MET APPLE",
-
   "authAppleScreenTitle": "Inloggen met Apple",
-
   "authAppleErrorNoIdentityToken": "Apple gaf geen identity-token terug.",
-
   "authAppleErrorBackendRejected": "De backend wees het Apple identity-token af.",
-
   "authAppleErrorAuthEmpty": "Authenticatie is leeg na succesvol inloggen. Controleer de API-URL en backend-logs.",
-
   "authAppleErrorTitle": "Inloggen mislukt",
+  "authAppleErrorRetry": "Probeer opnieuw",
 
-  "authAppleErrorRetry": "Probeer opnieuw"
+  "onbConnectHealthIntroTitle": "Apple Health koppelen",
+  "onbConnectHealthIntroBody": "We lezen je hardloopworkouts, hartslagdata, leeftijd en rusthartslag in om je trainingen te scoren en je zones persoonlijk te maken.",
+  "onbConnectHealthConnectCta": "Apple Health koppelen",
+  "onbConnectHealthSkipCta": "Doorgaan zonder te synchroniseren",
+  "onbConnectHealthFooter": "Garmin, Polar en Strava komen binnenkort.",
+  "onbConnectHealthEmptyTitle": "Nog geen runs gevonden",
+  "onbConnectHealthEmptyBody": "We konden geen hardloopworkouts uit Apple Health lezen. Misschien zijn er geen runs in de afgelopen 12 maanden, of is leestoegang niet verleend.",
+  "onbConnectHealthEmptyHint": "Als je WEL runs hebt: open Instellingen → Gezondheid → Toegang tot gegevens en apparaten → RunCoach en zet Workouts + Hartslag aan.",
+  "onbConnectHealthStageRequesting": "Apple Health vragen…",
+  "onbConnectHealthStageRequestingSub": "Tik op \"Sta toe\" in de systeemmelding.",
+  "onbConnectHealthStageSyncing": "Je runs ophalen…",
+  "onbConnectHealthStageSyncingSub": "De laatste 12 maanden uit Apple Health worden gelezen.",
+  "onbConnectHealthStageDone": "{count} runs gesynchroniseerd",
+  "onbConnectHealthStageDoneSub": "Je profiel wordt opgebouwd…",
+  "onbConnectHealthErrorPermission": "Apple Health is niet bereikbaar. Probeer opnieuw?",
+  "onbConnectHealthErrorRead": "We konden je runs niet uit Apple Health lezen. Probeer opnieuw?",
+  "onbConnectHealthErrorSync": "We konden je runs niet naar de server synchroniseren. Controleer je verbinding en probeer opnieuw.",
+  "onbConnectHealthErrorSettings": "Instellingen openen lukt niet automatisch. Ga naar Instellingen → Gezondheid → Toegang tot gegevens en apparaten → RunCoach.",
+
+  "onbOverviewTitlePrefilled": "Je hardloopbasis",
+  "onbOverviewTitleEmpty": "Vertel ons over je hardlopen",
+  "onbOverviewSubtitlePrefilled": "We gebruiken dit om je trainingsplan af te stemmen.",
+  "onbOverviewSubtitleEmpty": "We hebben twee getallen nodig om een goed plan te bouwen.",
+  "onbOverviewKmLabel": "Gemiddeld aantal km per week (laatste 4 weken)",
+  "onbOverviewPaceLabel": "Rustige looptempo",
+  "onbOverviewPaceTapPrompt": "Tik om te kiezen",
+  "onbOverviewLoadingTitle": "Je basis wordt geladen…",
+  "onbOverviewErrorTitle": "We konden je gegevens niet laden.",
+
+  "onbZonesTitle": "Je trainingszones",
+  "onbZonesSubtitleDerivedCorrected": "Op basis van je leeftijd en je zwaarste recente runs lijkt je maximale hartslag rond {maxHr} bpm te liggen. Daar maken we 5 trainingszones van.",
+  "onbZonesSubtitleDerivedBasic": "Geschat op basis van je leeftijd ({age}) — max rond {maxHr} bpm. Na een paar zware sessies of een race verfijnen we dit automatisch.",
+  "onbZonesSubtitleDerivedGeneric": "Geschat op basis van je leeftijd. Tik op \"Zones bewerken\" als je je echte max hartslag kent.",
+  "onbZonesSubtitleManual": "Je eerder opgeslagen zones. Hiermee wordt elke run beoordeeld.",
+  "onbZonesSubtitleDefault": "We konden je zones niet automatisch berekenen — stel je max hartslag in voordat je doorgaat.",
+  "onbZonesConfirmCta": "Klopt voor mij",
+  "onbZonesDobLabel": "Geboortedatum",
+  "onbZonesDobBody": "We gebruiken je leeftijd om hartslagzones te schatten voor trainingsfeedback. Je kunt ze later via het menu fijn afstellen.",
+  "onbZonesNoDobBody": "Om je hartslagzones te schatten hebben we alleen je geboortedatum nodig. Daaruit komt een ruwe max-hartslag — goed genoeg voor dagelijkse training en eenvoudig later fijn af te stellen.",
+  "onbZonesShowAdvanced": "Toon zones (geavanceerd)",
+  "onbZonesPickDobCta": "Kies je geboortedatum",
+
+  "onbGeneratingTitle": "Je plan wordt gebouwd",
+  "onbGeneratingStageAnalyzing": "Je hardloopgeschiedenis wordt geanalyseerd…",
+  "onbGeneratingStageStructuring": "Je weekstructuur wordt ontworpen…",
+  "onbGeneratingStagePlacing": "Trainingssessies worden ingepland…",
+  "onbGeneratingStageFinalizing": "Je plan wordt afgemaakt…",
+  "onbGeneratingFooter": "Dit kan een paar minuten duren. Sluit de app gerust — we sturen je een melding zodra je plan klaar is.",
+  "onbGeneratingLoadingNext": "Je plan wordt geladen…",
+  "onbGeneratingErrorTitle": "Plan-generatie mislukt",
+  "onbGeneratingErrorNetwork": "De server is niet bereikbaar. Controleer je verbinding.",
+  "onbGeneratingErrorLost": "We zijn de generatie kwijtgeraakt. Probeer opnieuw?",
+  "onbGeneratingErrorGeneric": "Generatie mislukt.",
+  "onbGeneratingErrorMissingId": "Plan is klaar maar conversation-id ontbreekt.",
+  "onbGeneratingBackCta": "Terug naar formulier"
 }

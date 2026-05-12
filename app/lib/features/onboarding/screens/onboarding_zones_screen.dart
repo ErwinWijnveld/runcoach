@@ -3,12 +3,14 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/birth_date_picker.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/core/widgets/heart_rate_zones_sheet.dart';
 import 'package:app/core/widgets/hr_zones_readonly_list.dart';
 import 'package:app/core/widgets/runcore_logo.dart';
+import 'package:app/l10n/app_localizations.dart';
 import 'package:app/features/auth/models/derived_zones.dart';
 import 'package:app/features/auth/models/user.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
@@ -193,14 +195,15 @@ class _HrConfirmedBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
-        Text('Your training zones', style: RunCoreText.serifTitle(size: 30)),
+        Text(l10n.onbZonesTitle, style: RunCoreText.serifTitle(size: 30)),
         const SizedBox(height: 8),
         Text(
-          _subtitle(source, result),
+          _subtitle(l10n, source, result),
           style: GoogleFonts.inter(
             fontSize: 14,
             color: AppColors.inkMuted,
@@ -210,12 +213,12 @@ class _HrConfirmedBody extends StatelessWidget {
         const SizedBox(height: 20),
         HrZonesReadonlyList(zones: List.from(zones)),
         const Spacer(),
-        OnboardingPrimaryButton(label: 'Looks right', onTap: onContinue),
+        OnboardingPrimaryButton(label: l10n.onbZonesConfirmCta, onTap: onContinue),
         const SizedBox(height: 8),
         CupertinoButton(
           onPressed: onEdit,
           child: Text(
-            'Edit zones',
+            l10n.commonEditZones,
             style: GoogleFonts.inter(color: AppColors.inkMuted, fontSize: 14),
           ),
         ),
@@ -223,7 +226,7 @@ class _HrConfirmedBody extends StatelessWidget {
     );
   }
 
-  String _subtitle(String source, DerivedZones? r) {
+  String _subtitle(AppLocalizations l10n, String source, DerivedZones? r) {
     switch (source) {
       // 'derived_empirical' is legacy — old rows from the v0 deriver. The
       // current deriver always returns 'derived_age' (Tanaka prior, with
@@ -233,16 +236,16 @@ class _HrConfirmedBody extends StatelessWidget {
         final age = r?.age;
         final maxHr = r?.maxHr;
         if ((r?.wasCorrected ?? false) && maxHr != null) {
-          return "Based on your age and your hardest recent runs, your max heart rate looks to be around $maxHr bpm. We've split that into 5 training zones.";
+          return l10n.onbZonesSubtitleDerivedCorrected(maxHr);
         }
         if (age != null && maxHr != null) {
-          return "Estimated from your age ($age) — max around $maxHr bpm. After a few hard sessions or a race we'll refine these automatically.";
+          return l10n.onbZonesSubtitleDerivedBasic(age, maxHr);
         }
-        return 'Estimated from your age. Tap "Edit zones" if you know your true max HR.';
+        return l10n.onbZonesSubtitleDerivedGeneric;
       case 'manual':
-        return "Your previously-saved zones. They'll be used to score every run.";
+        return l10n.onbZonesSubtitleManual;
       default:
-        return "We couldn't compute your zones automatically — please set your max HR before continuing.";
+        return l10n.onbZonesSubtitleDefault;
     }
   }
 }
@@ -279,14 +282,15 @@ class _DobKnownBodyState extends State<_DobKnownBody> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
-        Text('Your training zones', style: RunCoreText.serifTitle(size: 30)),
+        Text(l10n.onbZonesTitle, style: RunCoreText.serifTitle(size: 30)),
         const SizedBox(height: 8),
         Text(
-          "We use your age to estimate heart-rate ranges for training feedback. You can fine-tune later from the menu.",
+          l10n.onbZonesDobBody,
           style: GoogleFonts.inter(
             fontSize: 14,
             color: AppColors.inkMuted,
@@ -311,7 +315,7 @@ class _DobKnownBodyState extends State<_DobKnownBody> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Date of birth',
+                        l10n.onbZonesDobLabel,
                         style: GoogleFonts.spaceGrotesk(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -349,7 +353,7 @@ class _DobKnownBodyState extends State<_DobKnownBody> {
               ),
               const SizedBox(width: 6),
               Text(
-                'Show zones (advanced)',
+                l10n.onbZonesShowAdvanced,
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   color: AppColors.inkMuted,
@@ -366,13 +370,13 @@ class _DobKnownBodyState extends State<_DobKnownBody> {
             padding: EdgeInsets.zero,
             onPressed: widget.onEdit,
             child: Text(
-              'Edit zones',
+              l10n.commonEditZones,
               style: GoogleFonts.inter(fontSize: 13, color: AppColors.inkMuted),
             ),
           ),
         ],
         const Spacer(),
-        OnboardingPrimaryButton(label: 'Continue', onTap: widget.onContinue),
+        OnboardingPrimaryButton(label: l10n.commonContinue, onTap: widget.onContinue),
       ],
     );
   }
@@ -385,14 +389,15 @@ class _NoDobBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
-        Text('Your training zones', style: RunCoreText.serifTitle(size: 30)),
+        Text(l10n.onbZonesTitle, style: RunCoreText.serifTitle(size: 30)),
         const SizedBox(height: 8),
         Text(
-          "To estimate your heart-rate ranges we just need your birth date. It gives us a rough max HR — accurate enough for daily training and easy to fine-tune later.",
+          l10n.onbZonesNoDobBody,
           style: GoogleFonts.inter(
             fontSize: 14,
             color: AppColors.inkMuted,
@@ -414,7 +419,7 @@ class _NoDobBody extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Pick your birth date',
+                    l10n.onbZonesPickDobCta,
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -428,7 +433,7 @@ class _NoDobBody extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        const OnboardingPrimaryButton(label: 'Continue', onTap: null),
+        OnboardingPrimaryButton(label: l10n.commonContinue, onTap: null),
       ],
     );
   }

@@ -7,62 +7,99 @@
   },
 
   "languageEnglish": "English",
-  "@languageEnglish": {
-    "description": "Label for English in a language picker."
-  },
-
   "languageDutch": "Nederlands",
-  "@languageDutch": {
-    "description": "Label for Dutch in a language picker — always shown in Dutch (Nederlands) regardless of UI locale, by convention."
+
+  "commonContinue": "Continue",
+  "commonTryAgain": "Try again",
+  "commonRetry": "Retry",
+  "commonSkip": "Skip",
+  "commonRequired": "Required",
+  "commonSaving": "Saving…",
+  "commonOpenSettings": "Open Settings",
+  "commonAppleHealth": "Apple Health",
+  "commonEditedByYou": "Edited by you",
+  "commonFromSource": "From {source}",
+  "@commonFromSource": {
+    "placeholders": { "source": { "type": "String" } }
   },
+  "commonEditZones": "Edit zones",
 
   "authWelcomeEyebrow": "YOUR AI RUNCOACH",
-  "@authWelcomeEyebrow": {
-    "description": "Welcome screen — small uppercase label above the logo."
-  },
-
   "authWelcomeHeadlineLine1": "Train Smarter,",
-  "@authWelcomeHeadlineLine1": {
-    "description": "Welcome screen — first line of the two-line tagline."
-  },
-
   "authWelcomeHeadlineLine2": "Not Harder",
-  "@authWelcomeHeadlineLine2": {
-    "description": "Welcome screen — second line of the tagline (rendered italic)."
-  },
-
   "authWelcomeSignInButton": "SIGN IN WITH APPLE",
-  "@authWelcomeSignInButton": {
-    "description": "Welcome screen — primary CTA. Triggers the native Apple Sign-In flow."
-  },
-
   "authAppleScreenTitle": "Sign in with Apple",
-  "@authAppleScreenTitle": {
-    "description": "Nav bar title on the Apple sign-in screen."
-  },
-
   "authAppleErrorNoIdentityToken": "Apple did not return an identity token.",
-  "@authAppleErrorNoIdentityToken": {
-    "description": "Apple sign-in error shown when iOS doesn't return a JWT (rare — usually a configuration issue)."
-  },
-
   "authAppleErrorBackendRejected": "Backend rejected the Apple identity token.",
-  "@authAppleErrorBackendRejected": {
-    "description": "Apple sign-in error shown when the backend rejects the Apple JWT (audience/issuer mismatch, expired)."
-  },
-
   "authAppleErrorAuthEmpty": "Auth state is empty after successful sign-in. Check the API base URL and backend logs.",
-  "@authAppleErrorAuthEmpty": {
-    "description": "Apple sign-in error shown when the backend reply parsed cleanly but no user is in scope. Almost always a misconfigured API base URL."
-  },
-
   "authAppleErrorTitle": "Sign in failed",
-  "@authAppleErrorTitle": {
-    "description": "Heading above the Apple sign-in error message + Try again button."
-  },
-
   "authAppleErrorRetry": "Try again",
-  "@authAppleErrorRetry": {
-    "description": "Retry button below the Apple sign-in error message."
-  }
+
+  "onbConnectHealthIntroTitle": "Connect Apple Health",
+  "onbConnectHealthIntroBody": "We read your running workouts, heart-rate data, age, and resting heart rate so we can score your training and personalise your zones.",
+  "onbConnectHealthConnectCta": "Connect Apple Health",
+  "onbConnectHealthSkipCta": "Continue without syncing",
+  "onbConnectHealthFooter": "Garmin, Polar and Strava are coming soon.",
+  "onbConnectHealthEmptyTitle": "No runs found yet",
+  "onbConnectHealthEmptyBody": "We couldn't read any running workouts from Apple Health. Either there aren't any in the last 12 months, or read access wasn't granted.",
+  "onbConnectHealthEmptyHint": "If you DO have runs, open Settings → Health → Data Access & Devices → RunCoach and turn on Workouts + Heart Rate.",
+  "onbConnectHealthStageRequesting": "Asking Apple Health…",
+  "onbConnectHealthStageRequestingSub": "Tap \"Allow\" on the system prompt.",
+  "onbConnectHealthStageSyncing": "Pulling your runs…",
+  "onbConnectHealthStageSyncingSub": "Reading the last 12 months from Apple Health.",
+  "onbConnectHealthStageDone": "Synced {count} runs",
+  "@onbConnectHealthStageDone": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "onbConnectHealthStageDoneSub": "Building your profile…",
+  "onbConnectHealthErrorPermission": "Couldn't reach Apple Health. Try again?",
+  "onbConnectHealthErrorRead": "Couldn't read your runs from Apple Health. Try again?",
+  "onbConnectHealthErrorSync": "We couldn't sync your runs to the server. Check your connection and try again.",
+  "onbConnectHealthErrorSettings": "Couldn't open Settings automatically. Go to Settings → Health → Data Access & Devices → RunCoach.",
+
+  "onbOverviewTitlePrefilled": "Your running baseline",
+  "onbOverviewTitleEmpty": "Tell us about your running",
+  "onbOverviewSubtitlePrefilled": "We use these to calibrate your training plan.",
+  "onbOverviewSubtitleEmpty": "We need two numbers to build an accurate plan.",
+  "onbOverviewKmLabel": "Average weekly km (last 4 weeks)",
+  "onbOverviewPaceLabel": "Easy run pace",
+  "onbOverviewPaceTapPrompt": "Tap to choose",
+  "onbOverviewLoadingTitle": "Loading your baseline…",
+  "onbOverviewErrorTitle": "We couldn't load your data.",
+
+  "onbZonesTitle": "Your training zones",
+  "onbZonesSubtitleDerivedCorrected": "Based on your age and your hardest recent runs, your max heart rate looks to be around {maxHr} bpm. We've split that into 5 training zones.",
+  "@onbZonesSubtitleDerivedCorrected": {
+    "placeholders": { "maxHr": { "type": "int" } }
+  },
+  "onbZonesSubtitleDerivedBasic": "Estimated from your age ({age}) — max around {maxHr} bpm. After a few hard sessions or a race we'll refine these automatically.",
+  "@onbZonesSubtitleDerivedBasic": {
+    "placeholders": {
+      "age": { "type": "int" },
+      "maxHr": { "type": "int" }
+    }
+  },
+  "onbZonesSubtitleDerivedGeneric": "Estimated from your age. Tap \"Edit zones\" if you know your true max HR.",
+  "onbZonesSubtitleManual": "Your previously-saved zones. They'll be used to score every run.",
+  "onbZonesSubtitleDefault": "We couldn't compute your zones automatically — please set your max HR before continuing.",
+  "onbZonesConfirmCta": "Looks right",
+  "onbZonesDobLabel": "Date of birth",
+  "onbZonesDobBody": "We use your age to estimate heart-rate ranges for training feedback. You can fine-tune later from the menu.",
+  "onbZonesNoDobBody": "To estimate your heart-rate ranges we just need your birth date. It gives us a rough max HR — accurate enough for daily training and easy to fine-tune later.",
+  "onbZonesShowAdvanced": "Show zones (advanced)",
+  "onbZonesPickDobCta": "Pick your birth date",
+
+  "onbGeneratingTitle": "Building your plan",
+  "onbGeneratingStageAnalyzing": "Analyzing your run history…",
+  "onbGeneratingStageStructuring": "Designing your weekly structure…",
+  "onbGeneratingStagePlacing": "Placing training sessions…",
+  "onbGeneratingStageFinalizing": "Finalizing your plan…",
+  "onbGeneratingFooter": "This can take a few minutes. Feel free to close the app — we'll send you a notification when your plan is ready.",
+  "onbGeneratingLoadingNext": "Loading your plan…",
+  "onbGeneratingErrorTitle": "Plan generation failed",
+  "onbGeneratingErrorNetwork": "Couldn't reach the server. Check your connection.",
+  "onbGeneratingErrorLost": "Lost track of the generation. Try again?",
+  "onbGeneratingErrorGeneric": "Generation failed.",
+  "onbGeneratingErrorMissingId": "Plan ready but conversation id missing.",
+  "onbGeneratingBackCta": "Back to form"
 }

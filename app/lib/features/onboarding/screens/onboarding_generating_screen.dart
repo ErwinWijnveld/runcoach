@@ -4,9 +4,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/core/widgets/runcore_logo.dart';
+import 'package:app/l10n/app_localizations.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/onboarding/data/onboarding_api.dart';
 import 'package:app/features/onboarding/models/onboarding_form_data.dart';
@@ -41,7 +43,9 @@ class _OnboardingGeneratingScreenState
     with SingleTickerProviderStateMixin {
   late final AnimationController _progress;
   Timer? _pollTimer;
-  String _stage = 'Analyzing your Strava history…';
+  // Key into the 4-stage table looked up in [_LoadingBody]. 0..3 maps to
+  // analyzing / structuring / placing / finalizing.
+  int _stageIndex = 0;
   String? _errorMessage;
   bool _completed = false;
 
@@ -88,15 +92,15 @@ class _OnboardingGeneratingScreenState
 
   void _updateStage() {
     final v = _progress.value;
-    final stage = v < 0.3
-        ? 'Analyzing your Strava history…'
+    final idx = v < 0.3
+        ? 0
         : v < 0.6
-            ? 'Designing your weekly structure…'
+            ? 1
             : v < 0.9
-                ? 'Placing training sessions…'
-                : 'Finalizing your plan…';
-    if (stage != _stage) {
-      setState(() => _stage = stage);
+                ? 2
+                : 3;
+    if (idx != _stageIndex) {
+      setState(() => _stageIndex = idx);
     }
   }
 
@@ -142,7 +146,7 @@ class _OnboardingGeneratingScreenState
     } catch (_) {
       if (mounted) {
         setState(() => _errorMessage =
-            "Couldn't reach the server. Check your connection.");
+            context.l10n.onbGeneratingErrorNetwork);
       }
     }
   }
@@ -166,7 +170,7 @@ class _OnboardingGeneratingScreenState
         // Server says nothing pending — but we're on the loading screen,
         // so something went wrong (row deleted, user hopped accounts, etc).
         setState(() =>
-            _errorMessage = 'Lost track of the generation. Try again?');
+            _errorMessage = context.l10n.onbGeneratingErrorLost);
         _pollTimer?.cancel();
         return;
       }
@@ -180,7 +184,7 @@ class _OnboardingGeneratingScreenState
       if (result.status == PlanGenerationStatus.failed) {
         _pollTimer?.cancel();
         setState(() =>
-            _errorMessage = result.errorMessage ?? 'Generation failed.');
+            _errorMessage = result.errorMessage ?? context.l10n.onbGeneratingErrorGeneric);
       }
     } catch (_) {
       // Network blip on a poll — keep polling silently. The next tick will
@@ -191,7 +195,7 @@ class _OnboardingGeneratingScreenState
   Future<void> _navigateToChat(PlanGeneration row) async {
     if (row.conversationId == null) {
       setState(() =>
-          _errorMessage = 'Plan ready but conversation id missing.');
+          _errorMessage = context.l10n.onbGeneratingErrorMissingId);
       return;
     }
 
@@ -225,7 +229,7 @@ class _OnboardingGeneratingScreenState
               )
             : _LoadingBody(
                 progress: _progress,
-                stage: _stage,
+                stageIndex: _stageIndex,
                 completed: _completed,
               ),
       ),
@@ -235,17 +239,28 @@ class _OnboardingGeneratingScreenState
 
 class _LoadingBody extends StatelessWidget {
   final AnimationController progress;
-  final String stage;
+  final int stageIndex;
   final bool completed;
 
   const _LoadingBody({
     required this.progress,
-    required this.stage,
+    required this.stageIndex,
     required this.completed,
   });
 
+  String _stageLabel(AppLocalizations l10n, int idx) {
+    return switch (idx) {
+      0 => l10n.onbGeneratingStageAnalyzing,
+      1 => l10n.onbGeneratingStageStructuring,
+      2 => l10n.onbGeneratingStagePlacing,
+      _ => l10n.onbGeneratingStageFinalizing,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final stage = _stageLabel(l10n, stageIndex);
     return Padding(
       padding: const EdgeInsets.fromLTRB(32, 8, 32, 32),
       child: Column(
@@ -258,7 +273,7 @@ class _LoadingBody extends StatelessWidget {
           ),
           const Spacer(),
           Text(
-            'Building your plan',
+            l10n.onbGeneratingTitle,
             textAlign: TextAlign.center,
             style: RunCoreText.serifTitle(size: 36).copyWith(height: 1.1),
           ),
@@ -267,7 +282,7 @@ class _LoadingBody extends StatelessWidget {
             duration: const Duration(milliseconds: 400),
             child: Text(
               stage,
-              key: ValueKey(stage),
+              key: ValueKey(stageIndex),
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(
                 fontSize: 15,
@@ -297,8 +312,8 @@ class _LoadingBody extends StatelessWidget {
           const Spacer(),
           Text(
             completed
-                ? 'Loading your plan…'
-                : "This can take a few minutes. Feel free to close the app — we'll send you a notification when your plan is ready.",
+                ? l10n.onbGeneratingLoadingNext
+                : l10n.onbGeneratingFooter,
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 13,
@@ -366,13 +381,14 @@ class _ErrorBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Padding(
       padding: const EdgeInsets.all(32),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            'Plan generation failed',
+            l10n.onbGeneratingErrorTitle,
             textAlign: TextAlign.center,
             style: RunCoreText.serifTitle(size: 28),
           ),
@@ -389,13 +405,13 @@ class _ErrorBody extends StatelessWidget {
           const SizedBox(height: 24),
           CupertinoButton.filled(
             onPressed: onRetry,
-            child: const Text('Try again'),
+            child: Text(l10n.commonTryAgain),
           ),
           const SizedBox(height: 8),
           CupertinoButton(
             onPressed: onBack,
             child: Text(
-              'Back to form',
+              l10n.onbGeneratingBackCta,
               style: GoogleFonts.inter(color: AppColors.inkMuted),
             ),
           ),
