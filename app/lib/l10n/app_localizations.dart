@@ -1747,6 +1747,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t send'**
   String get schedWatchFailedTitle;
+
+  /// No description provided for @commonDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get commonDelete;
+
+  /// No description provided for @commonNo.
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get commonNo;
+
+  /// No description provided for @goalsListYourGoals.
+  ///
+  /// In en, this message translates to:
+  /// **'Your goals'**
+  String get goalsListYourGoals;
+
+  /// No description provided for @goalsListOtherGoals.
+  ///
+  /// In en, this message translates to:
+  /// **'Other goals'**
+  String get goalsListOtherGoals;
+
+  /// No description provided for @goalsListEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No goals yet'**
+  String get goalsListEmptyTitle;
+
+  /// No description provided for @goalsListEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask the coach below to build your first training plan.'**
+  String get goalsListEmptyBody;
+
+  /// No description provided for @goalsCardActive.
+  ///
+  /// In en, this message translates to:
+  /// **'ACTIVE'**
+  String get goalsCardActive;
+
+  /// No description provided for @goalsCardDistance.
+  ///
+  /// In en, this message translates to:
+  /// **'DISTANCE'**
+  String get goalsCardDistance;
+
+  /// No description provided for @goalsCardGoalTime.
+  ///
+  /// In en, this message translates to:
+  /// **'GOAL TIME'**
+  String get goalsCardGoalTime;
+
+  /// No description provided for @goalsCardTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'TARGET'**
+  String get goalsCardTarget;
+
+  /// No description provided for @goalsCardDaysLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'DAYS LEFT'**
+  String get goalsCardDaysLeft;
+
+  /// No description provided for @goalsCardPast.
+  ///
+  /// In en, this message translates to:
+  /// **'PAST'**
+  String get goalsCardPast;
+
+  /// No description provided for @goalsCardRaceDay.
+  ///
+  /// In en, this message translates to:
+  /// **'RACE DAY'**
+  String get goalsCardRaceDay;
+
+  /// No description provided for @goalsCardDaysToGo.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} DAYS TO GO'**
+  String goalsCardDaysToGo(int days);
+
+  /// No description provided for @goalsCardSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch'**
+  String get goalsCardSwitch;
+
+  /// No description provided for @goalsSwitchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch active goal?'**
+  String get goalsSwitchTitle;
+
+  /// No description provided for @goalsSwitchBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Make \"{name}\" your active goal. Your current active goal will be paused.'**
+  String goalsSwitchBody(String name);
+
+  /// No description provided for @goalsSwitchToThis.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to this goal'**
+  String get goalsSwitchToThis;
+
+  /// No description provided for @goalsSwitchToThisBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your current active goal will be paused.'**
+  String get goalsSwitchToThisBody;
+
+  /// No description provided for @goalsDeleteGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete goal'**
+  String get goalsDeleteGoal;
+
+  /// No description provided for @goalsDeleteConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete \"{name}\"?'**
+  String goalsDeleteConfirmBody(String name);
+
+  /// No description provided for @goalsScheduleRowTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Training schedule'**
+  String get goalsScheduleRowTitle;
+
+  /// No description provided for @goalsScheduleRowSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open your weekly plan'**
+  String get goalsScheduleRowSubtitle;
 }
 
 class _AppLocalizationsDelegate

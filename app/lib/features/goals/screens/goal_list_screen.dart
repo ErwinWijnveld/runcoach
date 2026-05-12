@@ -1,3 +1,4 @@
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart'
     show RoundedRectangleBorder, showModalBottomSheet;
@@ -46,7 +47,7 @@ class GoalListScreen extends ConsumerWidget {
                   child: goalsAsync.when(
                     loading: () => const AppSpinner(),
                     error: (err, _) => AppErrorState(
-                      title: 'Error: $err',
+                      title: context.l10n.commonErrorWithMessage(err.toString()),
                       onRetry: () => ref.invalidate(goalsProvider),
                     ),
                     data: (goals) => IntroFx(child: _GoalsBody(goals: goals)),
@@ -111,9 +112,9 @@ class _GoalsBody extends StatelessWidget {
             ),
           if (others.isNotEmpty) ...[
             const SizedBox(height: 20),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: _SectionTitle('Other goals'),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: _SectionTitle(context.l10n.goalsListOtherGoals),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
@@ -143,7 +144,7 @@ class _GoalsHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
         Text(
-          'Your goals',
+          context.l10n.goalsListYourGoals,
           style: GoogleFonts.ebGaramond(
             fontSize: 32,
             fontWeight: FontWeight.w500,
@@ -225,7 +226,7 @@ class _ActiveGoalCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(children: [GoldBadge(label: 'ACTIVE')]),
+            Row(children: [GoldBadge(label: context.l10n.goalsCardActive)]),
             const SizedBox(height: 8),
             Text(
               goal.name,
@@ -244,20 +245,20 @@ class _ActiveGoalCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _StatMini(
-                    label: 'DISTANCE',
+                    label: context.l10n.goalsCardDistance,
                     value: goal.distance ?? '-',
                   ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: _StatMini(label: 'GOAL TIME', value: _formatGoalTime()),
+                  child: _StatMini(label: context.l10n.goalsCardGoalTime, value: _formatGoalTime()),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: _StatMini(
                     label: days == null || days < 0
-                        ? 'TARGET'
-                        : (days == 0 ? 'TODAY' : 'DAYS LEFT'),
+                        ? context.l10n.goalsCardTarget
+                        : (days == 0 ? context.l10n.commonTodayUpper : context.l10n.goalsCardDaysLeft),
                     value: days == null || days < 0
                         ? formatDateString(goal.targetDate, fallback: '-')
                         : (days == 0 ? '🏁' : '$days'),
@@ -368,7 +369,7 @@ class _OtherGoalTile extends ConsumerWidget {
             ),
             const SizedBox(width: 8),
             Text(
-              _canReactivate ? 'Switch' : goal.status.toUpperCase(),
+              _canReactivate ? context.l10n.goalsCardSwitch : goal.status.toUpperCase(),
               style: GoogleFonts.spaceGrotesk(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
@@ -405,7 +406,7 @@ class _OtherGoalTile extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Switch active goal?',
+                context.l10n.goalsSwitchTitle,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.ebGaramond(
                   fontSize: 22,
@@ -416,7 +417,7 @@ class _OtherGoalTile extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Make "${goal.name}" your active goal. Your current active goal will be paused.',
+                context.l10n.goalsSwitchBody(goal.name),
                 textAlign: TextAlign.center,
                 style: GoogleFonts.publicSans(
                   fontSize: 13,
@@ -431,11 +432,11 @@ class _OtherGoalTile extends ConsumerWidget {
                       .read(goalActionsProvider.notifier)
                       .activateGoal(goal.id);
                 },
-                child: const Text('Switch'),
+                child: Text(context.l10n.goalsCardSwitch),
               ),
               CupertinoButton(
                 onPressed: () => Navigator.of(sheetCtx).pop(),
-                child: const Text('Cancel'),
+                child: Text(context.l10n.commonCancel),
               ),
             ],
           ),
@@ -467,7 +468,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'No goals yet',
+              context.l10n.goalsListEmptyTitle,
               style: GoogleFonts.ebGaramond(
                 fontSize: 24,
                 fontWeight: FontWeight.w500,
@@ -477,7 +478,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              'Ask the coach below to build your first training plan.',
+              context.l10n.goalsListEmptyBody,
               textAlign: TextAlign.center,
               style: GoogleFonts.publicSans(
                 fontSize: 14,

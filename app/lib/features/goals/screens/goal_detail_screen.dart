@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors, InkWell, Material;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,7 +29,7 @@ class GoalDetailScreen extends ConsumerWidget {
     return GradientScaffold(
       child: goalAsync.when(
         loading: () => const SafeArea(child: AppSpinner()),
-        error: (err, _) => SafeArea(child: AppErrorState(title: 'Error: $err')),
+        error: (err, _) => SafeArea(child: AppErrorState(title: context.l10n.commonErrorWithMessage(err.toString()))),
         data: (goal) => _Loaded(goal: goal),
       ),
     );
@@ -136,25 +137,26 @@ class _Loaded extends ConsumerWidget {
               Navigator.of(sheetCtx).pop();
               _confirmDelete(context, ref);
             },
-            child: const Text('Delete goal'),
+            child: Text(context.l10n.goalsDeleteGoal),
           ),
         ],
         cancelButton: CupertinoActionSheetAction(
           isDefaultAction: true,
           onPressed: () => Navigator.of(sheetCtx).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.commonCancel),
         ),
       ),
     );
   }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
+    final l10n = context.l10n;
     final confirmed = await showAppConfirm(
       context,
-      title: 'Delete goal',
-      message: 'Are you sure you want to delete "${goal.name}"?',
-      confirmLabel: 'Delete',
-      cancelLabel: 'No',
+      title: l10n.goalsDeleteGoal,
+      message: l10n.goalsDeleteConfirmBody(goal.name),
+      confirmLabel: l10n.commonDelete,
+      cancelLabel: l10n.commonNo,
       destructive: true,
     );
 
@@ -255,7 +257,7 @@ class _GoalHeroCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        _subtitle(goal),
+                        _subtitle(context, goal),
                         style: GoogleFonts.spaceGrotesk(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
@@ -283,10 +285,11 @@ Color _statusPillColor(String status) => switch (status) {
   _ => AppColors.inkMuted,
 };
 
-String _subtitle(Goal goal) {
+String _subtitle(BuildContext context, Goal goal) {
+  final l10n = context.l10n;
   final days = _daysUntil(goal);
   if (days != null && days >= 0) {
-    return days == 0 ? 'RACE DAY' : '$days DAYS TO GO';
+    return days == 0 ? l10n.goalsCardRaceDay : l10n.goalsCardDaysToGo(days);
   }
   return [
     if (goal.distance != null) goal.distance!.toUpperCase(),
@@ -327,10 +330,11 @@ class _GoalStatTiles extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final days = _daysUntil(goal);
     final daysStr = days == null
         ? formatDateString(goal.targetDate, fallback: '-')
-        : (days < 0 ? 'PAST' : (days == 0 ? 'TODAY' : '$days'));
+        : (days < 0 ? l10n.goalsCardPast : (days == 0 ? l10n.commonTodayUpper : '$days'));
 
     return Container(
       decoration: BoxDecoration(
@@ -346,16 +350,16 @@ class _GoalStatTiles extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
-              child: _Cell(label: 'DISTANCE', value: goal.distance ?? '-'),
+              child: _Cell(label: l10n.goalsCardDistance, value: goal.distance ?? '-'),
             ),
             const _CellDivider(),
             Expanded(
-              child: _Cell(label: 'GOAL TIME', value: _formatGoalTime()),
+              child: _Cell(label: l10n.goalsCardGoalTime, value: _formatGoalTime()),
             ),
             const _CellDivider(),
             Expanded(
               child: _Cell(
-                label: days == null || days < 0 ? 'TARGET' : 'DAYS LEFT',
+                label: days == null || days < 0 ? l10n.goalsCardTarget : l10n.goalsCardDaysLeft,
                 value: daysStr,
               ),
             ),
@@ -521,7 +525,7 @@ class _ScheduleRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Training schedule',
+                    context.l10n.goalsScheduleRowTitle,
                     style: GoogleFonts.publicSans(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
@@ -529,7 +533,7 @@ class _ScheduleRow extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    'Open your weekly plan',
+                    context.l10n.goalsScheduleRowSubtitle,
                     style: GoogleFonts.publicSans(
                       fontSize: 13,
                       color: AppColors.inkMuted,
@@ -567,7 +571,7 @@ class _SwitchToGoalCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Switch to this goal',
+            context.l10n.goalsSwitchToThis,
             style: GoogleFonts.publicSans(
               fontSize: 15,
               fontWeight: FontWeight.w600,
@@ -576,7 +580,7 @@ class _SwitchToGoalCard extends ConsumerWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Your current active goal will be paused.',
+            context.l10n.goalsSwitchToThisBody,
             style: GoogleFonts.publicSans(
               fontSize: 13,
               color: AppColors.inkMuted,
@@ -589,7 +593,7 @@ class _SwitchToGoalCard extends ConsumerWidget {
                   .read(goalActionsProvider.notifier)
                   .activateGoal(goal.id);
             },
-            child: const Text('Switch'),
+            child: Text(context.l10n.goalsCardSwitch),
           ),
         ],
       ),

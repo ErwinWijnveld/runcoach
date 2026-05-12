@@ -913,4 +913,81 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedWatchFailedTitle => 'Couldn\'t send';
+
+  @override
+  String get commonDelete => 'Delete';
+
+  @override
+  String get commonNo => 'No';
+
+  @override
+  String get goalsListYourGoals => 'Your goals';
+
+  @override
+  String get goalsListOtherGoals => 'Other goals';
+
+  @override
+  String get goalsListEmptyTitle => 'No goals yet';
+
+  @override
+  String get goalsListEmptyBody =>
+      'Ask the coach below to build your first training plan.';
+
+  @override
+  String get goalsCardActive => 'ACTIVE';
+
+  @override
+  String get goalsCardDistance => 'DISTANCE';
+
+  @override
+  String get goalsCardGoalTime => 'GOAL TIME';
+
+  @override
+  String get goalsCardTarget => 'TARGET';
+
+  @override
+  String get goalsCardDaysLeft => 'DAYS LEFT';
+
+  @override
+  String get goalsCardPast => 'PAST';
+
+  @override
+  String get goalsCardRaceDay => 'RACE DAY';
+
+  @override
+  String goalsCardDaysToGo(int days) {
+    return '$days DAYS TO GO';
+  }
+
+  @override
+  String get goalsCardSwitch => 'Switch';
+
+  @override
+  String get goalsSwitchTitle => 'Switch active goal?';
+
+  @override
+  String goalsSwitchBody(String name) {
+    return 'Make \"$name\" your active goal. Your current active goal will be paused.';
+  }
+
+  @override
+  String get goalsSwitchToThis => 'Switch to this goal';
+
+  @override
+  String get goalsSwitchToThisBody =>
+      'Your current active goal will be paused.';
+
+  @override
+  String get goalsDeleteGoal => 'Delete goal';
+
+  @override
+  String goalsDeleteConfirmBody(String name) {
+    return 'Are you sure you want to delete \"$name\"?';
+  }
+
+  @override
+  String get goalsScheduleRowTitle => 'Training schedule';
+
+  @override
+  String get goalsScheduleRowSubtitle => 'Open your weekly plan';
 }

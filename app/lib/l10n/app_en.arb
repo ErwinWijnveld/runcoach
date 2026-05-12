@@ -353,5 +353,39 @@
   "schedWatchGenericError": "Something went wrong. Try again.",
   "schedWatchNothingToSendTitle": "Nothing to send",
   "schedWatchInvalidDateBody": "This training day has an invalid date — try refreshing the schedule.",
-  "schedWatchFailedTitle": "Couldn't send"
+  "schedWatchFailedTitle": "Couldn't send",
+
+  "commonDelete": "Delete",
+  "commonNo": "No",
+
+  "goalsListYourGoals": "Your goals",
+  "goalsListOtherGoals": "Other goals",
+  "goalsListEmptyTitle": "No goals yet",
+  "goalsListEmptyBody": "Ask the coach below to build your first training plan.",
+  "goalsCardActive": "ACTIVE",
+  "goalsCardDistance": "DISTANCE",
+  "goalsCardGoalTime": "GOAL TIME",
+  "goalsCardTarget": "TARGET",
+  "goalsCardDaysLeft": "DAYS LEFT",
+  "goalsCardPast": "PAST",
+  "goalsCardRaceDay": "RACE DAY",
+  "goalsCardDaysToGo": "{days} DAYS TO GO",
+  "@goalsCardDaysToGo": {
+    "placeholders": { "days": { "type": "int" } }
+  },
+  "goalsCardSwitch": "Switch",
+  "goalsSwitchTitle": "Switch active goal?",
+  "goalsSwitchBody": "Make \"{name}\" your active goal. Your current active goal will be paused.",
+  "@goalsSwitchBody": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "goalsSwitchToThis": "Switch to this goal",
+  "goalsSwitchToThisBody": "Your current active goal will be paused.",
+  "goalsDeleteGoal": "Delete goal",
+  "goalsDeleteConfirmBody": "Are you sure you want to delete \"{name}\"?",
+  "@goalsDeleteConfirmBody": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "goalsScheduleRowTitle": "Training schedule",
+  "goalsScheduleRowSubtitle": "Open your weekly plan"
 }

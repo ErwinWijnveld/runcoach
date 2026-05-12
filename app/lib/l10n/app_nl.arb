@@ -302,5 +302,30 @@
   "schedWatchGenericError": "Er ging iets mis. Probeer opnieuw.",
   "schedWatchNothingToSendTitle": "Niets om te sturen",
   "schedWatchInvalidDateBody": "Deze trainingsdag heeft een ongeldige datum — vernieuw het schema.",
-  "schedWatchFailedTitle": "Versturen mislukt"
+  "schedWatchFailedTitle": "Versturen mislukt",
+
+  "commonDelete": "Verwijder",
+  "commonNo": "Nee",
+
+  "goalsListYourGoals": "Jouw doelen",
+  "goalsListOtherGoals": "Andere doelen",
+  "goalsListEmptyTitle": "Nog geen doelen",
+  "goalsListEmptyBody": "Vraag de coach hieronder om je eerste trainingsplan te bouwen.",
+  "goalsCardActive": "ACTIEF",
+  "goalsCardDistance": "AFSTAND",
+  "goalsCardGoalTime": "DOELTIJD",
+  "goalsCardTarget": "DOEL",
+  "goalsCardDaysLeft": "DAGEN OVER",
+  "goalsCardPast": "VOORBIJ",
+  "goalsCardRaceDay": "WEDSTRIJDDAG",
+  "goalsCardDaysToGo": "NOG {days} DAGEN",
+  "goalsCardSwitch": "Wissel",
+  "goalsSwitchTitle": "Actief doel wisselen?",
+  "goalsSwitchBody": "Maak \"{name}\" je actieve doel. Je huidige actieve doel wordt gepauzeerd.",
+  "goalsSwitchToThis": "Wissel naar dit doel",
+  "goalsSwitchToThisBody": "Je huidige actieve doel wordt gepauzeerd.",
+  "goalsDeleteGoal": "Doel verwijderen",
+  "goalsDeleteConfirmBody": "Weet je zeker dat je \"{name}\" wilt verwijderen?",
+  "goalsScheduleRowTitle": "Trainingsschema",
+  "goalsScheduleRowSubtitle": "Open je weekplan"
 }

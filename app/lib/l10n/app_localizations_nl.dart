@@ -915,4 +915,81 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get schedWatchFailedTitle => 'Versturen mislukt';
+
+  @override
+  String get commonDelete => 'Verwijder';
+
+  @override
+  String get commonNo => 'Nee';
+
+  @override
+  String get goalsListYourGoals => 'Jouw doelen';
+
+  @override
+  String get goalsListOtherGoals => 'Andere doelen';
+
+  @override
+  String get goalsListEmptyTitle => 'Nog geen doelen';
+
+  @override
+  String get goalsListEmptyBody =>
+      'Vraag de coach hieronder om je eerste trainingsplan te bouwen.';
+
+  @override
+  String get goalsCardActive => 'ACTIEF';
+
+  @override
+  String get goalsCardDistance => 'AFSTAND';
+
+  @override
+  String get goalsCardGoalTime => 'DOELTIJD';
+
+  @override
+  String get goalsCardTarget => 'DOEL';
+
+  @override
+  String get goalsCardDaysLeft => 'DAGEN OVER';
+
+  @override
+  String get goalsCardPast => 'VOORBIJ';
+
+  @override
+  String get goalsCardRaceDay => 'WEDSTRIJDDAG';
+
+  @override
+  String goalsCardDaysToGo(int days) {
+    return 'NOG $days DAGEN';
+  }
+
+  @override
+  String get goalsCardSwitch => 'Wissel';
+
+  @override
+  String get goalsSwitchTitle => 'Actief doel wisselen?';
+
+  @override
+  String goalsSwitchBody(String name) {
+    return 'Maak \"$name\" je actieve doel. Je huidige actieve doel wordt gepauzeerd.';
+  }
+
+  @override
+  String get goalsSwitchToThis => 'Wissel naar dit doel';
+
+  @override
+  String get goalsSwitchToThisBody =>
+      'Je huidige actieve doel wordt gepauzeerd.';
+
+  @override
+  String get goalsDeleteGoal => 'Doel verwijderen';
+
+  @override
+  String goalsDeleteConfirmBody(String name) {
+    return 'Weet je zeker dat je \"$name\" wilt verwijderen?';
+  }
+
+  @override
+  String get goalsScheduleRowTitle => 'Trainingsschema';
+
+  @override
+  String get goalsScheduleRowSubtitle => 'Open je weekplan';
 }
