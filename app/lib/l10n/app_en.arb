@@ -430,5 +430,49 @@
   "orgInviteTitle": "You've been invited",
   "orgInviteBody": "Tap accept to join the organization. You can review your active membership in Connections.",
   "orgInviteAccept": "Accept invitation",
-  "orgInviteLater": "Not now"
+  "orgInviteLater": "Not now",
+
+  "coachChatListTitle": "Coach chat",
+  "coachChatListEmptyTitle": "No conversations yet",
+  "coachChatListEmptySubtitle": "Start a chat with your AI coach",
+  "coachChatNewTitle": "New Chat",
+  "coachChatDeleteErrorTitle": "Could not delete chat",
+  "coachChatDeleteErrorBody": "Please try again.",
+
+  "coachThinking": "Thinking",
+  "coachAskFullCoach": "Ask the full coach",
+
+  "coachProposalRevisionEyebrow": "PLAN REVISION",
+  "coachProposalChanges": "{count, plural, =1{1 change to your plan} other{{count} changes to your plan}}",
+  "@coachProposalChanges": {
+    "placeholders": { "count": { "type": "int", "format": "compact" } }
+  },
+  "coachProposalRevisionBody": "Tap below to review what changed before applying.",
+  "coachProposalWeeklyKm": "WEEKLY KM",
+  "coachProposalWeeklyRuns": "WEEKLY RUNS",
+  "coachProposalViewChanges": "VIEW CHANGES",
+  "coachProposalViewDetails": "VIEW DETAILS",
+  "coachProposalAccepted": "Plan accepted.",
+  "coachProposalRejected": "Rejected.",
+
+  "coachNewPlanCardCta": "Start a fresh training plan",
+  "coachNewPlanCardEyebrow": "NEW PLAN",
+  "coachNewPlanCardBody": "I'll walk you through your goal, target date, and weekly cadence — your synced run history is already there.",
+  "coachNewPlanCardButton": "START NEW PLAN",
+
+  "coachSuggestionCreatePlan": "Create a training plan",
+  "coachSuggestionCreatePlanSub": "For an upcoming race or new goal.",
+  "coachSuggestionAdjust": "Adjust my schedule",
+  "coachSuggestionAnalyze": "Analyze my progress",
+  "coachSuggestionAnalyzeSub": "How am I trending lately?",
+  "coachSuggestionAnalyzePrompt": "How is my training going? Give me an analysis of my progress.",
+  "coachSuggestionAdvice": "Training advice",
+  "coachSuggestionAdviceSub": "Pacing, recovery, nutrition, gear.",
+  "coachSuggestionAdvicePrompt": "Got any running advice for me today?",
+  "coachSuggestionCreatePlanPrompt": "I want to create a training plan for an upcoming race",
+  "coachSuggestionAdjustSub": "Tweak this week's plan.",
+  "coachSuggestionAdjustPrompt": "Can you adjust this week's training schedule?",
+
+  "coachEmptyStateTitle": "What can I help you with?",
+  "coachEmptyStateSubtitle": "I know your training history and can manage your schedule."
 }

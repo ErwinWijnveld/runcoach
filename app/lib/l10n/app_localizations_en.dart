@@ -1084,4 +1084,130 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get orgInviteLater => 'Not now';
+
+  @override
+  String get coachChatListTitle => 'Coach chat';
+
+  @override
+  String get coachChatListEmptyTitle => 'No conversations yet';
+
+  @override
+  String get coachChatListEmptySubtitle => 'Start a chat with your AI coach';
+
+  @override
+  String get coachChatNewTitle => 'New Chat';
+
+  @override
+  String get coachChatDeleteErrorTitle => 'Could not delete chat';
+
+  @override
+  String get coachChatDeleteErrorBody => 'Please try again.';
+
+  @override
+  String get coachThinking => 'Thinking';
+
+  @override
+  String get coachAskFullCoach => 'Ask the full coach';
+
+  @override
+  String get coachProposalRevisionEyebrow => 'PLAN REVISION';
+
+  @override
+  String coachProposalChanges(int count) {
+    final intl.NumberFormat countNumberFormat = intl.NumberFormat.compact(
+      locale: localeName,
+    );
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString changes to your plan',
+      one: '1 change to your plan',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get coachProposalRevisionBody =>
+      'Tap below to review what changed before applying.';
+
+  @override
+  String get coachProposalWeeklyKm => 'WEEKLY KM';
+
+  @override
+  String get coachProposalWeeklyRuns => 'WEEKLY RUNS';
+
+  @override
+  String get coachProposalViewChanges => 'VIEW CHANGES';
+
+  @override
+  String get coachProposalViewDetails => 'VIEW DETAILS';
+
+  @override
+  String get coachProposalAccepted => 'Plan accepted.';
+
+  @override
+  String get coachProposalRejected => 'Rejected.';
+
+  @override
+  String get coachNewPlanCardCta => 'Start a fresh training plan';
+
+  @override
+  String get coachNewPlanCardEyebrow => 'NEW PLAN';
+
+  @override
+  String get coachNewPlanCardBody =>
+      'I\'ll walk you through your goal, target date, and weekly cadence — your synced run history is already there.';
+
+  @override
+  String get coachNewPlanCardButton => 'START NEW PLAN';
+
+  @override
+  String get coachSuggestionCreatePlan => 'Create a training plan';
+
+  @override
+  String get coachSuggestionCreatePlanSub =>
+      'For an upcoming race or new goal.';
+
+  @override
+  String get coachSuggestionAdjust => 'Adjust my schedule';
+
+  @override
+  String get coachSuggestionAnalyze => 'Analyze my progress';
+
+  @override
+  String get coachSuggestionAnalyzeSub => 'How am I trending lately?';
+
+  @override
+  String get coachSuggestionAnalyzePrompt =>
+      'How is my training going? Give me an analysis of my progress.';
+
+  @override
+  String get coachSuggestionAdvice => 'Training advice';
+
+  @override
+  String get coachSuggestionAdviceSub => 'Pacing, recovery, nutrition, gear.';
+
+  @override
+  String get coachSuggestionAdvicePrompt =>
+      'Got any running advice for me today?';
+
+  @override
+  String get coachSuggestionCreatePlanPrompt =>
+      'I want to create a training plan for an upcoming race';
+
+  @override
+  String get coachSuggestionAdjustSub => 'Tweak this week\'s plan.';
+
+  @override
+  String get coachSuggestionAdjustPrompt =>
+      'Can you adjust this week\'s training schedule?';
+
+  @override
+  String get coachEmptyStateTitle => 'What can I help you with?';
+
+  @override
+  String get coachEmptyStateSubtitle =>
+      'I know your training history and can manage your schedule.';
 }

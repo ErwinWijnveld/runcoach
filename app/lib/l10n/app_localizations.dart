@@ -2053,6 +2053,216 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not now'**
   String get orgInviteLater;
+
+  /// No description provided for @coachChatListTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Coach chat'**
+  String get coachChatListTitle;
+
+  /// No description provided for @coachChatListEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No conversations yet'**
+  String get coachChatListEmptyTitle;
+
+  /// No description provided for @coachChatListEmptySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a chat with your AI coach'**
+  String get coachChatListEmptySubtitle;
+
+  /// No description provided for @coachChatNewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New Chat'**
+  String get coachChatNewTitle;
+
+  /// No description provided for @coachChatDeleteErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete chat'**
+  String get coachChatDeleteErrorTitle;
+
+  /// No description provided for @coachChatDeleteErrorBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Please try again.'**
+  String get coachChatDeleteErrorBody;
+
+  /// No description provided for @coachThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'Thinking'**
+  String get coachThinking;
+
+  /// No description provided for @coachAskFullCoach.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask the full coach'**
+  String get coachAskFullCoach;
+
+  /// No description provided for @coachProposalRevisionEyebrow.
+  ///
+  /// In en, this message translates to:
+  /// **'PLAN REVISION'**
+  String get coachProposalRevisionEyebrow;
+
+  /// No description provided for @coachProposalChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 change to your plan} other{{count} changes to your plan}}'**
+  String coachProposalChanges(int count);
+
+  /// No description provided for @coachProposalRevisionBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap below to review what changed before applying.'**
+  String get coachProposalRevisionBody;
+
+  /// No description provided for @coachProposalWeeklyKm.
+  ///
+  /// In en, this message translates to:
+  /// **'WEEKLY KM'**
+  String get coachProposalWeeklyKm;
+
+  /// No description provided for @coachProposalWeeklyRuns.
+  ///
+  /// In en, this message translates to:
+  /// **'WEEKLY RUNS'**
+  String get coachProposalWeeklyRuns;
+
+  /// No description provided for @coachProposalViewChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'VIEW CHANGES'**
+  String get coachProposalViewChanges;
+
+  /// No description provided for @coachProposalViewDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'VIEW DETAILS'**
+  String get coachProposalViewDetails;
+
+  /// No description provided for @coachProposalAccepted.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan accepted.'**
+  String get coachProposalAccepted;
+
+  /// No description provided for @coachProposalRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Rejected.'**
+  String get coachProposalRejected;
+
+  /// No description provided for @coachNewPlanCardCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a fresh training plan'**
+  String get coachNewPlanCardCta;
+
+  /// No description provided for @coachNewPlanCardEyebrow.
+  ///
+  /// In en, this message translates to:
+  /// **'NEW PLAN'**
+  String get coachNewPlanCardEyebrow;
+
+  /// No description provided for @coachNewPlanCardBody.
+  ///
+  /// In en, this message translates to:
+  /// **'I\'ll walk you through your goal, target date, and weekly cadence — your synced run history is already there.'**
+  String get coachNewPlanCardBody;
+
+  /// No description provided for @coachNewPlanCardButton.
+  ///
+  /// In en, this message translates to:
+  /// **'START NEW PLAN'**
+  String get coachNewPlanCardButton;
+
+  /// No description provided for @coachSuggestionCreatePlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a training plan'**
+  String get coachSuggestionCreatePlan;
+
+  /// No description provided for @coachSuggestionCreatePlanSub.
+  ///
+  /// In en, this message translates to:
+  /// **'For an upcoming race or new goal.'**
+  String get coachSuggestionCreatePlanSub;
+
+  /// No description provided for @coachSuggestionAdjust.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust my schedule'**
+  String get coachSuggestionAdjust;
+
+  /// No description provided for @coachSuggestionAnalyze.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyze my progress'**
+  String get coachSuggestionAnalyze;
+
+  /// No description provided for @coachSuggestionAnalyzeSub.
+  ///
+  /// In en, this message translates to:
+  /// **'How am I trending lately?'**
+  String get coachSuggestionAnalyzeSub;
+
+  /// No description provided for @coachSuggestionAnalyzePrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'How is my training going? Give me an analysis of my progress.'**
+  String get coachSuggestionAnalyzePrompt;
+
+  /// No description provided for @coachSuggestionAdvice.
+  ///
+  /// In en, this message translates to:
+  /// **'Training advice'**
+  String get coachSuggestionAdvice;
+
+  /// No description provided for @coachSuggestionAdviceSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Pacing, recovery, nutrition, gear.'**
+  String get coachSuggestionAdviceSub;
+
+  /// No description provided for @coachSuggestionAdvicePrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Got any running advice for me today?'**
+  String get coachSuggestionAdvicePrompt;
+
+  /// No description provided for @coachSuggestionCreatePlanPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'I want to create a training plan for an upcoming race'**
+  String get coachSuggestionCreatePlanPrompt;
+
+  /// No description provided for @coachSuggestionAdjustSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Tweak this week\'s plan.'**
+  String get coachSuggestionAdjustSub;
+
+  /// No description provided for @coachSuggestionAdjustPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Can you adjust this week\'s training schedule?'**
+  String get coachSuggestionAdjustPrompt;
+
+  /// No description provided for @coachEmptyStateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What can I help you with?'**
+  String get coachEmptyStateTitle;
+
+  /// No description provided for @coachEmptyStateSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'I know your training history and can manage your schedule.'**
+  String get coachEmptyStateSubtitle;
 }
 
 class _AppLocalizationsDelegate

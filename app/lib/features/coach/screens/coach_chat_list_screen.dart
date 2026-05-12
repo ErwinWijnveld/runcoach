@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Icons, InkWell, Material;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -31,7 +32,7 @@ class _CoachChatListScreenState extends ConsumerState<CoachChatListScreen> {
   Future<void> _createConversation({bool fromAutoCreate = false}) async {
     try {
       final api = ref.read(coachApiProvider);
-      final response = await api.createConversation({'title': 'New Chat'});
+      final response = await api.createConversation({'title': context.l10n.coachChatNewTitle});
       final id = response['data']['id'];
       ref.invalidate(conversationsProvider);
       if (mounted) context.push('/coach/chat/$id');
@@ -55,12 +56,12 @@ class _CoachChatListScreenState extends ConsumerState<CoachChatListScreen> {
         showCupertinoDialog<void>(
           context: context,
           builder: (ctx) => CupertinoAlertDialog(
-            title: const Text('Could not delete chat'),
-            content: const Text('Please try again.'),
+            title: Text(context.l10n.coachChatDeleteErrorTitle),
+            content: Text(context.l10n.coachChatDeleteErrorBody),
             actions: [
               CupertinoDialogAction(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('OK'),
+                child: Text(context.l10n.commonOk),
               ),
             ],
           ),
@@ -85,7 +86,7 @@ class _CoachChatListScreenState extends ConsumerState<CoachChatListScreen> {
               child: conversationsAsync.when(
                 loading: () => const AppSpinner(),
                 error: (err, _) => AppErrorState(
-                  title: 'Error: $err',
+                  title: context.l10n.commonErrorWithMessage(err.toString()),
                   onRetry: () => ref.invalidate(conversationsProvider),
                 ),
                 data: (conversations) {
@@ -145,7 +146,7 @@ class _ListBody extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Coach chat',
+                    context.l10n.coachChatListTitle,
                     style: RunCoreText.serifTitle(size: 38, height: 1.0),
                   ),
                 ),
@@ -321,7 +322,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'No conversations yet',
+              context.l10n.coachChatListEmptyTitle,
               style: GoogleFonts.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -330,7 +331,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Start a chat with your AI coach',
+              context.l10n.coachChatListEmptySubtitle,
               style: GoogleFonts.spaceGrotesk(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,

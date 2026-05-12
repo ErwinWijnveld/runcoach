@@ -358,5 +358,46 @@
   "orgInviteTitle": "Je bent uitgenodigd",
   "orgInviteBody": "Tik op accepteren om lid te worden van de organisatie. Bekijk je actieve lidmaatschap onder Verbindingen.",
   "orgInviteAccept": "Uitnodiging accepteren",
-  "orgInviteLater": "Niet nu"
+  "orgInviteLater": "Niet nu",
+
+  "coachChatListTitle": "Coach-chat",
+  "coachChatListEmptyTitle": "Nog geen gesprekken",
+  "coachChatListEmptySubtitle": "Start een chat met je AI-coach",
+  "coachChatNewTitle": "Nieuwe chat",
+  "coachChatDeleteErrorTitle": "Chat verwijderen mislukt",
+  "coachChatDeleteErrorBody": "Probeer opnieuw.",
+
+  "coachThinking": "Aan het denken",
+  "coachAskFullCoach": "Vraag de volledige coach",
+
+  "coachProposalRevisionEyebrow": "PLAN-AANPASSING",
+  "coachProposalChanges": "{count, plural, =1{1 wijziging in je plan} other{{count} wijzigingen in je plan}}",
+  "coachProposalRevisionBody": "Tik hieronder om te bekijken wat is gewijzigd vóór toepassen.",
+  "coachProposalWeeklyKm": "KM PER WEEK",
+  "coachProposalWeeklyRuns": "RUNS PER WEEK",
+  "coachProposalViewChanges": "BEKIJK WIJZIGINGEN",
+  "coachProposalViewDetails": "BEKIJK DETAILS",
+  "coachProposalAccepted": "Plan geaccepteerd.",
+  "coachProposalRejected": "Afgewezen.",
+
+  "coachNewPlanCardCta": "Start een nieuw trainingsplan",
+  "coachNewPlanCardEyebrow": "NIEUW PLAN",
+  "coachNewPlanCardBody": "Ik loop met je door je doel, datum en weekritme — je gesynchroniseerde rungeschiedenis is er al.",
+  "coachNewPlanCardButton": "START NIEUW PLAN",
+
+  "coachSuggestionCreatePlan": "Maak een trainingsplan",
+  "coachSuggestionCreatePlanSub": "Voor een aankomende wedstrijd of nieuw doel.",
+  "coachSuggestionAdjust": "Pas mijn schema aan",
+  "coachSuggestionAnalyze": "Analyseer mijn voortgang",
+  "coachSuggestionAnalyzeSub": "Hoe gaat het de laatste tijd?",
+  "coachSuggestionAnalyzePrompt": "Hoe gaat mijn training? Geef me een analyse van mijn voortgang.",
+  "coachSuggestionAdvice": "Trainingsadvies",
+  "coachSuggestionAdviceSub": "Tempo, herstel, voeding, gear.",
+  "coachSuggestionAdvicePrompt": "Heb je vandaag nog hardloopadvies voor me?",
+  "coachSuggestionCreatePlanPrompt": "Ik wil een trainingsplan maken voor een aankomende wedstrijd",
+  "coachSuggestionAdjustSub": "Pas het plan van deze week aan.",
+  "coachSuggestionAdjustPrompt": "Kun je mijn trainingsschema voor deze week aanpassen?",
+
+  "coachEmptyStateTitle": "Waar kan ik mee helpen?",
+  "coachEmptyStateSubtitle": "Ik ken je trainingshistorie en kan je schema beheren."
 }

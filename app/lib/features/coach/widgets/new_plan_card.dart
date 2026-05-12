@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 
 /// In-chat CTA rendered when the coach agent calls `propose_new_plan_card`.
@@ -16,6 +17,7 @@ class NewPlanCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 296),
       child: Container(
@@ -36,7 +38,7 @@ class NewPlanCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                'NEW PLAN',
+                l10n.coachNewPlanCardEyebrow,
                 style: GoogleFonts.spaceGrotesk(
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
@@ -47,7 +49,7 @@ class NewPlanCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Start a fresh training plan',
+              l10n.coachNewPlanCardCta,
               style: GoogleFonts.ebGaramond(
                 fontSize: 22,
                 fontWeight: FontWeight.w500,
@@ -58,8 +60,7 @@ class NewPlanCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              "I'll walk you through your goal, target date, and weekly "
-              'cadence — your synced run history is already there.',
+              l10n.coachNewPlanCardBody,
               style: GoogleFonts.publicSans(
                 fontSize: 13,
                 color: AppColors.inkMuted,
@@ -90,7 +91,7 @@ class NewPlanCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      'START NEW PLAN',
+                      l10n.coachNewPlanCardButton,
                       style: GoogleFonts.spaceGrotesk(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,

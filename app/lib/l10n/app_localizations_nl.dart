@@ -1086,4 +1086,130 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get orgInviteLater => 'Niet nu';
+
+  @override
+  String get coachChatListTitle => 'Coach-chat';
+
+  @override
+  String get coachChatListEmptyTitle => 'Nog geen gesprekken';
+
+  @override
+  String get coachChatListEmptySubtitle => 'Start een chat met je AI-coach';
+
+  @override
+  String get coachChatNewTitle => 'Nieuwe chat';
+
+  @override
+  String get coachChatDeleteErrorTitle => 'Chat verwijderen mislukt';
+
+  @override
+  String get coachChatDeleteErrorBody => 'Probeer opnieuw.';
+
+  @override
+  String get coachThinking => 'Aan het denken';
+
+  @override
+  String get coachAskFullCoach => 'Vraag de volledige coach';
+
+  @override
+  String get coachProposalRevisionEyebrow => 'PLAN-AANPASSING';
+
+  @override
+  String coachProposalChanges(int count) {
+    final intl.NumberFormat countNumberFormat = intl.NumberFormat.compact(
+      locale: localeName,
+    );
+    final String countString = countNumberFormat.format(count);
+
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countString wijzigingen in je plan',
+      one: '1 wijziging in je plan',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get coachProposalRevisionBody =>
+      'Tik hieronder om te bekijken wat is gewijzigd vóór toepassen.';
+
+  @override
+  String get coachProposalWeeklyKm => 'KM PER WEEK';
+
+  @override
+  String get coachProposalWeeklyRuns => 'RUNS PER WEEK';
+
+  @override
+  String get coachProposalViewChanges => 'BEKIJK WIJZIGINGEN';
+
+  @override
+  String get coachProposalViewDetails => 'BEKIJK DETAILS';
+
+  @override
+  String get coachProposalAccepted => 'Plan geaccepteerd.';
+
+  @override
+  String get coachProposalRejected => 'Afgewezen.';
+
+  @override
+  String get coachNewPlanCardCta => 'Start een nieuw trainingsplan';
+
+  @override
+  String get coachNewPlanCardEyebrow => 'NIEUW PLAN';
+
+  @override
+  String get coachNewPlanCardBody =>
+      'Ik loop met je door je doel, datum en weekritme — je gesynchroniseerde rungeschiedenis is er al.';
+
+  @override
+  String get coachNewPlanCardButton => 'START NIEUW PLAN';
+
+  @override
+  String get coachSuggestionCreatePlan => 'Maak een trainingsplan';
+
+  @override
+  String get coachSuggestionCreatePlanSub =>
+      'Voor een aankomende wedstrijd of nieuw doel.';
+
+  @override
+  String get coachSuggestionAdjust => 'Pas mijn schema aan';
+
+  @override
+  String get coachSuggestionAnalyze => 'Analyseer mijn voortgang';
+
+  @override
+  String get coachSuggestionAnalyzeSub => 'Hoe gaat het de laatste tijd?';
+
+  @override
+  String get coachSuggestionAnalyzePrompt =>
+      'Hoe gaat mijn training? Geef me een analyse van mijn voortgang.';
+
+  @override
+  String get coachSuggestionAdvice => 'Trainingsadvies';
+
+  @override
+  String get coachSuggestionAdviceSub => 'Tempo, herstel, voeding, gear.';
+
+  @override
+  String get coachSuggestionAdvicePrompt =>
+      'Heb je vandaag nog hardloopadvies voor me?';
+
+  @override
+  String get coachSuggestionCreatePlanPrompt =>
+      'Ik wil een trainingsplan maken voor een aankomende wedstrijd';
+
+  @override
+  String get coachSuggestionAdjustSub => 'Pas het plan van deze week aan.';
+
+  @override
+  String get coachSuggestionAdjustPrompt =>
+      'Kun je mijn trainingsschema voor deze week aanpassen?';
+
+  @override
+  String get coachEmptyStateTitle => 'Waar kan ik mee helpen?';
+
+  @override
+  String get coachEmptyStateSubtitle =>
+      'Ik ken je trainingshistorie en kan je schema beheren.';
 }

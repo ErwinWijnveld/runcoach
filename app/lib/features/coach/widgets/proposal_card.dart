@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/coach/models/coach_proposal.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -22,6 +23,7 @@ class ProposalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final diff = _diff;
     final isRevision = diff != null;
     final weeklyKm = _computeWeeklyKm(proposal.payload);
@@ -49,7 +51,7 @@ class ProposalCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
-                  'PLAN REVISION',
+                  l10n.coachProposalRevisionEyebrow,
                   style: GoogleFonts.spaceGrotesk(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
@@ -60,7 +62,7 @@ class ProposalCard extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                '$changeCount ${changeCount == 1 ? 'change' : 'changes'} to your plan',
+                l10n.coachProposalChanges(changeCount),
                 style: GoogleFonts.inter(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
@@ -69,7 +71,7 @@ class ProposalCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Tap below to review what changed before applying.',
+                l10n.coachProposalRevisionBody,
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   color: AppColors.inkMuted,
@@ -78,9 +80,9 @@ class ProposalCard extends StatelessWidget {
               ),
             ] else ...[
               Row(children: [
-                Expanded(child: _summaryItem('WEEKLY KM', '${weeklyKm.toStringAsFixed(1)} km')),
+                Expanded(child: _summaryItem(l10n.coachProposalWeeklyKm, '${weeklyKm.toStringAsFixed(1)} km')),
                 const SizedBox(width: 32),
-                Expanded(child: _summaryItem('WEEKLY RUNS', weeklyRuns)),
+                Expanded(child: _summaryItem(l10n.coachProposalWeeklyRuns, weeklyRuns)),
               ]),
             ],
             const SizedBox(height: 20),
@@ -111,7 +113,7 @@ class ProposalCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      isRevision ? 'VIEW CHANGES' : 'VIEW DETAILS',
+                      isRevision ? l10n.coachProposalViewChanges : l10n.coachProposalViewDetails,
                       style: GoogleFonts.spaceGrotesk(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -125,7 +127,7 @@ class ProposalCard extends StatelessWidget {
             if (!_isPending) ...[
               const SizedBox(height: 8),
               Text(
-                proposal.status == 'accepted' ? 'Plan accepted.' : 'Rejected.',
+                proposal.status == 'accepted' ? l10n.coachProposalAccepted : l10n.coachProposalRejected,
                 style: const TextStyle(color: AppColors.inkMuted),
               ),
             ],

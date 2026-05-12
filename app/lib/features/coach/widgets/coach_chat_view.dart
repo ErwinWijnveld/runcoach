@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
+import 'package:app/l10n/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
@@ -105,7 +107,7 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
         Expanded(
           child: messagesAsync.when(
             loading: () => const AppSpinner(),
-            error: (err, _) => AppErrorState(title: 'Error: $err'),
+            error: (err, _) => AppErrorState(title: context.l10n.commonErrorWithMessage(err.toString())),
             data: (messages) {
               if (messages.isEmpty) {
                 return _EmptyState(
@@ -227,36 +229,38 @@ class _EmptyState extends StatelessWidget {
     this.subtitle,
   });
 
-  static const _defaultSuggestions = [
+  List<({IconData icon, String label, String subtitle, String prompt})>
+      _defaultSuggestionsFor(AppLocalizations l) => [
     (
       icon: CupertinoIcons.bolt_fill,
-      label: 'Create a training plan',
-      subtitle: 'For an upcoming race or new goal.',
-      prompt: 'I want to create a training plan for an upcoming race',
+      label: l.coachSuggestionCreatePlan,
+      subtitle: l.coachSuggestionCreatePlanSub,
+      prompt: l.coachSuggestionCreatePlanPrompt,
     ),
     (
       icon: CupertinoIcons.slider_horizontal_3,
-      label: 'Adjust my schedule',
-      subtitle: "Tweak this week's plan.",
-      prompt: "Can you adjust this week's training schedule?",
+      label: l.coachSuggestionAdjust,
+      subtitle: l.coachSuggestionAdjustSub,
+      prompt: l.coachSuggestionAdjustPrompt,
     ),
     (
       icon: CupertinoIcons.chart_bar_alt_fill,
-      label: 'Analyze my progress',
-      subtitle: 'How am I trending lately?',
-      prompt: 'How is my training going? Give me an analysis of my progress.',
+      label: l.coachSuggestionAnalyze,
+      subtitle: l.coachSuggestionAnalyzeSub,
+      prompt: l.coachSuggestionAnalyzePrompt,
     ),
     (
       icon: CupertinoIcons.lightbulb_fill,
-      label: 'Training advice',
-      subtitle: 'Pacing, recovery, nutrition, gear.',
-      prompt: 'Got any running advice for me today?',
+      label: l.coachSuggestionAdvice,
+      subtitle: l.coachSuggestionAdviceSub,
+      prompt: l.coachSuggestionAdvicePrompt,
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
-    final tiles = suggestions ?? _defaultSuggestions;
+    final l10n = context.l10n;
+    final tiles = suggestions ?? _defaultSuggestionsFor(l10n);
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 32, 20, 24),
@@ -264,14 +268,13 @@ class _EmptyState extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            title ?? "What can I help you with?",
+            title ?? l10n.coachEmptyStateTitle,
             style: RunCoreText.serifTitle(size: 32).copyWith(height: 1.15),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
           Text(
-            subtitle ??
-                'I know your training history and can manage your schedule.',
+            subtitle ?? l10n.coachEmptyStateSubtitle,
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 15,
@@ -336,7 +339,7 @@ class _HandoffCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Ask the full coach',
+                    context.l10n.coachAskFullCoach,
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,

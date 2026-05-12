@@ -1,14 +1,16 @@
 import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/coach/widgets/swooshing_star.dart';
 
 /// Coach loading card — shown while the agent is working before it emits
-/// its first streamed text.
+/// its first streamed text. Pass null for the default localized
+/// "Thinking" label.
 class ThinkingCard extends StatefulWidget {
-  final String label;
+  final String? label;
 
-  const ThinkingCard({super.key, this.label = 'Thinking'});
+  const ThinkingCard({super.key, this.label});
 
   @override
   State<ThinkingCard> createState() => _ThinkingCardState();
@@ -83,7 +85,7 @@ class _ThinkingCardState extends State<ThinkingCard>
                 const SizedBox(width: 12),
                 Flexible(
                   child: Text(
-                    widget.label,
+                    widget.label ?? context.l10n.coachThinking,
                     style: GoogleFonts.ebGaramond(
                       fontSize: 16,
                       fontWeight: FontWeight.w400,
