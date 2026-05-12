@@ -155,8 +155,17 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
                             // chat input. The agent's AdjustPlan tool will
                             // auto-target the still-pending proposal when
                             // the runner types their tweak — no need to
-                            // proactively reject anything.
-                            onAdjust: () async {
+                            // proactively reject anything. The optional
+                            // `prefill` carries text (e.g. "make this more
+                            // realistic") from the red Adjust-goal CTA on
+                            // the feasibility section.
+                            onAdjust: ({String? prefill}) async {
+                              if (prefill != null && prefill.isNotEmpty) {
+                                _controller.text = prefill;
+                                _controller.selection = TextSelection.collapsed(
+                                  offset: _controller.text.length,
+                                );
+                              }
                               _inputFocus.requestFocus();
                             },
                           ),

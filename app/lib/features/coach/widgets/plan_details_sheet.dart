@@ -11,7 +11,7 @@ import 'package:app/features/coach/widgets/plan_revision_content.dart';
 class PlanDetailsSheet extends StatelessWidget {
   final CoachProposal proposal;
   final Future<void> Function()? onAccept;
-  final Future<void> Function()? onAdjust;
+  final Future<void> Function({String? prefill})? onAdjust;
 
   const PlanDetailsSheet({
     super.key,
@@ -24,7 +24,7 @@ class PlanDetailsSheet extends StatelessWidget {
     BuildContext context, {
     required CoachProposal proposal,
     Future<void> Function()? onAccept,
-    Future<void> Function()? onAdjust,
+    Future<void> Function({String? prefill})? onAdjust,
   }) {
     return showModalBottomSheet(
       context: context,
@@ -671,7 +671,7 @@ class _StickyFooter extends StatelessWidget {
   final bool isPending;
   final bool isRevision;
   final Future<void> Function()? onAccept;
-  final Future<void> Function()? onAdjust;
+  final Future<void> Function({String? prefill})? onAdjust;
 
   const _StickyFooter({
     required this.isPending,
