@@ -32,6 +32,7 @@ enum _Step {
   preferredWeekdays,
   runTypePreferences,
   coachStyle,
+  runnerLevel,
   intensity,
   review,
 }
@@ -48,6 +49,7 @@ List<_Step> _flowFor(OnboardingGoalType? goalType) {
         _Step.preferredWeekdays,
         _Step.runTypePreferences,
         _Step.coachStyle,
+        _Step.runnerLevel,
         _Step.intensity,
         _Step.review,
       ],
@@ -60,6 +62,7 @@ List<_Step> _flowFor(OnboardingGoalType? goalType) {
         _Step.preferredWeekdays,
         _Step.runTypePreferences,
         _Step.coachStyle,
+        _Step.runnerLevel,
         _Step.intensity,
         _Step.review,
       ],
@@ -71,6 +74,7 @@ List<_Step> _flowFor(OnboardingGoalType? goalType) {
         _Step.preferredWeekdays,
         _Step.runTypePreferences,
         _Step.coachStyle,
+        _Step.runnerLevel,
         _Step.intensity,
         _Step.review,
       ],
@@ -109,6 +113,7 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
     'preferred_weekdays': _Step.preferredWeekdays,
     'run_type_preferences': _Step.runTypePreferences,
     'coach_style': _Step.coachStyle,
+    'runner_level': _Step.runnerLevel,
     'intensity': _Step.intensity,
     'review': _Step.review,
   };
@@ -234,6 +239,13 @@ class _OnboardingFormScreenState extends ConsumerState<OnboardingFormScreen> {
           onBack: _goBack,
         ),
       _Step.coachStyle => _CoachStyleStep(
+          stepIndex: safeIndex,
+          stepCount: flow.length,
+          form: form,
+          onContinue: _advance,
+          onBack: _goBack,
+        ),
+      _Step.runnerLevel => _RunnerLevelStep(
           stepIndex: safeIndex,
           stepCount: flow.length,
           form: form,
@@ -1381,6 +1393,76 @@ class _CoachStyleStepState extends ConsumerState<_CoachStyleStep> {
   }
 }
 
+// ---- Step: runner level ----
+
+class _RunnerLevelStep extends ConsumerStatefulWidget {
+  final int stepIndex;
+  final int stepCount;
+  final OnboardingFormData form;
+  final VoidCallback onContinue;
+  final VoidCallback onBack;
+
+  const _RunnerLevelStep({
+    required this.stepIndex,
+    required this.stepCount,
+    required this.form,
+    required this.onContinue,
+    required this.onBack,
+  });
+
+  @override
+  ConsumerState<_RunnerLevelStep> createState() => _RunnerLevelStepState();
+}
+
+class _RunnerLevelStepState extends ConsumerState<_RunnerLevelStep> {
+  @override
+  Widget build(BuildContext context) {
+    final notifier = ref.read(onboardingFormProvider.notifier);
+    final selected = widget.form.runnerLevel;
+
+    return StepScaffold(
+      stepIndex: widget.stepIndex,
+      stepCount: widget.stepCount,
+      title: 'How would you describe your running?',
+      subtitle: 'This helps us tailor how we explain things.',
+      canContinue: true,
+      onContinue: widget.onContinue,
+      onBack: widget.onBack,
+      child: ChoiceGroup<RunnerLevel>(
+        options: const [
+          ChoiceOption(
+            value: RunnerLevel.beginner,
+            label: 'Beginner',
+            subtitle: 'Just started or returning',
+          ),
+          ChoiceOption(
+            value: RunnerLevel.intermediate,
+            label: 'Intermediate',
+            subtitle: 'Run regularly, race occasionally',
+          ),
+          ChoiceOption(
+            value: RunnerLevel.advanced,
+            label: 'Advanced',
+            subtitle: 'Know your zones, race seriously',
+          ),
+          ChoiceOption(
+            value: RunnerLevel.subElite,
+            label: 'Sub-Elite',
+            subtitle: 'Structured training, competitive',
+          ),
+          ChoiceOption(
+            value: RunnerLevel.elite,
+            label: 'Elite',
+            subtitle: 'Sponsored or top-level competing',
+          ),
+        ],
+        selected: selected,
+        onSelected: notifier.setRunnerLevel,
+      ),
+    );
+  }
+}
+
 // ---- Step: intensity bias ----
 
 class _IntensityStep extends ConsumerStatefulWidget {
@@ -1566,6 +1648,8 @@ class _ReviewStepState extends ConsumerState<_ReviewStep> {
                   ),
                 if (form.coachStyle != null)
                   _reviewRow('Coach style', _coachStyleLabel(form.coachStyle!)),
+                if (form.runnerLevel != RunnerLevel.intermediate)
+                  _reviewRow('Running level', _runnerLevelLabel(form.runnerLevel)),
                 if (form.intensityBias != IntensityBias.standard)
                   _reviewRow('Intensity', _intensityLabel(form.intensityBias)),
                 if (form.notes != null && form.notes!.isNotEmpty)
@@ -1657,6 +1741,14 @@ class _ReviewStepState extends ConsumerState<_ReviewStep> {
         IntensityBias.takeItEasy => 'Take it easy',
         IntensityBias.standard => 'Standard',
         IntensityBias.pushMeHarder => 'Push me harder',
+      };
+
+  String _runnerLevelLabel(RunnerLevel level) => switch (level) {
+        RunnerLevel.beginner => 'Beginner',
+        RunnerLevel.intermediate => 'Intermediate',
+        RunnerLevel.advanced => 'Advanced',
+        RunnerLevel.subElite => 'Sub-Elite',
+        RunnerLevel.elite => 'Elite',
       };
 
   String _weekdaysLabel(List<int> days) {
