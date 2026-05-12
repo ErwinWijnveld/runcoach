@@ -50,12 +50,19 @@ class PlanDetailsSheet extends StatelessWidget {
         .toList();
   }
 
+  Map<String, dynamic>? _ambition(Map<String, dynamic> payload) {
+    final raw = payload['ambition'];
+    if (raw is! Map) return null;
+    return Map<String, dynamic>.from(raw);
+  }
+
   @override
   Widget build(BuildContext context) {
     final ops = _diffOps;
     final weeks = _weeks(proposal.payload);
     final avgKm = _averageWeeklyKm(weeks);
     final runsRange = _weeklyRunsRange(weeks);
+    final ambition = _ambition(proposal.payload);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.9,
@@ -94,6 +101,10 @@ class PlanDetailsSheet extends StatelessWidget {
                       if (ops != null) ...[
                         PlanRevisionContent(ops: ops),
                       ] else ...[
+                        if (ambition != null) ...[
+                          _FeasibilityZoneBar(ambition: ambition),
+                          const SizedBox(height: 20),
+                        ],
                         _TopStats(
                           totalWeeks: weeks.length,
                           avgWeeklyKm: avgKm,
@@ -927,4 +938,154 @@ class _VolumePainter extends CustomPainter {
       old.points.length != points.length ||
       old.maxKm != maxKm ||
       old.minKm != minKm;
+}
+
+/// Feasibility verdict + horizontal zone-bar. Reads `proposal.payload['ambition']`
+/// — a map produced by `AmbitionAssessment::toFeasibilityPayload()` on the
+/// backend. Renders nothing when the key is absent (no measurable goal).
+class _FeasibilityZoneBar extends StatelessWidget {
+  final Map<String, dynamic> ambition;
+  const _FeasibilityZoneBar({required this.ambition});
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (ambition['feasibility_pct'] as num?)?.toInt() ?? 0;
+    final zone = ambition['verdict_zone'] as String? ?? 'ok';
+    final label = ambition['verdict_label'] as String? ?? '';
+    final detail = ambition['detail'] as String? ?? '';
+
+    final isUnrealistic = zone == 'unrealistic';
+    final bgColor = isUnrealistic ? AppColors.dangerBg : AppColors.lightTan;
+    final pctColor = switch (zone) {
+      'ok' => AppColors.success,
+      'stretch' => AppColors.secondary,
+      'unrealistic' => AppColors.danger,
+      _ => AppColors.primaryInk,
+    };
+
+    final clampedPct = pct.clamp(0, 100);
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  style: GoogleFonts.ebGaramond(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w500,
+                    fontStyle: FontStyle.italic,
+                    color: isUnrealistic ? AppColors.danger : AppColors.primaryInk,
+                    height: 1.15,
+                  ),
+                ),
+              ),
+              Text(
+                '$clampedPct%',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                  color: pctColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = constraints.maxWidth;
+              final markerLeft =
+                  (width * clampedPct / 100).clamp(0.0, width - 4);
+              return SizedBox(
+                height: 22,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned(
+                      top: 4,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        height: 14,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          gradient: const LinearGradient(
+                            colors: [
+                              Color(0xFFC24A2C),
+                              Color(0xFFC24A2C),
+                              Color(0xFFE0B044),
+                              Color(0xFFE0B044),
+                              Color(0xFF6FAA59),
+                              Color(0xFF6FAA59),
+                            ],
+                            stops: [0.0, 0.35, 0.35, 0.70, 0.70, 1.0],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 0,
+                      left: markerLeft,
+                      child: Container(
+                        width: 4,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryInk,
+                          borderRadius: BorderRadius.circular(2),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Colors.white,
+                              blurRadius: 0,
+                              spreadRadius: 3,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _axisLabel('Onhaalbaar'),
+              _axisLabel('Stretch'),
+              _axisLabel('Goed'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            detail,
+            style: GoogleFonts.publicSans(
+              fontSize: 12.5,
+              height: 1.45,
+              color: AppColors.inkMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _axisLabel(String text) => Text(
+        text,
+        style: GoogleFonts.spaceGrotesk(
+          fontSize: 9,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.6,
+          color: AppColors.inkMuted,
+        ),
+      );
 }
