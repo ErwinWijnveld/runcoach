@@ -8,9 +8,11 @@ import 'package:flutter/material.dart'
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/utils/date_formatter.dart';
 import 'package:app/features/onboarding/models/onboarding_form_data.dart';
+import 'package:app/l10n/app_localizations.dart';
 import 'package:app/features/onboarding/providers/onboarding_form_provider.dart';
 import 'package:app/features/onboarding/widgets/choice_group.dart';
 import 'package:app/features/onboarding/widgets/intensity_bias_chart.dart';
@@ -304,6 +306,7 @@ class _GoalTypeStepState extends ConsumerState<_GoalTypeStep> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final notifier = ref.read(onboardingFormProvider.notifier);
     final goalType = widget.form.goalType;
 
@@ -314,8 +317,8 @@ class _GoalTypeStepState extends ConsumerState<_GoalTypeStep> {
     return StepScaffold(
       stepIndex: widget.stepIndex,
       stepCount: widget.stepCount,
-      title: "What are you training for?",
-      subtitle: "We'll tailor the plan around your answer.",
+      title: l10n.onbFormGoalTypeTitle,
+      subtitle: l10n.onbFormGoalTypeSubtitle,
       canContinue: canContinue,
       onContinue: () {
         if (_otherSelected) {
@@ -326,26 +329,26 @@ class _GoalTypeStepState extends ConsumerState<_GoalTypeStep> {
       },
       onBack: widget.onBack,
       child: ChoiceGroup<OnboardingGoalType>(
-        options: const [
+        options: [
           ChoiceOption(
             value: OnboardingGoalType.race,
-            label: 'Train for a race',
-            subtitle: 'You\'ve got a specific event on the horizon.',
+            label: l10n.onbFormGoalTypeRaceLabel,
+            subtitle: l10n.onbFormGoalTypeRaceSubtitle,
           ),
           ChoiceOption(
             value: OnboardingGoalType.pr,
-            label: 'Get faster at a distance',
-            subtitle: 'Go after a personal record.',
+            label: l10n.onbFormGoalTypePrLabel,
+            subtitle: l10n.onbFormGoalTypePrSubtitle,
           ),
           ChoiceOption(
             value: OnboardingGoalType.fitness,
-            label: 'General fitness',
-            subtitle: 'Run regularly, no specific target.',
+            label: l10n.onbFormGoalTypeFitnessLabel,
+            subtitle: l10n.onbFormGoalTypeFitnessSubtitle,
           ),
           ChoiceOption(
             value: OnboardingGoalType.weightLoss,
-            label: 'Weight loss',
-            subtitle: 'Consistent running to steadily drop weight.',
+            label: l10n.onbFormGoalTypeWeightLossLabel,
+            subtitle: l10n.onbFormGoalTypeWeightLossSubtitle,
           ),
         ],
         selected: _otherSelected ? null : goalType,
@@ -360,7 +363,7 @@ class _GoalTypeStepState extends ConsumerState<_GoalTypeStep> {
         }),
         otherChild: _NotesField(
           controller: _notesCtrl,
-          hint: "Describe what you're after…",
+          hint: l10n.onbFormGoalTypeOtherHint,
           onChanged: (_) => setState(() {}),
         ),
       ),
@@ -426,6 +429,7 @@ class _DistanceStepState extends ConsumerState<_DistanceStep> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final notifier = ref.read(onboardingFormProvider.notifier);
     final selected = _otherSelected ? null : widget.form.distanceMeters;
 
@@ -435,8 +439,8 @@ class _DistanceStepState extends ConsumerState<_DistanceStep> {
     return StepScaffold(
       stepIndex: widget.stepIndex,
       stepCount: widget.stepCount,
-      title: 'What distance?',
-      subtitle: 'Pick the race or target distance.',
+      title: l10n.onbFormDistanceTitle,
+      subtitle: l10n.onbFormDistanceSubtitle,
       canContinue: canContinue,
       onContinue: () {
         if (_otherSelected) {
@@ -447,11 +451,11 @@ class _DistanceStepState extends ConsumerState<_DistanceStep> {
       },
       onBack: widget.onBack,
       child: ChoiceGroup<int>(
-        options: const [
-          ChoiceOption(value: 5000, label: '5K'),
-          ChoiceOption(value: 10000, label: '10K'),
-          ChoiceOption(value: 21097, label: 'Half marathon'),
-          ChoiceOption(value: 42195, label: 'Marathon'),
+        options: [
+          ChoiceOption(value: 5000, label: l10n.onbFormDistance5k),
+          ChoiceOption(value: 10000, label: l10n.onbFormDistance10k),
+          ChoiceOption(value: 21097, label: l10n.onbFormDistanceHalf),
+          ChoiceOption(value: 42195, label: l10n.onbFormDistanceMarathon),
         ],
         selected: selected,
         onSelected: (v) {
@@ -464,7 +468,7 @@ class _DistanceStepState extends ConsumerState<_DistanceStep> {
         }),
         otherChild: _NumberField(
           controller: _kmCtrl,
-          hint: 'Distance in kilometers',
+          hint: l10n.onbFormDistanceOtherHint,
           suffix: 'km',
           onChanged: (_) => setState(() {}),
         ),
@@ -506,14 +510,15 @@ class _RaceNameStepState extends ConsumerState<_RaceNameStep> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final notifier = ref.read(onboardingFormProvider.notifier);
     final canContinue = _ctrl.text.trim().isNotEmpty;
 
     return StepScaffold(
       stepIndex: widget.stepIndex,
       stepCount: widget.stepCount,
-      title: "What's the race called?",
-      subtitle: "Anything goes, we just use it as a label.",
+      title: l10n.onbFormRaceNameTitle,
+      subtitle: l10n.onbFormRaceNameSubtitle,
       canContinue: canContinue,
       onSkip: () {
         notifier.setGoalName(null);
@@ -526,7 +531,7 @@ class _RaceNameStepState extends ConsumerState<_RaceNameStep> {
       onBack: widget.onBack,
       child: _TextField(
         controller: _ctrl,
-        hint: 'Rotterdam Marathon',
+        hint: l10n.onbFormRaceNameHint,
         onChanged: (_) => setState(() {}),
       ),
     );
@@ -570,11 +575,12 @@ class _RaceDateStepState extends ConsumerState<_RaceDateStep> {
     final today = DateTime.now();
     final minDate = DateTime(today.year, today.month, today.day).add(const Duration(days: 14));
 
+    final l10n = context.l10n;
     return StepScaffold(
       stepIndex: widget.stepIndex,
       stepCount: widget.stepCount,
-      title: "When's race day?",
-      subtitle: 'We need at least a couple weeks to build a proper plan.',
+      title: l10n.onbFormRaceDateTitle,
+      subtitle: l10n.onbFormRaceDateSubtitle,
       canContinue: _selected.isAfter(today),
       onContinue: () {
         notifier.setTargetDate(_formatIso(_selected));
@@ -647,11 +653,12 @@ class _GoalTimeStepState extends ConsumerState<_GoalTimeStep> {
     final notifier = ref.read(onboardingFormProvider.notifier);
     final parsed = parseGoalTimeInput(_ctrl.text, widget.form.distanceMeters);
 
+    final l10n = context.l10n;
     return StepScaffold(
       stepIndex: widget.stepIndex,
       stepCount: widget.stepCount,
-      title: 'What goal time or pace are you aiming for?',
-      subtitle: 'Enter it however feels natural, we parse it.',
+      title: l10n.onbFormGoalTimeTitle,
+      subtitle: l10n.onbFormGoalTimeSubtitle,
       canContinue: parsed != null,
       onSkip: () {
         widget.onContinue();
@@ -666,7 +673,7 @@ class _GoalTimeStepState extends ConsumerState<_GoalTimeStep> {
         children: [
           _TextField(
             controller: _ctrl,
-            hint: 'e.g. 1:45:00, 25:30, or 5:30/km',
+            hint: l10n.onbFormGoalTimeHint,
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 12),
@@ -758,13 +765,14 @@ class _PrCurrentStepState extends ConsumerState<_PrCurrentStep> {
         : ref.watch(personalRecordForDistanceProvider(distanceMeters));
     final prSeconds = prAsync?.value?['duration_seconds'] as int?;
 
+    final l10n = context.l10n;
     return StepScaffold(
       stepIndex: widget.stepIndex,
       stepCount: widget.stepCount,
-      title: "What's your current PR?",
+      title: l10n.onbFormPrTitle,
       subtitle: prSeconds != null
-          ? 'Pre-filled from your fastest matching run in Apple Health. Adjust if needed.'
-          : 'Optional, helps us gauge a realistic target.',
+          ? l10n.onbFormPrSubtitlePrefilled
+          : l10n.onbFormPrSubtitleOptional,
       canContinue: _ctrl.text.trim().isEmpty || parsed != null,
       onSkip: () {
         notifier.setPrCurrent(null);
@@ -780,7 +788,7 @@ class _PrCurrentStepState extends ConsumerState<_PrCurrentStep> {
         children: [
           _TextField(
             controller: _ctrl,
-            hint: 'e.g. 1:52:00 or 5:45/km',
+            hint: l10n.onbFormPrHint,
             onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 12),
@@ -840,6 +848,7 @@ class _DaysPerWeekStepState extends ConsumerState<_DaysPerWeekStep> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final notifier = ref.read(onboardingFormProvider.notifier);
     final selected = _otherSelected ? null : widget.form.daysPerWeek;
 
@@ -850,8 +859,8 @@ class _DaysPerWeekStepState extends ConsumerState<_DaysPerWeekStep> {
     return StepScaffold(
       stepIndex: widget.stepIndex,
       stepCount: widget.stepCount,
-      title: 'How many days per week?',
-      subtitle: 'Be realistic. The plan is only as good as your consistency.',
+      title: l10n.onbFormDaysTitle,
+      subtitle: l10n.onbFormDaysSubtitle,
       canContinue: canContinue,
       onContinue: () {
         if (_otherSelected) {
@@ -861,14 +870,14 @@ class _DaysPerWeekStepState extends ConsumerState<_DaysPerWeekStep> {
       },
       onBack: widget.onBack,
       child: ChoiceGroup<int>(
-        options: const [
-          ChoiceOption(value: 1, label: '1 day', subtitle: 'Keeps the habit alive.'),
-          ChoiceOption(value: 2, label: '2 days', subtitle: 'Minimal but consistent.'),
-          ChoiceOption(value: 3, label: '3 days', subtitle: 'A solid base to build on.'),
-          ChoiceOption(value: 4, label: '4 days', subtitle: 'Great balance for most runners.'),
-          ChoiceOption(value: 5, label: '5 days', subtitle: 'Solid block for serious goals.'),
-          ChoiceOption(value: 6, label: '6 days', subtitle: 'High volume, for experienced runners.'),
-          ChoiceOption(value: 7, label: '7 days', subtitle: 'Every day, only if recovery is dialed in.'),
+        options: [
+          ChoiceOption(value: 1, label: l10n.onbFormDays1Label, subtitle: l10n.onbFormDays1Sub),
+          ChoiceOption(value: 2, label: l10n.onbFormDays2Label, subtitle: l10n.onbFormDays2Sub),
+          ChoiceOption(value: 3, label: l10n.onbFormDays3Label, subtitle: l10n.onbFormDays3Sub),
+          ChoiceOption(value: 4, label: l10n.onbFormDays4Label, subtitle: l10n.onbFormDays4Sub),
+          ChoiceOption(value: 5, label: l10n.onbFormDays5Label, subtitle: l10n.onbFormDays5Sub),
+          ChoiceOption(value: 6, label: l10n.onbFormDays6Label, subtitle: l10n.onbFormDays6Sub),
+          ChoiceOption(value: 7, label: l10n.onbFormDays7Label, subtitle: l10n.onbFormDays7Sub),
         ],
         selected: selected,
         onSelected: (v) {
@@ -882,7 +891,7 @@ class _DaysPerWeekStepState extends ConsumerState<_DaysPerWeekStep> {
         }),
         otherChild: _NotesField(
           controller: _notesCtrl,
-          hint: 'Tell me about your schedule…',
+          hint: l10n.onbFormDaysOtherHint,
           onChanged: (_) => setState(() {}),
         ),
       ),
@@ -916,15 +925,15 @@ class _PreferredWeekdaysStepState
     extends ConsumerState<_PreferredWeekdaysStep> {
   late final Set<int> _selected = {...?widget.form.preferredWeekdays};
 
-  static const List<({int iso, String label, String short})> _days = [
-    (iso: 1, label: 'Monday', short: 'Mon'),
-    (iso: 2, label: 'Tuesday', short: 'Tue'),
-    (iso: 3, label: 'Wednesday', short: 'Wed'),
-    (iso: 4, label: 'Thursday', short: 'Thu'),
-    (iso: 5, label: 'Friday', short: 'Fri'),
-    (iso: 6, label: 'Saturday', short: 'Sat'),
-    (iso: 7, label: 'Sunday', short: 'Sun'),
-  ];
+  List<({int iso, String label, String short})> _daysFor(AppLocalizations l) => [
+        (iso: 1, label: l.weekdayMon, short: l.weekdayMonShort),
+        (iso: 2, label: l.weekdayTue, short: l.weekdayTueShort),
+        (iso: 3, label: l.weekdayWed, short: l.weekdayWedShort),
+        (iso: 4, label: l.weekdayThu, short: l.weekdayThuShort),
+        (iso: 5, label: l.weekdayFri, short: l.weekdayFriShort),
+        (iso: 6, label: l.weekdaySat, short: l.weekdaySatShort),
+        (iso: 7, label: l.weekdaySun, short: l.weekdaySunShort),
+      ];
 
   void _toggle(int iso) {
     setState(() {
@@ -938,6 +947,7 @@ class _PreferredWeekdaysStepState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final notifier = ref.read(onboardingFormProvider.notifier);
     final daysPerWeek = widget.form.daysPerWeek ?? 0;
     final count = _selected.length;
@@ -945,14 +955,14 @@ class _PreferredWeekdaysStepState
     final canContinue = enough;
 
     final hint = (count > 0 && count < daysPerWeek)
-        ? 'Pick at least $daysPerWeek days (you chose $count).'
-        : 'Leave empty if any day works.';
+        ? l10n.onbFormWeekdaysHintShort(daysPerWeek, count)
+        : l10n.onbFormWeekdaysHintEnough;
 
     return StepScaffold(
       stepIndex: widget.stepIndex,
       stepCount: widget.stepCount,
-      title: 'Which weekdays can you run?',
-      subtitle: 'Optional — pick the days that work for you.',
+      title: l10n.onbFormWeekdaysTitle,
+      subtitle: l10n.onbFormWeekdaysSubtitle,
       canContinue: canContinue,
       onSkip: () {
         notifier.setPreferredWeekdays(null);
@@ -968,7 +978,7 @@ class _PreferredWeekdaysStepState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          ..._days.map((d) {
+          ..._daysFor(l10n).map((d) {
             final selected = _selected.contains(d.iso);
             return Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -1131,12 +1141,12 @@ class _RunTypePreferencesStepState
   Widget build(BuildContext context) {
     final notifier = ref.read(onboardingFormProvider.notifier);
 
+    final l10n = context.l10n;
     return StepScaffold(
       stepIndex: widget.stepIndex,
       stepCount: widget.stepCount,
-      title: 'Rank your favourite runs',
-      subtitle:
-          'Drag to reorder. Top ones get featured more, bottom ones less.',
+      title: l10n.onbFormRankTitle,
+      subtitle: l10n.onbFormRankSubtitle,
       canContinue: true,
       onSkip: () {
         notifier.setRunTypePreferences(null);
@@ -1177,7 +1187,7 @@ class _RunTypePreferencesStepState
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Text(
-              'Long runs stay in the plan. Ranking them last just keeps them shorter.',
+              l10n.onbFormRankFooter,
               style: GoogleFonts.inter(
                 fontSize: 13,
                 color: AppColors.inkMuted,
@@ -1204,7 +1214,7 @@ class _RunTypeRankCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (label, hint) = _meta(option);
+    final (label, hint) = _meta(context.l10n, option);
 
     // Wrapping the WHOLE card in ReorderableDragStartListener makes the
     // entire surface draggable instead of forcing the user to hit the
@@ -1278,24 +1288,12 @@ class _RunTypeRankCard extends StatelessWidget {
     );
   }
 
-  static (String, String) _meta(RunTypePreferenceOption option) {
+  static (String, String) _meta(AppLocalizations l, RunTypePreferenceOption option) {
     return switch (option) {
-      RunTypePreferenceOption.easy => (
-          'Easy runs',
-          'Conversational pace, weekly bulk.',
-        ),
-      RunTypePreferenceOption.tempo => (
-          'Tempo runs',
-          'Sustained, comfortably hard effort.',
-        ),
-      RunTypePreferenceOption.interval => (
-          'Intervals',
-          'Short hard reps with recovery.',
-        ),
-      RunTypePreferenceOption.longRun => (
-          'Long runs',
-          'Weekly endurance, builds stamina.',
-        ),
+      RunTypePreferenceOption.easy => (l.runTypeEasyLabel, l.runTypeEasySub),
+      RunTypePreferenceOption.tempo => (l.runTypeTempoLabel, l.runTypeTempoSub),
+      RunTypePreferenceOption.interval => (l.runTypeIntervalLabel, l.runTypeIntervalSub),
+      RunTypePreferenceOption.longRun => (l.runTypeLongRunLabel, l.runTypeLongRunSub),
     };
   }
 }
@@ -1341,11 +1339,12 @@ class _CoachStyleStepState extends ConsumerState<_CoachStyleStep> {
         ? selected != null
         : _notesCtrl.text.trim().isNotEmpty;
 
+    final l10n = context.l10n;
     return StepScaffold(
       stepIndex: widget.stepIndex,
       stepCount: widget.stepCount,
-      title: 'How should I coach you?',
-      subtitle: 'This shapes the tone of the plan and how I push you.',
+      title: l10n.onbFormCoachStyleTitle,
+      subtitle: l10n.onbFormCoachStyleSubtitle,
       canContinue: canContinue,
       onContinue: () {
         if (_otherSelected) {
@@ -1356,21 +1355,21 @@ class _CoachStyleStepState extends ConsumerState<_CoachStyleStep> {
       },
       onBack: widget.onBack,
       child: ChoiceGroup<CoachStyleOption>(
-        options: const [
+        options: [
           ChoiceOption(
             value: CoachStyleOption.balanced,
-            label: 'Balanced',
-            subtitle: 'Structure, but with room to adapt.',
+            label: l10n.coachStyleBalancedLabel,
+            subtitle: l10n.coachStyleBalancedSub,
           ),
           ChoiceOption(
             value: CoachStyleOption.strict,
-            label: 'Strict',
-            subtitle: "Hold me to it. Don't soften the plan.",
+            label: l10n.coachStyleStrictLabel,
+            subtitle: l10n.coachStyleStrictSub,
           ),
           ChoiceOption(
             value: CoachStyleOption.flexible,
-            label: 'Flexible',
-            subtitle: 'Adapt to my life when things slip.',
+            label: l10n.coachStyleFlexibleLabel,
+            subtitle: l10n.coachStyleFlexibleSub,
           ),
         ],
         selected: selected,
@@ -1385,7 +1384,7 @@ class _CoachStyleStepState extends ConsumerState<_CoachStyleStep> {
         }),
         otherChild: _NotesField(
           controller: _notesCtrl,
-          hint: 'Describe how you want to be coached…',
+          hint: l10n.onbFormCoachStyleOtherHint,
           onChanged: (_) => setState(() {}),
         ),
       ),
@@ -1420,40 +1419,41 @@ class _RunnerLevelStepState extends ConsumerState<_RunnerLevelStep> {
     final notifier = ref.read(onboardingFormProvider.notifier);
     final selected = widget.form.runnerLevel;
 
+    final l10n = context.l10n;
     return StepScaffold(
       stepIndex: widget.stepIndex,
       stepCount: widget.stepCount,
-      title: 'How would you describe your running?',
-      subtitle: 'This helps us tailor how we explain things.',
+      title: l10n.onbFormRunnerLevelTitle,
+      subtitle: l10n.onbFormRunnerLevelSubtitle,
       canContinue: true,
       onContinue: widget.onContinue,
       onBack: widget.onBack,
       child: ChoiceGroup<RunnerLevel>(
-        options: const [
+        options: [
           ChoiceOption(
             value: RunnerLevel.beginner,
-            label: 'Beginner',
-            subtitle: 'Just started or returning',
+            label: l10n.runnerLevelBeginnerLabel,
+            subtitle: l10n.runnerLevelBeginnerSub,
           ),
           ChoiceOption(
             value: RunnerLevel.intermediate,
-            label: 'Intermediate',
-            subtitle: 'Run regularly, race occasionally',
+            label: l10n.runnerLevelIntermediateLabel,
+            subtitle: l10n.runnerLevelIntermediateSub,
           ),
           ChoiceOption(
             value: RunnerLevel.advanced,
-            label: 'Advanced',
-            subtitle: 'Know your zones, race seriously',
+            label: l10n.runnerLevelAdvancedLabel,
+            subtitle: l10n.runnerLevelAdvancedSub,
           ),
           ChoiceOption(
             value: RunnerLevel.subElite,
-            label: 'Sub-Elite',
-            subtitle: 'Structured training, competitive',
+            label: l10n.runnerLevelSubEliteLabel,
+            subtitle: l10n.runnerLevelSubEliteSub,
           ),
           ChoiceOption(
             value: RunnerLevel.elite,
-            label: 'Elite',
-            subtitle: 'Sponsored or top-level competing',
+            label: l10n.runnerLevelEliteLabel,
+            subtitle: l10n.runnerLevelEliteSub,
           ),
         ],
         selected: selected,
@@ -1490,12 +1490,12 @@ class _IntensityStepState extends ConsumerState<_IntensityStep> {
     final notifier = ref.read(onboardingFormProvider.notifier);
     final selected = widget.form.intensityBias;
 
+    final l10n = context.l10n;
     return StepScaffold(
       stepIndex: widget.stepIndex,
       stepCount: widget.stepCount,
-      title: 'How hard do you want this?',
-      subtitle:
-          'Bump up or down if you feel different — Standard matches what your goal calls for.',
+      title: l10n.onbFormIntensityTitle,
+      subtitle: l10n.onbFormIntensitySubtitle,
       canContinue: true,
       onContinue: widget.onContinue,
       onBack: widget.onBack,
@@ -1520,7 +1520,7 @@ class _IntensityStepState extends ConsumerState<_IntensityStep> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    'WEEKLY KM',
+                    l10n.onbFormIntensityEyebrow,
                     style: GoogleFonts.spaceGrotesk(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
@@ -1535,7 +1535,7 @@ class _IntensityStepState extends ConsumerState<_IntensityStep> {
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 200),
                   child: Text(
-                    _captionFor(selected),
+                    _captionFor(l10n, selected),
                     key: ValueKey(selected),
                     style: GoogleFonts.ebGaramond(
                       fontSize: 14,
@@ -1558,10 +1558,10 @@ class _IntensityStepState extends ConsumerState<_IntensityStep> {
     );
   }
 
-  static String _captionFor(IntensityBias bias) => switch (bias) {
-        IntensityBias.takeItEasy => 'Gentler bumps, lower peak. Sustainable.',
-        IntensityBias.standard => 'Steady weekly progression. Auto-picked.',
-        IntensityBias.pushMeHarder => 'Steeper ramp, higher peak. Stay sharp.',
+  static String _captionFor(AppLocalizations l, IntensityBias bias) => switch (bias) {
+        IntensityBias.takeItEasy => l.onbFormIntensityCaptionEasy,
+        IntensityBias.standard => l.onbFormIntensityCaptionStandard,
+        IntensityBias.pushMeHarder => l.onbFormIntensityCaptionHarder,
       };
 }
 
@@ -1598,14 +1598,15 @@ class _ReviewStepState extends ConsumerState<_ReviewStep> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final form = widget.form;
     return StepScaffold(
       stepIndex: widget.stepIndex,
       stepCount: widget.stepCount,
-      title: 'Ready to build your plan?',
-      subtitle: "Quick recap. I'll take it from here.",
+      title: l10n.onbFormReviewTitle,
+      subtitle: l10n.onbFormReviewSubtitle,
       canContinue: true,
-      continueLabel: 'CREATE MY PLAN',
+      continueLabel: l10n.onbFormReviewCreateCta,
       onContinue: () {
         ref
             .read(onboardingFormProvider.notifier)
@@ -1626,40 +1627,40 @@ class _ReviewStepState extends ConsumerState<_ReviewStep> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _reviewRow('Goal', _goalLabel(form)),
+                _reviewRow(l10n.reviewRowGoal, _goalLabel(l10n, form)),
                 if (form.distanceMeters != null)
-                  _reviewRow('Distance', _distanceLabel(form.distanceMeters!)),
+                  _reviewRow(l10n.reviewRowDistance, _distanceLabel(l10n, form.distanceMeters!)),
                 if (form.goalName != null && form.goalName!.isNotEmpty)
-                  _reviewRow('Race', form.goalName!),
+                  _reviewRow(l10n.reviewRowRace, form.goalName!),
                 if (form.targetDate != null)
-                  _reviewRow('Race day', formatDateString(form.targetDate, fallback: form.targetDate!)),
+                  _reviewRow(l10n.reviewRowRaceDay, formatDateString(form.targetDate, fallback: form.targetDate!)),
                 if (form.goalTimeSeconds != null)
-                  _reviewRow('Goal time', _formatDuration(form.goalTimeSeconds!)),
+                  _reviewRow(l10n.reviewRowGoalTime, _formatDuration(form.goalTimeSeconds!)),
                 if (form.prCurrentSeconds != null)
                   _reviewRow(
-                      'Current PR', _formatDuration(form.prCurrentSeconds!)),
+                      l10n.reviewRowCurrentPr, _formatDuration(form.prCurrentSeconds!)),
                 if (form.daysPerWeek != null)
-                  _reviewRow('Days / week', '${form.daysPerWeek}'),
+                  _reviewRow(l10n.reviewRowDaysPerWeek, '${form.daysPerWeek}'),
                 if (form.preferredWeekdays != null &&
                     form.preferredWeekdays!.isNotEmpty)
                   _reviewRow(
-                    'Preferred days',
-                    _weekdaysLabel(form.preferredWeekdays!),
+                    l10n.reviewRowPreferredDays,
+                    _weekdaysLabel(l10n, form.preferredWeekdays!),
                   ),
                 if (form.coachStyle != null)
-                  _reviewRow('Coach style', _coachStyleLabel(form.coachStyle!)),
+                  _reviewRow(l10n.reviewRowCoachStyle, _coachStyleLabel(l10n, form.coachStyle!)),
                 if (form.runnerLevel != RunnerLevel.intermediate)
-                  _reviewRow('Running level', _runnerLevelLabel(form.runnerLevel)),
+                  _reviewRow(l10n.reviewRowRunnerLevel, _runnerLevelLabel(l10n, form.runnerLevel)),
                 if (form.intensityBias != IntensityBias.standard)
-                  _reviewRow('Intensity', _intensityLabel(form.intensityBias)),
+                  _reviewRow(l10n.reviewRowIntensity, _intensityLabel(l10n, form.intensityBias)),
                 if (form.notes != null && form.notes!.isNotEmpty)
-                  _reviewRow('Notes', form.notes!),
+                  _reviewRow(l10n.reviewRowNotes, form.notes!),
               ],
             ),
           ),
           const SizedBox(height: 20),
           Text(
-            'Anything else for your coach?',
+            l10n.onbFormReviewExtraNotesLabel,
             style: GoogleFonts.inter(
               fontSize: 15,
               fontWeight: FontWeight.w600,
@@ -1669,7 +1670,7 @@ class _ReviewStepState extends ConsumerState<_ReviewStep> {
           const SizedBox(height: 8),
           _NotesField(
             controller: _extraNotesCtrl,
-            hint: 'Injuries, schedule quirks, anything to consider…',
+            hint: l10n.onbFormReviewExtraNotesHint,
             onChanged: (_) => setState(() {}),
           ),
         ],
@@ -1709,57 +1710,57 @@ class _ReviewStepState extends ConsumerState<_ReviewStep> {
     );
   }
 
-  String _goalLabel(OnboardingFormData form) => switch (form.goalType) {
-        OnboardingGoalType.race => 'Train for a race',
-        OnboardingGoalType.pr => 'Chase a PR',
-        OnboardingGoalType.fitness => 'General fitness',
-        OnboardingGoalType.weightLoss => 'Weight loss',
+  String _goalLabel(AppLocalizations l, OnboardingFormData form) => switch (form.goalType) {
+        OnboardingGoalType.race => l.reviewGoalTypeRaceShort,
+        OnboardingGoalType.pr => l.reviewGoalTypePrShort,
+        OnboardingGoalType.fitness => l.reviewGoalTypeFitnessShort,
+        OnboardingGoalType.weightLoss => l.reviewGoalTypeWeightLossShort,
         null => '-',
       };
 
-  String _distanceLabel(int meters) {
+  String _distanceLabel(AppLocalizations l, int meters) {
     switch (meters) {
       case 5000:
-        return '5K';
+        return l.onbFormDistance5k;
       case 10000:
-        return '10K';
+        return l.onbFormDistance10k;
       case 21097:
-        return 'Half marathon';
+        return l.onbFormDistanceHalf;
       case 42195:
-        return 'Marathon';
+        return l.onbFormDistanceMarathon;
     }
     return '${(meters / 1000).toStringAsFixed(1)} km';
   }
 
-  String _coachStyleLabel(CoachStyleOption style) => switch (style) {
-        CoachStyleOption.balanced => 'Balanced',
-        CoachStyleOption.strict => 'Strict',
-        CoachStyleOption.flexible => 'Flexible',
+  String _coachStyleLabel(AppLocalizations l, CoachStyleOption style) => switch (style) {
+        CoachStyleOption.balanced => l.coachStyleBalancedLabel,
+        CoachStyleOption.strict => l.coachStyleStrictLabel,
+        CoachStyleOption.flexible => l.coachStyleFlexibleLabel,
       };
 
-  String _intensityLabel(IntensityBias bias) => switch (bias) {
-        IntensityBias.takeItEasy => 'Take it easy',
-        IntensityBias.standard => 'Standard',
-        IntensityBias.pushMeHarder => 'Push me harder',
+  String _intensityLabel(AppLocalizations l, IntensityBias bias) => switch (bias) {
+        IntensityBias.takeItEasy => l.intensityBiasEasyLabel,
+        IntensityBias.standard => l.intensityBiasStandardLabel,
+        IntensityBias.pushMeHarder => l.intensityBiasHarderLabel,
       };
 
-  String _runnerLevelLabel(RunnerLevel level) => switch (level) {
-        RunnerLevel.beginner => 'Beginner',
-        RunnerLevel.intermediate => 'Intermediate',
-        RunnerLevel.advanced => 'Advanced',
-        RunnerLevel.subElite => 'Sub-Elite',
-        RunnerLevel.elite => 'Elite',
+  String _runnerLevelLabel(AppLocalizations l, RunnerLevel level) => switch (level) {
+        RunnerLevel.beginner => l.runnerLevelBeginnerLabel,
+        RunnerLevel.intermediate => l.runnerLevelIntermediateLabel,
+        RunnerLevel.advanced => l.runnerLevelAdvancedLabel,
+        RunnerLevel.subElite => l.runnerLevelSubEliteLabel,
+        RunnerLevel.elite => l.runnerLevelEliteLabel,
       };
 
-  String _weekdaysLabel(List<int> days) {
-    const names = {
-      1: 'Mon',
-      2: 'Tue',
-      3: 'Wed',
-      4: 'Thu',
-      5: 'Fri',
-      6: 'Sat',
-      7: 'Sun',
+  String _weekdaysLabel(AppLocalizations l, List<int> days) {
+    final names = {
+      1: l.weekdayMonShort,
+      2: l.weekdayTueShort,
+      3: l.weekdayWedShort,
+      4: l.weekdayThuShort,
+      5: l.weekdayFriShort,
+      6: l.weekdaySatShort,
+      7: l.weekdaySunShort,
     };
     final sorted = [...days]..sort();
     return sorted.map((d) => names[d] ?? '?').join(', ');
@@ -1985,11 +1986,12 @@ class _GoalTimePreview extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final l10n = context.l10n;
     if (parsedSeconds == null) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
         child: Text(
-          "Didn't quite catch that. Try 1:45:00 or 5:30/km.",
+          l10n.onbFormGoalTimeParseError,
           style: GoogleFonts.inter(
             fontSize: 13,
             color: AppColors.danger,
@@ -2002,12 +2004,12 @@ class _GoalTimePreview extends StatelessWidget {
     final pace = distanceMeters == null || distanceMeters! <= 0
         ? null
         : _formatSecondsToHuman((parsedSeconds! / (distanceMeters! / 1000)).round());
-    final paceSuffix = pace == null ? '' : ' ($pace/km)';
+    final paceSuffix = pace == null ? '' : l10n.onbFormGoalTimePreviewPaceSuffix(pace);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Text(
-        "≈ $total total$paceSuffix",
+        l10n.onbFormGoalTimePreview(total, paceSuffix),
         style: GoogleFonts.inter(
           fontSize: 13,
           color: AppColors.inkMuted,

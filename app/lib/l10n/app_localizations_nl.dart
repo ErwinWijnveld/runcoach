@@ -270,4 +270,434 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get onbGeneratingBackCta => 'Terug naar formulier';
+
+  @override
+  String get onbFormGoalTypeTitle => 'Waar train je voor?';
+
+  @override
+  String get onbFormGoalTypeSubtitle =>
+      'We stemmen het plan af op je antwoord.';
+
+  @override
+  String get onbFormGoalTypeRaceLabel => 'Trainen voor een wedstrijd';
+
+  @override
+  String get onbFormGoalTypeRaceSubtitle =>
+      'Je hebt een specifiek event in zicht.';
+
+  @override
+  String get onbFormGoalTypePrLabel => 'Sneller worden op een afstand';
+
+  @override
+  String get onbFormGoalTypePrSubtitle => 'Ga voor een persoonlijk record.';
+
+  @override
+  String get onbFormGoalTypeFitnessLabel => 'Algemene conditie';
+
+  @override
+  String get onbFormGoalTypeFitnessSubtitle =>
+      'Regelmatig hardlopen, geen specifiek doel.';
+
+  @override
+  String get onbFormGoalTypeWeightLossLabel => 'Afvallen';
+
+  @override
+  String get onbFormGoalTypeWeightLossSubtitle =>
+      'Consistent hardlopen om gestaag af te vallen.';
+
+  @override
+  String get onbFormGoalTypeOtherHint => 'Vertel waar je naar op zoek bent…';
+
+  @override
+  String get onbFormDistanceTitle => 'Welke afstand?';
+
+  @override
+  String get onbFormDistanceSubtitle => 'Kies de wedstrijd- of doelafstand.';
+
+  @override
+  String get onbFormDistance5k => '5K';
+
+  @override
+  String get onbFormDistance10k => '10K';
+
+  @override
+  String get onbFormDistanceHalf => 'Halve marathon';
+
+  @override
+  String get onbFormDistanceMarathon => 'Marathon';
+
+  @override
+  String get onbFormDistanceOtherHint => 'Afstand in kilometers';
+
+  @override
+  String get onbFormRaceNameTitle => 'Hoe heet de wedstrijd?';
+
+  @override
+  String get onbFormRaceNameSubtitle =>
+      'Naam mag alles zijn, we gebruiken het alleen als label.';
+
+  @override
+  String get onbFormRaceNameHint => 'Rotterdam Marathon';
+
+  @override
+  String get onbFormRaceDateTitle => 'Wanneer is de wedstrijddag?';
+
+  @override
+  String get onbFormRaceDateSubtitle =>
+      'We hebben minstens een paar weken nodig om een goed plan te bouwen.';
+
+  @override
+  String get onbFormGoalTimeTitle => 'Welke doeltijd of tempo streef je na?';
+
+  @override
+  String get onbFormGoalTimeSubtitle =>
+      'Voer het in zoals je wilt, wij parsen het.';
+
+  @override
+  String get onbFormGoalTimeHint => 'bijv. 1:45:00, 25:30 of 5:30/km';
+
+  @override
+  String get onbFormPrTitle => 'Wat is je huidige PR?';
+
+  @override
+  String get onbFormPrSubtitlePrefilled =>
+      'Vooraf ingevuld op basis van je snelste run uit Apple Health. Pas aan indien nodig.';
+
+  @override
+  String get onbFormPrSubtitleOptional =>
+      'Optioneel, helpt ons een realistisch doel in te schatten.';
+
+  @override
+  String get onbFormPrHint => 'bijv. 1:52:00 of 5:45/km';
+
+  @override
+  String get onbFormGoalTimeParseError =>
+      'Dat snap ik niet helemaal. Probeer 1:45:00 of 5:30/km.';
+
+  @override
+  String onbFormGoalTimePreview(String total, String paceSuffix) {
+    return '≈ $total totaal$paceSuffix';
+  }
+
+  @override
+  String onbFormGoalTimePreviewPaceSuffix(String pace) {
+    return ' ($pace/km)';
+  }
+
+  @override
+  String get onbFormDaysTitle => 'Hoeveel dagen per week?';
+
+  @override
+  String get onbFormDaysSubtitle =>
+      'Wees realistisch. Het plan is zo goed als je consistentie.';
+
+  @override
+  String get onbFormDays1Label => '1 dag';
+
+  @override
+  String get onbFormDays1Sub => 'Houdt de gewoonte in leven.';
+
+  @override
+  String get onbFormDays2Label => '2 dagen';
+
+  @override
+  String get onbFormDays2Sub => 'Minimaal maar consistent.';
+
+  @override
+  String get onbFormDays3Label => '3 dagen';
+
+  @override
+  String get onbFormDays3Sub => 'Een stevige basis om op te bouwen.';
+
+  @override
+  String get onbFormDays4Label => '4 dagen';
+
+  @override
+  String get onbFormDays4Sub => 'Mooie balans voor de meeste lopers.';
+
+  @override
+  String get onbFormDays5Label => '5 dagen';
+
+  @override
+  String get onbFormDays5Sub => 'Solide blok voor serieuze doelen.';
+
+  @override
+  String get onbFormDays6Label => '6 dagen';
+
+  @override
+  String get onbFormDays6Sub => 'Hoog volume, voor ervaren lopers.';
+
+  @override
+  String get onbFormDays7Label => '7 dagen';
+
+  @override
+  String get onbFormDays7Sub => 'Elke dag, alleen als je herstel op orde is.';
+
+  @override
+  String get onbFormDaysOtherHint => 'Vertel me over je schema…';
+
+  @override
+  String get onbFormWeekdaysTitle => 'Op welke weekdagen kun je hardlopen?';
+
+  @override
+  String get onbFormWeekdaysSubtitle =>
+      'Optioneel — kies de dagen die werken voor jou.';
+
+  @override
+  String get onbFormWeekdaysHintEnough => 'Laat leeg als elke dag werkt.';
+
+  @override
+  String onbFormWeekdaysHintShort(int required, int count) {
+    return 'Kies minstens $required dagen (je hebt er $count).';
+  }
+
+  @override
+  String get weekdayMon => 'Maandag';
+
+  @override
+  String get weekdayTue => 'Dinsdag';
+
+  @override
+  String get weekdayWed => 'Woensdag';
+
+  @override
+  String get weekdayThu => 'Donderdag';
+
+  @override
+  String get weekdayFri => 'Vrijdag';
+
+  @override
+  String get weekdaySat => 'Zaterdag';
+
+  @override
+  String get weekdaySun => 'Zondag';
+
+  @override
+  String get weekdayMonShort => 'Ma';
+
+  @override
+  String get weekdayTueShort => 'Di';
+
+  @override
+  String get weekdayWedShort => 'Wo';
+
+  @override
+  String get weekdayThuShort => 'Do';
+
+  @override
+  String get weekdayFriShort => 'Vr';
+
+  @override
+  String get weekdaySatShort => 'Za';
+
+  @override
+  String get weekdaySunShort => 'Zo';
+
+  @override
+  String get onbFormRankTitle => 'Rangschik je favoriete looptypes';
+
+  @override
+  String get onbFormRankSubtitle =>
+      'Versleep om volgorde te wijzigen. Bovenaan = meer aandacht, onderaan = minder.';
+
+  @override
+  String get onbFormRankFooter =>
+      'Lange duurlopen blijven in het plan. Ze onderaan zetten houdt ze alleen korter.';
+
+  @override
+  String get runTypeEasyLabel => 'Rustige duurloop';
+
+  @override
+  String get runTypeEasySub => 'Praattempo, basisvolume.';
+
+  @override
+  String get runTypeTempoLabel => 'Tempoloop';
+
+  @override
+  String get runTypeTempoSub => 'Volgehouden, comfortabel zwaar.';
+
+  @override
+  String get runTypeIntervalLabel => 'Intervals';
+
+  @override
+  String get runTypeIntervalSub => 'Korte zware herhalingen met herstel.';
+
+  @override
+  String get runTypeLongRunLabel => 'Lange duurloop';
+
+  @override
+  String get runTypeLongRunSub => 'Wekelijks uithoudingsvermogen.';
+
+  @override
+  String get onbFormCoachStyleTitle => 'Hoe moet ik je coachen?';
+
+  @override
+  String get onbFormCoachStyleSubtitle =>
+      'Dit bepaalt de toon van het plan en hoe ik je push.';
+
+  @override
+  String get coachStyleBalancedLabel => 'Gebalanceerd';
+
+  @override
+  String get coachStyleBalancedSub => 'Structuur, met ruimte om aan te passen.';
+
+  @override
+  String get coachStyleStrictLabel => 'Streng';
+
+  @override
+  String get coachStyleStrictSub => 'Houd me eraan. Niet softer maken.';
+
+  @override
+  String get coachStyleFlexibleLabel => 'Flexibel';
+
+  @override
+  String get coachStyleFlexibleSub => 'Pas aan als het leven ertussen komt.';
+
+  @override
+  String get onbFormCoachStyleOtherHint => 'Vertel hoe je gecoacht wil worden…';
+
+  @override
+  String get onbFormRunnerLevelTitle => 'Hoe zou je je hardlopen omschrijven?';
+
+  @override
+  String get onbFormRunnerLevelSubtitle =>
+      'Dit helpt ons de uitleg af te stemmen.';
+
+  @override
+  String get runnerLevelBeginnerLabel => 'Beginner';
+
+  @override
+  String get runnerLevelBeginnerSub => 'Net begonnen of terugkomend';
+
+  @override
+  String get runnerLevelIntermediateLabel => 'Gevorderd';
+
+  @override
+  String get runnerLevelIntermediateSub => 'Loopt regelmatig, racet af en toe';
+
+  @override
+  String get runnerLevelAdvancedLabel => 'Ervaren';
+
+  @override
+  String get runnerLevelAdvancedSub => 'Kent je zones, racet serieus';
+
+  @override
+  String get runnerLevelSubEliteLabel => 'Sub-Elite';
+
+  @override
+  String get runnerLevelSubEliteSub => 'Gestructureerde training, competitief';
+
+  @override
+  String get runnerLevelEliteLabel => 'Elite';
+
+  @override
+  String get runnerLevelEliteSub => 'Gesponsord of top-niveau competitief';
+
+  @override
+  String get onbFormIntensityTitle => 'Hoe pittig wil je dit?';
+
+  @override
+  String get onbFormIntensitySubtitle =>
+      'Schuif omhoog of omlaag als je anders aanvoelt — Standaard past bij wat je doel vraagt.';
+
+  @override
+  String get onbFormIntensityEyebrow => 'KM PER WEEK';
+
+  @override
+  String get onbFormIntensityCaptionEasy =>
+      'Zachtere opbouw, lagere piek. Vol te houden.';
+
+  @override
+  String get onbFormIntensityCaptionStandard =>
+      'Stabiele wekelijkse opbouw. Auto-geselecteerd.';
+
+  @override
+  String get onbFormIntensityCaptionHarder =>
+      'Steilere ramp, hogere piek. Blijf scherp.';
+
+  @override
+  String get intensityBiasEasyLabel => 'Rustig aan';
+
+  @override
+  String get intensityBiasStandardLabel => 'Standaard';
+
+  @override
+  String get intensityBiasHarderLabel => 'Push harder';
+
+  @override
+  String get intensityBiasEasyShort => 'Rustiger';
+
+  @override
+  String get intensityBiasStandardShort => 'Standaard';
+
+  @override
+  String get intensityBiasHarderShort => 'Pittiger';
+
+  @override
+  String get intensityBiasAutoPick => '(auto)';
+
+  @override
+  String get onbFormReviewTitle => 'Klaar om je plan te bouwen?';
+
+  @override
+  String get onbFormReviewSubtitle =>
+      'Korte samenvatting. Ik neem het hier over.';
+
+  @override
+  String get onbFormReviewCreateCta => 'MAAK MIJN PLAN';
+
+  @override
+  String get onbFormReviewExtraNotesLabel => 'Nog iets voor je coach?';
+
+  @override
+  String get onbFormReviewExtraNotesHint =>
+      'Blessures, schemavraagstukken, alles om rekening mee te houden…';
+
+  @override
+  String get reviewRowGoal => 'Doel';
+
+  @override
+  String get reviewRowDistance => 'Afstand';
+
+  @override
+  String get reviewRowRace => 'Wedstrijd';
+
+  @override
+  String get reviewRowRaceDay => 'Wedstrijddag';
+
+  @override
+  String get reviewRowGoalTime => 'Doeltijd';
+
+  @override
+  String get reviewRowCurrentPr => 'Huidige PR';
+
+  @override
+  String get reviewRowDaysPerWeek => 'Dagen / week';
+
+  @override
+  String get reviewRowPreferredDays => 'Voorkeursdagen';
+
+  @override
+  String get reviewRowCoachStyle => 'Coach-stijl';
+
+  @override
+  String get reviewRowRunnerLevel => 'Loopniveau';
+
+  @override
+  String get reviewRowIntensity => 'Intensiteit';
+
+  @override
+  String get reviewRowNotes => 'Notities';
+
+  @override
+  String get reviewGoalTypeRaceShort => 'Trainen voor wedstrijd';
+
+  @override
+  String get reviewGoalTypePrShort => 'Jaag op een PR';
+
+  @override
+  String get reviewGoalTypeFitnessShort => 'Algemene conditie';
+
+  @override
+  String get reviewGoalTypeWeightLossShort => 'Afvallen';
 }

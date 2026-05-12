@@ -553,6 +553,810 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back to form'**
   String get onbGeneratingBackCta;
+
+  /// No description provided for @onbFormGoalTypeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What are you training for?'**
+  String get onbFormGoalTypeTitle;
+
+  /// No description provided for @onbFormGoalTypeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We\'ll tailor the plan around your answer.'**
+  String get onbFormGoalTypeSubtitle;
+
+  /// No description provided for @onbFormGoalTypeRaceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Train for a race'**
+  String get onbFormGoalTypeRaceLabel;
+
+  /// No description provided for @onbFormGoalTypeRaceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve got a specific event on the horizon.'**
+  String get onbFormGoalTypeRaceSubtitle;
+
+  /// No description provided for @onbFormGoalTypePrLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Get faster at a distance'**
+  String get onbFormGoalTypePrLabel;
+
+  /// No description provided for @onbFormGoalTypePrSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Go after a personal record.'**
+  String get onbFormGoalTypePrSubtitle;
+
+  /// No description provided for @onbFormGoalTypeFitnessLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'General fitness'**
+  String get onbFormGoalTypeFitnessLabel;
+
+  /// No description provided for @onbFormGoalTypeFitnessSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Run regularly, no specific target.'**
+  String get onbFormGoalTypeFitnessSubtitle;
+
+  /// No description provided for @onbFormGoalTypeWeightLossLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight loss'**
+  String get onbFormGoalTypeWeightLossLabel;
+
+  /// No description provided for @onbFormGoalTypeWeightLossSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Consistent running to steadily drop weight.'**
+  String get onbFormGoalTypeWeightLossSubtitle;
+
+  /// No description provided for @onbFormGoalTypeOtherHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe what you\'re after…'**
+  String get onbFormGoalTypeOtherHint;
+
+  /// No description provided for @onbFormDistanceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What distance?'**
+  String get onbFormDistanceTitle;
+
+  /// No description provided for @onbFormDistanceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick the race or target distance.'**
+  String get onbFormDistanceSubtitle;
+
+  /// No description provided for @onbFormDistance5k.
+  ///
+  /// In en, this message translates to:
+  /// **'5K'**
+  String get onbFormDistance5k;
+
+  /// No description provided for @onbFormDistance10k.
+  ///
+  /// In en, this message translates to:
+  /// **'10K'**
+  String get onbFormDistance10k;
+
+  /// No description provided for @onbFormDistanceHalf.
+  ///
+  /// In en, this message translates to:
+  /// **'Half marathon'**
+  String get onbFormDistanceHalf;
+
+  /// No description provided for @onbFormDistanceMarathon.
+  ///
+  /// In en, this message translates to:
+  /// **'Marathon'**
+  String get onbFormDistanceMarathon;
+
+  /// No description provided for @onbFormDistanceOtherHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance in kilometers'**
+  String get onbFormDistanceOtherHint;
+
+  /// No description provided for @onbFormRaceNameTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s the race called?'**
+  String get onbFormRaceNameTitle;
+
+  /// No description provided for @onbFormRaceNameSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Anything goes, we just use it as a label.'**
+  String get onbFormRaceNameSubtitle;
+
+  /// No description provided for @onbFormRaceNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotterdam Marathon'**
+  String get onbFormRaceNameHint;
+
+  /// No description provided for @onbFormRaceDateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'When\'s race day?'**
+  String get onbFormRaceDateTitle;
+
+  /// No description provided for @onbFormRaceDateSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'We need at least a couple weeks to build a proper plan.'**
+  String get onbFormRaceDateSubtitle;
+
+  /// No description provided for @onbFormGoalTimeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What goal time or pace are you aiming for?'**
+  String get onbFormGoalTimeTitle;
+
+  /// No description provided for @onbFormGoalTimeSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter it however feels natural, we parse it.'**
+  String get onbFormGoalTimeSubtitle;
+
+  /// No description provided for @onbFormGoalTimeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 1:45:00, 25:30, or 5:30/km'**
+  String get onbFormGoalTimeHint;
+
+  /// No description provided for @onbFormPrTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s your current PR?'**
+  String get onbFormPrTitle;
+
+  /// No description provided for @onbFormPrSubtitlePrefilled.
+  ///
+  /// In en, this message translates to:
+  /// **'Pre-filled from your fastest matching run in Apple Health. Adjust if needed.'**
+  String get onbFormPrSubtitlePrefilled;
+
+  /// No description provided for @onbFormPrSubtitleOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional, helps us gauge a realistic target.'**
+  String get onbFormPrSubtitleOptional;
+
+  /// No description provided for @onbFormPrHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 1:52:00 or 5:45/km'**
+  String get onbFormPrHint;
+
+  /// No description provided for @onbFormGoalTimeParseError.
+  ///
+  /// In en, this message translates to:
+  /// **'Didn\'t quite catch that. Try 1:45:00 or 5:30/km.'**
+  String get onbFormGoalTimeParseError;
+
+  /// No description provided for @onbFormGoalTimePreview.
+  ///
+  /// In en, this message translates to:
+  /// **'≈ {total} total{paceSuffix}'**
+  String onbFormGoalTimePreview(String total, String paceSuffix);
+
+  /// No description provided for @onbFormGoalTimePreviewPaceSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **' ({pace}/km)'**
+  String onbFormGoalTimePreviewPaceSuffix(String pace);
+
+  /// No description provided for @onbFormDaysTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How many days per week?'**
+  String get onbFormDaysTitle;
+
+  /// No description provided for @onbFormDaysSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Be realistic. The plan is only as good as your consistency.'**
+  String get onbFormDaysSubtitle;
+
+  /// No description provided for @onbFormDays1Label.
+  ///
+  /// In en, this message translates to:
+  /// **'1 day'**
+  String get onbFormDays1Label;
+
+  /// No description provided for @onbFormDays1Sub.
+  ///
+  /// In en, this message translates to:
+  /// **'Keeps the habit alive.'**
+  String get onbFormDays1Sub;
+
+  /// No description provided for @onbFormDays2Label.
+  ///
+  /// In en, this message translates to:
+  /// **'2 days'**
+  String get onbFormDays2Label;
+
+  /// No description provided for @onbFormDays2Sub.
+  ///
+  /// In en, this message translates to:
+  /// **'Minimal but consistent.'**
+  String get onbFormDays2Sub;
+
+  /// No description provided for @onbFormDays3Label.
+  ///
+  /// In en, this message translates to:
+  /// **'3 days'**
+  String get onbFormDays3Label;
+
+  /// No description provided for @onbFormDays3Sub.
+  ///
+  /// In en, this message translates to:
+  /// **'A solid base to build on.'**
+  String get onbFormDays3Sub;
+
+  /// No description provided for @onbFormDays4Label.
+  ///
+  /// In en, this message translates to:
+  /// **'4 days'**
+  String get onbFormDays4Label;
+
+  /// No description provided for @onbFormDays4Sub.
+  ///
+  /// In en, this message translates to:
+  /// **'Great balance for most runners.'**
+  String get onbFormDays4Sub;
+
+  /// No description provided for @onbFormDays5Label.
+  ///
+  /// In en, this message translates to:
+  /// **'5 days'**
+  String get onbFormDays5Label;
+
+  /// No description provided for @onbFormDays5Sub.
+  ///
+  /// In en, this message translates to:
+  /// **'Solid block for serious goals.'**
+  String get onbFormDays5Sub;
+
+  /// No description provided for @onbFormDays6Label.
+  ///
+  /// In en, this message translates to:
+  /// **'6 days'**
+  String get onbFormDays6Label;
+
+  /// No description provided for @onbFormDays6Sub.
+  ///
+  /// In en, this message translates to:
+  /// **'High volume, for experienced runners.'**
+  String get onbFormDays6Sub;
+
+  /// No description provided for @onbFormDays7Label.
+  ///
+  /// In en, this message translates to:
+  /// **'7 days'**
+  String get onbFormDays7Label;
+
+  /// No description provided for @onbFormDays7Sub.
+  ///
+  /// In en, this message translates to:
+  /// **'Every day, only if recovery is dialed in.'**
+  String get onbFormDays7Sub;
+
+  /// No description provided for @onbFormDaysOtherHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell me about your schedule…'**
+  String get onbFormDaysOtherHint;
+
+  /// No description provided for @onbFormWeekdaysTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Which weekdays can you run?'**
+  String get onbFormWeekdaysTitle;
+
+  /// No description provided for @onbFormWeekdaysSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional — pick the days that work for you.'**
+  String get onbFormWeekdaysSubtitle;
+
+  /// No description provided for @onbFormWeekdaysHintEnough.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty if any day works.'**
+  String get onbFormWeekdaysHintEnough;
+
+  /// No description provided for @onbFormWeekdaysHintShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick at least {required} days (you chose {count}).'**
+  String onbFormWeekdaysHintShort(int required, int count);
+
+  /// No description provided for @weekdayMon.
+  ///
+  /// In en, this message translates to:
+  /// **'Monday'**
+  String get weekdayMon;
+
+  /// No description provided for @weekdayTue.
+  ///
+  /// In en, this message translates to:
+  /// **'Tuesday'**
+  String get weekdayTue;
+
+  /// No description provided for @weekdayWed.
+  ///
+  /// In en, this message translates to:
+  /// **'Wednesday'**
+  String get weekdayWed;
+
+  /// No description provided for @weekdayThu.
+  ///
+  /// In en, this message translates to:
+  /// **'Thursday'**
+  String get weekdayThu;
+
+  /// No description provided for @weekdayFri.
+  ///
+  /// In en, this message translates to:
+  /// **'Friday'**
+  String get weekdayFri;
+
+  /// No description provided for @weekdaySat.
+  ///
+  /// In en, this message translates to:
+  /// **'Saturday'**
+  String get weekdaySat;
+
+  /// No description provided for @weekdaySun.
+  ///
+  /// In en, this message translates to:
+  /// **'Sunday'**
+  String get weekdaySun;
+
+  /// No description provided for @weekdayMonShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Mon'**
+  String get weekdayMonShort;
+
+  /// No description provided for @weekdayTueShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Tue'**
+  String get weekdayTueShort;
+
+  /// No description provided for @weekdayWedShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Wed'**
+  String get weekdayWedShort;
+
+  /// No description provided for @weekdayThuShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Thu'**
+  String get weekdayThuShort;
+
+  /// No description provided for @weekdayFriShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Fri'**
+  String get weekdayFriShort;
+
+  /// No description provided for @weekdaySatShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Sat'**
+  String get weekdaySatShort;
+
+  /// No description provided for @weekdaySunShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Sun'**
+  String get weekdaySunShort;
+
+  /// No description provided for @onbFormRankTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rank your favourite runs'**
+  String get onbFormRankTitle;
+
+  /// No description provided for @onbFormRankSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to reorder. Top ones get featured more, bottom ones less.'**
+  String get onbFormRankSubtitle;
+
+  /// No description provided for @onbFormRankFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'Long runs stay in the plan. Ranking them last just keeps them shorter.'**
+  String get onbFormRankFooter;
+
+  /// No description provided for @runTypeEasyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Easy runs'**
+  String get runTypeEasyLabel;
+
+  /// No description provided for @runTypeEasySub.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversational pace, weekly bulk.'**
+  String get runTypeEasySub;
+
+  /// No description provided for @runTypeTempoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tempo runs'**
+  String get runTypeTempoLabel;
+
+  /// No description provided for @runTypeTempoSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Sustained, comfortably hard effort.'**
+  String get runTypeTempoSub;
+
+  /// No description provided for @runTypeIntervalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Intervals'**
+  String get runTypeIntervalLabel;
+
+  /// No description provided for @runTypeIntervalSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Short hard reps with recovery.'**
+  String get runTypeIntervalSub;
+
+  /// No description provided for @runTypeLongRunLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Long runs'**
+  String get runTypeLongRunLabel;
+
+  /// No description provided for @runTypeLongRunSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly endurance, builds stamina.'**
+  String get runTypeLongRunSub;
+
+  /// No description provided for @onbFormCoachStyleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How should I coach you?'**
+  String get onbFormCoachStyleTitle;
+
+  /// No description provided for @onbFormCoachStyleSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This shapes the tone of the plan and how I push you.'**
+  String get onbFormCoachStyleSubtitle;
+
+  /// No description provided for @coachStyleBalancedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Balanced'**
+  String get coachStyleBalancedLabel;
+
+  /// No description provided for @coachStyleBalancedSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Structure, but with room to adapt.'**
+  String get coachStyleBalancedSub;
+
+  /// No description provided for @coachStyleStrictLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Strict'**
+  String get coachStyleStrictLabel;
+
+  /// No description provided for @coachStyleStrictSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Hold me to it. Don\'t soften the plan.'**
+  String get coachStyleStrictSub;
+
+  /// No description provided for @coachStyleFlexibleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Flexible'**
+  String get coachStyleFlexibleLabel;
+
+  /// No description provided for @coachStyleFlexibleSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Adapt to my life when things slip.'**
+  String get coachStyleFlexibleSub;
+
+  /// No description provided for @onbFormCoachStyleOtherHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Describe how you want to be coached…'**
+  String get onbFormCoachStyleOtherHint;
+
+  /// No description provided for @onbFormRunnerLevelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How would you describe your running?'**
+  String get onbFormRunnerLevelTitle;
+
+  /// No description provided for @onbFormRunnerLevelSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'This helps us tailor how we explain things.'**
+  String get onbFormRunnerLevelSubtitle;
+
+  /// No description provided for @runnerLevelBeginnerLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Beginner'**
+  String get runnerLevelBeginnerLabel;
+
+  /// No description provided for @runnerLevelBeginnerSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Just started or returning'**
+  String get runnerLevelBeginnerSub;
+
+  /// No description provided for @runnerLevelIntermediateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Intermediate'**
+  String get runnerLevelIntermediateLabel;
+
+  /// No description provided for @runnerLevelIntermediateSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Run regularly, race occasionally'**
+  String get runnerLevelIntermediateSub;
+
+  /// No description provided for @runnerLevelAdvancedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced'**
+  String get runnerLevelAdvancedLabel;
+
+  /// No description provided for @runnerLevelAdvancedSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Know your zones, race seriously'**
+  String get runnerLevelAdvancedSub;
+
+  /// No description provided for @runnerLevelSubEliteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sub-Elite'**
+  String get runnerLevelSubEliteLabel;
+
+  /// No description provided for @runnerLevelSubEliteSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Structured training, competitive'**
+  String get runnerLevelSubEliteSub;
+
+  /// No description provided for @runnerLevelEliteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Elite'**
+  String get runnerLevelEliteLabel;
+
+  /// No description provided for @runnerLevelEliteSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Sponsored or top-level competing'**
+  String get runnerLevelEliteSub;
+
+  /// No description provided for @onbFormIntensityTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How hard do you want this?'**
+  String get onbFormIntensityTitle;
+
+  /// No description provided for @onbFormIntensitySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Bump up or down if you feel different — Standard matches what your goal calls for.'**
+  String get onbFormIntensitySubtitle;
+
+  /// No description provided for @onbFormIntensityEyebrow.
+  ///
+  /// In en, this message translates to:
+  /// **'WEEKLY KM'**
+  String get onbFormIntensityEyebrow;
+
+  /// No description provided for @onbFormIntensityCaptionEasy.
+  ///
+  /// In en, this message translates to:
+  /// **'Gentler bumps, lower peak. Sustainable.'**
+  String get onbFormIntensityCaptionEasy;
+
+  /// No description provided for @onbFormIntensityCaptionStandard.
+  ///
+  /// In en, this message translates to:
+  /// **'Steady weekly progression. Auto-picked.'**
+  String get onbFormIntensityCaptionStandard;
+
+  /// No description provided for @onbFormIntensityCaptionHarder.
+  ///
+  /// In en, this message translates to:
+  /// **'Steeper ramp, higher peak. Stay sharp.'**
+  String get onbFormIntensityCaptionHarder;
+
+  /// No description provided for @intensityBiasEasyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Take it easy'**
+  String get intensityBiasEasyLabel;
+
+  /// No description provided for @intensityBiasStandardLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get intensityBiasStandardLabel;
+
+  /// No description provided for @intensityBiasHarderLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Push me harder'**
+  String get intensityBiasHarderLabel;
+
+  /// No description provided for @intensityBiasEasyShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Easier'**
+  String get intensityBiasEasyShort;
+
+  /// No description provided for @intensityBiasStandardShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Standard'**
+  String get intensityBiasStandardShort;
+
+  /// No description provided for @intensityBiasHarderShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Harder'**
+  String get intensityBiasHarderShort;
+
+  /// No description provided for @intensityBiasAutoPick.
+  ///
+  /// In en, this message translates to:
+  /// **'(auto-pick)'**
+  String get intensityBiasAutoPick;
+
+  /// No description provided for @onbFormReviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to build your plan?'**
+  String get onbFormReviewTitle;
+
+  /// No description provided for @onbFormReviewSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick recap. I\'ll take it from here.'**
+  String get onbFormReviewSubtitle;
+
+  /// No description provided for @onbFormReviewCreateCta.
+  ///
+  /// In en, this message translates to:
+  /// **'CREATE MY PLAN'**
+  String get onbFormReviewCreateCta;
+
+  /// No description provided for @onbFormReviewExtraNotesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Anything else for your coach?'**
+  String get onbFormReviewExtraNotesLabel;
+
+  /// No description provided for @onbFormReviewExtraNotesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Injuries, schedule quirks, anything to consider…'**
+  String get onbFormReviewExtraNotesHint;
+
+  /// No description provided for @reviewRowGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal'**
+  String get reviewRowGoal;
+
+  /// No description provided for @reviewRowDistance.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance'**
+  String get reviewRowDistance;
+
+  /// No description provided for @reviewRowRace.
+  ///
+  /// In en, this message translates to:
+  /// **'Race'**
+  String get reviewRowRace;
+
+  /// No description provided for @reviewRowRaceDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Race day'**
+  String get reviewRowRaceDay;
+
+  /// No description provided for @reviewRowGoalTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal time'**
+  String get reviewRowGoalTime;
+
+  /// No description provided for @reviewRowCurrentPr.
+  ///
+  /// In en, this message translates to:
+  /// **'Current PR'**
+  String get reviewRowCurrentPr;
+
+  /// No description provided for @reviewRowDaysPerWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Days / week'**
+  String get reviewRowDaysPerWeek;
+
+  /// No description provided for @reviewRowPreferredDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferred days'**
+  String get reviewRowPreferredDays;
+
+  /// No description provided for @reviewRowCoachStyle.
+  ///
+  /// In en, this message translates to:
+  /// **'Coach style'**
+  String get reviewRowCoachStyle;
+
+  /// No description provided for @reviewRowRunnerLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Running level'**
+  String get reviewRowRunnerLevel;
+
+  /// No description provided for @reviewRowIntensity.
+  ///
+  /// In en, this message translates to:
+  /// **'Intensity'**
+  String get reviewRowIntensity;
+
+  /// No description provided for @reviewRowNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get reviewRowNotes;
+
+  /// No description provided for @reviewGoalTypeRaceShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Train for a race'**
+  String get reviewGoalTypeRaceShort;
+
+  /// No description provided for @reviewGoalTypePrShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Chase a PR'**
+  String get reviewGoalTypePrShort;
+
+  /// No description provided for @reviewGoalTypeFitnessShort.
+  ///
+  /// In en, this message translates to:
+  /// **'General fitness'**
+  String get reviewGoalTypeFitnessShort;
+
+  /// No description provided for @reviewGoalTypeWeightLossShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight loss'**
+  String get reviewGoalTypeWeightLossShort;
 }
 
 class _AppLocalizationsDelegate

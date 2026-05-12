@@ -1,8 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors;
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/onboarding/models/onboarding_form_data.dart';
+import 'package:app/l10n/app_localizations.dart';
 
 /// Three-segment selector for `IntensityBias`. Selected segment uses the
 /// inverted dark-on-cream palette; unselected segments are white cards
@@ -20,6 +22,7 @@ class IntensityBiasSegmentedControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -28,7 +31,7 @@ class IntensityBiasSegmentedControl extends StatelessWidget {
             for (final option in IntensityBias.values) ...[
               Expanded(
                 child: _Segment(
-                  label: _labelFor(option),
+                  label: _labelFor(l10n, option),
                   selected: option == selected,
                   onTap: () => onChanged(option),
                 ),
@@ -46,7 +49,7 @@ class IntensityBiasSegmentedControl extends StatelessWidget {
                 duration: const Duration(milliseconds: 180),
                 opacity: selected == IntensityBias.standard ? 1.0 : 0.0,
                 child: Text(
-                  '(auto-pick)',
+                  l10n.intensityBiasAutoPick,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.publicSans(
                     fontSize: 11,
@@ -62,10 +65,10 @@ class IntensityBiasSegmentedControl extends StatelessWidget {
     );
   }
 
-  static String _labelFor(IntensityBias bias) => switch (bias) {
-        IntensityBias.takeItEasy => 'Easier',
-        IntensityBias.standard => 'Standard',
-        IntensityBias.pushMeHarder => 'Harder',
+  static String _labelFor(AppLocalizations l, IntensityBias bias) => switch (bias) {
+        IntensityBias.takeItEasy => l.intensityBiasEasyShort,
+        IntensityBias.standard => l.intensityBiasStandardShort,
+        IntensityBias.pushMeHarder => l.intensityBiasHarderShort,
       };
 }
 
