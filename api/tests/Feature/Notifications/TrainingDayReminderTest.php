@@ -35,7 +35,7 @@ class TrainingDayReminderTest extends TestCase
 
         $message = (new TrainingDayReminder($day->id))->toApn(User::factory()->make());
 
-        $this->assertSame('Today: 8.5km Easy', $message->title);
+        $this->assertSame('Today: 8.5 km Easy', $message->title);
         $this->assertStringContainsString('Target pace 5:30/km', $message->body);
         $this->assertSame('training_day_reminder', $message->custom['type']);
         $this->assertSame($day->id, $message->custom['training_day_id']);
@@ -54,7 +54,7 @@ class TrainingDayReminderTest extends TestCase
 
         $message = (new TrainingDayReminder($day->id))->toApn(User::factory()->make());
 
-        $this->assertSame('Today: 20km Long run', $message->title);
+        $this->assertSame('Today: 20 km Long run', $message->title);
     }
 
     public function test_includes_custom_title_when_distinct_from_type_label(): void

@@ -33,8 +33,8 @@ class BirthdayZoneCheckReminder extends Notification implements ShouldQueue
     public function toApn(object $notifiable): ApnMessage
     {
         return ApnMessage::create()
-            ->title('Happy birthday! 🎂')
-            ->body("You're a year wiser — let's refresh your heart-rate zones to match.")
+            ->title(__('notifications.birthday_zone_check.title'))
+            ->body(__('notifications.birthday_zone_check.body'))
             ->sound('default')
             // Birthday is only relevant on the day itself; expire a few
             // hours after midnight tomorrow if undelivered.

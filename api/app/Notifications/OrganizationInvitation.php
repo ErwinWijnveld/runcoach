@@ -23,6 +23,10 @@ class OrganizationInvitation extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
+        // TODO(i18n): localize when the invitee-locale strategy is settled.
+        // Tricky case: the invitee may not have an account yet, so there's
+        // no users.locale to read — the inviter's locale is the natural
+        // proxy but might be wrong (Dutch coach inviting an English athlete).
         $organization = $this->membership->organization;
         $roleLabel = $this->membership->role->label();
         $url = url('/invites/'.$this->membership->invite_token);

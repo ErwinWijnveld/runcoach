@@ -25,8 +25,8 @@ class PlanGenerationCompleted extends Notification implements ShouldQueue
     public function toApn(object $notifiable): ApnMessage
     {
         return ApnMessage::create()
-            ->title('Your training plan is ready')
-            ->body('Tap to review and accept your plan.')
+            ->title(__('notifications.plan_generation.completed.title'))
+            ->body(__('notifications.plan_generation.completed.body'))
             ->sound('default')
             ->expiresAt(now()->addHours(4)->toDateTime())
             ->custom('type', 'plan_generation_completed')

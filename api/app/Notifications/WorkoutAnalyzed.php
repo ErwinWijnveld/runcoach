@@ -34,6 +34,9 @@ class WorkoutAnalyzed extends Notification implements ShouldQueue
 
     public function toApn(object $notifiable): ApnMessage
     {
+        // TODO(i18n): templated copy below (title prefix, compliance verdicts,
+        // 'Run' fallback day label) should route through __() when this
+        // notification's tone + verdict thresholds are finalised.
         $result = TrainingResult::with('trainingDay')->find($this->trainingResultId);
 
         if (! $result) {

@@ -42,19 +42,19 @@ class TrainingDayReminder extends Notification implements ShouldQueue
     public static function title(?TrainingDay $day): string
     {
         if ($day === null) {
-            return "Today's run";
+            return __('notifications.training_day.fallback_title');
         }
 
-        $km = self::formatKm((float) $day->target_km);
-        $label = $day->type->label();
-
-        return "Today: {$km}km {$label}";
+        return __('notifications.training_day.title_with_km', [
+            'km' => self::formatKm((float) $day->target_km),
+            'type' => $day->type->label(),
+        ]);
     }
 
     public static function body(?TrainingDay $day): string
     {
         if ($day === null) {
-            return 'Tap to see the details.';
+            return __('notifications.training_day.fallback_body');
         }
 
         $parts = [];
@@ -64,10 +64,12 @@ class TrainingDayReminder extends Notification implements ShouldQueue
         }
 
         if ($day->target_pace_seconds_per_km !== null) {
-            $parts[] = 'Target pace '.self::formatPace($day->target_pace_seconds_per_km).'/km';
+            $parts[] = __('notifications.training_day.target_pace', [
+                'pace' => self::formatPace($day->target_pace_seconds_per_km),
+            ]);
         }
 
-        $parts[] = 'Tap for details.';
+        $parts[] = __('notifications.training_day.tap_for_details');
 
         return implode('. ', $parts);
     }

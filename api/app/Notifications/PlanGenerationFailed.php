@@ -23,8 +23,8 @@ class PlanGenerationFailed extends Notification implements ShouldQueue
     public function toApn(object $notifiable): ApnMessage
     {
         return ApnMessage::create()
-            ->title('Plan generation hit a snag')
-            ->body('Tap to try again.')
+            ->title(__('notifications.plan_generation.failed.title'))
+            ->body(__('notifications.plan_generation.failed.body'))
             ->sound('default')
             ->expiresAt(now()->addHours(4)->toDateTime())
             ->custom('type', 'plan_generation_failed');
