@@ -649,6 +649,24 @@ Enforced by `PlanOptimizerService::normalizeIntervals` (runs in `optimize()` for
 
 **Compliance scoring excludes pace on intervals** — `ComplianceScoringService::calculatePaceScore` returns null when `target_pace_seconds_per_km` is null (always the case on intervals). `weightedOverall` then renormalises the remaining components (distance 30% + HR 30% → 50/50 after renorm; or 100% distance if HR also missing). This is a placeholder until segment ingestion lands — full-run avg pace mixes work + recovery + warmup + cooldown so scoring it against a per-rep target would be wrong. `training_results.pace_score` is nullable for this reason. Tests: `tests/Feature/ComplianceScoringTest.php` (search for `interval_day_`).
 
+### i18n (locale resolution + translation files)
+
+`SetLocale` middleware on the `api` group (`app/Http/Middleware/SetLocale.php`) resolves locale per request as: `auth()->user()?->locale` > `Accept-Language` header (Symfony's `getPreferredLanguage(['en', 'nl'])`) > `app.fallback_locale`. Sets BOTH `App::setLocale($locale)` and `Carbon::setLocale($locale)` so `__()` lookups and Carbon date formatting both honour the runner's language.
+
+`User` implements `Illuminate\Contracts\Translation\HasLocalePreference::preferredLocale()` (returns `$this->locale ?? config('app.fallback_locale')`) so Laravel's notification system **auto-wraps** any `$user->notify(...)` dispatch in `withLocale()`. No need to set locale manually in `toApn()` — queue workers respect `$user->locale` automatically.
+
+Translation files in `api/lang/{en,nl}/`:
+- `validation.php` — Laravel default messages (published via `php artisan lang:publish`) + Dutch counterpart
+- `notifications.php` — push notification copy keys (`plan_generation.completed.title`, `training_day.title_with_km`, etc.)
+- `enums.php` — enum labels (currently `training_type.{easy,tempo,interval,long_run,threshold}`)
+- `auth.php` + `pagination.php` + `passwords.php` shipped by `lang:publish` but stay English until those strings surface to the mobile API (they don't yet).
+
+`TrainingType::label()` returns `__('enums.training_type.'.$this->value)` — Filament admin, notifications, and plan-generated session titles all auto-localize from a single source.
+
+Notification classes that route through `__()`: `PlanGenerationCompleted`, `PlanGenerationFailed`, `TrainingDayReminder`, `BirthdayZoneCheckReminder`. Three remaining notifications carry deferred `TODO(i18n)` markers — `WorkoutAnalyzed` (templated verdict copy needs design review), `OrganizationInvitation` (inviter-vs-invitee locale resolution unresolved), `AdhocPush` (admin-typed copy, doesn't need localization).
+
+`AuthController::appleSignIn` backfills `users.locale` from `Accept-Language` on the **first** sign-in only (skipped when locale is already set, so manual overrides win). `UpdateProfileRequest` accepts `locale` ∈ `{en, nl, null}` so the Flutter app can push the runner's chosen language. Spec: `docs/superpowers/specs/2026-05-12-i18n-multilingual-research.md`. Phase 1+2 plan: `docs/superpowers/plans/2026-05-12-i18n-foundation.md`. Phase 4 (agent localization — appending a Dutch directive to `RunCoachAgent`/`OnboardingAgent`/`ActivityFeedbackAgent`/`WeeklyInsightAgent`/`PlanExplanationAgent` system prompts) is a separate plan.
+
 ## Project-specific conventions
 
 ### Tools (Laravel AI SDK)

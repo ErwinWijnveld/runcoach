@@ -477,6 +477,26 @@ Currently applied to: `dashboard_screen.dart` (staggered cards), `weekly_plan_sc
 
 Backed by `flutter_animate` (zero codegen, no `build_runner` involvement, so safe alongside Freezed 3.x / no-`custom_lint`).
 
+### 17. i18n (locale state + ARB plumbing)
+
+Official Flutter stack: `flutter_localizations` (SDK) + `intl` + ARB files + `flutter gen-l10n`. Configured by `l10n.yaml` at the project root (`nullable-getter: false`). Strings live in `lib/l10n/app_en.arb` (template) + `lib/l10n/app_nl.arb`. The generator output (`app_localizations.dart` + `app_localizations_{en,nl}.dart`) lives in `lib/l10n/` and IS committed to git (the modern Flutter default after `synthetic-package` was deprecated). Codegen auto-runs on `flutter pub get` / `flutter run`.
+
+`appLocaleProvider` (`lib/core/i18n/locale_provider.dart`, `@Riverpod(keepAlive: true)`) is the single source of truth for the app's active locale. On first launch it reads `PlatformDispatcher.locales` and returns Dutch only when one of the device's preferred languages is Dutch (`languageCode == 'nl'`) — country code intentionally ignored. Reasoning is in the design doc: Belgian francophones (`fr_BE`) should get English, Dutch expats abroad (`nl_DE`) should get Dutch, English-speaking Dutch natives (`en_NL`) should get English. The user's *language* signal already encodes intent; the country code is a regional/formatting signal only. User overrides persist in `shared_preferences` under `app_locale_override`. `setOverride(null)` reverts to auto-detection.
+
+Side-effects of `setOverride`: writes `currentAppLocaleTag` (top-level mutable in `lib/core/i18n/current_locale.dart`, read by the Dio interceptor on each request) AND `appDateLocale` (existing global in `lib/core/utils/date_formatter.dart`, used by the `formatDate` helpers). Then **fire-and-forget** `PUT /profile` to push the choice to the backend so `users.locale` follows along — the local override applies instantly regardless of network state.
+
+`CupertinoApp.router` in `app.dart` wires `locale: appLocaleProvider.value`, `localizationsDelegates: AppLocalizations.localizationsDelegates`, `supportedLocales: AppLocalizations.supportedLocales`. `AppLocalizations.localizationsDelegates` transitively includes `GlobalMaterialLocalizations.delegate` (so `showModalBottomSheet` etc. continue to work — see section 5b).
+
+**Widget access**: `context.l10n.appTitle` via the `BuildContextL10n` extension in `lib/core/i18n/build_context_l10n.dart`. **Non-widget access** (services, providers that compose user-visible strings): `ref.watch(appLocalizationsProvider)` returns `Future<AppLocalizations>` and rebuilds when the locale changes.
+
+**Backend communication**: `LocaleInterceptor` (`lib/core/api/locale_interceptor.dart`, registered before `AuthInterceptor` in `dio_client.dart`) adds `Accept-Language: <BCP-47>` to every outgoing request. The Laravel `SetLocale` middleware reads it and sets `App::setLocale()` per request so validation errors, push notifications dispatched in that request's flow, and agent output (Phase 4) all come back in the runner's language.
+
+**Phase 3 (UI string extraction) hasn't started yet** — the ~700 hardcoded `Text('…')` calls across `features/**/` are still English-only. `lib/l10n/app_en.arb` ships with only three seed keys (`appTitle`, `languageEnglish`, `languageDutch`) just to prove the pipeline.
+
+**Settings → Language picker is deferred** until Phase 3 lands extracted strings. For now, to test the Dutch path: flip iOS Settings → General → Language & Region → Preferred Languages so Dutch is first, then reinstall the app to clear `shared_preferences`.
+
+Spec: `../docs/superpowers/specs/2026-05-12-i18n-multilingual-research.md`. Phase 1+2 plan: `../docs/superpowers/plans/2026-05-12-i18n-foundation.md`.
+
 ## Running and building
 
 ```bash
