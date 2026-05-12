@@ -16,13 +16,7 @@ enum TrainingType: string
 
     public function label(): string
     {
-        return match ($this) {
-            self::Easy => 'Easy',
-            self::Tempo => 'Tempo',
-            self::Interval => 'Intervals',
-            self::LongRun => 'Long run',
-            self::Threshold => 'Threshold',
-        };
+        return __('enums.training_type.'.$this->value);
     }
 
     /**
