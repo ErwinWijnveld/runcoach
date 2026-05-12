@@ -387,5 +387,48 @@
     "placeholders": { "name": { "type": "String" } }
   },
   "goalsScheduleRowTitle": "Training schedule",
-  "goalsScheduleRowSubtitle": "Open your weekly plan"
+  "goalsScheduleRowSubtitle": "Open your weekly plan",
+
+  "commonError": "Error",
+  "commonDone": "Done",
+
+  "orgConnectionsTitle": "Connections",
+  "orgSearchPlaceholder": "Search gyms or clubs",
+  "orgAllOrganizations": "All organizations",
+  "orgResults": "Results",
+  "orgNoResults": "No organizations match.",
+  "orgSectionActive": "Active membership",
+  "orgSectionPendingInvites": "Pending invitations",
+  "orgSectionPendingRequests": "Pending requests",
+  "orgLeaveConfirmTitle": "Leave organization?",
+  "orgLeaveConfirmBody": "You will lose access to your coach and any plans they created.",
+  "orgLeaveAction": "Leave",
+  "orgLeaveButton": "Leave organization",
+  "orgLeftSuccess": "Left organization",
+  "orgRequestSent": "Request sent to {name}",
+  "@orgRequestSent": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "orgFallbackName": "Organization",
+  "orgRoleLine": "Role: {role}",
+  "@orgRoleLine": {
+    "placeholders": { "role": { "type": "String" } }
+  },
+  "orgCoachLine": "Coach: {name}",
+  "@orgCoachLine": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "orgInvitedAs": "Invited as {role}",
+  "@orgInvitedAs": {
+    "placeholders": { "role": { "type": "String" } }
+  },
+  "orgAccept": "Accept",
+  "orgReject": "Reject",
+  "orgAwaitingApproval": "Awaiting approval",
+  "orgJoin": "Join",
+
+  "orgInviteTitle": "You've been invited",
+  "orgInviteBody": "Tap accept to join the organization. You can review your active membership in Connections.",
+  "orgInviteAccept": "Accept invitation",
+  "orgInviteLater": "Not now"
 }

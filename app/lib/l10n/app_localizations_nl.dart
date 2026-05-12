@@ -992,4 +992,98 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get goalsScheduleRowSubtitle => 'Open je weekplan';
+
+  @override
+  String get commonError => 'Fout';
+
+  @override
+  String get commonDone => 'Klaar';
+
+  @override
+  String get orgConnectionsTitle => 'Verbindingen';
+
+  @override
+  String get orgSearchPlaceholder => 'Zoek gyms of clubs';
+
+  @override
+  String get orgAllOrganizations => 'Alle organisaties';
+
+  @override
+  String get orgResults => 'Resultaten';
+
+  @override
+  String get orgNoResults => 'Geen organisaties gevonden.';
+
+  @override
+  String get orgSectionActive => 'Actief lidmaatschap';
+
+  @override
+  String get orgSectionPendingInvites => 'Openstaande uitnodigingen';
+
+  @override
+  String get orgSectionPendingRequests => 'Openstaande verzoeken';
+
+  @override
+  String get orgLeaveConfirmTitle => 'Organisatie verlaten?';
+
+  @override
+  String get orgLeaveConfirmBody =>
+      'Je verliest toegang tot je coach en de plannen die zij hebben gemaakt.';
+
+  @override
+  String get orgLeaveAction => 'Verlaten';
+
+  @override
+  String get orgLeaveButton => 'Organisatie verlaten';
+
+  @override
+  String get orgLeftSuccess => 'Organisatie verlaten';
+
+  @override
+  String orgRequestSent(String name) {
+    return 'Verzoek verstuurd naar $name';
+  }
+
+  @override
+  String get orgFallbackName => 'Organisatie';
+
+  @override
+  String orgRoleLine(String role) {
+    return 'Rol: $role';
+  }
+
+  @override
+  String orgCoachLine(String name) {
+    return 'Coach: $name';
+  }
+
+  @override
+  String orgInvitedAs(String role) {
+    return 'Uitgenodigd als $role';
+  }
+
+  @override
+  String get orgAccept => 'Accepteren';
+
+  @override
+  String get orgReject => 'Afwijzen';
+
+  @override
+  String get orgAwaitingApproval => 'Wacht op goedkeuring';
+
+  @override
+  String get orgJoin => 'Word lid';
+
+  @override
+  String get orgInviteTitle => 'Je bent uitgenodigd';
+
+  @override
+  String get orgInviteBody =>
+      'Tik op accepteren om lid te worden van de organisatie. Bekijk je actieve lidmaatschap onder Verbindingen.';
+
+  @override
+  String get orgInviteAccept => 'Uitnodiging accepteren';
+
+  @override
+  String get orgInviteLater => 'Niet nu';
 }

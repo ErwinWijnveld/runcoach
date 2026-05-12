@@ -990,4 +990,98 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get goalsScheduleRowSubtitle => 'Open your weekly plan';
+
+  @override
+  String get commonError => 'Error';
+
+  @override
+  String get commonDone => 'Done';
+
+  @override
+  String get orgConnectionsTitle => 'Connections';
+
+  @override
+  String get orgSearchPlaceholder => 'Search gyms or clubs';
+
+  @override
+  String get orgAllOrganizations => 'All organizations';
+
+  @override
+  String get orgResults => 'Results';
+
+  @override
+  String get orgNoResults => 'No organizations match.';
+
+  @override
+  String get orgSectionActive => 'Active membership';
+
+  @override
+  String get orgSectionPendingInvites => 'Pending invitations';
+
+  @override
+  String get orgSectionPendingRequests => 'Pending requests';
+
+  @override
+  String get orgLeaveConfirmTitle => 'Leave organization?';
+
+  @override
+  String get orgLeaveConfirmBody =>
+      'You will lose access to your coach and any plans they created.';
+
+  @override
+  String get orgLeaveAction => 'Leave';
+
+  @override
+  String get orgLeaveButton => 'Leave organization';
+
+  @override
+  String get orgLeftSuccess => 'Left organization';
+
+  @override
+  String orgRequestSent(String name) {
+    return 'Request sent to $name';
+  }
+
+  @override
+  String get orgFallbackName => 'Organization';
+
+  @override
+  String orgRoleLine(String role) {
+    return 'Role: $role';
+  }
+
+  @override
+  String orgCoachLine(String name) {
+    return 'Coach: $name';
+  }
+
+  @override
+  String orgInvitedAs(String role) {
+    return 'Invited as $role';
+  }
+
+  @override
+  String get orgAccept => 'Accept';
+
+  @override
+  String get orgReject => 'Reject';
+
+  @override
+  String get orgAwaitingApproval => 'Awaiting approval';
+
+  @override
+  String get orgJoin => 'Join';
+
+  @override
+  String get orgInviteTitle => 'You\'ve been invited';
+
+  @override
+  String get orgInviteBody =>
+      'Tap accept to join the organization. You can review your active membership in Connections.';
+
+  @override
+  String get orgInviteAccept => 'Accept invitation';
+
+  @override
+  String get orgInviteLater => 'Not now';
 }

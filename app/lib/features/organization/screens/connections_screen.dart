@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Icons;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -78,22 +79,21 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen> {
   }
 
   Future<void> _leave() async {
+    final l10n = context.l10n;
     final confirm = await showCupertinoDialog<bool>(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
-        title: const Text('Leave organization?'),
-        content: const Text(
-          'You will lose access to your coach and any plans they created.',
-        ),
+        title: Text(l10n.orgLeaveConfirmTitle),
+        content: Text(l10n.orgLeaveConfirmBody),
         actions: [
           CupertinoDialogAction(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.commonCancel),
           ),
           CupertinoDialogAction(
             isDestructiveAction: true,
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Leave'),
+            child: Text(l10n.orgLeaveAction),
           ),
         ],
       ),
@@ -101,7 +101,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen> {
     if (confirm != true) return;
     try {
       await ref.read(membershipActionsProvider.notifier).leave();
-      if (mounted) _showSnack('Left organization');
+      if (mounted) _showSnack(l10n.orgLeftSuccess);
     } catch (e) {
       if (mounted) _showSnack(_errorMessage(e), isError: true);
     }
@@ -111,7 +111,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen> {
     setState(() => _submitting = true);
     try {
       await ref.read(membershipActionsProvider.notifier).requestJoin(org.id);
-      if (mounted) _showSnack('Request sent to ${org.name}');
+      if (mounted) _showSnack(context.l10n.orgRequestSent(org.name));
     } catch (e) {
       if (mounted) _showSnack(_errorMessage(e), isError: true);
     } finally {
@@ -120,15 +120,16 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen> {
   }
 
   void _showSnack(String message, {bool isError = false}) {
+    final l10n = context.l10n;
     showCupertinoDialog<void>(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
-        title: Text(isError ? 'Error' : 'Done'),
+        title: Text(isError ? l10n.commonError : l10n.commonDone),
         content: Text(message),
         actions: [
           CupertinoDialogAction(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('OK'),
+            child: Text(l10n.commonOk),
           ),
         ],
       ),
@@ -155,7 +156,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen> {
               child: CupertinoSearchTextField(
                 controller: _searchController,
                 onChanged: _onSearchChanged,
-                placeholder: 'Search gyms or clubs',
+                placeholder: context.l10n.orgSearchPlaceholder,
               ),
             ),
             Expanded(
@@ -179,7 +180,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen> {
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                     sliver: SliverToBoxAdapter(
                       child: _SectionTitle(
-                        _query.isEmpty ? 'All organizations' : 'Results',
+                        _query.isEmpty ? context.l10n.orgAllOrganizations : context.l10n.orgResults,
                       ),
                     ),
                   ),
@@ -201,13 +202,13 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen> {
                     data: (page) {
                       if (page.items.isEmpty) {
                         return [
-                          const SliverPadding(
-                            padding: EdgeInsets.symmetric(vertical: 24),
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(vertical: 24),
                             sliver: SliverToBoxAdapter(
                               child: Center(
                                 child: Text(
-                                  'No organizations match.',
-                                  style: TextStyle(color: AppColors.warmBrown),
+                                  context.l10n.orgNoResults,
+                                  style: const TextStyle(color: AppColors.warmBrown),
                                 ),
                               ),
                             ),
@@ -266,9 +267,9 @@ class _Header extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          const Text(
-            'Connections',
-            style: TextStyle(
+          Text(
+            context.l10n.orgConnectionsTitle,
+            style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w700,
               color: AppColors.warmBrown,
@@ -329,7 +330,7 @@ class _MembershipSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (active.isNotEmpty) ...[
-            const _SectionTitle('Active membership'),
+            _SectionTitle(context.l10n.orgSectionActive),
             const SizedBox(height: 8),
             _ActiveMembershipCard(
               membership: active.first,
@@ -338,7 +339,7 @@ class _MembershipSection extends StatelessWidget {
           ],
           if (invites.isNotEmpty) ...[
             const SizedBox(height: 16),
-            const _SectionTitle('Pending invitations'),
+            _SectionTitle(context.l10n.orgSectionPendingInvites),
             const SizedBox(height: 8),
             ...invites.map(
               (m) => Padding(
@@ -353,7 +354,7 @@ class _MembershipSection extends StatelessWidget {
           ],
           if (requests.isNotEmpty) ...[
             const SizedBox(height: 16),
-            const _SectionTitle('Pending requests'),
+            _SectionTitle(context.l10n.orgSectionPendingRequests),
             const SizedBox(height: 8),
             ...requests.map(
               (m) => Padding(
@@ -400,7 +401,7 @@ class _ActiveMembershipCard extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  org?.name ?? 'Organization',
+                  org?.name ?? context.l10n.orgFallbackName,
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -410,18 +411,18 @@ class _ActiveMembershipCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text('Role: ${membership.role}'),
+          Text(context.l10n.orgRoleLine(membership.role)),
           if (membership.coach != null) ...[
             const SizedBox(height: 4),
-            Text('Coach: ${membership.coach!.name}'),
+            Text(context.l10n.orgCoachLine(membership.coach!.name)),
           ],
           const SizedBox(height: 12),
           CupertinoButton(
             padding: EdgeInsets.zero,
             onPressed: onLeave,
-            child: const Text(
-              'Leave organization',
-              style: TextStyle(color: AppColors.warmBrown),
+            child: Text(
+              context.l10n.orgLeaveButton,
+              style: const TextStyle(color: AppColors.warmBrown),
             ),
           ),
         ],
@@ -462,13 +463,13 @@ class _InviteCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      org?.name ?? 'Organization',
+                      org?.name ?? context.l10n.orgFallbackName,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    Text('Invited as ${membership.role}'),
+                    Text(context.l10n.orgInvitedAs(membership.role)),
                   ],
                 ),
               ),
@@ -481,16 +482,16 @@ class _InviteCard extends StatelessWidget {
                 child: CupertinoButton.filled(
                   onPressed: onAccept,
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: const Text('Accept'),
+                  child: Text(context.l10n.orgAccept),
                 ),
               ),
               const SizedBox(width: 8),
               CupertinoButton(
                 onPressed: onReject,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: const Text(
-                  'Reject',
-                  style: TextStyle(color: AppColors.warmBrown),
+                child: Text(
+                  context.l10n.orgReject,
+                  style: const TextStyle(color: AppColors.warmBrown),
                 ),
               ),
             ],
@@ -524,22 +525,22 @@ class _RequestCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  org?.name ?? 'Organization',
+                  org?.name ?? context.l10n.orgFallbackName,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const Text('Awaiting approval'),
+                Text(context.l10n.orgAwaitingApproval),
               ],
             ),
           ),
           CupertinoButton(
             onPressed: onCancel,
             padding: EdgeInsets.zero,
-            child: const Text(
-              'Cancel',
-              style: TextStyle(color: AppColors.warmBrown),
+            child: Text(
+              context.l10n.commonCancel,
+              style: const TextStyle(color: AppColors.warmBrown),
             ),
           ),
         ],
@@ -597,7 +598,7 @@ class _OrgRow extends StatelessWidget {
           CupertinoButton.filled(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             onPressed: disabled ? null : onRequest,
-            child: const Text('Join'),
+            child: Text(context.l10n.orgJoin),
           ),
         ],
       ),

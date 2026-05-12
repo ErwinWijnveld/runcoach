@@ -327,5 +327,36 @@
   "goalsDeleteGoal": "Doel verwijderen",
   "goalsDeleteConfirmBody": "Weet je zeker dat je \"{name}\" wilt verwijderen?",
   "goalsScheduleRowTitle": "Trainingsschema",
-  "goalsScheduleRowSubtitle": "Open je weekplan"
+  "goalsScheduleRowSubtitle": "Open je weekplan",
+
+  "commonError": "Fout",
+  "commonDone": "Klaar",
+
+  "orgConnectionsTitle": "Verbindingen",
+  "orgSearchPlaceholder": "Zoek gyms of clubs",
+  "orgAllOrganizations": "Alle organisaties",
+  "orgResults": "Resultaten",
+  "orgNoResults": "Geen organisaties gevonden.",
+  "orgSectionActive": "Actief lidmaatschap",
+  "orgSectionPendingInvites": "Openstaande uitnodigingen",
+  "orgSectionPendingRequests": "Openstaande verzoeken",
+  "orgLeaveConfirmTitle": "Organisatie verlaten?",
+  "orgLeaveConfirmBody": "Je verliest toegang tot je coach en de plannen die zij hebben gemaakt.",
+  "orgLeaveAction": "Verlaten",
+  "orgLeaveButton": "Organisatie verlaten",
+  "orgLeftSuccess": "Organisatie verlaten",
+  "orgRequestSent": "Verzoek verstuurd naar {name}",
+  "orgFallbackName": "Organisatie",
+  "orgRoleLine": "Rol: {role}",
+  "orgCoachLine": "Coach: {name}",
+  "orgInvitedAs": "Uitgenodigd als {role}",
+  "orgAccept": "Accepteren",
+  "orgReject": "Afwijzen",
+  "orgAwaitingApproval": "Wacht op goedkeuring",
+  "orgJoin": "Word lid",
+
+  "orgInviteTitle": "Je bent uitgenodigd",
+  "orgInviteBody": "Tik op accepteren om lid te worden van de organisatie. Bekijk je actieve lidmaatschap onder Verbindingen.",
+  "orgInviteAccept": "Uitnodiging accepteren",
+  "orgInviteLater": "Niet nu"
 }

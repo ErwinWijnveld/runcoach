@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
@@ -54,15 +55,15 @@ class _InviteDetailScreenState extends ConsumerState<InviteDetailScreen> {
                 color: AppColors.gold,
               ),
               const SizedBox(height: 16),
-              const Text(
-                'You\'ve been invited',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+              Text(
+                context.l10n.orgInviteTitle,
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
-              const Text(
-                'Tap accept to join the organization. You can review your active membership in Connections.',
+              Text(
+                context.l10n.orgInviteBody,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.warmBrown),
+                style: const TextStyle(color: AppColors.warmBrown),
               ),
               const SizedBox(height: 24),
               if (_error != null) ...[
@@ -78,14 +79,14 @@ class _InviteDetailScreenState extends ConsumerState<InviteDetailScreen> {
               else
                 CupertinoButton.filled(
                   onPressed: _accept,
-                  child: const Text('Accept invitation'),
+                  child: Text(context.l10n.orgInviteAccept),
                 ),
               const SizedBox(height: 12),
               CupertinoButton(
                 onPressed: () => context.go('/connections'),
-                child: const Text(
-                  'Not now',
-                  style: TextStyle(color: AppColors.warmBrown),
+                child: Text(
+                  context.l10n.orgInviteLater,
+                  style: const TextStyle(color: AppColors.warmBrown),
                 ),
               ),
             ],

@@ -1885,6 +1885,174 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Open your weekly plan'**
   String get goalsScheduleRowSubtitle;
+
+  /// No description provided for @commonError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get commonError;
+
+  /// No description provided for @commonDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get commonDone;
+
+  /// No description provided for @orgConnectionsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Connections'**
+  String get orgConnectionsTitle;
+
+  /// No description provided for @orgSearchPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Search gyms or clubs'**
+  String get orgSearchPlaceholder;
+
+  /// No description provided for @orgAllOrganizations.
+  ///
+  /// In en, this message translates to:
+  /// **'All organizations'**
+  String get orgAllOrganizations;
+
+  /// No description provided for @orgResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Results'**
+  String get orgResults;
+
+  /// No description provided for @orgNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No organizations match.'**
+  String get orgNoResults;
+
+  /// No description provided for @orgSectionActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active membership'**
+  String get orgSectionActive;
+
+  /// No description provided for @orgSectionPendingInvites.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending invitations'**
+  String get orgSectionPendingInvites;
+
+  /// No description provided for @orgSectionPendingRequests.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending requests'**
+  String get orgSectionPendingRequests;
+
+  /// No description provided for @orgLeaveConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave organization?'**
+  String get orgLeaveConfirmTitle;
+
+  /// No description provided for @orgLeaveConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You will lose access to your coach and any plans they created.'**
+  String get orgLeaveConfirmBody;
+
+  /// No description provided for @orgLeaveAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave'**
+  String get orgLeaveAction;
+
+  /// No description provided for @orgLeaveButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave organization'**
+  String get orgLeaveButton;
+
+  /// No description provided for @orgLeftSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Left organization'**
+  String get orgLeftSuccess;
+
+  /// No description provided for @orgRequestSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Request sent to {name}'**
+  String orgRequestSent(String name);
+
+  /// No description provided for @orgFallbackName.
+  ///
+  /// In en, this message translates to:
+  /// **'Organization'**
+  String get orgFallbackName;
+
+  /// No description provided for @orgRoleLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Role: {role}'**
+  String orgRoleLine(String role);
+
+  /// No description provided for @orgCoachLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Coach: {name}'**
+  String orgCoachLine(String name);
+
+  /// No description provided for @orgInvitedAs.
+  ///
+  /// In en, this message translates to:
+  /// **'Invited as {role}'**
+  String orgInvitedAs(String role);
+
+  /// No description provided for @orgAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept'**
+  String get orgAccept;
+
+  /// No description provided for @orgReject.
+  ///
+  /// In en, this message translates to:
+  /// **'Reject'**
+  String get orgReject;
+
+  /// No description provided for @orgAwaitingApproval.
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting approval'**
+  String get orgAwaitingApproval;
+
+  /// No description provided for @orgJoin.
+  ///
+  /// In en, this message translates to:
+  /// **'Join'**
+  String get orgJoin;
+
+  /// No description provided for @orgInviteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve been invited'**
+  String get orgInviteTitle;
+
+  /// No description provided for @orgInviteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap accept to join the organization. You can review your active membership in Connections.'**
+  String get orgInviteBody;
+
+  /// No description provided for @orgInviteAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept invitation'**
+  String get orgInviteAccept;
+
+  /// No description provided for @orgInviteLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get orgInviteLater;
 }
 
 class _AppLocalizationsDelegate
