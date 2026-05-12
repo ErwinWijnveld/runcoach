@@ -171,24 +171,21 @@ class _BootPopupHostState extends ConsumerState<_BootPopupHost> {
       // a context that has the navigator as an ancestor.
       final navCtx = rootNavigatorKey.currentContext;
       if (navCtx == null || !navCtx.mounted) return;
+      final l10n = AppLocalizations.of(navCtx);
       final view = await showCupertinoDialog<bool>(
         context: navCtx,
         builder: (dialogCtx) => CupertinoAlertDialog(
-          title: const Text('Action required'),
-          content: Text(
-            items.length == 1
-                ? 'You have 1 pending suggestion that needs your attention.'
-                : 'You have ${items.length} pending suggestions that need your attention.',
-          ),
+          title: Text(l10n.bootPopupTitle),
+          content: Text(l10n.bootPopupBody(items.length)),
           actions: [
             CupertinoDialogAction(
               onPressed: () => Navigator.of(dialogCtx).pop(false),
-              child: const Text('Later'),
+              child: Text(l10n.bootPopupLater),
             ),
             CupertinoDialogAction(
               isDefaultAction: true,
               onPressed: () => Navigator.of(dialogCtx).pop(true),
-              child: const Text('View'),
+              child: Text(l10n.bootPopupView),
             ),
           ],
         ),

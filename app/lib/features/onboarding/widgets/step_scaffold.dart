@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/features/onboarding/widgets/onboarding_primary_button.dart';
@@ -90,7 +91,7 @@ class StepScaffold extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         onPressed: onSkip,
                         child: Text(
-                          'Skip',
+                          context.l10n.commonSkip,
                           style: GoogleFonts.inter(
                             fontSize: 15,
                             fontWeight: FontWeight.w500,

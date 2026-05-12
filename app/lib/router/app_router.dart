@@ -6,6 +6,7 @@ import 'package:flutter/material.dart' show Icons, IconData;
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/auth/screens/heart_rate_zones_route_screen.dart';
@@ -480,7 +481,7 @@ class _RunCoreBottomNav extends StatelessWidget {
                     Expanded(
                       child: _NavItem(
                         icon: Icons.dashboard,
-                        label: 'Dashboard',
+                        label: context.l10n.tabDashboard,
                         active: currentIndex == 0,
                         onTap: () => _goTo(context, 0),
                       ),
@@ -488,7 +489,7 @@ class _RunCoreBottomNav extends StatelessWidget {
                     Expanded(
                       child: _NavItem(
                         icon: Icons.calendar_today,
-                        label: 'Schedule',
+                        label: context.l10n.tabSchedule,
                         active: currentIndex == 1,
                         onTap: () => _goTo(context, 1),
                       ),
@@ -496,7 +497,7 @@ class _RunCoreBottomNav extends StatelessWidget {
                     Expanded(
                       child: _NavItem(
                         svgAsset: 'assets/icons/ai_coach_tab.svg',
-                        label: 'Chat',
+                        label: context.l10n.tabChat,
                         active: currentIndex == 2,
                         onTap: () => _goTo(context, 2),
                       ),
@@ -504,7 +505,7 @@ class _RunCoreBottomNav extends StatelessWidget {
                     Expanded(
                       child: _NavItem(
                         icon: Icons.emoji_events,
-                        label: 'Goals',
+                        label: context.l10n.tabGoals,
                         active: currentIndex == 3,
                         onTap: () => _goTo(context, 3),
                       ),
@@ -604,26 +605,27 @@ class _NativeIosTabBar extends StatelessWidget {
     // No outer SafeArea: the native UITabBar manages its own home-indicator
     // inset, so wrapping it in SafeArea would double-pad the bottom and
     // float the bar above the home indicator.
+    final l10n = context.l10n;
     return CNTabBar(
       currentIndex: currentIndex,
       onTap: onTap,
       tint: _RunCoreBottomNav._activeColor,
-      items: const [
+      items: [
         CNTabBarItem(
-          label: 'Dashboard',
-          icon: CNSymbol('square.grid.2x2.fill'),
+          label: l10n.tabDashboard,
+          icon: const CNSymbol('square.grid.2x2.fill'),
         ),
         CNTabBarItem(
-          label: 'Schedule',
-          icon: CNSymbol('calendar'),
+          label: l10n.tabSchedule,
+          icon: const CNSymbol('calendar'),
         ),
         CNTabBarItem(
-          label: 'Chat',
-          icon: CNSymbol('sparkles'),
+          label: l10n.tabChat,
+          icon: const CNSymbol('sparkles'),
         ),
         CNTabBarItem(
-          label: 'Goals',
-          icon: CNSymbol('trophy.fill'),
+          label: l10n.tabGoals,
+          icon: const CNSymbol('trophy.fill'),
         ),
       ],
     );

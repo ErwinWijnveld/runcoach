@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors, Icons, InkWell, Material;
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/schedule/models/wearable_activity_summary.dart';
@@ -59,7 +60,7 @@ class WearableSummaryCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            activity.name ?? 'Run',
+                            activity.name ?? context.l10n.wearableActivityFallbackName,
                             style: GoogleFonts.ebGaramond(
                               fontSize: 22,
                               fontWeight: FontWeight.w500,
@@ -72,7 +73,7 @@ class WearableSummaryCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${_sourceLabel(activity.source)} · ${_formatStartDate(activity.startDate)}',
+                            '${_sourceLabel(activity.source)} · ${_formatStartDate(context, activity.startDate)}',
                             style: GoogleFonts.publicSans(
                               fontSize: 13,
                               color: AppColors.tertiary,
@@ -136,11 +137,12 @@ class WearableSummaryCard extends StatelessWidget {
     return '$m:${s.toString().padLeft(2, '0')}';
   }
 
-  String _formatStartDate(String iso) {
+  String _formatStartDate(BuildContext context, String iso) {
     try {
       final dt = DateTime.parse(iso).toLocal();
+      final locale = Localizations.localeOf(context).toLanguageTag();
       final day = dt.day.toString().padLeft(2, '0');
-      final mo = _months[dt.month - 1];
+      final mo = DateFormat.MMM(locale).format(dt);
       final time =
           '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
       return '$day $mo · $time';
@@ -148,11 +150,6 @@ class WearableSummaryCard extends StatelessWidget {
       return iso;
     }
   }
-
-  static const _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-  ];
 
   static Color _sourceColor(String source) {
     switch (source) {

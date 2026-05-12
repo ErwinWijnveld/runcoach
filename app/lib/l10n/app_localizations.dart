@@ -3241,6 +3241,546 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 run} other{{count} runs}}'**
   String weeklyPlanDayCount(int count);
+
+  /// No description provided for @bootPopupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Action required'**
+  String get bootPopupTitle;
+
+  /// No description provided for @bootPopupBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{You have 1 pending suggestion that needs your attention.} other{You have {count} pending suggestions that need your attention.}}'**
+  String bootPopupBody(int count);
+
+  /// No description provided for @bootPopupLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get bootPopupLater;
+
+  /// No description provided for @bootPopupView.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get bootPopupView;
+
+  /// No description provided for @tabDashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Dashboard'**
+  String get tabDashboard;
+
+  /// No description provided for @tabSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule'**
+  String get tabSchedule;
+
+  /// No description provided for @tabChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat'**
+  String get tabChat;
+
+  /// No description provided for @tabGoals.
+  ///
+  /// In en, this message translates to:
+  /// **'Goals'**
+  String get tabGoals;
+
+  /// No description provided for @trainingStatusMissed.
+  ///
+  /// In en, this message translates to:
+  /// **'MARKED AS MISSED'**
+  String get trainingStatusMissed;
+
+  /// No description provided for @trainingStatusSynced.
+  ///
+  /// In en, this message translates to:
+  /// **'ACTIVITY SYNCED'**
+  String get trainingStatusSynced;
+
+  /// No description provided for @trainingStatusAwaitingSync.
+  ///
+  /// In en, this message translates to:
+  /// **'AWAITING SYNC'**
+  String get trainingStatusAwaitingSync;
+
+  /// No description provided for @trainingStatusUpcoming.
+  ///
+  /// In en, this message translates to:
+  /// **'RUN IS UPCOMING'**
+  String get trainingStatusUpcoming;
+
+  /// No description provided for @trainingDayStatusMissed.
+  ///
+  /// In en, this message translates to:
+  /// **'MISSED'**
+  String get trainingDayStatusMissed;
+
+  /// No description provided for @trainingDayStatusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'COMPLETED'**
+  String get trainingDayStatusCompleted;
+
+  /// No description provided for @trainingDayStatusUpcoming.
+  ///
+  /// In en, this message translates to:
+  /// **'UPCOMING'**
+  String get trainingDayStatusUpcoming;
+
+  /// No description provided for @workoutChatBarrierLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Close workout chat'**
+  String get workoutChatBarrierLabel;
+
+  /// No description provided for @trainingDayWatchCouldNotSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t send'**
+  String get trainingDayWatchCouldNotSend;
+
+  /// No description provided for @analyzingChipSyncingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing your runs'**
+  String get analyzingChipSyncingTitle;
+
+  /// No description provided for @analyzingChipSyncingSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pulling new runs from Apple Health…'**
+  String get analyzingChipSyncingSubtitle;
+
+  /// No description provided for @analyzingChipMatchingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Matching to your training plan'**
+  String get analyzingChipMatchingTitle;
+
+  /// No description provided for @analyzingChipMatchingSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Just a moment…'**
+  String get analyzingChipMatchingSubtitle;
+
+  /// No description provided for @analyzingChipAnalysingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI is analyzing your run'**
+  String get analyzingChipAnalysingTitle;
+
+  /// No description provided for @analyzingChipAnalysingSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Generating personalized feedback…'**
+  String get analyzingChipAnalysingSubtitle;
+
+  /// No description provided for @analyzingChipReadyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Analysis ready'**
+  String get analyzingChipReadyTitle;
+
+  /// No description provided for @analyzingChipReadyComplianceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Compliance {score}/10'**
+  String analyzingChipReadyComplianceSubtitle(String score);
+
+  /// No description provided for @analyzingChipReadyTapToView.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to view'**
+  String get analyzingChipReadyTapToView;
+
+  /// No description provided for @analyzingChipLoggedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Run logged'**
+  String get analyzingChipLoggedTitle;
+
+  /// No description provided for @analyzingChipLoggedNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching training day'**
+  String get analyzingChipLoggedNoMatch;
+
+  /// No description provided for @trainingResultNoResultYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No result recorded yet.'**
+  String get trainingResultNoResultYet;
+
+  /// No description provided for @goalDetailSectionTraining.
+  ///
+  /// In en, this message translates to:
+  /// **'Training'**
+  String get goalDetailSectionTraining;
+
+  /// No description provided for @goalDetailSectionNotActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Not active'**
+  String get goalDetailSectionNotActive;
+
+  /// No description provided for @chatErrorConnectionInterrupted.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection interrupted. Tap retry.'**
+  String get chatErrorConnectionInterrupted;
+
+  /// No description provided for @chatErrorRequestTimedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Request timed out'**
+  String get chatErrorRequestTimedOut;
+
+  /// No description provided for @chatErrorCannotReachServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot reach server'**
+  String get chatErrorCannotReachServer;
+
+  /// No description provided for @chatErrorServerStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Server error ({status})'**
+  String chatErrorServerStatus(String status);
+
+  /// No description provided for @chatErrorUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown error'**
+  String get chatErrorUnknown;
+
+  /// No description provided for @watchOnlyOnIos.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending workouts to your watch is only available on iOS.'**
+  String get watchOnlyOnIos;
+
+  /// No description provided for @watchNativeBridgeError.
+  ///
+  /// In en, this message translates to:
+  /// **'Native bridge error.'**
+  String get watchNativeBridgeError;
+
+  /// No description provided for @watchRecomputeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t recompute: {error}'**
+  String watchRecomputeFailed(String error);
+
+  /// No description provided for @toolIndicatorDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Working on it…'**
+  String get toolIndicatorDefault;
+
+  /// No description provided for @toolIndicatorGetRecentRuns.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking up your recent runs…'**
+  String get toolIndicatorGetRecentRuns;
+
+  /// No description provided for @toolIndicatorSearchActivities.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking up your activities…'**
+  String get toolIndicatorSearchActivities;
+
+  /// No description provided for @toolIndicatorGetActivityDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Digging into that run…'**
+  String get toolIndicatorGetActivityDetails;
+
+  /// No description provided for @toolIndicatorGetCurrentSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading your schedule…'**
+  String get toolIndicatorGetCurrentSchedule;
+
+  /// No description provided for @toolIndicatorGetGoalInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking your goal…'**
+  String get toolIndicatorGetGoalInfo;
+
+  /// No description provided for @toolIndicatorGetComplianceReport.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviewing compliance…'**
+  String get toolIndicatorGetComplianceReport;
+
+  /// No description provided for @toolIndicatorCreateSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Building your training plan…'**
+  String get toolIndicatorCreateSchedule;
+
+  /// No description provided for @toolIndicatorEditSchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Revising your plan…'**
+  String get toolIndicatorEditSchedule;
+
+  /// No description provided for @toolIndicatorModifySchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjusting your schedule…'**
+  String get toolIndicatorModifySchedule;
+
+  /// No description provided for @toolIndicatorGetCurrentProposal.
+  ///
+  /// In en, this message translates to:
+  /// **'Reviewing the proposal…'**
+  String get toolIndicatorGetCurrentProposal;
+
+  /// No description provided for @toolIndicatorGetRunningProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Analysing your running history…'**
+  String get toolIndicatorGetRunningProfile;
+
+  /// No description provided for @toolIndicatorPresentRunningStats.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing your stats…'**
+  String get toolIndicatorPresentRunningStats;
+
+  /// No description provided for @toolIndicatorOfferChoices.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing options…'**
+  String get toolIndicatorOfferChoices;
+
+  /// No description provided for @toolIndicatorEditWorkout.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjusting this workout…'**
+  String get toolIndicatorEditWorkout;
+
+  /// No description provided for @toolIndicatorRescheduleWorkout.
+  ///
+  /// In en, this message translates to:
+  /// **'Moving this workout…'**
+  String get toolIndicatorRescheduleWorkout;
+
+  /// No description provided for @toolIndicatorEscalateToCoach.
+  ///
+  /// In en, this message translates to:
+  /// **'Routing to your coach…'**
+  String get toolIndicatorEscalateToCoach;
+
+  /// No description provided for @choiceGroupOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get choiceGroupOther;
+
+  /// No description provided for @orgJoinedSnack.
+  ///
+  /// In en, this message translates to:
+  /// **'Joined organization'**
+  String get orgJoinedSnack;
+
+  /// No description provided for @newChatTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New Chat'**
+  String get newChatTitle;
+
+  /// No description provided for @trainingCoachSuggestion1.
+  ///
+  /// In en, this message translates to:
+  /// **'Move this run to tomorrow…'**
+  String get trainingCoachSuggestion1;
+
+  /// No description provided for @trainingCoachSuggestion2.
+  ///
+  /// In en, this message translates to:
+  /// **'Make this easier, I feel tired…'**
+  String get trainingCoachSuggestion2;
+
+  /// No description provided for @trainingCoachSuggestion3.
+  ///
+  /// In en, this message translates to:
+  /// **'Why is today\'s pace so fast?'**
+  String get trainingCoachSuggestion3;
+
+  /// No description provided for @trainingCoachSuggestion4.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap for a rest day instead…'**
+  String get trainingCoachSuggestion4;
+
+  /// No description provided for @trainingCoachSuggestion5.
+  ///
+  /// In en, this message translates to:
+  /// **'Shorten this to 5km…'**
+  String get trainingCoachSuggestion5;
+
+  /// No description provided for @trainingCoachSuggestion6.
+  ///
+  /// In en, this message translates to:
+  /// **'What if I skip the intervals?'**
+  String get trainingCoachSuggestion6;
+
+  /// No description provided for @trainingCoachSuggestion7.
+  ///
+  /// In en, this message translates to:
+  /// **'Can I do this on the treadmill?'**
+  String get trainingCoachSuggestion7;
+
+  /// No description provided for @trainingCoachSuggestion8.
+  ///
+  /// In en, this message translates to:
+  /// **'Explain the goal of this session…'**
+  String get trainingCoachSuggestion8;
+
+  /// No description provided for @scheduleCoachSuggestion1.
+  ///
+  /// In en, this message translates to:
+  /// **'Change the easy run to interval...'**
+  String get scheduleCoachSuggestion1;
+
+  /// No description provided for @scheduleCoachSuggestion2.
+  ///
+  /// In en, this message translates to:
+  /// **'Move Monday workouts to Thursday...'**
+  String get scheduleCoachSuggestion2;
+
+  /// No description provided for @scheduleCoachSuggestion3.
+  ///
+  /// In en, this message translates to:
+  /// **'Am I improving at the right pace?'**
+  String get scheduleCoachSuggestion3;
+
+  /// No description provided for @scheduleCoachSuggestion4.
+  ///
+  /// In en, this message translates to:
+  /// **'Swap my long run to Saturday...'**
+  String get scheduleCoachSuggestion4;
+
+  /// No description provided for @scheduleCoachSuggestion5.
+  ///
+  /// In en, this message translates to:
+  /// **'Make this week a recovery week...'**
+  String get scheduleCoachSuggestion5;
+
+  /// No description provided for @scheduleCoachSuggestion6.
+  ///
+  /// In en, this message translates to:
+  /// **'Should I push harder this week?'**
+  String get scheduleCoachSuggestion6;
+
+  /// No description provided for @scheduleCoachSuggestion7.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s the goal of Wednesday\'s run?'**
+  String get scheduleCoachSuggestion7;
+
+  /// No description provided for @scheduleCoachSuggestion8.
+  ///
+  /// In en, this message translates to:
+  /// **'Cut one easy run, I need rest...'**
+  String get scheduleCoachSuggestion8;
+
+  /// No description provided for @scheduleCoachSuggestion9.
+  ///
+  /// In en, this message translates to:
+  /// **'Am I on track for my race?'**
+  String get scheduleCoachSuggestion9;
+
+  /// No description provided for @scheduleCoachSuggestion10.
+  ///
+  /// In en, this message translates to:
+  /// **'Explain the tempo session to me...'**
+  String get scheduleCoachSuggestion10;
+
+  /// No description provided for @scheduleCoachSuggestion11.
+  ///
+  /// In en, this message translates to:
+  /// **'Can we add a hill session?'**
+  String get scheduleCoachSuggestion11;
+
+  /// No description provided for @scheduleCoachSuggestion12.
+  ///
+  /// In en, this message translates to:
+  /// **'I felt wrecked yesterday, adjust...'**
+  String get scheduleCoachSuggestion12;
+
+  /// No description provided for @goalCoachSuggestion1.
+  ///
+  /// In en, this message translates to:
+  /// **'Train me for a marathon...'**
+  String get goalCoachSuggestion1;
+
+  /// No description provided for @goalCoachSuggestion2.
+  ///
+  /// In en, this message translates to:
+  /// **'Help me get faster at 10k...'**
+  String get goalCoachSuggestion2;
+
+  /// No description provided for @goalCoachSuggestion3.
+  ///
+  /// In en, this message translates to:
+  /// **'I have a half marathon in May...'**
+  String get goalCoachSuggestion3;
+
+  /// No description provided for @goalCoachSuggestion4.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s a realistic PR goal?'**
+  String get goalCoachSuggestion4;
+
+  /// No description provided for @goalCoachSuggestion5.
+  ///
+  /// In en, this message translates to:
+  /// **'Build a fitness plan for me...'**
+  String get goalCoachSuggestion5;
+
+  /// No description provided for @goalCoachSuggestion6.
+  ///
+  /// In en, this message translates to:
+  /// **'I want to break 45 at 10k...'**
+  String get goalCoachSuggestion6;
+
+  /// No description provided for @goalCoachSuggestion7.
+  ///
+  /// In en, this message translates to:
+  /// **'Get me race-ready in 12 weeks...'**
+  String get goalCoachSuggestion7;
+
+  /// No description provided for @goalCoachSuggestion8.
+  ///
+  /// In en, this message translates to:
+  /// **'Can we target a sub-4 marathon?'**
+  String get goalCoachSuggestion8;
+
+  /// No description provided for @goalCoachSuggestion9.
+  ///
+  /// In en, this message translates to:
+  /// **'Design a base-building block...'**
+  String get goalCoachSuggestion9;
+
+  /// No description provided for @goalCoachSuggestion10.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan my next training cycle...'**
+  String get goalCoachSuggestion10;
+
+  /// No description provided for @wearableActivityFallbackName.
+  ///
+  /// In en, this message translates to:
+  /// **'Run'**
+  String get wearableActivityFallbackName;
 }
 
 class _AppLocalizationsDelegate

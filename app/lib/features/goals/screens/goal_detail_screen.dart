@@ -42,7 +42,9 @@ class _Loaded extends ConsumerWidget {
 
   Future<void> _startNewChat(BuildContext context, WidgetRef ref) async {
     final api = ref.read(coachApiProvider);
-    final response = await api.createConversation({'title': 'New Chat'});
+    final response = await api.createConversation({
+      'title': context.l10n.newChatTitle,
+    });
     final id = response['data']['id'];
     ref.invalidate(conversationsProvider);
     if (context.mounted) context.go('/coach/chat/$id');
@@ -86,7 +88,7 @@ class _Loaded extends ConsumerWidget {
                           ),
                           const SizedBox(height: 16),
                           if (isActive) ...[
-                            const _SectionTitle('Training'),
+                            _SectionTitle(context.l10n.goalDetailSectionTraining),
                             Padding(
                               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                               child: _ScheduleRow(
@@ -95,7 +97,7 @@ class _Loaded extends ConsumerWidget {
                             ),
                           ] else if (goal.status == 'paused' ||
                               goal.status == 'planning') ...[
-                            const _SectionTitle('Not active'),
+                            _SectionTitle(context.l10n.goalDetailSectionNotActive),
                             Padding(
                               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                               child: _SwitchToGoalCard(goal: goal),
@@ -117,7 +119,7 @@ class _Loaded extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: CoachPromptBar.navigateAnimated(
                 onTap: () => _startNewChat(context, ref),
-                animatedSuggestions: goalCoachSuggestions,
+                animatedSuggestions: goalCoachSuggestions(context.l10n),
               ),
             ),
           ),

@@ -6,25 +6,6 @@ import 'package:app/features/coach/models/coach_stats_card.dart';
 import 'package:app/features/coach/models/vercel_stream_event.dart';
 
 class VercelStreamParser {
-  static const _humanizedTools = {
-    'GetRecentRuns': 'Looking up your recent runs…',
-    'SearchStravaActivities': 'Looking up your activities…',
-    'GetActivityDetails': 'Digging into that run…',
-    'GetCurrentSchedule': 'Loading your schedule…',
-    'GetGoalInfo': 'Checking your goal…',
-    'GetComplianceReport': 'Reviewing compliance…',
-    'CreateSchedule': 'Building your training plan…',
-    'EditSchedule': 'Revising your plan…',
-    'ModifySchedule': 'Adjusting your schedule…',
-    'GetCurrentProposal': 'Reviewing the proposal…',
-    'GetRunningProfile': 'Analysing your running history…',
-    'PresentRunningStats': 'Preparing your stats…',
-    'OfferChoices': 'Preparing options…',
-    'EditWorkout': 'Adjusting this workout…',
-    'RescheduleWorkout': 'Moving this workout…',
-    'EscalateToCoach': 'Routing to your coach…',
-  };
-
   Stream<VercelStreamEvent> parse(Stream<List<int>> bytes) async* {
     final buffer = StringBuffer();
 
@@ -79,11 +60,11 @@ class VercelStreamParser {
         'text-delta' => VercelStreamEvent.textDelta(json['delta'] as String),
         'text-end' => const VercelStreamEvent.textEnd(),
         'tool-input-available' => VercelStreamEvent.toolStart(
-            _humanize(json['toolName'] as String? ?? ''),
+            json['toolName'] as String? ?? '',
           ),
         'tool-output-available' => const VercelStreamEvent.toolEnd(),
         'error' => VercelStreamEvent.error(
-            json['errorText'] as String? ?? 'Unknown error',
+            json['errorText'] as String? ?? '',
           ),
         'data-proposal' => VercelStreamEvent.proposal(
             CoachProposal.fromJson(json['data'] as Map<String, dynamic>),
@@ -116,6 +97,4 @@ class VercelStreamParser {
     }
   }
 
-  String _humanize(String toolName) =>
-      _humanizedTools[toolName] ?? 'Working on it…';
 }

@@ -56,7 +56,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen> {
   Future<void> _accept(int id) async {
     try {
       await ref.read(membershipActionsProvider.notifier).acceptInvite(id);
-      if (mounted) _showSnack('Joined organization');
+      if (mounted) _showSnack(context.l10n.orgJoinedSnack);
     } catch (e) {
       if (mounted) _showSnack(_errorMessage(e), isError: true);
     }
@@ -143,6 +143,7 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final membershipsAsync = ref.watch(membershipsProvider);
     final searchAsync = ref.watch(organizationSearchProvider(_query));
 
@@ -195,7 +196,9 @@ class _ConnectionsScreenState extends ConsumerState<ConnectionsScreen> {
                       SliverPadding(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                         sliver: SliverToBoxAdapter(
-                          child: AppErrorState(title: 'Error: $e'),
+                          child: AppErrorState(
+                            title: l10n.commonErrorWithMessage(e.toString()),
+                          ),
                         ),
                       ),
                     ],

@@ -18,7 +18,7 @@ class WorkoutChatSheet {
     return showGeneralDialog<void>(
       context: context,
       barrierDismissible: true,
-      barrierLabel: 'Close workout chat',
+      barrierLabel: context.l10n.workoutChatBarrierLabel,
       barrierColor: Colors.transparent,
       transitionDuration: const Duration(milliseconds: 220),
       pageBuilder: (_, _, _) => _WorkoutChatOverlay(trainingDayId: trainingDayId),

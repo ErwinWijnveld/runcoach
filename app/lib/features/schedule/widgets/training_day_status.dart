@@ -1,6 +1,7 @@
 import 'package:flutter/painting.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/schedule/models/training_day.dart';
+import 'package:app/l10n/app_localizations.dart';
 
 /// Derived UI state for a training day. A training day is always in exactly
 /// one of these four states based on its date vs. today and whether a
@@ -52,18 +53,18 @@ enum TrainingDayStatus {
     }
   }
 
-  String get pillLabel => switch (this) {
-        TrainingDayStatus.missed => 'MISSED',
-        TrainingDayStatus.completed => 'COMPLETED',
-        TrainingDayStatus.today => 'TODAY',
-        TrainingDayStatus.upcoming => 'UPCOMING',
+  String pillLabel(AppLocalizations l10n) => switch (this) {
+        TrainingDayStatus.missed => l10n.trainingDayStatusMissed,
+        TrainingDayStatus.completed => l10n.trainingDayStatusCompleted,
+        TrainingDayStatus.today => l10n.commonTodayUpper,
+        TrainingDayStatus.upcoming => l10n.trainingDayStatusUpcoming,
       };
 
-  String get subtitle => switch (this) {
-        TrainingDayStatus.missed => 'MARKED AS MISSED',
-        TrainingDayStatus.completed => 'ACTIVITY SYNCED',
-        TrainingDayStatus.today => 'AWAITING SYNC',
-        TrainingDayStatus.upcoming => 'RUN IS UPCOMING',
+  String subtitle(AppLocalizations l10n) => switch (this) {
+        TrainingDayStatus.missed => l10n.trainingStatusMissed,
+        TrainingDayStatus.completed => l10n.trainingStatusSynced,
+        TrainingDayStatus.today => l10n.trainingStatusAwaitingSync,
+        TrainingDayStatus.upcoming => l10n.trainingStatusUpcoming,
       };
 
   Color get pillColor => switch (this) {

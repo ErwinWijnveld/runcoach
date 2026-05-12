@@ -30,7 +30,7 @@ void main() {
       ]);
     });
 
-    test('parses tool-input-available as toolStart with humanized name', () async {
+    test('parses tool-input-available as toolStart with raw tool name', () async {
       final input = _bytes([
         'data: {"type":"tool-input-available","toolName":"SearchStravaActivities"}\n\n',
         'data: [DONE]\n\n',
@@ -41,7 +41,9 @@ void main() {
       expect(events.first, isA<ToolStartEvent>());
       expect(
         (events.first as ToolStartEvent).toolName,
-        'Looking up your activities…',
+        // Humanization moved to message_bubble for i18n; parser now passes
+        // the raw tool name through.
+        'SearchStravaActivities',
       );
     });
 

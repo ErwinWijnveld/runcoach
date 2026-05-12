@@ -6,6 +6,7 @@ import 'package:gpt_markdown/gpt_markdown.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/coach/models/coach_message.dart';
+import 'package:app/features/coach/utils/coach_error_codes.dart';
 import 'package:app/features/coach/widgets/chip_suggestions_row.dart';
 import 'package:app/features/coach/widgets/stats_card_bubble.dart';
 import 'package:app/features/coach/widgets/thinking_card.dart';
@@ -44,13 +45,13 @@ class MessageBubble extends StatelessWidget {
     children.add(const SizedBox(height: 8));
 
     if (_isThinking) {
-      children.add(ThinkingCard(label: _thinkingLabel(message.toolIndicator)));
+      children.add(ThinkingCard(label: _thinkingLabel(context, message.toolIndicator)));
     } else if (message.content.isNotEmpty || message.streaming) {
       children.add(_Bubble(message: message));
       if (_isToolRunning) {
         children.add(const SizedBox(height: 8));
         children.add(
-          ThinkingCard(label: _thinkingLabel(message.toolIndicator)),
+          ThinkingCard(label: _thinkingLabel(context, message.toolIndicator)),
         );
       }
     }
@@ -110,10 +111,34 @@ class MessageBubble extends StatelessWidget {
   }
 }
 
-String _thinkingLabel(String? toolIndicator) {
+String _thinkingLabel(BuildContext context, String? toolIndicator) {
+  final l10n = context.l10n;
   final trimmed = toolIndicator?.trim();
-  if (trimmed == null || trimmed.isEmpty) return 'Thinking';
-  return trimmed.replaceFirst(RegExp(r'[…\.]+$'), '');
+  if (trimmed == null || trimmed.isEmpty) return l10n.coachThinking;
+  // If this is a raw tool name from the SSE stream, map to a localized label.
+  final mapped = switch (trimmed) {
+    'Thinking' => l10n.coachThinking,
+    'GetRecentRuns' => l10n.toolIndicatorGetRecentRuns,
+    'SearchStravaActivities' => l10n.toolIndicatorSearchActivities,
+    'SearchActivities' => l10n.toolIndicatorSearchActivities,
+    'GetActivityDetails' => l10n.toolIndicatorGetActivityDetails,
+    'GetCurrentSchedule' => l10n.toolIndicatorGetCurrentSchedule,
+    'GetGoalInfo' => l10n.toolIndicatorGetGoalInfo,
+    'GetComplianceReport' => l10n.toolIndicatorGetComplianceReport,
+    'CreateSchedule' => l10n.toolIndicatorCreateSchedule,
+    'EditSchedule' => l10n.toolIndicatorEditSchedule,
+    'ModifySchedule' => l10n.toolIndicatorModifySchedule,
+    'GetCurrentProposal' => l10n.toolIndicatorGetCurrentProposal,
+    'GetRunningProfile' => l10n.toolIndicatorGetRunningProfile,
+    'PresentRunningStats' => l10n.toolIndicatorPresentRunningStats,
+    'OfferChoices' => l10n.toolIndicatorOfferChoices,
+    'EditWorkout' => l10n.toolIndicatorEditWorkout,
+    'RescheduleWorkout' => l10n.toolIndicatorRescheduleWorkout,
+    'EscalateToCoach' => l10n.toolIndicatorEscalateToCoach,
+    _ => null,
+  };
+  final label = mapped ?? trimmed;
+  return label.replaceFirst(RegExp(r'[…\.]+$'), '');
 }
 
 class _RoleLabel extends StatelessWidget {
@@ -216,7 +241,7 @@ class _ErrorStrip extends StatelessWidget {
         const SizedBox(width: 6),
         Flexible(
           child: Text(
-            detail,
+            localizedCoachError(context, detail),
             style: const TextStyle(
               fontSize: 12,
               color: AppColors.danger,

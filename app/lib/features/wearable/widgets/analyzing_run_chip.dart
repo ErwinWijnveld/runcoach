@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/wearable/models/analyzing_run.dart';
 import 'package:app/features/wearable/providers/workout_sync_provider.dart';
@@ -38,12 +39,12 @@ class AnalyzingRunChip extends ConsumerWidget {
     //    whether prior analyzing entries exist — they belong to a previous
     //    sync cycle and the new one supersedes them.
     if (state.isSyncing) {
-      return const Padding(
-        padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
         child: _ChipShell(
-          indicator: _PulsingDot(color: AppColors.gold),
-          title: 'Syncing your runs',
-          subtitle: 'Pulling new runs from Apple Health…',
+          indicator: const _PulsingDot(color: AppColors.gold),
+          title: context.l10n.analyzingChipSyncingTitle,
+          subtitle: context.l10n.analyzingChipSyncingSubtitle,
         ),
       );
     }
@@ -69,25 +70,28 @@ class _ChipForRun extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final (title, subtitle, indicator) = switch (run.status) {
       // Pending is rare in the new flow — matching is synchronous in the
       // POST. Kept as a defensive fallback for the polling endpoint which
       // still distinguishes "no result yet".
       AnalyzingRunStatus.pending => (
-          'Matching to your training plan',
-          'Just a moment…',
+          l10n.analyzingChipMatchingTitle,
+          l10n.analyzingChipMatchingSubtitle,
           const _PulsingDot(color: AppColors.gold) as Widget,
         ),
       AnalyzingRunStatus.matched => (
-          'AI is analyzing your run',
-          'Generating personalized feedback…',
+          l10n.analyzingChipAnalysingTitle,
+          l10n.analyzingChipAnalysingSubtitle,
           const _PulsingDot(color: AppColors.gold) as Widget,
         ),
       AnalyzingRunStatus.analyzed => (
-          'Analysis ready',
+          l10n.analyzingChipReadyTitle,
           run.complianceScore != null
-              ? 'Compliance ${_score(run.complianceScore!)}/10'
-              : 'Tap to view',
+              ? l10n.analyzingChipReadyComplianceSubtitle(
+                  _score(run.complianceScore!),
+                )
+              : l10n.analyzingChipReadyTapToView,
           const Icon(
             CupertinoIcons.checkmark_circle_fill,
             size: 16,
@@ -95,8 +99,8 @@ class _ChipForRun extends StatelessWidget {
           ) as Widget,
         ),
       AnalyzingRunStatus.unmatched => (
-          'Run logged',
-          'No matching training day',
+          l10n.analyzingChipLoggedTitle,
+          l10n.analyzingChipLoggedNoMatch,
           const Icon(
             CupertinoIcons.circle_fill,
             size: 10,
@@ -105,8 +109,9 @@ class _ChipForRun extends StatelessWidget {
         ),
     };
 
-    final titleSuffix =
-        additionalCount > 0 ? ' (${additionalCount + 1} runs)' : '';
+    final titleSuffix = additionalCount > 0
+        ? ' (${l10n.weeklyPlanDayCount(additionalCount + 1)})'
+        : '';
 
     return _ChipShell(
       indicator: indicator,

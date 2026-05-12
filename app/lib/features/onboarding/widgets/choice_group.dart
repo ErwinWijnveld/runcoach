@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors;
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 
 class ChoiceOption<T> {
@@ -24,7 +25,7 @@ class ChoiceGroup<T> extends StatelessWidget {
   final ValueChanged<T> onSelected;
   final bool otherSelected;
   final VoidCallback? onOtherTapped;
-  final String otherLabel;
+  final String? otherLabel;
   final Widget? otherChild;
 
   const ChoiceGroup({
@@ -34,7 +35,7 @@ class ChoiceGroup<T> extends StatelessWidget {
     required this.onSelected,
     this.otherSelected = false,
     this.onOtherTapped,
-    this.otherLabel = 'Other',
+    this.otherLabel,
     this.otherChild,
   });
 
@@ -54,7 +55,7 @@ class ChoiceGroup<T> extends StatelessWidget {
         ],
         if (onOtherTapped != null) ...[
           _ChoiceTile(
-            label: otherLabel,
+            label: otherLabel ?? context.l10n.choiceGroupOther,
             selected: otherSelected,
             onTap: onOtherTapped!,
           ),

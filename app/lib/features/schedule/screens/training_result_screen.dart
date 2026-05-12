@@ -37,7 +37,7 @@ class TrainingResultScreen extends ConsumerWidget {
                   if (result == null) {
                     return Center(
                       child: Text(
-                        'No result recorded yet.',
+                        context.l10n.trainingResultNoResultYet,
                         style: GoogleFonts.publicSans(
                           color: AppColors.tertiary,
                         ),

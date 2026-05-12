@@ -137,9 +137,10 @@ class WorkoutSchedulerService {
   }
 
   WorkoutScheduleResult _unavailableResult() {
+    // Leave `message` null — the widget falls back to a localized string
+    // (schedWatchUnavailableBody) so this UX is i18n-correct.
     return const WorkoutScheduleResult(
       status: WorkoutScheduleStatus.unavailable,
-      message: 'Sending workouts to your watch is only available on iOS.',
     );
   }
 
@@ -159,9 +160,12 @@ class WorkoutSchedulerService {
         message: map['message'] as String?,
       );
     } on PlatformException catch (e) {
+      // Native PlatformException messages from Swift are not localized. Let
+      // the widget fall back to schedWatchGenericError instead — `null`
+      // message → localized fallback.
       return WorkoutScheduleResult(
         status: WorkoutScheduleStatus.failed,
-        message: e.message ?? 'Native bridge error.',
+        message: e.message,
       );
     } catch (e) {
       return WorkoutScheduleResult(

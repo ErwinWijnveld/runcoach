@@ -1,12 +1,14 @@
+import 'package:app/l10n/app_localizations.dart';
+
 /// Animated coach-prompt suggestions shown at the bottom of the training day
 /// detail screen. Intentionally run-specific.
-const trainingDayCoachSuggestions = <String>[
-  'Move this run to tomorrow…',
-  'Make this easier, I feel tired…',
-  "Why is today's pace so fast?",
-  'Swap for a rest day instead…',
-  'Shorten this to 5km…',
-  'What if I skip the intervals?',
-  'Can I do this on the treadmill?',
-  'Explain the goal of this session…',
-];
+List<String> trainingDayCoachSuggestions(AppLocalizations l10n) => <String>[
+      l10n.trainingCoachSuggestion1,
+      l10n.trainingCoachSuggestion2,
+      l10n.trainingCoachSuggestion3,
+      l10n.trainingCoachSuggestion4,
+      l10n.trainingCoachSuggestion5,
+      l10n.trainingCoachSuggestion6,
+      l10n.trainingCoachSuggestion7,
+      l10n.trainingCoachSuggestion8,
+    ];

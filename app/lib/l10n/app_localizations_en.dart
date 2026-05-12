@@ -1772,4 +1772,294 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get bootPopupTitle => 'Action required';
+
+  @override
+  String bootPopupBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'You have $count pending suggestions that need your attention.',
+      one: 'You have 1 pending suggestion that needs your attention.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get bootPopupLater => 'Later';
+
+  @override
+  String get bootPopupView => 'View';
+
+  @override
+  String get tabDashboard => 'Dashboard';
+
+  @override
+  String get tabSchedule => 'Schedule';
+
+  @override
+  String get tabChat => 'Chat';
+
+  @override
+  String get tabGoals => 'Goals';
+
+  @override
+  String get trainingStatusMissed => 'MARKED AS MISSED';
+
+  @override
+  String get trainingStatusSynced => 'ACTIVITY SYNCED';
+
+  @override
+  String get trainingStatusAwaitingSync => 'AWAITING SYNC';
+
+  @override
+  String get trainingStatusUpcoming => 'RUN IS UPCOMING';
+
+  @override
+  String get trainingDayStatusMissed => 'MISSED';
+
+  @override
+  String get trainingDayStatusCompleted => 'COMPLETED';
+
+  @override
+  String get trainingDayStatusUpcoming => 'UPCOMING';
+
+  @override
+  String get workoutChatBarrierLabel => 'Close workout chat';
+
+  @override
+  String get trainingDayWatchCouldNotSend => 'Couldn\'t send';
+
+  @override
+  String get analyzingChipSyncingTitle => 'Syncing your runs';
+
+  @override
+  String get analyzingChipSyncingSubtitle =>
+      'Pulling new runs from Apple Health…';
+
+  @override
+  String get analyzingChipMatchingTitle => 'Matching to your training plan';
+
+  @override
+  String get analyzingChipMatchingSubtitle => 'Just a moment…';
+
+  @override
+  String get analyzingChipAnalysingTitle => 'AI is analyzing your run';
+
+  @override
+  String get analyzingChipAnalysingSubtitle =>
+      'Generating personalized feedback…';
+
+  @override
+  String get analyzingChipReadyTitle => 'Analysis ready';
+
+  @override
+  String analyzingChipReadyComplianceSubtitle(String score) {
+    return 'Compliance $score/10';
+  }
+
+  @override
+  String get analyzingChipReadyTapToView => 'Tap to view';
+
+  @override
+  String get analyzingChipLoggedTitle => 'Run logged';
+
+  @override
+  String get analyzingChipLoggedNoMatch => 'No matching training day';
+
+  @override
+  String get trainingResultNoResultYet => 'No result recorded yet.';
+
+  @override
+  String get goalDetailSectionTraining => 'Training';
+
+  @override
+  String get goalDetailSectionNotActive => 'Not active';
+
+  @override
+  String get chatErrorConnectionInterrupted =>
+      'Connection interrupted. Tap retry.';
+
+  @override
+  String get chatErrorRequestTimedOut => 'Request timed out';
+
+  @override
+  String get chatErrorCannotReachServer => 'Cannot reach server';
+
+  @override
+  String chatErrorServerStatus(String status) {
+    return 'Server error ($status)';
+  }
+
+  @override
+  String get chatErrorUnknown => 'Unknown error';
+
+  @override
+  String get watchOnlyOnIos =>
+      'Sending workouts to your watch is only available on iOS.';
+
+  @override
+  String get watchNativeBridgeError => 'Native bridge error.';
+
+  @override
+  String watchRecomputeFailed(String error) {
+    return 'Couldn\'t recompute: $error';
+  }
+
+  @override
+  String get toolIndicatorDefault => 'Working on it…';
+
+  @override
+  String get toolIndicatorGetRecentRuns => 'Looking up your recent runs…';
+
+  @override
+  String get toolIndicatorSearchActivities => 'Looking up your activities…';
+
+  @override
+  String get toolIndicatorGetActivityDetails => 'Digging into that run…';
+
+  @override
+  String get toolIndicatorGetCurrentSchedule => 'Loading your schedule…';
+
+  @override
+  String get toolIndicatorGetGoalInfo => 'Checking your goal…';
+
+  @override
+  String get toolIndicatorGetComplianceReport => 'Reviewing compliance…';
+
+  @override
+  String get toolIndicatorCreateSchedule => 'Building your training plan…';
+
+  @override
+  String get toolIndicatorEditSchedule => 'Revising your plan…';
+
+  @override
+  String get toolIndicatorModifySchedule => 'Adjusting your schedule…';
+
+  @override
+  String get toolIndicatorGetCurrentProposal => 'Reviewing the proposal…';
+
+  @override
+  String get toolIndicatorGetRunningProfile =>
+      'Analysing your running history…';
+
+  @override
+  String get toolIndicatorPresentRunningStats => 'Preparing your stats…';
+
+  @override
+  String get toolIndicatorOfferChoices => 'Preparing options…';
+
+  @override
+  String get toolIndicatorEditWorkout => 'Adjusting this workout…';
+
+  @override
+  String get toolIndicatorRescheduleWorkout => 'Moving this workout…';
+
+  @override
+  String get toolIndicatorEscalateToCoach => 'Routing to your coach…';
+
+  @override
+  String get choiceGroupOther => 'Other';
+
+  @override
+  String get orgJoinedSnack => 'Joined organization';
+
+  @override
+  String get newChatTitle => 'New Chat';
+
+  @override
+  String get trainingCoachSuggestion1 => 'Move this run to tomorrow…';
+
+  @override
+  String get trainingCoachSuggestion2 => 'Make this easier, I feel tired…';
+
+  @override
+  String get trainingCoachSuggestion3 => 'Why is today\'s pace so fast?';
+
+  @override
+  String get trainingCoachSuggestion4 => 'Swap for a rest day instead…';
+
+  @override
+  String get trainingCoachSuggestion5 => 'Shorten this to 5km…';
+
+  @override
+  String get trainingCoachSuggestion6 => 'What if I skip the intervals?';
+
+  @override
+  String get trainingCoachSuggestion7 => 'Can I do this on the treadmill?';
+
+  @override
+  String get trainingCoachSuggestion8 => 'Explain the goal of this session…';
+
+  @override
+  String get scheduleCoachSuggestion1 => 'Change the easy run to interval...';
+
+  @override
+  String get scheduleCoachSuggestion2 => 'Move Monday workouts to Thursday...';
+
+  @override
+  String get scheduleCoachSuggestion3 => 'Am I improving at the right pace?';
+
+  @override
+  String get scheduleCoachSuggestion4 => 'Swap my long run to Saturday...';
+
+  @override
+  String get scheduleCoachSuggestion5 => 'Make this week a recovery week...';
+
+  @override
+  String get scheduleCoachSuggestion6 => 'Should I push harder this week?';
+
+  @override
+  String get scheduleCoachSuggestion7 =>
+      'What\'s the goal of Wednesday\'s run?';
+
+  @override
+  String get scheduleCoachSuggestion8 => 'Cut one easy run, I need rest...';
+
+  @override
+  String get scheduleCoachSuggestion9 => 'Am I on track for my race?';
+
+  @override
+  String get scheduleCoachSuggestion10 => 'Explain the tempo session to me...';
+
+  @override
+  String get scheduleCoachSuggestion11 => 'Can we add a hill session?';
+
+  @override
+  String get scheduleCoachSuggestion12 => 'I felt wrecked yesterday, adjust...';
+
+  @override
+  String get goalCoachSuggestion1 => 'Train me for a marathon...';
+
+  @override
+  String get goalCoachSuggestion2 => 'Help me get faster at 10k...';
+
+  @override
+  String get goalCoachSuggestion3 => 'I have a half marathon in May...';
+
+  @override
+  String get goalCoachSuggestion4 => 'What\'s a realistic PR goal?';
+
+  @override
+  String get goalCoachSuggestion5 => 'Build a fitness plan for me...';
+
+  @override
+  String get goalCoachSuggestion6 => 'I want to break 45 at 10k...';
+
+  @override
+  String get goalCoachSuggestion7 => 'Get me race-ready in 12 weeks...';
+
+  @override
+  String get goalCoachSuggestion8 => 'Can we target a sub-4 marathon?';
+
+  @override
+  String get goalCoachSuggestion9 => 'Design a base-building block...';
+
+  @override
+  String get goalCoachSuggestion10 => 'Plan my next training cycle...';
+
+  @override
+  String get wearableActivityFallbackName => 'Run';
 }

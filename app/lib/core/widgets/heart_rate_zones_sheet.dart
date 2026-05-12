@@ -195,7 +195,7 @@ class _HeartRateZonesSheetState extends ConsumerState<HeartRateZonesSheet> {
       if (!mounted) return;
       setState(() {
         _recomputing = false;
-        _error = "Couldn't recompute: $e";
+        _error = context.l10n.watchRecomputeFailed(e.toString());
       });
     }
   }

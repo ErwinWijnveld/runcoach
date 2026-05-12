@@ -25,7 +25,9 @@ class GoalListScreen extends ConsumerWidget {
 
   Future<void> _startNewChat(BuildContext context, WidgetRef ref) async {
     final api = ref.read(coachApiProvider);
-    final response = await api.createConversation({'title': 'New Chat'});
+    final response = await api.createConversation({
+      'title': context.l10n.newChatTitle,
+    });
     final id = response['data']['id'];
     ref.invalidate(conversationsProvider);
     if (context.mounted) context.go('/coach/chat/$id');
@@ -66,7 +68,7 @@ class GoalListScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                 child: CoachPromptBar.navigateAnimated(
                   onTap: () => _startNewChat(context, ref),
-                  animatedSuggestions: goalCoachSuggestions,
+                  animatedSuggestions: goalCoachSuggestions(context.l10n),
                 ),
               ),
             ),

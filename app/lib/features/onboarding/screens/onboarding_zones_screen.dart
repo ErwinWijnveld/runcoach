@@ -3,6 +3,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/birth_date_picker.dart';
@@ -272,12 +273,9 @@ class _DobKnownBody extends StatefulWidget {
 class _DobKnownBodyState extends State<_DobKnownBody> {
   bool _expanded = false;
 
-  String _formatDob(DateTime d) {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
-    ];
-    return '${months[d.month - 1]} ${d.day}, ${d.year}';
+  String _formatDob(BuildContext context, DateTime d) {
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    return DateFormat.yMMMMd(locale).format(d);
   }
 
   @override
@@ -325,7 +323,7 @@ class _DobKnownBodyState extends State<_DobKnownBody> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        _formatDob(widget.dob),
+                        _formatDob(context, widget.dob),
                         style: GoogleFonts.inter(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,

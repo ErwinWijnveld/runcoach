@@ -85,7 +85,7 @@ class WeeklyPlanScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                 child: CoachPromptBar.navigateAnimated(
                   onTap: () => startNewCoachChat(context, ref),
-                  animatedSuggestions: scheduleCoachSuggestions,
+                  animatedSuggestions: scheduleCoachSuggestions(context.l10n),
                 ),
               ),
             ),

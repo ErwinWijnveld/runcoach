@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/schedule/widgets/training_day_status.dart';
 
@@ -84,7 +85,7 @@ class TrainingDayHeroCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          status.pillLabel,
+                          status.pillLabel(context.l10n),
                           style: GoogleFonts.spaceGrotesk(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
@@ -122,7 +123,7 @@ class TrainingDayHeroCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            status.subtitle,
+                            status.subtitle(context.l10n),
                             style: GoogleFonts.spaceGrotesk(
                               fontSize: 10,
                               fontWeight: FontWeight.w700,

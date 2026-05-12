@@ -3,6 +3,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:app/features/coach/data/coach_stream_client.dart';
 import 'package:app/features/coach/models/coach_message.dart';
 import 'package:app/features/coach/models/vercel_stream_event.dart';
+import 'package:app/features/coach/utils/coach_error_codes.dart';
 import 'package:app/features/schedule/data/schedule_api.dart';
 import 'package:app/features/schedule/providers/plan_version_provider.dart';
 
@@ -102,7 +103,7 @@ class WorkoutChat extends _$WorkoutChat {
             current.copyWith(
               streaming: false,
               toolIndicator: null,
-              errorDetail: 'Connection interrupted. Tap retry.',
+              errorDetail: CoachErrorCodes.connectionInterrupted,
             ),
           ]);
         }
@@ -142,9 +143,9 @@ class WorkoutChat extends _$WorkoutChat {
         DioExceptionType.connectionTimeout ||
         DioExceptionType.sendTimeout ||
         DioExceptionType.receiveTimeout =>
-          'Request timed out',
-        DioExceptionType.connectionError => 'Cannot reach server',
-        _ => 'Server error (${error.response?.statusCode ?? 'network'})',
+          CoachErrorCodes.requestTimedOut,
+        DioExceptionType.connectionError => CoachErrorCodes.cannotReachServer,
+        _ => CoachErrorCodes.serverStatus(error.response?.statusCode),
       };
     }
     return error.toString();

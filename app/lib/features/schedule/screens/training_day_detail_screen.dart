@@ -120,7 +120,7 @@ class _Loaded extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: CoachPromptBar.navigateAnimated(
                 onTap: () => WorkoutChatSheet.show(context, day.id),
-                animatedSuggestions: trainingDayCoachSuggestions,
+                animatedSuggestions: trainingDayCoachSuggestions(context.l10n),
               ),
             ),
           ),
@@ -270,9 +270,8 @@ class _Loaded extends StatelessWidget {
     final dateLocal = _parseYmd(day.date);
     if (dateLocal == null) {
       await _showResultDialog(context,
-          title: "Couldn't send",
-          body:
-              context.l10n.schedWatchInvalidDateBody);
+          title: context.l10n.trainingDayWatchCouldNotSend,
+          body: context.l10n.schedWatchInvalidDateBody);
       return;
     }
 

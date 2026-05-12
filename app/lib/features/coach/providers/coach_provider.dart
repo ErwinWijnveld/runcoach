@@ -7,6 +7,8 @@ import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/coach/data/coach_api.dart';
 import 'package:app/features/coach/data/coach_stream_client.dart';
 import 'package:app/features/coach/models/coach_message.dart';
+import 'package:app/features/coach/utils/coach_error_codes.dart';
+import 'package:app/l10n/app_localizations.dart';
 import 'package:app/features/coach/models/conversation.dart';
 import 'package:app/features/coach/models/vercel_stream_event.dart';
 import 'package:app/features/schedule/providers/plan_version_provider.dart';
@@ -27,7 +29,9 @@ Future<void> startNewCoachChat(
   String? seedMessage,
 }) async {
   final api = ref.read(coachApiProvider);
-  final response = await api.createConversation({'title': 'New Chat'});
+  final response = await api.createConversation({
+    'title': AppLocalizations.of(context).newChatTitle,
+  });
   final id = response['data']['id'];
   ref.invalidate(conversationsProvider);
   if (context.mounted) context.push('/coach/chat/$id');
@@ -179,7 +183,7 @@ class CoachChat extends _$CoachChat {
             current.copyWith(
               streaming: false,
               toolIndicator: null,
-              errorDetail: 'Connection interrupted. Tap retry.',
+              errorDetail: CoachErrorCodes.connectionInterrupted,
             ),
           ]);
         }
@@ -238,9 +242,9 @@ class CoachChat extends _$CoachChat {
       return switch (error.type) {
         DioExceptionType.connectionTimeout ||
         DioExceptionType.sendTimeout ||
-        DioExceptionType.receiveTimeout => 'Request timed out',
-        DioExceptionType.connectionError => 'Cannot reach server',
-        _ => 'Server error (${error.response?.statusCode ?? 'network'})',
+        DioExceptionType.receiveTimeout => CoachErrorCodes.requestTimedOut,
+        DioExceptionType.connectionError => CoachErrorCodes.cannotReachServer,
+        _ => CoachErrorCodes.serverStatus(error.response?.statusCode),
       };
     }
     return error.toString();

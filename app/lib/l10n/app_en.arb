@@ -743,5 +743,122 @@
   "weeklyPlanDayCount": "{count, plural, =1{1 run} other{{count} runs}}",
   "@weeklyPlanDayCount": {
     "placeholders": { "count": { "type": "int" } }
-  }
+  },
+
+  "bootPopupTitle": "Action required",
+  "bootPopupBody": "{count, plural, =1{You have 1 pending suggestion that needs your attention.} other{You have {count} pending suggestions that need your attention.}}",
+  "@bootPopupBody": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "bootPopupLater": "Later",
+  "bootPopupView": "View",
+
+  "tabDashboard": "Dashboard",
+  "tabSchedule": "Schedule",
+  "tabChat": "Chat",
+  "tabGoals": "Goals",
+
+  "trainingStatusMissed": "MARKED AS MISSED",
+  "trainingStatusSynced": "ACTIVITY SYNCED",
+  "trainingStatusAwaitingSync": "AWAITING SYNC",
+  "trainingStatusUpcoming": "RUN IS UPCOMING",
+  "trainingDayStatusMissed": "MISSED",
+  "trainingDayStatusCompleted": "COMPLETED",
+  "trainingDayStatusUpcoming": "UPCOMING",
+
+  "workoutChatBarrierLabel": "Close workout chat",
+  "trainingDayWatchCouldNotSend": "Couldn't send",
+
+  "analyzingChipSyncingTitle": "Syncing your runs",
+  "analyzingChipSyncingSubtitle": "Pulling new runs from Apple Health…",
+  "analyzingChipMatchingTitle": "Matching to your training plan",
+  "analyzingChipMatchingSubtitle": "Just a moment…",
+  "analyzingChipAnalysingTitle": "AI is analyzing your run",
+  "analyzingChipAnalysingSubtitle": "Generating personalized feedback…",
+  "analyzingChipReadyTitle": "Analysis ready",
+  "analyzingChipReadyComplianceSubtitle": "Compliance {score}/10",
+  "@analyzingChipReadyComplianceSubtitle": {
+    "placeholders": { "score": { "type": "String" } }
+  },
+  "analyzingChipReadyTapToView": "Tap to view",
+  "analyzingChipLoggedTitle": "Run logged",
+  "analyzingChipLoggedNoMatch": "No matching training day",
+
+  "trainingResultNoResultYet": "No result recorded yet.",
+
+  "goalDetailSectionTraining": "Training",
+  "goalDetailSectionNotActive": "Not active",
+
+  "chatErrorConnectionInterrupted": "Connection interrupted. Tap retry.",
+  "chatErrorRequestTimedOut": "Request timed out",
+  "chatErrorCannotReachServer": "Cannot reach server",
+  "chatErrorServerStatus": "Server error ({status})",
+  "@chatErrorServerStatus": {
+    "placeholders": { "status": { "type": "String" } }
+  },
+  "chatErrorUnknown": "Unknown error",
+
+  "watchOnlyOnIos": "Sending workouts to your watch is only available on iOS.",
+  "watchNativeBridgeError": "Native bridge error.",
+  "watchRecomputeFailed": "Couldn't recompute: {error}",
+  "@watchRecomputeFailed": {
+    "placeholders": { "error": { "type": "String" } }
+  },
+
+  "toolIndicatorDefault": "Working on it…",
+  "toolIndicatorGetRecentRuns": "Looking up your recent runs…",
+  "toolIndicatorSearchActivities": "Looking up your activities…",
+  "toolIndicatorGetActivityDetails": "Digging into that run…",
+  "toolIndicatorGetCurrentSchedule": "Loading your schedule…",
+  "toolIndicatorGetGoalInfo": "Checking your goal…",
+  "toolIndicatorGetComplianceReport": "Reviewing compliance…",
+  "toolIndicatorCreateSchedule": "Building your training plan…",
+  "toolIndicatorEditSchedule": "Revising your plan…",
+  "toolIndicatorModifySchedule": "Adjusting your schedule…",
+  "toolIndicatorGetCurrentProposal": "Reviewing the proposal…",
+  "toolIndicatorGetRunningProfile": "Analysing your running history…",
+  "toolIndicatorPresentRunningStats": "Preparing your stats…",
+  "toolIndicatorOfferChoices": "Preparing options…",
+  "toolIndicatorEditWorkout": "Adjusting this workout…",
+  "toolIndicatorRescheduleWorkout": "Moving this workout…",
+  "toolIndicatorEscalateToCoach": "Routing to your coach…",
+
+  "choiceGroupOther": "Other",
+  "orgJoinedSnack": "Joined organization",
+  "newChatTitle": "New Chat",
+
+  "trainingCoachSuggestion1": "Move this run to tomorrow…",
+  "trainingCoachSuggestion2": "Make this easier, I feel tired…",
+  "trainingCoachSuggestion3": "Why is today's pace so fast?",
+  "trainingCoachSuggestion4": "Swap for a rest day instead…",
+  "trainingCoachSuggestion5": "Shorten this to 5km…",
+  "trainingCoachSuggestion6": "What if I skip the intervals?",
+  "trainingCoachSuggestion7": "Can I do this on the treadmill?",
+  "trainingCoachSuggestion8": "Explain the goal of this session…",
+
+  "scheduleCoachSuggestion1": "Change the easy run to interval...",
+  "scheduleCoachSuggestion2": "Move Monday workouts to Thursday...",
+  "scheduleCoachSuggestion3": "Am I improving at the right pace?",
+  "scheduleCoachSuggestion4": "Swap my long run to Saturday...",
+  "scheduleCoachSuggestion5": "Make this week a recovery week...",
+  "scheduleCoachSuggestion6": "Should I push harder this week?",
+  "scheduleCoachSuggestion7": "What's the goal of Wednesday's run?",
+  "scheduleCoachSuggestion8": "Cut one easy run, I need rest...",
+  "scheduleCoachSuggestion9": "Am I on track for my race?",
+  "scheduleCoachSuggestion10": "Explain the tempo session to me...",
+  "scheduleCoachSuggestion11": "Can we add a hill session?",
+  "scheduleCoachSuggestion12": "I felt wrecked yesterday, adjust...",
+
+  "goalCoachSuggestion1": "Train me for a marathon...",
+  "goalCoachSuggestion2": "Help me get faster at 10k...",
+  "goalCoachSuggestion3": "I have a half marathon in May...",
+  "goalCoachSuggestion4": "What's a realistic PR goal?",
+  "goalCoachSuggestion5": "Build a fitness plan for me...",
+  "goalCoachSuggestion6": "I want to break 45 at 10k...",
+  "goalCoachSuggestion7": "Get me race-ready in 12 weeks...",
+  "goalCoachSuggestion8": "Can we target a sub-4 marathon?",
+  "goalCoachSuggestion9": "Design a base-building block...",
+  "goalCoachSuggestion10": "Plan my next training cycle...",
+
+  "wearableActivityFallbackName": "Run"
 }
