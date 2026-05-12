@@ -14,6 +14,7 @@ use App\Enums\RunnerLevel;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
+use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -24,9 +25,9 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'apple_sub', 'coach_style', 'intensity_bias', 'runner_level', 'has_completed_onboarding', 'heart_rate_zones', 'heart_rate_zones_source', 'date_of_birth', 'personal_records', 'is_superadmin', 'self_reported_weekly_km', 'self_reported_easy_pace_seconds_per_km', 'self_reported_stats_at'])]
+#[Fillable(['name', 'email', 'password', 'apple_sub', 'coach_style', 'intensity_bias', 'runner_level', 'has_completed_onboarding', 'heart_rate_zones', 'heart_rate_zones_source', 'date_of_birth', 'personal_records', 'is_superadmin', 'self_reported_weekly_km', 'self_reported_easy_pace_seconds_per_km', 'self_reported_stats_at', 'locale'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable implements FilamentUser, HasLocalePreference
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
@@ -97,6 +98,11 @@ class User extends Authenticatable implements FilamentUser
             ->where('platform', DeviceToken::PLATFORM_IOS)
             ->pluck('token')
             ->all();
+    }
+
+    public function preferredLocale(): string
+    {
+        return $this->locale ?? config('app.fallback_locale', 'en');
     }
 
     public function memberships(): HasMany
