@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_header.dart';
 import 'package:app/core/widgets/app_widgets.dart';
@@ -60,7 +61,7 @@ class DashboardScreen extends ConsumerWidget {
                   child: dashboardAsync.when(
                     loading: () => const AppSpinner(),
                     error: (err, _) => AppErrorState(
-                      title: 'Error: $err',
+                      title: context.l10n.commonErrorWithMessage(err.toString()),
                       onRetry: () => ref.invalidate(dashboardProvider),
                     ),
                     data: (dashboard) {
@@ -76,7 +77,7 @@ class DashboardScreen extends ConsumerWidget {
                       return weeksAsync.when(
                         loading: () => const AppSpinner(),
                         error: (err, _) => AppErrorState(
-                          title: 'Error: $err',
+                          title: context.l10n.commonErrorWithMessage(err.toString()),
                           onRetry: () =>
                               ref.invalidate(scheduleProvider(goal.id)),
                         ),
@@ -208,12 +209,12 @@ class _TodayCard extends StatelessWidget {
     return _RoundedCard(
       onTap: onTap,
       child: day == null
-          ? _buildEmpty()
-          : _buildContent(day),
+          ? _buildEmpty(context)
+          : _buildContent(context, day),
     );
   }
 
-  Widget _buildEmpty() {
+  Widget _buildEmpty(BuildContext context) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -222,17 +223,17 @@ class _TodayCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'NO UPCOMING RUN',
+                context.l10n.dashNoUpcomingRunEyebrow,
                 style: RunCoreText.sectionEyebrow(color: _eyebrowGold),
               ),
               const SizedBox(height: 6),
               Text(
-                'Plan complete',
+                context.l10n.dashNoUpcomingTitle,
                 style: RunCoreText.serifTitle(size: 26, height: 30 / 26),
               ),
               const SizedBox(height: 4),
               Text(
-                'All training days are logged.',
+                context.l10n.dashNoUpcomingSubtitle,
                 style: RunCoreText.statSuffix(),
               ),
             ],
@@ -249,10 +250,11 @@ class _TodayCard extends StatelessWidget {
     );
   }
 
-  Widget _buildContent(TrainingDay day) {
+  Widget _buildContent(BuildContext context, TrainingDay day) {
     final date = DateTime.parse(day.date);
-    final dayLabel = _relativeDayLabel(date, today).toUpperCase();
-    final isToday = dayLabel == 'TODAY';
+    final dateOnly = DateTime(date.year, date.month, date.day);
+    final isToday = _sameDay(dateOnly, today);
+    final dayLabel = _relativeDayLabel(context, date, today).toUpperCase();
 
     final distance = day.targetKm == null
         ? null
@@ -375,7 +377,7 @@ class _ThisWeekCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  'THIS WEEK',
+                  context.l10n.dashThisWeekEyebrow,
                   style: RunCoreText.sectionEyebrow(color: _muted),
                 ),
               ),
@@ -390,7 +392,9 @@ class _ThisWeekCard extends StatelessWidget {
                         size: 16,
                       ),
                     ),
-                    TextSpan(text: ' / ${_trimDecimal(planned)} km'),
+                    TextSpan(
+                      text: context.l10n.dashWeeklySplitSuffix(_trimDecimal(planned)),
+                    ),
                   ],
                 ),
               ),
@@ -559,11 +563,12 @@ class _WeeksMatrixCardState extends State<_WeeksMatrixCard> {
   Widget build(BuildContext context) {
     final total = widget.weeks.length;
     final daysToGo = widget.daysToGo;
+    final l10n = context.l10n;
     final rightLabel = (daysToGo == null || daysToGo < 0)
         ? widget.raceName
         : daysToGo == 0
-            ? 'Race day · ${widget.raceName}'
-            : '${daysToGo}d · ${widget.raceName}';
+            ? l10n.dashRaceDayLabel(widget.raceName)
+            : l10n.dashDaysToGoLabel(daysToGo, widget.raceName);
 
     return _RoundedCard(
       onTap: widget.onTap,
@@ -576,7 +581,7 @@ class _WeeksMatrixCardState extends State<_WeeksMatrixCard> {
             children: [
               Expanded(
                 child: Text(
-                  '$total WEEKS',
+                  l10n.dashWeeksMatrixEyebrow(total),
                   style: RunCoreText.sectionEyebrow(color: _eyebrowGold),
                 ),
               ),
@@ -862,13 +867,14 @@ class _Legend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Wrap(
+    final l10n = context.l10n;
+    return Wrap(
       spacing: 12,
       runSpacing: 4,
       children: [
-        _LegendDot(color: AppColors.success, label: 'Done'),
-        _LegendDot(color: AppColors.danger, label: 'Missed'),
-        _LegendDot(color: _upcomingCell, label: 'Upcoming'),
+        _LegendDot(color: AppColors.success, label: l10n.dashLegendDone),
+        _LegendDot(color: AppColors.danger, label: l10n.dashLegendMissed),
+        _LegendDot(color: _upcomingCell, label: l10n.dashLegendUpcoming),
       ],
     );
   }
@@ -968,23 +974,22 @@ class _EmptyState extends StatelessWidget {
               color: AppColors.textSecondary,
             ),
             const SizedBox(height: 16),
-            const Text(
-              'No active plan',
-              style: TextStyle(
+            Text(
+              context.l10n.dashEmptyTitle,
+              style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 6),
-            const Text(
-              'Pick a goal (or ask the coach to build one) to see '
-              'your training on the dashboard.',
+            Text(
+              context.l10n.dashEmptyBody,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+              style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 16),
-            AppFilledButton(label: 'Go to Goals', onPressed: onOpenGoals),
+            AppFilledButton(label: context.l10n.dashEmptyCta, onPressed: onOpenGoals),
           ],
         ),
       ),
@@ -1150,14 +1155,15 @@ DateTime? _tryParseDate(String? iso) {
   return DateTime(dt.year, dt.month, dt.day);
 }
 
-String _relativeDayLabel(DateTime date, DateTime today) {
+String _relativeDayLabel(BuildContext context, DateTime date, DateTime today) {
   final d = DateTime(date.year, date.month, date.day);
   final diff = d.difference(today).inDays;
-  if (diff == 0) return 'Today';
-  if (diff == 1) return 'Tomorrow';
-  if (diff > 1 && diff < 7) return DateFormat.EEEE().format(d);
-  if (diff < 0) return DateFormat.EEEE().format(d);
-  return DateFormat('MMM d').format(d);
+  if (diff == 0) return context.l10n.commonToday;
+  if (diff == 1) return context.l10n.commonTomorrow;
+  final locale = Localizations.localeOf(context).toLanguageTag();
+  if (diff > 1 && diff < 7) return DateFormat.EEEE(locale).format(d);
+  if (diff < 0) return DateFormat.EEEE(locale).format(d);
+  return DateFormat('MMM d', locale).format(d);
 }
 
 String _trimDecimal(double value) {

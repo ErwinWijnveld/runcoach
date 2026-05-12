@@ -231,5 +231,25 @@
   "reviewGoalTypeRaceShort": "Trainen voor wedstrijd",
   "reviewGoalTypePrShort": "Jaag op een PR",
   "reviewGoalTypeFitnessShort": "Algemene conditie",
-  "reviewGoalTypeWeightLossShort": "Afvallen"
+  "reviewGoalTypeWeightLossShort": "Afvallen",
+
+  "commonErrorWithMessage": "Fout: {message}",
+  "commonToday": "Vandaag",
+  "commonTodayUpper": "VANDAAG",
+  "commonTomorrow": "Morgen",
+
+  "dashNoUpcomingRunEyebrow": "GEEN GEPLANDE RUN",
+  "dashNoUpcomingTitle": "Plan voltooid",
+  "dashNoUpcomingSubtitle": "Alle trainingsdagen zijn geregistreerd.",
+  "dashThisWeekEyebrow": "DEZE WEEK",
+  "dashWeeksMatrixEyebrow": "{total} WEKEN",
+  "dashRaceDayLabel": "Wedstrijddag · {raceName}",
+  "dashDaysToGoLabel": "{days}d · {raceName}",
+  "dashWeeklySplitSuffix": " / {planned} km",
+  "dashLegendDone": "Gedaan",
+  "dashLegendMissed": "Gemist",
+  "dashLegendUpcoming": "Aankomend",
+  "dashEmptyTitle": "Geen actief plan",
+  "dashEmptyBody": "Kies een doel (of vraag de coach er een te bouwen) om je training op het dashboard te zien.",
+  "dashEmptyCta": "Naar Doelen"
 }

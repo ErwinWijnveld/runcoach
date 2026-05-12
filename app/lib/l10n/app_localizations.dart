@@ -1357,6 +1357,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Weight loss'**
   String get reviewGoalTypeWeightLossShort;
+
+  /// No description provided for @commonErrorWithMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Error: {message}'**
+  String commonErrorWithMessage(String message);
+
+  /// No description provided for @commonToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get commonToday;
+
+  /// No description provided for @commonTodayUpper.
+  ///
+  /// In en, this message translates to:
+  /// **'TODAY'**
+  String get commonTodayUpper;
+
+  /// No description provided for @commonTomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow'**
+  String get commonTomorrow;
+
+  /// No description provided for @dashNoUpcomingRunEyebrow.
+  ///
+  /// In en, this message translates to:
+  /// **'NO UPCOMING RUN'**
+  String get dashNoUpcomingRunEyebrow;
+
+  /// No description provided for @dashNoUpcomingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan complete'**
+  String get dashNoUpcomingTitle;
+
+  /// No description provided for @dashNoUpcomingSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'All training days are logged.'**
+  String get dashNoUpcomingSubtitle;
+
+  /// No description provided for @dashThisWeekEyebrow.
+  ///
+  /// In en, this message translates to:
+  /// **'THIS WEEK'**
+  String get dashThisWeekEyebrow;
+
+  /// No description provided for @dashWeeksMatrixEyebrow.
+  ///
+  /// In en, this message translates to:
+  /// **'{total} WEEKS'**
+  String dashWeeksMatrixEyebrow(int total);
+
+  /// No description provided for @dashRaceDayLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Race day · {raceName}'**
+  String dashRaceDayLabel(String raceName);
+
+  /// No description provided for @dashDaysToGoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{days}d · {raceName}'**
+  String dashDaysToGoLabel(int days, String raceName);
+
+  /// No description provided for @dashWeeklySplitSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **' / {planned} km'**
+  String dashWeeklySplitSuffix(String planned);
+
+  /// No description provided for @dashLegendDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get dashLegendDone;
+
+  /// No description provided for @dashLegendMissed.
+  ///
+  /// In en, this message translates to:
+  /// **'Missed'**
+  String get dashLegendMissed;
+
+  /// No description provided for @dashLegendUpcoming.
+  ///
+  /// In en, this message translates to:
+  /// **'Upcoming'**
+  String get dashLegendUpcoming;
+
+  /// No description provided for @dashEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No active plan'**
+  String get dashEmptyTitle;
+
+  /// No description provided for @dashEmptyBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a goal (or ask the coach to build one) to see your training on the dashboard.'**
+  String get dashEmptyBody;
+
+  /// No description provided for @dashEmptyCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Goals'**
+  String get dashEmptyCta;
 }
 
 class _AppLocalizationsDelegate

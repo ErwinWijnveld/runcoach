@@ -264,5 +264,43 @@
   "reviewGoalTypeRaceShort": "Train for a race",
   "reviewGoalTypePrShort": "Chase a PR",
   "reviewGoalTypeFitnessShort": "General fitness",
-  "reviewGoalTypeWeightLossShort": "Weight loss"
+  "reviewGoalTypeWeightLossShort": "Weight loss",
+
+  "commonErrorWithMessage": "Error: {message}",
+  "@commonErrorWithMessage": {
+    "placeholders": { "message": { "type": "String" } }
+  },
+  "commonToday": "Today",
+  "commonTodayUpper": "TODAY",
+  "commonTomorrow": "Tomorrow",
+
+  "dashNoUpcomingRunEyebrow": "NO UPCOMING RUN",
+  "dashNoUpcomingTitle": "Plan complete",
+  "dashNoUpcomingSubtitle": "All training days are logged.",
+  "dashThisWeekEyebrow": "THIS WEEK",
+  "dashWeeksMatrixEyebrow": "{total} WEEKS",
+  "@dashWeeksMatrixEyebrow": {
+    "placeholders": { "total": { "type": "int" } }
+  },
+  "dashRaceDayLabel": "Race day · {raceName}",
+  "@dashRaceDayLabel": {
+    "placeholders": { "raceName": { "type": "String" } }
+  },
+  "dashDaysToGoLabel": "{days}d · {raceName}",
+  "@dashDaysToGoLabel": {
+    "placeholders": {
+      "days": { "type": "int" },
+      "raceName": { "type": "String" }
+    }
+  },
+  "dashWeeklySplitSuffix": " / {planned} km",
+  "@dashWeeklySplitSuffix": {
+    "placeholders": { "planned": { "type": "String" } }
+  },
+  "dashLegendDone": "Done",
+  "dashLegendMissed": "Missed",
+  "dashLegendUpcoming": "Upcoming",
+  "dashEmptyTitle": "No active plan",
+  "dashEmptyBody": "Pick a goal (or ask the coach to build one) to see your training on the dashboard.",
+  "dashEmptyCta": "Go to Goals"
 }

@@ -700,4 +700,70 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get reviewGoalTypeWeightLossShort => 'Afvallen';
+
+  @override
+  String commonErrorWithMessage(String message) {
+    return 'Fout: $message';
+  }
+
+  @override
+  String get commonToday => 'Vandaag';
+
+  @override
+  String get commonTodayUpper => 'VANDAAG';
+
+  @override
+  String get commonTomorrow => 'Morgen';
+
+  @override
+  String get dashNoUpcomingRunEyebrow => 'GEEN GEPLANDE RUN';
+
+  @override
+  String get dashNoUpcomingTitle => 'Plan voltooid';
+
+  @override
+  String get dashNoUpcomingSubtitle =>
+      'Alle trainingsdagen zijn geregistreerd.';
+
+  @override
+  String get dashThisWeekEyebrow => 'DEZE WEEK';
+
+  @override
+  String dashWeeksMatrixEyebrow(int total) {
+    return '$total WEKEN';
+  }
+
+  @override
+  String dashRaceDayLabel(String raceName) {
+    return 'Wedstrijddag · $raceName';
+  }
+
+  @override
+  String dashDaysToGoLabel(int days, String raceName) {
+    return '${days}d · $raceName';
+  }
+
+  @override
+  String dashWeeklySplitSuffix(String planned) {
+    return ' / $planned km';
+  }
+
+  @override
+  String get dashLegendDone => 'Gedaan';
+
+  @override
+  String get dashLegendMissed => 'Gemist';
+
+  @override
+  String get dashLegendUpcoming => 'Aankomend';
+
+  @override
+  String get dashEmptyTitle => 'Geen actief plan';
+
+  @override
+  String get dashEmptyBody =>
+      'Kies een doel (of vraag de coach er een te bouwen) om je training op het dashboard te zien.';
+
+  @override
+  String get dashEmptyCta => 'Naar Doelen';
 }

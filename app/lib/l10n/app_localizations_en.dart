@@ -699,4 +699,69 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reviewGoalTypeWeightLossShort => 'Weight loss';
+
+  @override
+  String commonErrorWithMessage(String message) {
+    return 'Error: $message';
+  }
+
+  @override
+  String get commonToday => 'Today';
+
+  @override
+  String get commonTodayUpper => 'TODAY';
+
+  @override
+  String get commonTomorrow => 'Tomorrow';
+
+  @override
+  String get dashNoUpcomingRunEyebrow => 'NO UPCOMING RUN';
+
+  @override
+  String get dashNoUpcomingTitle => 'Plan complete';
+
+  @override
+  String get dashNoUpcomingSubtitle => 'All training days are logged.';
+
+  @override
+  String get dashThisWeekEyebrow => 'THIS WEEK';
+
+  @override
+  String dashWeeksMatrixEyebrow(int total) {
+    return '$total WEEKS';
+  }
+
+  @override
+  String dashRaceDayLabel(String raceName) {
+    return 'Race day · $raceName';
+  }
+
+  @override
+  String dashDaysToGoLabel(int days, String raceName) {
+    return '${days}d · $raceName';
+  }
+
+  @override
+  String dashWeeklySplitSuffix(String planned) {
+    return ' / $planned km';
+  }
+
+  @override
+  String get dashLegendDone => 'Done';
+
+  @override
+  String get dashLegendMissed => 'Missed';
+
+  @override
+  String get dashLegendUpcoming => 'Upcoming';
+
+  @override
+  String get dashEmptyTitle => 'No active plan';
+
+  @override
+  String get dashEmptyBody =>
+      'Pick a goal (or ask the coach to build one) to see your training on the dashboard.';
+
+  @override
+  String get dashEmptyCta => 'Go to Goals';
 }
