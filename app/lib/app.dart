@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:app/core/i18n/locale_provider.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/auth/models/user.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
@@ -12,6 +12,7 @@ import 'package:app/features/notifications/widgets/notifications_sheet.dart';
 import 'package:app/features/push/services/push_service.dart';
 import 'package:app/features/wearable/providers/workout_sync_provider.dart';
 import 'package:app/features/wearable/widgets/workout_sync_lifecycle.dart';
+import 'package:app/l10n/app_localizations.dart';
 import 'package:app/router/app_router.dart';
 
 class RunCoachApp extends ConsumerStatefulWidget {
@@ -28,6 +29,11 @@ class _RunCoachAppState extends ConsumerState<RunCoachApp> {
   Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
     final push = ref.read(pushServiceProvider);
+
+    // Fall back to English while the locale provider is resolving on the
+    // first frame — shared_preferences resolves within ~ms so this is
+    // rarely visible, but the AsyncValue contract requires us to handle it.
+    final locale = ref.watch(appLocaleProvider).value ?? const Locale('en');
 
     // Tap on a delivered notification — fired by the native bridge.
     push.onTap = (payload) {
@@ -73,11 +79,9 @@ class _RunCoachAppState extends ConsumerState<RunCoachApp> {
       theme: AppTheme.cupertino,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
-      localizationsDelegates: const [
-        DefaultMaterialLocalizations.delegate,
-        DefaultCupertinoLocalizations.delegate,
-        DefaultWidgetsLocalizations.delegate,
-      ],
+      locale: locale,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       builder: (context, child) {
         return WorkoutSyncLifecycle(
           child: _BootPopupHost(child: child ?? const SizedBox.shrink()),
