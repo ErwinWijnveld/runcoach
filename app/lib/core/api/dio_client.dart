@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:app/core/api/auth_interceptor.dart';
+import 'package:app/core/api/locale_interceptor.dart';
 import 'package:app/core/storage/token_storage.dart';
 
 part 'dio_client.g.dart';
@@ -26,6 +27,7 @@ Dio dio(Ref ref) {
     },
   ));
 
+  dio.interceptors.add(LocaleInterceptor());
   dio.interceptors.add(AuthInterceptor(tokenStorage));
 
   return dio;
