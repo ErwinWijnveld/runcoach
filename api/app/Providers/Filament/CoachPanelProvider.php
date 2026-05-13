@@ -27,8 +27,15 @@ class CoachPanelProvider extends PanelProvider
             ->path('coach')
             ->brandName('RunCoach for Coaches')
             ->login()
+            ->darkMode(false)
+            ->viteTheme('resources/css/filament/coach/theme.css')
+            ->font('Space Grotesk')
             ->colors([
-                'primary' => Color::Indigo,
+                'primary' => Color::hex('#E9B638'),
+                'gray' => Color::hex('#8B7355'),
+                'success' => Color::hex('#34C759'),
+                'danger' => Color::hex('#8F3A3A'),
+                'warning' => Color::hex('#E9B638'),
             ])
             ->discoverResources(in: app_path('Filament/Coach/Resources'), for: 'App\Filament\Coach\Resources')
             ->discoverPages(in: app_path('Filament/Coach/Pages'), for: 'App\Filament\Coach\Pages')

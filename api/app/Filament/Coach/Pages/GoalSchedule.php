@@ -84,7 +84,35 @@ class GoalSchedule extends Page implements HasActions
             return null;
         }
 
-        return Goal::with(['trainingWeeks.trainingDays', 'user'])->find($this->goalId);
+        return Goal::with(['trainingWeeks.trainingDays.result', 'user'])->find($this->goalId);
+    }
+
+    /**
+     * Visual state shown on each day row — mirrors Flutter's
+     * `TrainingDayStatus` (see app/lib/.../training_day_status.dart).
+     *
+     * - completed: has a `TrainingResult`
+     * - today: today's date, no result yet
+     * - missed: past date, no result
+     * - upcoming: future date
+     */
+    public function dayStatus(TrainingDay $day): string
+    {
+        if ($day->result) {
+            return 'completed';
+        }
+
+        $date = $day->date;
+        if ($date === null) {
+            return 'upcoming';
+        }
+
+        $today = now()->startOfDay();
+        if ($date->isSameDay($today)) {
+            return 'today';
+        }
+
+        return $date->lt($today) ? 'missed' : 'upcoming';
     }
 
     public function getTitle(): string

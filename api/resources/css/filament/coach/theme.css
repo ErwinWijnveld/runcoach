@@ -1,0 +1,170 @@
+/* RunCoach brand fonts — must come first (CSS @import ordering rule). */
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/Coach/**/*';
+@source '../../../../resources/views/filament/coach/**/*';
+
+/*
+ * Theming strategy
+ * ----------------
+ *
+ * Filament v4 ships its compiled rules using its CSS variables AS DIRECT
+ * color values:
+ *
+ *     color: var(--gray-500);
+ *     background-color: color-mix(in oklab, var(--gray-100) 50%, transparent);
+ *
+ * That means `--gray-50`, `--primary-500`, etc. MUST resolve to a valid CSS
+ * color (hex / rgb() / oklch()) — not a bare `r g b` triplet, which would
+ * silently invalidate every rule that consumes them and produce a fully
+ * white panel.
+ *
+ * Default panel palettes are configured on `CoachPanelProvider::panel()`
+ * via `Color::hex(...)`, which generates oklch-based palettes
+ * automatically. Here we PIN the most visible shades to the exact Flutter
+ * hexes (rather than Filament's auto-derived ones), and expose semantic
+ * `--rc-*` aliases for our custom views.
+ *
+ * Flutter palette source: app/lib/core/theme/app_theme.dart.
+ */
+:root {
+    /* Body / surfaces — pinned hex. */
+    --gray-50:  #F8F7F4;   /* cream page bg            */
+    --gray-100: #F5F0E8;   /* light tan / input bg     */
+    --gray-200: #E6DDC6;   /* hairline borders         */
+    --gray-300: #C7B898;   /* subtle dividers          */
+    --gray-400: #9F8E6E;   /* muted icons              */
+    --gray-500: #817662;   /* ink muted                */
+    --gray-600: #5C5240;   /* body text — low contrast */
+    --gray-700: #4E4635;   /* eyebrow / label          */
+    --gray-800: #2D2D2D;   /* ink soft                 */
+    --gray-900: #1C1C15;   /* ink                      */
+    --gray-950: #12120C;   /* deepest ink              */
+
+    /* Gold primary — pinned hex. */
+    --primary-50:  #FDF7E0;   /* softest wash */
+    --primary-100: #FAEFD1;   /* warn bg      */
+    --primary-200: #F5E0AF;   /* gold glow    */
+    --primary-300: #F0D189;
+    --primary-400: #EAC564;
+    --primary-500: #E9B638;   /* gold accent  */
+    --primary-600: #D9A82E;   /* hover        */
+    --primary-700: #B28620;
+    --primary-800: #8B6818;
+    --primary-900: #5C4D3C;   /* deep brown   */
+    --primary-950: #3C3227;
+
+    /* Status — completed / today / missed. */
+    --success-50:  #E2F7E7;
+    --success-100: #D1FAE5;
+    --success-500: #34C759;
+    --success-600: #1F7A33;
+
+    --danger-50:   #FBE9E3;
+    --danger-100:  #FBE9E3;
+    --danger-500:  #8F3A3A;
+    --danger-600:  #7C3030;
+
+    --warning-50:  #FAEFD1;
+    --warning-500: #E9B638;   /* same gold */
+    --warning-600: #D9A82E;
+
+    /* Semantic aliases — referenced by our schedule + any custom view.
+       Use `var(--gray-X)` etc. directly so they remain valid colors and
+       `color-mix(in oklab, var(--rc-X) 50%, transparent)` works without
+       wrappers. */
+    --rc-cream:       var(--gray-50);
+    --rc-card:        #FFFFFF;
+    --rc-card-soft:   #FFF9F0;
+    --rc-tan:         var(--gray-100);
+    --rc-border:      var(--gray-200);
+    --rc-border-soft: color-mix(in oklab, var(--gray-200) 60%, transparent);
+
+    --rc-ink:       var(--gray-900);
+    --rc-ink-soft:  var(--gray-800);
+    --rc-ink-muted: var(--gray-500);
+    --rc-eyebrow:   var(--gray-700);
+
+    --rc-gold:       var(--primary-500);
+    --rc-gold-hover: var(--primary-600);
+    --rc-gold-glow:  var(--primary-200);
+    --rc-brown:      #8B7355;
+    --rc-brown-dark: var(--primary-900);
+
+    --rc-success:    var(--success-500);
+    --rc-success-bg: var(--success-50);
+    --rc-success-ink: var(--success-600);
+    --rc-danger:     var(--danger-500);
+    --rc-danger-bg:  var(--danger-50);
+    --rc-warn:       var(--warning-500);
+    --rc-warn-bg:    var(--warning-50);
+    --rc-warn-ink:   #8A6618;
+
+    --rc-font-serif:   'EB Garamond', Georgia, serif;
+    --rc-font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+    --rc-font-body:    'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Body inherits `--gray-50` (cream) automatically via Filament's
+   `bg-gray-50` utility on `.fi-body`. We only layer the body font. */
+.fi-body {
+    font-family: var(--rc-font-body);
+}
+
+/* Sidebar — softer divider. */
+.fi-sidebar {
+    border-right: 1px solid var(--rc-border-soft);
+}
+
+.fi-sidebar-nav-groups .fi-sidebar-nav-group-label {
+    font-family: var(--rc-font-display);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.fi-sidebar-item-active .fi-sidebar-item-button {
+    background-color: var(--rc-gold-glow);
+    color: var(--rc-brown-dark);
+}
+
+.fi-sidebar-item-active .fi-sidebar-item-icon {
+    color: var(--rc-brown-dark);
+}
+
+/* Topbar */
+.fi-topbar {
+    border-bottom: 1px solid var(--rc-border-soft);
+}
+
+/* Page header — serif italic title like the Flutter app. */
+.fi-header-heading {
+    font-family: var(--rc-font-serif);
+    font-style: italic;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+}
+
+.fi-header-subheading {
+    font-family: var(--rc-font-body);
+}
+
+/* Cards / sections — softer corners. */
+.fi-section,
+.fi-wi {
+    border-radius: 1.25rem;
+}
+
+.fi-section-header-heading {
+    font-family: var(--rc-font-serif);
+    font-style: italic;
+    font-weight: 500;
+}
+
+/* Modal headings — same serif italic. */
+.fi-modal-heading {
+    font-family: var(--rc-font-serif);
+    font-style: italic;
+    font-weight: 500;
+}
