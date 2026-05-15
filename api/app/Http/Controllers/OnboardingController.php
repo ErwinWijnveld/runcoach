@@ -110,7 +110,9 @@ class OnboardingController extends Controller
      * Build the baseline block surfaced by the onboarding overview screen so
      * Flutter can decide per-field lock state. Source is `self_reported`
      * when the column is set; otherwise `apple_health` when the cascade had
-     * real signal; otherwise null.
+     * real signal; otherwise null. Values are only emitted when source is
+     * non-null — Tier-4 fallback numbers must NOT leak into the form, or the
+     * runner ends up with a "prefilled" baseline they never confirmed.
      *
      * @return array{
      *   weekly_km: float|null,
@@ -121,25 +123,28 @@ class OnboardingController extends Controller
      */
     private function buildBaseline(User $user, FitnessSnapshot $snapshot): array
     {
-        $weeklyKm = $user->self_reported_weekly_km !== null
-            ? (float) $user->self_reported_weekly_km
-            : ($snapshot->weeklyKmRecent4Weeks > 0
-                ? round($snapshot->weeklyKmRecent4Weeks, 1)
-                : null);
-
         $weeklyKmSource = match (true) {
             $user->self_reported_weekly_km !== null => 'self_reported',
             $snapshot->weeklyKmRecent4Weeks > 0 => 'apple_health',
             default => null,
         };
 
-        $easyPace = $user->self_reported_easy_pace_seconds_per_km
-            ?? $snapshot->easyPaceSecondsPerKm;
+        $weeklyKm = match ($weeklyKmSource) {
+            'self_reported' => (float) $user->self_reported_weekly_km,
+            'apple_health' => round($snapshot->weeklyKmRecent4Weeks, 1),
+            default => null,
+        };
 
         $easyPaceSource = match (true) {
             $user->self_reported_easy_pace_seconds_per_km !== null => 'self_reported',
             $snapshot->derivation !== PaceDerivation::Fallback
                 && $snapshot->derivation !== PaceDerivation::SelfReported => 'apple_health',
+            default => null,
+        };
+
+        $easyPace = match ($easyPaceSource) {
+            'self_reported' => (int) $user->self_reported_easy_pace_seconds_per_km,
+            'apple_health' => $snapshot->easyPaceSecondsPerKm,
             default => null,
         };
 

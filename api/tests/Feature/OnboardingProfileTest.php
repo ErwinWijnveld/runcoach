@@ -78,7 +78,7 @@ class OnboardingProfileTest extends TestCase
         $response->assertOk();
         $this->assertNull($response->json('baseline.weekly_km'));
         $this->assertNull($response->json('baseline.weekly_km_source'));
-        $this->assertSame(360, $response->json('baseline.easy_pace_seconds_per_km'));
+        $this->assertNull($response->json('baseline.easy_pace_seconds_per_km'));
         $this->assertNull($response->json('baseline.easy_pace_source'));
     }
 
