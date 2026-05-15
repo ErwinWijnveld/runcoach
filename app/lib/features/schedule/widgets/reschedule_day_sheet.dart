@@ -220,7 +220,6 @@ class _Header extends StatelessWidget {
               style: GoogleFonts.ebGaramond(
                 fontSize: 20,
                 fontWeight: FontWeight.w500,
-                fontStyle: FontStyle.italic,
                 color: AppColors.primaryInk,
               ),
             ),
@@ -344,7 +343,6 @@ class _MonthHeader extends StatelessWidget {
           style: GoogleFonts.ebGaramond(
             fontSize: 18,
             fontWeight: FontWeight.w500,
-            fontStyle: FontStyle.italic,
             color: AppColors.primaryInk,
           ),
         ),

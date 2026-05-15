@@ -1539,7 +1539,6 @@ class _IntensityStepState extends ConsumerState<_IntensityStep> {
                     key: ValueKey(selected),
                     style: GoogleFonts.ebGaramond(
                       fontSize: 14,
-                      fontStyle: FontStyle.italic,
                       color: AppColors.inkMuted,
                       height: 1.3,
                     ),

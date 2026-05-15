@@ -194,7 +194,6 @@ class _NotificationCardState extends ConsumerState<_NotificationCard> {
             style: GoogleFonts.ebGaramond(
               fontSize: 22,
               fontWeight: FontWeight.w500,
-              fontStyle: FontStyle.italic,
               color: AppColors.primaryInk,
               height: 1.15,
             ),

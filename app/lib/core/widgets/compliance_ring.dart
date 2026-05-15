@@ -41,7 +41,6 @@ class ComplianceRing extends StatelessWidget {
             style: textStyle ??
                 GoogleFonts.ebGaramond(
                   fontSize: size * 0.32,
-                  fontStyle: FontStyle.italic,
                   fontWeight: FontWeight.w500,
                   color: color,
                 ),

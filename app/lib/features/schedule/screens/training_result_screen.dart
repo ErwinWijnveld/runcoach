@@ -165,7 +165,6 @@ class _Header extends StatelessWidget {
             style: GoogleFonts.ebGaramond(
               fontSize: 22,
               fontWeight: FontWeight.w500,
-              fontStyle: FontStyle.italic,
               color: AppColors.primaryInk,
             ),
           ),
@@ -236,7 +235,6 @@ class _ComplianceSection extends StatelessWidget {
                     strokeWidth: 7,
                     textStyle: GoogleFonts.ebGaramond(
                       fontSize: 34,
-                      fontStyle: FontStyle.italic,
                       fontWeight: FontWeight.w500,
                       color: ComplianceColors.forScore01(overall01),
                     ),
@@ -500,7 +498,6 @@ class _ComparisonRow extends StatelessWidget {
             textAlign: TextAlign.end,
             style: GoogleFonts.ebGaramond(
               fontSize: 18,
-              fontStyle: FontStyle.italic,
               fontWeight: FontWeight.w400,
               color: AppColors.tertiary,
             ),

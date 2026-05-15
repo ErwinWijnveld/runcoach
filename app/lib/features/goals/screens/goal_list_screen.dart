@@ -150,7 +150,6 @@ class _GoalsHeader extends StatelessWidget {
           style: GoogleFonts.ebGaramond(
             fontSize: 32,
             fontWeight: FontWeight.w500,
-            fontStyle: FontStyle.italic,
             color: AppColors.primaryInk,
             height: 1.0,
           ),
@@ -235,7 +234,6 @@ class _ActiveGoalCard extends StatelessWidget {
               style: GoogleFonts.ebGaramond(
                 fontSize: 28,
                 fontWeight: FontWeight.w500,
-                fontStyle: FontStyle.italic,
                 color: AppColors.primaryInk,
                 height: 1.05,
               ),
@@ -413,7 +411,6 @@ class _OtherGoalTile extends ConsumerWidget {
                 style: GoogleFonts.ebGaramond(
                   fontSize: 22,
                   fontWeight: FontWeight.w500,
-                  fontStyle: FontStyle.italic,
                   color: AppColors.primaryInk,
                 ),
               ),
@@ -474,7 +471,6 @@ class _EmptyState extends StatelessWidget {
               style: GoogleFonts.ebGaramond(
                 fontSize: 24,
                 fontWeight: FontWeight.w500,
-                fontStyle: FontStyle.italic,
                 color: AppColors.primaryInk,
               ),
             ),

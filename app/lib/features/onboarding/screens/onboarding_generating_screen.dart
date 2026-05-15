@@ -318,7 +318,6 @@ class _LoadingBody extends StatelessWidget {
             style: GoogleFonts.inter(
               fontSize: 13,
               color: AppColors.inkMuted,
-              fontStyle: FontStyle.italic,
             ),
           ),
         ],

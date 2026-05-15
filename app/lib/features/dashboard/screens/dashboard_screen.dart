@@ -229,7 +229,11 @@ class _TodayCard extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 context.l10n.dashNoUpcomingTitle,
-                style: RunCoreText.serifTitle(size: 26, height: 30 / 26),
+                style: RunCoreText.serifTitle(
+                  size: 26,
+                  height: 30 / 26,
+                  style: FontStyle.italic,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
@@ -307,7 +311,11 @@ class _TodayCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     day.title,
-                    style: RunCoreText.serifTitle(size: 26, height: 30 / 26),
+                    style: RunCoreText.serifTitle(
+                      size: 26,
+                      height: 30 / 26,
+                      style: FontStyle.italic,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),

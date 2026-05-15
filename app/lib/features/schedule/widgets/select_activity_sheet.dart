@@ -219,7 +219,6 @@ class _ErrorState extends StatelessWidget {
               style: GoogleFonts.ebGaramond(
                 fontSize: 20,
                 fontWeight: FontWeight.w500,
-                fontStyle: FontStyle.italic,
                 color: AppColors.primaryInk,
               ),
             ),
@@ -286,7 +285,6 @@ class _ActivityRow extends StatelessWidget {
                               style: GoogleFonts.ebGaramond(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w500,
-                                fontStyle: FontStyle.italic,
                                 color: AppColors.primaryInk,
                               ),
                               maxLines: 1,

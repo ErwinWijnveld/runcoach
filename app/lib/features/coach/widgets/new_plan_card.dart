@@ -53,7 +53,6 @@ class NewPlanCard extends StatelessWidget {
               style: GoogleFonts.ebGaramond(
                 fontSize: 22,
                 fontWeight: FontWeight.w500,
-                fontStyle: FontStyle.italic,
                 color: AppColors.primaryInk,
                 height: 1.1,
               ),

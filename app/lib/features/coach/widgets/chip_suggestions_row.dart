@@ -74,7 +74,6 @@ class _ChipSuggestionsRowState extends State<ChipSuggestionsRow> {
               context.l10n.coachChipOrTypeOwn,
               style: const TextStyle(
                 fontSize: 14,
-                fontStyle: FontStyle.italic,
                 color: AppColors.textSecondary,
               ),
             ),

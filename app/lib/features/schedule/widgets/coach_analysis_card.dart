@@ -69,7 +69,6 @@ class CoachAnalysisCard extends StatelessWidget {
                           l10n.coachAnalysisCompliance,
                           style: GoogleFonts.ebGaramond(
                             fontSize: 24,
-                            fontStyle: FontStyle.italic,
                             fontWeight: FontWeight.w500,
                             color: AppColors.primaryInk,
                             height: 1.05,

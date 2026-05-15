@@ -95,14 +95,12 @@ class TrainingDayHeroCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      // Italic serif title
                       Text(
                         title,
                         textAlign: TextAlign.center,
                         style: GoogleFonts.ebGaramond(
                           fontSize: 32,
                           fontWeight: FontWeight.w500,
-                          fontStyle: FontStyle.italic,
                           color: AppColors.primaryInk,
                           height: 1.05,
                         ),

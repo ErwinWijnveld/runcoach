@@ -111,14 +111,17 @@ class RunCoreText {
     height: height,
   );
 
-  /// Medium-italic card title (e.g. "Threshold Intervals", "AI Coach").
+  /// Medium card title (e.g. "Threshold Intervals", "AI Coach"). Upright by
+  /// default; pass `style: FontStyle.italic` to opt back into italic on the
+  /// home/welcome surfaces.
   static TextStyle serifTitle({
     double size = 36,
     Color color = AppColors.primaryInk,
     double? height,
+    FontStyle style = FontStyle.normal,
   }) => GoogleFonts.ebGaramond(
     fontSize: size,
-    fontStyle: FontStyle.italic,
+    fontStyle: style,
     fontWeight: FontWeight.w500,
     color: color,
     height: height,
