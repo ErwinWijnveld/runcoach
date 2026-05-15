@@ -56,10 +56,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get authWelcomeEyebrow => 'JOUW AI-HARDLOOPCOACH';
 
   @override
-  String get authWelcomeHeadlineLine1 => 'Slimmer trainen,';
+  String get authWelcomeHeadlineLine1 => 'Train Smarter,';
 
   @override
-  String get authWelcomeHeadlineLine2 => 'Niet zwaarder';
+  String get authWelcomeHeadlineLine2 => 'Not Harder';
 
   @override
   String get authWelcomeSignInButton => 'INLOGGEN MET APPLE';
