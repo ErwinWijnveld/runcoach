@@ -266,10 +266,19 @@ class _OpRow extends StatelessWidget {
 
   String _humanType(BuildContext context, dynamic type) {
     if (type == null) return context.l10n.coachRevisionRunFallback;
-    return type.toString().replaceAll('_', ' ').split(' ').map((s) {
-      if (s.isEmpty) return s;
-      return s[0].toUpperCase() + s.substring(1);
-    }).join(' ');
+    final l10n = context.l10n;
+    final value = type.toString();
+    return switch (value) {
+      'easy' => l10n.trainingTypeEasy,
+      'tempo' => l10n.trainingTypeTempo,
+      'interval' => l10n.trainingTypeInterval,
+      'long_run' => l10n.trainingTypeLongRun,
+      'threshold' => l10n.trainingTypeThreshold,
+      _ => value.replaceAll('_', ' ').split(' ').map((s) {
+            if (s.isEmpty) return s;
+            return s[0].toUpperCase() + s.substring(1);
+          }).join(' '),
+    };
   }
 
   String _num(dynamic n) {

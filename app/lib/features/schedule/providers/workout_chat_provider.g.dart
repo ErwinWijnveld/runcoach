@@ -62,7 +62,7 @@ final class WorkoutChatProvider
   }
 }
 
-String _$workoutChatHash() => r'9f6163cf428cd6baebdec307ad68f157afef9ec7';
+String _$workoutChatHash() => r'013850b5895f3169a8990869e65b6ce52d966c20';
 
 /// Per-training-day chat. Mirrors `CoachChat` (same SSE shape) but is
 /// keyed by `trainingDayId` and hits the `/workout-chat/{day}` endpoints.

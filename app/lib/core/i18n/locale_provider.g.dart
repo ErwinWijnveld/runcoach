@@ -66,7 +66,7 @@ final class AppLocaleProvider
   AppLocale create() => AppLocale();
 }
 
-String _$appLocaleHash() => r'895315593a2780896ee0da8677ce67296fd7569b';
+String _$appLocaleHash() => r'85224ad311782eeddca0e9a4e2f18a22c0c88f7e';
 
 /// Single source of truth for the app's active locale.
 ///

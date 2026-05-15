@@ -329,6 +329,7 @@
   "goalsDeleteConfirmBody": "Weet je zeker dat je \"{name}\" wilt verwijderen?",
   "goalsScheduleRowTitle": "Trainingsschema",
   "goalsScheduleRowSubtitle": "Open je weekplan",
+  "goalsScheduleRowSubtitlePreview": "Bekijk het plan van dit doel",
 
   "commonError": "Fout",
   "commonDone": "Klaar",
@@ -692,5 +693,11 @@
   "goalCoachSuggestion9": "Ontwerp een base-building blok...",
   "goalCoachSuggestion10": "Plan mijn volgende trainingscyclus...",
 
-  "wearableActivityFallbackName": "Run"
+  "wearableActivityFallbackName": "Run",
+
+  "trainingTypeEasy": "Rustig",
+  "trainingTypeTempo": "Tempo",
+  "trainingTypeInterval": "Intervals",
+  "trainingTypeLongRun": "Lange duurloop",
+  "trainingTypeThreshold": "Drempel"
 }

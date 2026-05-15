@@ -853,7 +853,7 @@ class TrainingPlanBuilder
         return [
             'type' => TrainingType::LongRun->value,
             'target_km' => round($km, 1),
-            'description' => 'Steady, conversational long run. Build aerobic durability.',
+            'description' => __('enums.training_day_descriptions.long_run'),
             'target_pace_seconds_per_km' => $snapshot->easyPaceSecondsPerKm !== null
                 ? $snapshot->easyPaceSecondsPerKm + 10
                 : null,
@@ -872,8 +872,8 @@ class TrainingPlanBuilder
             'type' => TrainingType::Easy->value,
             'target_km' => round($kmCapped, 1),
             'description' => $isShort
-                ? 'Short shake-out. Stay relaxed, light on the legs.'
-                : 'Easy aerobic run at conversational effort.',
+                ? __('enums.training_day_descriptions.easy_short')
+                : __('enums.training_day_descriptions.easy_standard'),
             'target_pace_seconds_per_km' => $snapshot->easyPaceSecondsPerKm,
             'target_heart_rate_zone' => 2,
         ];
@@ -902,7 +902,7 @@ class TrainingPlanBuilder
         return [
             'type' => TrainingType::Tempo->value,
             'target_km' => round($kmCapped, 1),
-            'description' => 'Steady tempo run. Comfortably hard, sustainable for the whole distance.',
+            'description' => __('enums.training_day_descriptions.tempo'),
             'target_pace_seconds_per_km' => $pace,
             'target_heart_rate_zone' => 4,
         ];
@@ -1008,8 +1008,8 @@ class TrainingPlanBuilder
             'type' => TrainingType::Interval->value,
             'target_km' => round(max($estimatedKm, $km), 1),
             'description' => $isSharpener
-                ? 'Sharpener intervals. Race-pace work to keep the legs primed.'
-                : 'Interval session. Build VO2max and running economy.',
+                ? __('enums.training_day_descriptions.interval_sharpener')
+                : __('enums.training_day_descriptions.interval_standard'),
             'target_pace_seconds_per_km' => null, // optimizer enforces null on intervals
             'target_heart_rate_zone' => 5,
             'intervals' => $intervals,
@@ -1380,7 +1380,7 @@ class TrainingPlanBuilder
             'day_of_week' => $dow,
             'type' => TrainingType::Tempo->value,
             'target_km' => null,
-            'description' => 'Race day. Execute your plan.',
+            'description' => __('enums.training_day_descriptions.race_day'),
             'target_pace_seconds_per_km' => null,
             'target_heart_rate_zone' => null,
         ];

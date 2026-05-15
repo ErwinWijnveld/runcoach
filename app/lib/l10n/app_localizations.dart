@@ -1892,6 +1892,12 @@ abstract class AppLocalizations {
   /// **'Open your weekly plan'**
   String get goalsScheduleRowSubtitle;
 
+  /// No description provided for @goalsScheduleRowSubtitlePreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview the plan for this goal'**
+  String get goalsScheduleRowSubtitlePreview;
+
   /// No description provided for @commonError.
   ///
   /// In en, this message translates to:
@@ -3781,6 +3787,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Run'**
   String get wearableActivityFallbackName;
+
+  /// No description provided for @trainingTypeEasy.
+  ///
+  /// In en, this message translates to:
+  /// **'Easy'**
+  String get trainingTypeEasy;
+
+  /// No description provided for @trainingTypeTempo.
+  ///
+  /// In en, this message translates to:
+  /// **'Tempo'**
+  String get trainingTypeTempo;
+
+  /// No description provided for @trainingTypeInterval.
+  ///
+  /// In en, this message translates to:
+  /// **'Intervals'**
+  String get trainingTypeInterval;
+
+  /// No description provided for @trainingTypeLongRun.
+  ///
+  /// In en, this message translates to:
+  /// **'Long run'**
+  String get trainingTypeLongRun;
+
+  /// No description provided for @trainingTypeThreshold.
+  ///
+  /// In en, this message translates to:
+  /// **'Threshold'**
+  String get trainingTypeThreshold;
 }
 
 class _AppLocalizationsDelegate

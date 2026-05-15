@@ -389,6 +389,7 @@
   },
   "goalsScheduleRowTitle": "Training schedule",
   "goalsScheduleRowSubtitle": "Open your weekly plan",
+  "goalsScheduleRowSubtitlePreview": "Preview the plan for this goal",
 
   "commonError": "Error",
   "commonDone": "Done",
@@ -860,5 +861,11 @@
   "goalCoachSuggestion9": "Design a base-building block...",
   "goalCoachSuggestion10": "Plan my next training cycle...",
 
-  "wearableActivityFallbackName": "Run"
+  "wearableActivityFallbackName": "Run",
+
+  "trainingTypeEasy": "Easy",
+  "trainingTypeTempo": "Tempo",
+  "trainingTypeInterval": "Intervals",
+  "trainingTypeLongRun": "Long run",
+  "trainingTypeThreshold": "Threshold"
 }

@@ -997,6 +997,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get goalsScheduleRowSubtitle => 'Open je weekplan';
 
   @override
+  String get goalsScheduleRowSubtitlePreview => 'Bekijk het plan van dit doel';
+
+  @override
   String get commonError => 'Fout';
 
   @override
@@ -2070,4 +2073,19 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get wearableActivityFallbackName => 'Run';
+
+  @override
+  String get trainingTypeEasy => 'Rustig';
+
+  @override
+  String get trainingTypeTempo => 'Tempo';
+
+  @override
+  String get trainingTypeInterval => 'Intervals';
+
+  @override
+  String get trainingTypeLongRun => 'Lange duurloop';
+
+  @override
+  String get trainingTypeThreshold => 'Drempel';
 }
