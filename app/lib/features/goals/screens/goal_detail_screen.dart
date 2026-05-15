@@ -17,6 +17,7 @@ import 'package:app/features/coach/providers/coach_provider.dart';
 import 'package:app/features/goals/data/goal_coach_suggestions.dart';
 import 'package:app/features/goals/models/goal.dart';
 import 'package:app/features/goals/providers/goal_provider.dart';
+import 'package:app/features/goals/widgets/goal_plan_sheet.dart';
 
 class GoalDetailScreen extends ConsumerWidget {
   final int goalId;
@@ -92,7 +93,8 @@ class _Loaded extends ConsumerWidget {
                             Padding(
                               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                               child: _ScheduleRow(
-                                onTap: () => context.go('/schedule'),
+                                onTap: () =>
+                                    GoalPlanSheet.show(context, goal: goal),
                               ),
                             ),
                           ] else if (goal.status == 'paused' ||
@@ -100,6 +102,15 @@ class _Loaded extends ConsumerWidget {
                             _SectionTitle(context.l10n.goalDetailSectionNotActive),
                             Padding(
                               padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                              child: _ScheduleRow(
+                                subtitle: context.l10n.goalsScheduleRowSubtitlePreview,
+                                onTap: () =>
+                                    GoalPlanSheet.show(context, goal: goal),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
                               child: _SwitchToGoalCard(goal: goal),
                             ),
                           ],
@@ -250,7 +261,6 @@ class _GoalHeroCard extends StatelessWidget {
                         style: GoogleFonts.ebGaramond(
                           fontSize: 32,
                           fontWeight: FontWeight.w500,
-                          fontStyle: FontStyle.italic,
                           color: AppColors.primaryInk,
                           height: 1.05,
                         ),
@@ -491,7 +501,8 @@ class _SectionTitle extends StatelessWidget {
 
 class _ScheduleRow extends StatelessWidget {
   final VoidCallback onTap;
-  const _ScheduleRow({required this.onTap});
+  final String? subtitle;
+  const _ScheduleRow({required this.onTap, this.subtitle});
 
   @override
   Widget build(BuildContext context) {
@@ -535,7 +546,7 @@ class _ScheduleRow extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    context.l10n.goalsScheduleRowSubtitle,
+                    subtitle ?? context.l10n.goalsScheduleRowSubtitle,
                     style: GoogleFonts.publicSans(
                       fontSize: 13,
                       color: AppColors.inkMuted,
