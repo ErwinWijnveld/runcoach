@@ -613,9 +613,11 @@ class _DayTile extends StatelessWidget {
 
   bool get _isMissed => _status == TrainingDayStatus.missed;
 
-  /// `true` when this tile gets the gold halo (today / next-upcoming).
+  /// `true` when this tile gets the gold halo. Reserved for TODAY only —
+  /// upcoming keeps the regular tile styling (just its yellow badge) so the
+  /// next session is distinguishable from today at a glance.
   /// Completed gets its own GREEN halo via `_isCompleted`; missed never glows.
-  bool get _isGoldHaloed => !_isCompleted && highlight != _DayHighlight.none;
+  bool get _isGoldHaloed => !_isCompleted && highlight == _DayHighlight.today;
 
   /// Any glow at all? Drives the elevated card shadow + radial gradient.
   bool get _isHaloed => _isCompleted || _isGoldHaloed;
@@ -845,19 +847,12 @@ class _StatusIcon extends StatelessWidget {
         iconColor: CupertinoColors.white,
         iconSize: 18,
       ),
-      TrainingDayStatus.upcoming => isHaloed
-          ? const _CircleIcon(
-              bg: AppColors.secondary,
-              icon: Icons.bolt_rounded,
-              iconColor: CupertinoColors.white,
-              iconSize: 18,
-            )
-          : const _CircleIcon(
-              bg: _pendingBg,
-              icon: Icons.schedule_rounded,
-              iconColor: _pendingIcon,
-              iconSize: 16,
-            ),
+      TrainingDayStatus.upcoming => const _CircleIcon(
+        bg: _pendingBg,
+        icon: Icons.schedule_rounded,
+        iconColor: _pendingIcon,
+        iconSize: 16,
+      ),
     };
   }
 }
