@@ -186,35 +186,44 @@ class _Bubble extends StatelessWidget {
         _isUser ? const Color(0xFF745F27) : AppColors.primaryInk;
 
     final bodyStyle = GoogleFonts.publicSans(
-      fontSize: 14,
+      fontSize: 16,
       fontWeight: FontWeight.w400,
       height: 1.4,
       color: textColor,
     );
 
+    final mediaQuery = MediaQuery.of(context);
+    final clampedScaler = mediaQuery.textScaler.clamp(
+      minScaleFactor: 1.0,
+      maxScaleFactor: 1.3,
+    );
+
     return ConstrainedBox(
       constraints: BoxConstraints(maxWidth: maxWidth),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        decoration: BoxDecoration(
-          color: _isUser ? const Color(0xFFFDEBBB) : CupertinoColors.white,
-          border: _isUser ? null : Border.all(color: AppColors.border),
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(_isUser ? 24 : 0),
-            topRight: Radius.circular(_isUser ? 0 : 24),
-            bottomLeft: const Radius.circular(24),
-            bottomRight: const Radius.circular(24),
+      child: MediaQuery(
+        data: mediaQuery.copyWith(textScaler: clampedScaler),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          decoration: BoxDecoration(
+            color: _isUser ? const Color(0xFFFDEBBB) : CupertinoColors.white,
+            border: _isUser ? null : Border.all(color: AppColors.border),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(_isUser ? 24 : 0),
+              topRight: Radius.circular(_isUser ? 0 : 24),
+              bottomLeft: const Radius.circular(24),
+              bottomRight: const Radius.circular(24),
+            ),
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_isUser)
-              Text(message.content, style: bodyStyle)
-            else if (message.content.isNotEmpty)
-              GptMarkdown(message.content, style: bodyStyle),
-          ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_isUser)
+                Text(message.content, style: bodyStyle)
+              else if (message.content.isNotEmpty)
+                GptMarkdown(message.content, style: bodyStyle),
+            ],
+          ),
         ),
       ),
     );
