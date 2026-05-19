@@ -269,138 +269,165 @@ class _HeartRateZonesSheetState extends ConsumerState<HeartRateZonesSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.neutral,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding:
-              EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 8),
-              Container(
-                width: 36,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: AppColors.inputBorder,
-                  borderRadius: BorderRadius.circular(3),
+    // Cap the popup at 90% of screen height so the inner Flexible has a
+    // bounded constraint to distribute. Without this cap, MainAxisSize.min
+    // lets the Column grow past the viewport and the footer (Save/Cancel)
+    // overflows behind the keyboard.
+    final maxSheetHeight = MediaQuery.sizeOf(context).height * 0.9;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxSheetHeight),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: AppColors.neutral,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 8),
+                Container(
+                  width: 36,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: AppColors.inputBorder,
+                    borderRadius: BorderRadius.circular(3),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                context.l10n.hrZonesSheetTitle,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primaryInk,
+                const SizedBox(height: 16),
+                Text(
+                  context.l10n.hrZonesSheetTitle,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primaryInk,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text(
-                  context.l10n.hrZonesSheetIntro,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 12, color: AppColors.inkMuted, height: 1.4),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _RecomputeRow(
-                  busy: _recomputing,
-                  enabled: !_saving,
-                  notice: _recomputeNotice,
-                  onTap: _recompute,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _MaxHrField(
-                  controller: _maxHrController,
-                  onApply: _applyMaxHr,
-                  enabled: !_saving && !_recomputing,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _ZonesList(
-                  boundaries: _readBoundaries(),
-                  controllers: _boundaryControllers,
-                  onChanged: _onBoundaryChanged,
-                  enabled: !_saving,
-                ),
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 4),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Text(
-                    _error!,
+                    context.l10n.hrZonesSheetIntro,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                      color: CupertinoColors.systemRed,
-                      fontSize: 13,
+                        fontSize: 12,
+                        color: AppColors.inkMuted,
+                        height: 1.4),
+                  ),
+                ),
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(top: 12, bottom: 4),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 16),
+                          child: _RecomputeRow(
+                            busy: _recomputing,
+                            enabled: !_saving,
+                            notice: _recomputeNotice,
+                            onTap: _recompute,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 16),
+                          child: _MaxHrField(
+                            controller: _maxHrController,
+                            onApply: _applyMaxHr,
+                            enabled: !_saving && !_recomputing,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 16),
+                          child: _ZonesList(
+                            boundaries: _readBoundaries(),
+                            controllers: _boundaryControllers,
+                            onChanged: _onBoundaryChanged,
+                            enabled: !_saving,
+                          ),
+                        ),
+                        if (_error != null) ...[
+                          const SizedBox(height: 12),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16),
+                            child: Text(
+                              _error!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: CupertinoColors.systemRed,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 ),
-              ],
-              const SizedBox(height: 20),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: CupertinoButton(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        color: AppColors.cardBg,
-                        borderRadius: BorderRadius.circular(14),
-                        onPressed: _saving
-                            ? null
-                            : () => Navigator.of(context).pop(),
-                        child: Text(
-                          context.l10n.commonCancel,
-                          style: const TextStyle(
-                            color: AppColors.primaryInk,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: CupertinoButton(
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 14),
+                          color: AppColors.cardBg,
+                          borderRadius: BorderRadius.circular(14),
+                          onPressed: _saving
+                              ? null
+                              : () => Navigator.of(context).pop(),
+                          child: Text(
+                            context.l10n.commonCancel,
+                            style: const TextStyle(
+                              color: AppColors.primaryInk,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: CupertinoButton.filled(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        borderRadius: BorderRadius.circular(14),
-                        // Disable Save while a recompute is in flight so
-                        // the user can't persist stale field values that
-                        // are about to be overwritten by the deriver.
-                        onPressed: (_saving || _recomputing) ? null : _save,
-                        child: _saving
-                            ? const CupertinoActivityIndicator(
-                                color: CupertinoColors.white)
-                            : Text(
-                                context.l10n.commonSave,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: CupertinoButton.filled(
+                          padding:
+                              const EdgeInsets.symmetric(vertical: 14),
+                          borderRadius: BorderRadius.circular(14),
+                          // Disable Save while a recompute is in flight so
+                          // the user can't persist stale field values that
+                          // are about to be overwritten by the deriver.
+                          onPressed:
+                              (_saving || _recomputing) ? null : _save,
+                          child: _saving
+                              ? const CupertinoActivityIndicator(
+                                  color: CupertinoColors.white)
+                              : Text(
+                                  context.l10n.commonSave,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                              ),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-            ],
+                const SizedBox(height: 16),
+              ],
+            ),
           ),
         ),
       ),
