@@ -195,7 +195,7 @@ class _Bubble extends StatelessWidget {
     final mediaQuery = MediaQuery.of(context);
     final clampedScaler = mediaQuery.textScaler.clamp(
       minScaleFactor: 1.0,
-      maxScaleFactor: 1.3,
+      maxScaleFactor: 1.15,
     );
 
     return ConstrainedBox(
