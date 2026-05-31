@@ -12,6 +12,9 @@ _PlanGeneration _$PlanGenerationFromJson(Map<String, dynamic> json) =>
       status: $enumDecode(_$PlanGenerationStatusEnumMap, json['status']),
       conversationId: json['conversation_id'] as String?,
       proposalId: (json['proposal_id'] as num?)?.toInt(),
+      proposal: json['proposal'] == null
+          ? null
+          : CoachProposal.fromJson(json['proposal'] as Map<String, dynamic>),
       errorMessage: json['error_message'] as String?,
     );
 
@@ -21,6 +24,7 @@ Map<String, dynamic> _$PlanGenerationToJson(_PlanGeneration instance) =>
       'status': _$PlanGenerationStatusEnumMap[instance.status]!,
       'conversation_id': instance.conversationId,
       'proposal_id': instance.proposalId,
+      'proposal': instance.proposal,
       'error_message': instance.errorMessage,
     };
 

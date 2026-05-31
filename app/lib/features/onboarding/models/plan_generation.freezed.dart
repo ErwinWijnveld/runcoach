@@ -15,7 +15,10 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$PlanGeneration {
 
- int get id; PlanGenerationStatus get status;@JsonKey(name: 'conversation_id') String? get conversationId;@JsonKey(name: 'proposal_id') int? get proposalId;@JsonKey(name: 'error_message') String? get errorMessage;
+ int get id; PlanGenerationStatus get status;@JsonKey(name: 'conversation_id') String? get conversationId;@JsonKey(name: 'proposal_id') int? get proposalId;/// Full proposal (payload included) so the plan-preview / paywall screen
+/// can render the rich plan teaser without hitting the require.pro-gated
+/// coach endpoints. Null until generation produces a proposal.
+ CoachProposal? get proposal;@JsonKey(name: 'error_message') String? get errorMessage;
 /// Create a copy of PlanGeneration
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +31,16 @@ $PlanGenerationCopyWith<PlanGeneration> get copyWith => _$PlanGenerationCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlanGeneration&&(identical(other.id, id) || other.id == id)&&(identical(other.status, status) || other.status == status)&&(identical(other.conversationId, conversationId) || other.conversationId == conversationId)&&(identical(other.proposalId, proposalId) || other.proposalId == proposalId)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PlanGeneration&&(identical(other.id, id) || other.id == id)&&(identical(other.status, status) || other.status == status)&&(identical(other.conversationId, conversationId) || other.conversationId == conversationId)&&(identical(other.proposalId, proposalId) || other.proposalId == proposalId)&&(identical(other.proposal, proposal) || other.proposal == proposal)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,status,conversationId,proposalId,errorMessage);
+int get hashCode => Object.hash(runtimeType,id,status,conversationId,proposalId,proposal,errorMessage);
 
 @override
 String toString() {
-  return 'PlanGeneration(id: $id, status: $status, conversationId: $conversationId, proposalId: $proposalId, errorMessage: $errorMessage)';
+  return 'PlanGeneration(id: $id, status: $status, conversationId: $conversationId, proposalId: $proposalId, proposal: $proposal, errorMessage: $errorMessage)';
 }
 
 
@@ -48,11 +51,11 @@ abstract mixin class $PlanGenerationCopyWith<$Res>  {
   factory $PlanGenerationCopyWith(PlanGeneration value, $Res Function(PlanGeneration) _then) = _$PlanGenerationCopyWithImpl;
 @useResult
 $Res call({
- int id, PlanGenerationStatus status,@JsonKey(name: 'conversation_id') String? conversationId,@JsonKey(name: 'proposal_id') int? proposalId,@JsonKey(name: 'error_message') String? errorMessage
+ int id, PlanGenerationStatus status,@JsonKey(name: 'conversation_id') String? conversationId,@JsonKey(name: 'proposal_id') int? proposalId, CoachProposal? proposal,@JsonKey(name: 'error_message') String? errorMessage
 });
 
 
-
+$CoachProposalCopyWith<$Res>? get proposal;
 
 }
 /// @nodoc
@@ -65,17 +68,30 @@ class _$PlanGenerationCopyWithImpl<$Res>
 
 /// Create a copy of PlanGeneration
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? status = null,Object? conversationId = freezed,Object? proposalId = freezed,Object? errorMessage = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? status = null,Object? conversationId = freezed,Object? proposalId = freezed,Object? proposal = freezed,Object? errorMessage = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as PlanGenerationStatus,conversationId: freezed == conversationId ? _self.conversationId : conversationId // ignore: cast_nullable_to_non_nullable
 as String?,proposalId: freezed == proposalId ? _self.proposalId : proposalId // ignore: cast_nullable_to_non_nullable
-as int?,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
+as int?,proposal: freezed == proposal ? _self.proposal : proposal // ignore: cast_nullable_to_non_nullable
+as CoachProposal?,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
+/// Create a copy of PlanGeneration
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$CoachProposalCopyWith<$Res>? get proposal {
+    if (_self.proposal == null) {
+    return null;
+  }
 
+  return $CoachProposalCopyWith<$Res>(_self.proposal!, (value) {
+    return _then(_self.copyWith(proposal: value));
+  });
+}
 }
 
 
@@ -154,10 +170,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  PlanGenerationStatus status, @JsonKey(name: 'conversation_id')  String? conversationId, @JsonKey(name: 'proposal_id')  int? proposalId, @JsonKey(name: 'error_message')  String? errorMessage)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int id,  PlanGenerationStatus status, @JsonKey(name: 'conversation_id')  String? conversationId, @JsonKey(name: 'proposal_id')  int? proposalId,  CoachProposal? proposal, @JsonKey(name: 'error_message')  String? errorMessage)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _PlanGeneration() when $default != null:
-return $default(_that.id,_that.status,_that.conversationId,_that.proposalId,_that.errorMessage);case _:
+return $default(_that.id,_that.status,_that.conversationId,_that.proposalId,_that.proposal,_that.errorMessage);case _:
   return orElse();
 
 }
@@ -175,10 +191,10 @@ return $default(_that.id,_that.status,_that.conversationId,_that.proposalId,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  PlanGenerationStatus status, @JsonKey(name: 'conversation_id')  String? conversationId, @JsonKey(name: 'proposal_id')  int? proposalId, @JsonKey(name: 'error_message')  String? errorMessage)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int id,  PlanGenerationStatus status, @JsonKey(name: 'conversation_id')  String? conversationId, @JsonKey(name: 'proposal_id')  int? proposalId,  CoachProposal? proposal, @JsonKey(name: 'error_message')  String? errorMessage)  $default,) {final _that = this;
 switch (_that) {
 case _PlanGeneration():
-return $default(_that.id,_that.status,_that.conversationId,_that.proposalId,_that.errorMessage);}
+return $default(_that.id,_that.status,_that.conversationId,_that.proposalId,_that.proposal,_that.errorMessage);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -192,10 +208,10 @@ return $default(_that.id,_that.status,_that.conversationId,_that.proposalId,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  PlanGenerationStatus status, @JsonKey(name: 'conversation_id')  String? conversationId, @JsonKey(name: 'proposal_id')  int? proposalId, @JsonKey(name: 'error_message')  String? errorMessage)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int id,  PlanGenerationStatus status, @JsonKey(name: 'conversation_id')  String? conversationId, @JsonKey(name: 'proposal_id')  int? proposalId,  CoachProposal? proposal, @JsonKey(name: 'error_message')  String? errorMessage)?  $default,) {final _that = this;
 switch (_that) {
 case _PlanGeneration() when $default != null:
-return $default(_that.id,_that.status,_that.conversationId,_that.proposalId,_that.errorMessage);case _:
+return $default(_that.id,_that.status,_that.conversationId,_that.proposalId,_that.proposal,_that.errorMessage);case _:
   return null;
 
 }
@@ -207,13 +223,17 @@ return $default(_that.id,_that.status,_that.conversationId,_that.proposalId,_tha
 @JsonSerializable()
 
 class _PlanGeneration implements PlanGeneration {
-  const _PlanGeneration({required this.id, required this.status, @JsonKey(name: 'conversation_id') this.conversationId, @JsonKey(name: 'proposal_id') this.proposalId, @JsonKey(name: 'error_message') this.errorMessage});
+  const _PlanGeneration({required this.id, required this.status, @JsonKey(name: 'conversation_id') this.conversationId, @JsonKey(name: 'proposal_id') this.proposalId, this.proposal, @JsonKey(name: 'error_message') this.errorMessage});
   factory _PlanGeneration.fromJson(Map<String, dynamic> json) => _$PlanGenerationFromJson(json);
 
 @override final  int id;
 @override final  PlanGenerationStatus status;
 @override@JsonKey(name: 'conversation_id') final  String? conversationId;
 @override@JsonKey(name: 'proposal_id') final  int? proposalId;
+/// Full proposal (payload included) so the plan-preview / paywall screen
+/// can render the rich plan teaser without hitting the require.pro-gated
+/// coach endpoints. Null until generation produces a proposal.
+@override final  CoachProposal? proposal;
 @override@JsonKey(name: 'error_message') final  String? errorMessage;
 
 /// Create a copy of PlanGeneration
@@ -229,16 +249,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlanGeneration&&(identical(other.id, id) || other.id == id)&&(identical(other.status, status) || other.status == status)&&(identical(other.conversationId, conversationId) || other.conversationId == conversationId)&&(identical(other.proposalId, proposalId) || other.proposalId == proposalId)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PlanGeneration&&(identical(other.id, id) || other.id == id)&&(identical(other.status, status) || other.status == status)&&(identical(other.conversationId, conversationId) || other.conversationId == conversationId)&&(identical(other.proposalId, proposalId) || other.proposalId == proposalId)&&(identical(other.proposal, proposal) || other.proposal == proposal)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,status,conversationId,proposalId,errorMessage);
+int get hashCode => Object.hash(runtimeType,id,status,conversationId,proposalId,proposal,errorMessage);
 
 @override
 String toString() {
-  return 'PlanGeneration(id: $id, status: $status, conversationId: $conversationId, proposalId: $proposalId, errorMessage: $errorMessage)';
+  return 'PlanGeneration(id: $id, status: $status, conversationId: $conversationId, proposalId: $proposalId, proposal: $proposal, errorMessage: $errorMessage)';
 }
 
 
@@ -249,11 +269,11 @@ abstract mixin class _$PlanGenerationCopyWith<$Res> implements $PlanGenerationCo
   factory _$PlanGenerationCopyWith(_PlanGeneration value, $Res Function(_PlanGeneration) _then) = __$PlanGenerationCopyWithImpl;
 @override @useResult
 $Res call({
- int id, PlanGenerationStatus status,@JsonKey(name: 'conversation_id') String? conversationId,@JsonKey(name: 'proposal_id') int? proposalId,@JsonKey(name: 'error_message') String? errorMessage
+ int id, PlanGenerationStatus status,@JsonKey(name: 'conversation_id') String? conversationId,@JsonKey(name: 'proposal_id') int? proposalId, CoachProposal? proposal,@JsonKey(name: 'error_message') String? errorMessage
 });
 
 
-
+@override $CoachProposalCopyWith<$Res>? get proposal;
 
 }
 /// @nodoc
@@ -266,18 +286,31 @@ class __$PlanGenerationCopyWithImpl<$Res>
 
 /// Create a copy of PlanGeneration
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? status = null,Object? conversationId = freezed,Object? proposalId = freezed,Object? errorMessage = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? status = null,Object? conversationId = freezed,Object? proposalId = freezed,Object? proposal = freezed,Object? errorMessage = freezed,}) {
   return _then(_PlanGeneration(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as int,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as PlanGenerationStatus,conversationId: freezed == conversationId ? _self.conversationId : conversationId // ignore: cast_nullable_to_non_nullable
 as String?,proposalId: freezed == proposalId ? _self.proposalId : proposalId // ignore: cast_nullable_to_non_nullable
-as int?,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
+as int?,proposal: freezed == proposal ? _self.proposal : proposal // ignore: cast_nullable_to_non_nullable
+as CoachProposal?,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
 as String?,
   ));
 }
 
+/// Create a copy of PlanGeneration
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$CoachProposalCopyWith<$Res>? get proposal {
+    if (_self.proposal == null) {
+    return null;
+  }
 
+  return $CoachProposalCopyWith<$Res>(_self.proposal!, (value) {
+    return _then(_self.copyWith(proposal: value));
+  });
+}
 }
 
 // dart format on

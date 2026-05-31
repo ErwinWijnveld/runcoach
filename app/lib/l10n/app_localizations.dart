@@ -4153,6 +4153,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'PRO · TRIAL'**
   String get paywallProTrialBadge;
+
+  /// No description provided for @paywallLockedWeeksTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 more week} other{{count} more weeks}}'**
+  String paywallLockedWeeksTitle(int count);
+
+  /// No description provided for @paywallLockedWeeksSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock RunCoach Pro to see your full plan'**
+  String get paywallLockedWeeksSubtitle;
 }
 
 class _AppLocalizationsDelegate

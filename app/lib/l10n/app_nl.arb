@@ -768,5 +768,7 @@
   "paywallWeekTotalKm": "{km} km totaal",
   "paywallManageSubscription": "Beheer abonnement",
   "paywallProBadge": "PRO",
-  "paywallProTrialBadge": "PRO · PROEF"
+  "paywallProTrialBadge": "PRO · PROEF",
+  "paywallLockedWeeksTitle": "{count, plural, =1{Nog 1 week} other{Nog {count} weken}}",
+  "paywallLockedWeeksSubtitle": "Ontgrendel RunCoach Pro om je volledige plan te zien"
 }

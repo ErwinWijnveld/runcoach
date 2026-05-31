@@ -970,5 +970,12 @@
   },
   "paywallManageSubscription": "Manage subscription",
   "paywallProBadge": "PRO",
-  "paywallProTrialBadge": "PRO · TRIAL"
+  "paywallProTrialBadge": "PRO · TRIAL",
+  "paywallLockedWeeksTitle": "{count, plural, =1{1 more week} other{{count} more weeks}}",
+  "@paywallLockedWeeksTitle": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "paywallLockedWeeksSubtitle": "Unlock RunCoach Pro to see your full plan"
 }

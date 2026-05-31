@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -14,10 +16,36 @@ import 'package:app/features/coach/widgets/plan_revision_content.dart';
 /// When `payload['diff']` is a non-empty list, switches to the
 /// [PlanRevisionContent] view (a "what changed" summary instead of the full
 /// breakdown).
+///
+/// When [previewWeekCount] is non-null, the first N week cards render normally
+/// and the remainder are rendered behind a frosted-blur lock overlay (paywall
+/// teaser). Tapping the locked area fires [onUnlock]. The header, ambition bar,
+/// top stats and volume chart always render in full — they summarise the whole
+/// plan, which is the "overview" we want the runner to see before paying.
 class PlanContent extends StatelessWidget {
   final Map<String, dynamic> payload;
 
-  const PlanContent({super.key, required this.payload});
+  /// Number of fully-visible week cards before the locked/blurred section.
+  /// Null = show everything (coach-chat + goal-sheet behaviour).
+  final int? previewWeekCount;
+
+  /// Called when the runner taps the locked section. Only meaningful when
+  /// [previewWeekCount] is set.
+  final VoidCallback? onUnlock;
+
+  /// Surface colour for the inner cards (week cards, volume chart,
+  /// feasibility bar). Null = the default cream-tinted surface used in the
+  /// coach chat / goal sheet. The onboarding plan-preview passes white so the
+  /// cards pop against the gradient backdrop.
+  final Color? cardColor;
+
+  const PlanContent({
+    super.key,
+    required this.payload,
+    this.previewWeekCount,
+    this.onUnlock,
+    this.cardColor,
+  });
 
   List<Map<String, dynamic>>? get _diffOps {
     final raw = payload['diff'];
@@ -119,7 +147,7 @@ class PlanContent extends StatelessWidget {
           PlanRevisionContent(ops: ops),
         ] else ...[
           if (ambition != null) ...[
-            _FeasibilityZoneBar(ambition: ambition),
+            _FeasibilityZoneBar(ambition: ambition, cardColor: cardColor),
             const SizedBox(height: 20),
           ],
           _TopStats(
@@ -131,6 +159,7 @@ class PlanContent extends StatelessWidget {
           _WeeklyVolumeChart(
             weeks: weeks,
             raceWeekNumber: _raceWeekNumber(weeks),
+            cardColor: cardColor,
           ),
           const SizedBox(height: 24),
           Text(
@@ -143,12 +172,134 @@ class PlanContent extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          for (final w in weeks) ...[
-            _WeekCard(week: w),
-            const SizedBox(height: 14),
-          ],
+          ..._buildWeekCards(weeks),
         ],
       ],
+    );
+  }
+
+  /// Either every week card (default) or, in preview mode, the first
+  /// [previewWeekCount] cards followed by a frosted-blur lock over the rest.
+  List<Widget> _buildWeekCards(List<Map<String, dynamic>> weeks) {
+    final limit = previewWeekCount;
+    if (limit == null || weeks.length <= limit) {
+      return [
+        for (final w in weeks) ...[
+          _WeekCard(week: w, cardColor: cardColor),
+          const SizedBox(height: 14),
+        ],
+      ];
+    }
+
+    final visible = weeks.take(limit).toList();
+    final locked = weeks.skip(limit).toList();
+
+    return [
+      for (final w in visible) ...[
+        _WeekCard(week: w, cardColor: cardColor),
+        const SizedBox(height: 14),
+      ],
+      _LockedWeeks(weeks: locked, onTap: onUnlock, cardColor: cardColor),
+    ];
+  }
+}
+
+/// The remaining week cards rendered for real, then frosted over with a blur +
+/// a lock badge — so the runner can tell there's more plan beneath the glass
+/// without reading the details. Tapping anywhere opens the paywall.
+class _LockedWeeks extends StatelessWidget {
+  final List<Map<String, dynamic>> weeks;
+  final VoidCallback? onTap;
+  final Color? cardColor;
+
+  const _LockedWeeks({required this.weeks, this.onTap, this.cardColor});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          children: [
+            // Real cards underneath — they give the blur something believable
+            // to frost over. Wrapped in an IgnorePointer so taps fall through
+            // to the GestureDetector above.
+            IgnorePointer(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final w in weeks) ...[
+                    _WeekCard(week: w, cardColor: cardColor),
+                    const SizedBox(height: 14),
+                  ],
+                ],
+              ),
+            ),
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 9, sigmaY: 9),
+                child: DecoratedBox(
+                  decoration: const BoxDecoration(
+                    // Cream wash over the frost so text is unreadable but the
+                    // card silhouettes still show through faintly.
+                    color: Color(0x99FAF8F4),
+                  ),
+                  // Top-aligned with generous padding so the lock sits near
+                  // the start of the frosted region (right under the last
+                  // visible week) rather than floating in the vertical middle.
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 48, 16, 28),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: const BoxDecoration(
+                              color: AppColors.secondary,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.lock_rounded,
+                              size: 22,
+                              color: AppColors.neutral,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            l10n.paywallLockedWeeksTitle(weeks.length),
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.ebGaramond(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w500,
+                              fontStyle: FontStyle.italic,
+                              color: AppColors.primaryInk,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            l10n.paywallLockedWeeksSubtitle,
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.publicSans(
+                              fontSize: 13,
+                              color: AppColors.inkMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -266,7 +417,8 @@ class _StatItem extends StatelessWidget {
 
 class _WeekCard extends StatelessWidget {
   final Map<String, dynamic> week;
-  const _WeekCard({required this.week});
+  final Color? cardColor;
+  const _WeekCard({required this.week, this.cardColor});
 
   static String _dayName(BuildContext context, int weekday) {
     final locale = Localizations.localeOf(context).toLanguageTag();
@@ -298,7 +450,7 @@ class _WeekCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
       decoration: BoxDecoration(
-        color: AppColors.neutralHighlight,
+        color: cardColor ?? AppColors.neutralHighlight,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.border),
       ),
@@ -589,7 +741,12 @@ class _DayMetric extends StatelessWidget {
 class _WeeklyVolumeChart extends StatelessWidget {
   final List<Map<String, dynamic>> weeks;
   final int? raceWeekNumber;
-  const _WeeklyVolumeChart({required this.weeks, this.raceWeekNumber});
+  final Color? cardColor;
+  const _WeeklyVolumeChart({
+    required this.weeks,
+    this.raceWeekNumber,
+    this.cardColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -613,7 +770,7 @@ class _WeeklyVolumeChart extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
       decoration: BoxDecoration(
-        color: AppColors.neutralHighlight,
+        color: cardColor ?? AppColors.neutralHighlight,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
       ),
@@ -771,7 +928,8 @@ class _VolumePainter extends CustomPainter {
 /// goal, or non-proposal callers like inactive-goal preview).
 class _FeasibilityZoneBar extends StatelessWidget {
   final Map<String, dynamic> ambition;
-  const _FeasibilityZoneBar({required this.ambition});
+  final Color? cardColor;
+  const _FeasibilityZoneBar({required this.ambition, this.cardColor});
 
   @override
   Widget build(BuildContext context) {
@@ -781,7 +939,12 @@ class _FeasibilityZoneBar extends StatelessWidget {
     final detail = ambition['detail'] as String? ?? '';
 
     final isUnrealistic = zone == 'unrealistic';
-    final bgColor = isUnrealistic ? AppColors.dangerBg : AppColors.lightTan;
+    // The unrealistic warning keeps its danger tint regardless; otherwise use
+    // the caller's card colour (white in the preview) falling back to the
+    // cream tint used elsewhere.
+    final bgColor = isUnrealistic
+        ? AppColors.dangerBg
+        : (cardColor ?? AppColors.lightTan);
     final pctColor = switch (zone) {
       'ok' => AppColors.success,
       'stretch' => AppColors.secondary,

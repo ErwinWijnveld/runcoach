@@ -283,6 +283,7 @@ class OnboardingGeneratePlanTest extends TestCase
             'user_id' => $user->id,
             'type' => ProposalType::CreateSchedule,
             'status' => ProposalStatus::Pending,
+            'payload' => ['goal_name' => 'Test Plan', 'schedule' => ['weeks' => []]],
         ]);
         $row = PlanGeneration::factory()->for($user)->create([
             'status' => PlanGenerationStatus::Completed,
@@ -297,7 +298,13 @@ class OnboardingGeneratePlanTest extends TestCase
             ->assertJsonPath('id', $row->id)
             ->assertJsonPath('status', 'completed')
             ->assertJsonPath('conversation_id', 'cid-abc')
-            ->assertJsonPath('proposal_id', $proposal->id);
+            ->assertJsonPath('proposal_id', $proposal->id)
+            // The full proposal (payload included) is embedded so the
+            // not-yet-pro plan-preview screen can render the rich teaser
+            // without hitting the require.pro-gated coach endpoints.
+            ->assertJsonPath('proposal.id', $proposal->id)
+            ->assertJsonPath('proposal.type', 'create_schedule')
+            ->assertJsonPath('proposal.payload.goal_name', 'Test Plan');
     }
 
     public function test_get_latest_returns_204_when_completed_and_proposal_accepted(): void

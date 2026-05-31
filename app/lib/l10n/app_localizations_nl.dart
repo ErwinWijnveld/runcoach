@@ -2284,4 +2284,19 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get paywallProTrialBadge => 'PRO · PROEF';
+
+  @override
+  String paywallLockedWeeksTitle(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Nog $count weken',
+      one: 'Nog 1 week',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get paywallLockedWeeksSubtitle =>
+      'Ontgrendel RunCoach Pro om je volledige plan te zien';
 }

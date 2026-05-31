@@ -227,11 +227,23 @@ class OnboardingController extends Controller
      */
     public static function serialize(PlanGeneration $row): array
     {
+        // Embed the full proposal (payload included) so the post-generation
+        // plan-preview / paywall screen can render the rich plan teaser
+        // (PlanContent) WITHOUT hitting the coach endpoints — those are behind
+        // the require.pro gate, which the not-yet-subscribed user can't pass.
+        $proposal = $row->proposal;
+
         return [
             'id' => $row->id,
             'status' => $row->status->value,
             'conversation_id' => $row->conversation_id,
             'proposal_id' => $row->proposal_id,
+            'proposal' => $proposal === null ? null : [
+                'id' => $proposal->id,
+                'type' => $proposal->type->value,
+                'payload' => $proposal->payload,
+                'status' => $proposal->status->value,
+            ],
             'error_message' => $row->error_message,
         ];
     }
