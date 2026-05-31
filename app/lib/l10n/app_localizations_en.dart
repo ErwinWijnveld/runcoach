@@ -2291,4 +2291,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get paywallLockedWeeksSubtitle =>
       'Unlock RunCoach Pro to see your full plan';
+
+  @override
+  String get paywallLapsedTitle => 'Your RunCoach Pro has ended';
+
+  @override
+  String get paywallLapsedSubtitle =>
+      'Resubscribe to use your AI coach, sync your runs, and keep your training plan up to date.';
 }

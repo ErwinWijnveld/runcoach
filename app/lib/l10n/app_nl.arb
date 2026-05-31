@@ -770,5 +770,7 @@
   "paywallProBadge": "PRO",
   "paywallProTrialBadge": "PRO · PROEF",
   "paywallLockedWeeksTitle": "{count, plural, =1{Nog 1 week} other{Nog {count} weken}}",
-  "paywallLockedWeeksSubtitle": "Ontgrendel RunCoach Pro om je volledige plan te zien"
+  "paywallLockedWeeksSubtitle": "Ontgrendel RunCoach Pro om je volledige plan te zien",
+  "paywallLapsedTitle": "Je RunCoach Pro is verlopen",
+  "paywallLapsedSubtitle": "Sluit opnieuw een abonnement af om je AI-coach te gebruiken, je runs te synchroniseren en je trainingsschema actueel te houden."
 }

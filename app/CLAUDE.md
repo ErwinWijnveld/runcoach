@@ -515,6 +515,16 @@ Side-effects of `setOverride`: writes `currentAppLocaleTag` (top-level mutable i
 
 Spec: `../docs/superpowers/specs/2026-05-12-i18n-multilingual-research.md`. Phase 1+2 plan: `../docs/superpowers/plans/2026-05-12-i18n-foundation.md`. Phase 4 (agent localization via `LanguageDirective`) is documented in `../api/CLAUDE.md` → "i18n (locale resolution + translation files)".
 
+### 18. Lapsed-user hard paywall
+
+Onboarded runners with no active Pro entitlement (a lapsed subscriber, an admin-revoked user, or a **pre-subscriptions grandfathered** user who finished onboarding before subscriptions shipped) are hard-gated to `/paywall` on every cold start. Without this they'd reach the full app shell but coach chat 402s and AI run-analysis silently no-ops (the job-level `isPro()` guard) — a broken half-state.
+
+- **Router gate** (`app_router.dart` redirect): `isLoggedIn && hasCompletedOnboarding == true && pending == null && entitlement.resolved && !entitlement.isPro && location != '/paywall' → '/paywall'`. Sits AFTER the pending-plan-generation block and the onboarding-incomplete block, so fresh-onboarding flows take priority.
+- **No flash for payers**: gated on `ProEntitlementState.resolved` (hand-written field on the state class — NOT freezed). Set true only once `/subscriptions/sync` (or the client fallback) returns a definitive answer. The entitlement sync is async on cold start, so without `resolved` a paying user would briefly bounce to `/paywall` before the sync confirms Pro. With it, a Pro user is never flashed; a non-Pro user sees the dashboard shell for ~the sync latency, then lands on the paywall. If the sync fails (offline), `resolved` stays false → the user is NOT locked out by a transient network blip.
+- **Screen** (`features/subscriptions/screens/paywall_screen.dart`): a *bare* paywall — unlike `PlanPreviewScreen` there's no freshly-generated plan to tease. Value-prop copy (`paywallLapsedTitle` / `paywallLapsedSubtitle` l10n keys) + the RevenueCat sheet auto-presented on mount + a fallback "Unlock" CTA that re-opens it (matters while RevenueCat Error 23 / Paid-Apps-Agreement processing blocks the sheet). On purchase/restore → `syncFromServer(fromPurchase: true)` → `/dashboard`. `PopScope(canPop: false)` — hard, no skip. Debug builds show a "Simulate payment" button (dev-activate → `/dashboard`).
+- **Run ingestion stays free**: the gate is on AI endpoints (`require.pro`), NOT `POST /wearable/activities`, so a locked user's history keeps building — they get full value the moment they resubscribe.
+- **Admin unblock**: grant Pro via `/admin/users` (see `../CLAUDE.md`); next cold-start sync flips `resolved + isPro` and the gate releases to `/dashboard`.
+
 ## Running and building
 
 ```bash

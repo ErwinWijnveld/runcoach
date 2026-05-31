@@ -977,5 +977,13 @@
       "count": { "type": "int" }
     }
   },
-  "paywallLockedWeeksSubtitle": "Unlock RunCoach Pro to see your full plan"
+  "paywallLockedWeeksSubtitle": "Unlock RunCoach Pro to see your full plan",
+  "paywallLapsedTitle": "Your RunCoach Pro has ended",
+  "@paywallLapsedTitle": {
+    "description": "Title on the hard paywall shown to onboarded users whose Pro subscription has lapsed or was never started."
+  },
+  "paywallLapsedSubtitle": "Resubscribe to use your AI coach, sync your runs, and keep your training plan up to date.",
+  "@paywallLapsedSubtitle": {
+    "description": "Subtitle on the lapsed-user hard paywall."
+  }
 }

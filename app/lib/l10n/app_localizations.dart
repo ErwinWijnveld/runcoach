@@ -4165,6 +4165,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unlock RunCoach Pro to see your full plan'**
   String get paywallLockedWeeksSubtitle;
+
+  /// Title on the hard paywall shown to onboarded users whose Pro subscription has lapsed or was never started.
+  ///
+  /// In en, this message translates to:
+  /// **'Your RunCoach Pro has ended'**
+  String get paywallLapsedTitle;
+
+  /// Subtitle on the lapsed-user hard paywall.
+  ///
+  /// In en, this message translates to:
+  /// **'Resubscribe to use your AI coach, sync your runs, and keep your training plan up to date.'**
+  String get paywallLapsedSubtitle;
 }
 
 class _AppLocalizationsDelegate
