@@ -143,6 +143,28 @@ class CoachChatTest extends TestCase
         $this->assertEquals('stats_card',
             $response->json('data.messages.0.tool_results.0.result.display')
         );
+        // Plain coach chats carry no context — the Flutter chat screen reads
+        // this to decide whether to hide the onboarding priming message.
+        $this->assertNull($response->json('data.context'));
+    }
+
+    public function test_show_exposes_onboarding_context(): void
+    {
+        [$user, $headers] = $this->authUser();
+
+        $convoId = (string) Str::uuid();
+        DB::table('agent_conversations')->insert([
+            'id' => $convoId,
+            'user_id' => $user->id,
+            'title' => 'Onboarding',
+            'context' => 'onboarding',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->getJson("/api/v1/coach/conversations/{$convoId}", $headers)
+            ->assertOk()
+            ->assertJsonPath('data.context', 'onboarding');
     }
 
     public function test_reject_proposal(): void
