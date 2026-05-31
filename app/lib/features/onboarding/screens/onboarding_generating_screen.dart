@@ -14,6 +14,7 @@ import 'package:app/features/onboarding/data/onboarding_api.dart';
 import 'package:app/features/onboarding/models/onboarding_form_data.dart';
 import 'package:app/features/onboarding/models/plan_generation.dart';
 import 'package:app/features/onboarding/providers/onboarding_form_provider.dart';
+import 'package:app/features/subscriptions/providers/pro_entitlement_provider.dart';
 
 const _pollInterval = Duration(seconds: 2);
 
@@ -214,7 +215,16 @@ class _OnboardingGeneratingScreenState
     ref.read(authProvider.notifier).patchPendingPlanGeneration(row);
 
     if (!mounted) return;
-    context.go('/coach/chat/${row.conversationId}');
+
+    // Hard paywall: non-pro users land on the plan preview first. Pro users
+    // (existing TestFlight users via comp + future re-onboardings) skip
+    // straight to the coach. The router's redirect mirrors this rule for
+    // cold-start resume.
+    final isPro = ref.read(proEntitlementProvider).isPro;
+    final target = isPro
+        ? '/coach/chat/${row.conversationId}'
+        : '/onboarding/plan-preview?conversationId=${row.conversationId}';
+    context.go(target);
   }
 
   @override

@@ -15,13 +15,11 @@ class UserNotificationFactory extends Factory
     {
         return [
             'user_id' => User::factory(),
-            'type' => UserNotification::TYPE_PACE_ADJUSTMENT,
-            'title' => 'Heads-up on your pace',
-            'body' => 'Your heart rate was outside the target zone last run.',
+            'type' => UserNotification::TYPE_PLAN_EVALUATION,
+            'title' => 'Your 2-week check-in is ready',
+            'body' => "We've suggested a small adjustment based on your last 2 weeks.",
             'action_data' => [
-                'source_training_result_id' => null,
-                'training_type' => 'easy',
-                'pace_factor' => 1.05,
+                'evaluation_id' => null,
             ],
             'status' => UserNotification::STATUS_PENDING,
             'acted_at' => null,

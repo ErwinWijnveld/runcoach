@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
@@ -7,6 +8,8 @@ import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/heart_rate_zones_sheet.dart';
 import 'package:app/core/widgets/language_picker_sheet.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
+import 'package:app/features/subscriptions/providers/pro_entitlement_provider.dart';
+import 'package:app/features/subscriptions/services/purchases_service.dart';
 import 'package:app/router/app_router.dart';
 
 Future<void> showProfileMenuSheet(BuildContext context) {
@@ -32,6 +35,7 @@ class ProfileMenuSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider).value;
+    final entitlement = ref.watch(proEntitlementProvider);
 
     return Container(
       decoration: const BoxDecoration(
@@ -56,10 +60,21 @@ class ProfileMenuSheet extends ConsumerWidget {
             _UserHeader(
               name: user?.name ?? context.l10n.commonRunnerFallback,
               email: user?.email ?? '',
+              isPro: entitlement.isPro,
+              productId: entitlement.productId,
             ),
             const SizedBox(height: 24),
             _SettingsSection(
               children: [
+                if (entitlement.isPro)
+                  _SettingRow(
+                    icon: CupertinoIcons.creditcard,
+                    label: context.l10n.paywallManageSubscription,
+                    onTap: () async {
+                      final purchases = ref.read(purchasesServiceProvider);
+                      await purchases.openManageSubscriptions();
+                    },
+                  ),
                 _SettingRow(
                   icon: CupertinoIcons.person_2,
                   label: context.l10n.profileMenuConnections,
@@ -85,6 +100,20 @@ class ProfileMenuSheet extends ConsumerWidget {
                 ),
                 _SettingRow(icon: CupertinoIcons.lock, label: context.l10n.profileMenuPrivacy),
                 _SettingRow(icon: CupertinoIcons.info_circle, label: context.l10n.profileMenuAbout),
+                // Debug-only: reset entitlement to free so the paywall shows
+                // again on the next onboarding. Hidden in release/TestFlight
+                // builds; the endpoint 404s outside local env.
+                if (kDebugMode)
+                  _SettingRow(
+                    icon: CupertinoIcons.arrow_counterclockwise,
+                    label: '🛠 Reset subscription (dev)',
+                    onTap: () async {
+                      await ref
+                          .read(proEntitlementProvider.notifier)
+                          .devDeactivate();
+                      if (context.mounted) Navigator.of(context).pop();
+                    },
+                  ),
               ],
             ),
             const SizedBox(height: 24),
@@ -102,10 +131,14 @@ class ProfileMenuSheet extends ConsumerWidget {
 class _UserHeader extends StatelessWidget {
   final String name;
   final String email;
+  final bool isPro;
+  final String? productId;
 
   const _UserHeader({
     required this.name,
     required this.email,
+    this.isPro = false,
+    this.productId,
   });
 
   @override
@@ -123,13 +156,22 @@ class _UserHeader extends StatelessWidget {
           child: const _FallbackAvatar(size: 32),
         ),
         const SizedBox(height: 12),
-        Text(
-          name,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: AppColors.primaryInk,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              name,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primaryInk,
+              ),
+            ),
+            if (isPro) ...[
+              const SizedBox(width: 8),
+              _ProBadge(productId: productId),
+            ],
+          ],
         ),
         const SizedBox(height: 2),
         Text(
@@ -140,6 +182,36 @@ class _UserHeader extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ProBadge extends StatelessWidget {
+  final String? productId;
+
+  const _ProBadge({this.productId});
+
+  @override
+  Widget build(BuildContext context) {
+    final isTrial = (productId ?? '').toLowerCase().contains('trial');
+    final label = isTrial
+        ? context.l10n.paywallProTrialBadge
+        : context.l10n.paywallProBadge;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.secondary,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.8,
+          color: AppColors.neutral,
+        ),
+      ),
     );
   }
 }

@@ -111,11 +111,39 @@ class BuildPlanRunnerLevelTest extends TestCase
     }
 
     /**
-     * Critical invariant: runner_level shapes agent phrasing only.
-     * Two plans built with the same form + same snapshot but different
-     * runner_level must produce identical plan content.
+     * Invariant within a tone bucket: the three Expert-tier UI cases
+     * (Advanced / SubElite / Elite) collapse to the same `RunnerToneBucket::Expert`
+     * and therefore must produce identical plan content.
      */
-    public function test_plan_content_is_identical_across_runner_levels(): void
+    public function test_plan_content_is_identical_within_expert_tier(): void
+    {
+        $userAdvanced = $this->user();
+        $resultAdvanced = json_decode(
+            $this->makeTool($userAdvanced)->handle(new Request($this->args('advanced'))),
+            true,
+        );
+
+        $userElite = $this->user();
+        $resultElite = json_decode(
+            $this->makeTool($userElite)->handle(new Request($this->args('elite'))),
+            true,
+        );
+
+        $advancedProposal = CoachProposal::findOrFail($resultAdvanced['proposal_id']);
+        $eliteProposal = CoachProposal::findOrFail($resultElite['proposal_id']);
+
+        $this->assertEquals(
+            $this->planFingerprint($advancedProposal->payload),
+            $this->planFingerprint($eliteProposal->payload),
+            'Advanced/SubElite/Elite all map to RunnerToneBucket::Expert — plan content must match.',
+        );
+    }
+
+    /**
+     * Novice and Standard tone buckets share the same interval progression
+     * (5×400 / 5×800 / 6×800), so beginner + intermediate must match.
+     */
+    public function test_plan_content_is_identical_within_non_expert_tiers(): void
     {
         $userBeginner = $this->user();
         $resultBeginner = json_decode(
@@ -123,19 +151,50 @@ class BuildPlanRunnerLevelTest extends TestCase
             true,
         );
 
-        $userExpert = $this->user();
-        $resultExpert = json_decode(
-            $this->makeTool($userExpert)->handle(new Request($this->args('elite'))),
+        $userIntermediate = $this->user();
+        $resultIntermediate = json_decode(
+            $this->makeTool($userIntermediate)->handle(new Request($this->args('intermediate'))),
             true,
         );
 
         $beginnerProposal = CoachProposal::findOrFail($resultBeginner['proposal_id']);
-        $expertProposal = CoachProposal::findOrFail($resultExpert['proposal_id']);
+        $intermediateProposal = CoachProposal::findOrFail($resultIntermediate['proposal_id']);
 
         $this->assertEquals(
             $this->planFingerprint($beginnerProposal->payload),
-            $this->planFingerprint($expertProposal->payload),
-            'Plan content must NOT depend on runner_level — it is a tone signal only.',
+            $this->planFingerprint($intermediateProposal->payload),
+            'Beginner + Intermediate share the same Novice/Standard interval progression.',
+        );
+    }
+
+    /**
+     * Cross-bucket: a beginner and an elite runner should NOT receive the
+     * same interval shape. Expert tier starts at 800m reps and scales to
+     * 1200m; Novice/Standard stays on 400m → 800m. The fingerprint surface
+     * picks this up via `target_km` per interval day (the estimator's km
+     * contribution scales with rep distance × count).
+     */
+    public function test_plan_content_differs_between_novice_and_expert(): void
+    {
+        $userBeginner = $this->user();
+        $resultBeginner = json_decode(
+            $this->makeTool($userBeginner)->handle(new Request($this->args('beginner'))),
+            true,
+        );
+
+        $userElite = $this->user();
+        $resultElite = json_decode(
+            $this->makeTool($userElite)->handle(new Request($this->args('elite'))),
+            true,
+        );
+
+        $beginnerProposal = CoachProposal::findOrFail($resultBeginner['proposal_id']);
+        $eliteProposal = CoachProposal::findOrFail($resultElite['proposal_id']);
+
+        $this->assertNotEquals(
+            $this->planFingerprint($beginnerProposal->payload),
+            $this->planFingerprint($eliteProposal->payload),
+            'Expert tier must use a longer-rep interval progression than Novice/Standard.',
         );
     }
 }

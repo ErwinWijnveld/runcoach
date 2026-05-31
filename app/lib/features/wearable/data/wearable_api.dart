@@ -6,6 +6,17 @@ import 'package:app/features/wearable/services/health_kit_service.dart';
 
 part 'wearable_api.g.dart';
 
+/// Batch size for ROUTE-FREE `/wearable/activities` posts (onboarding metric
+/// sync). Each activity is ~500 bytes, so we can use the backend's max of 200
+/// per request — a thousand runs is just five round-trips.
+const int kWearableIngestChunkSize = 200;
+
+/// Batch size for ROUTE-CARRYING posts (foreground sync + the shareable-run
+/// route backfill). Each activity can be tens of KB once the GPS polyline is
+/// attached, so we keep batches small to stay under PHP's `post_max_size`
+/// (8 MB default) and avoid 413 Content Too Large.
+const int kWearableRouteIngestChunkSize = 25;
+
 @RestApi()
 abstract class WearableApi {
   factory WearableApi(Dio dio) = _WearableApi;
@@ -18,6 +29,21 @@ abstract class WearableApi {
 
   @GET('/wearable/activities/{id}/analysis')
   Future<dynamic> analysisStatus(@Path('id') int id);
+
+  /// Returns the GPS polyline for a single wearable activity. Used by
+  /// the shareable run-card flow. Returns an empty `points` array for
+  /// treadmill / no-GPS activities rather than 404'ing.
+  @GET('/wearable/activities/{id}/route')
+  Future<dynamic> route(@Path('id') int id);
+
+  /// Returns the most recent AI-analyzed run worth celebrating with the
+  /// shareable run-card popup. `sinceActivityId` is the watermark of the
+  /// last activity we already showed — null/omitted = no watermark. The
+  /// response data is `null` when nothing qualifies.
+  @GET('/share/celebratable-run')
+  Future<dynamic> getCelebratableRun(
+    @Query('since_activity_id') int? sinceActivityId,
+  );
 
   @POST('/wearable/personal-records')
   Future<dynamic> ingestPersonalRecords(@Body() Map<String, dynamic> body);

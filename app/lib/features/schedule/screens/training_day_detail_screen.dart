@@ -23,6 +23,8 @@ import 'package:app/features/schedule/widgets/training_day_action_buttons.dart';
 import 'package:app/features/schedule/widgets/training_day_hero_card.dart';
 import 'package:app/features/schedule/widgets/training_day_stat_tiles.dart';
 import 'package:app/features/schedule/widgets/training_day_status.dart';
+import 'package:app/features/schedule/models/training_result.dart';
+import 'package:app/features/share/widgets/run_celebration_sheet.dart';
 import 'package:app/features/schedule/widgets/training_intervals_table.dart';
 
 class TrainingDayDetailScreen extends ConsumerWidget {
@@ -99,6 +101,14 @@ class _Loaded extends StatelessWidget {
                         day.result != null) ...[
                       const SizedBox(height: 16),
                       _CoachAnalysisSection(dayId: day.id, day: day),
+                      if (day.result!.aiFeedback != null &&
+                          day.result!.aiFeedback!.trim().isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: _ShareThisRunButton(result: day.result!),
+                        ),
+                      ],
                     ] else
                       ..._buildDetailSection(context, day, status),
                     if (day.intervals != null && day.intervals!.isNotEmpty) ...[
@@ -287,7 +297,7 @@ class _Loaded extends StatelessWidget {
 
     // Pre-check: extract the would-be steps so we can surface a friendly
     // error before showing the spinner / hitting the native bridge.
-    final intervalPlan = hasIntervals ? _buildIntervalPlan(day) : null;
+    final intervalPlan = hasIntervals ? buildIntervalPlan(day) : null;
     if (intervalPlan != null && intervalPlan.steps.isEmpty) {
       await _showResultDialog(context,
           title: context.l10n.schedWatchNothingToSendTitle,
@@ -325,10 +335,6 @@ class _Loaded extends StatelessWidget {
           l10n.schedWatchSentTitle,
           result.message ?? l10n.schedWatchSentBody,
         ),
-      WorkoutScheduleStatus.duplicate => (
-          l10n.schedWatchDuplicateTitle,
-          result.message ?? l10n.schedWatchDuplicateBody,
-        ),
       WorkoutScheduleStatus.denied => (
           l10n.schedWatchPermissionTitle,
           result.message ?? l10n.schedWatchPermissionBody,
@@ -344,86 +350,6 @@ class _Loaded extends StatelessWidget {
     };
 
     await _showResultDialog(context, title: title, body: body);
-  }
-
-  /// Build the WorkoutKit payload from a TrainingDay's intervals list. Old
-  /// rows can still contain distance-based recoveries / cooldowns — we
-  /// normalize them here so the watch always gets the canonical shape:
-  ///   - warmup hoisted to its own slot, time-based, capped at 120s
-  ///   - work + recovery flow into the IntervalBlock as steps
-  ///   - cooldown hoisted to its own slot, time-based, clamped to [60s, 600s];
-  ///     synthesized at 300s if the segment list lacks one (defensive)
-  ///
-  /// Pure helper — does NOT call the native bridge. The screen invokes the
-  /// service with the returned [_IntervalPlan]. This split lets us pre-check
-  /// `steps.isEmpty` and show a friendly error before the spinner appears.
-  _IntervalPlan _buildIntervalPlan(TrainingDay day) {
-    int? warmupSeconds;
-    int? cooldownSeconds;
-    final steps = <WorkoutIntervalStep>[];
-
-    for (final segment in day.intervals!) {
-      switch (segment.kind) {
-        case 'warmup':
-          // Take only the first warmup encountered; rest are ignored.
-          if (warmupSeconds != null) break;
-          warmupSeconds = (segment.durationSeconds ?? 60).clamp(15, 120);
-          break;
-        case 'recovery':
-          int? duration = segment.durationSeconds;
-          if ((duration == null || duration <= 0) &&
-              segment.distanceM != null &&
-              segment.distanceM! > 0) {
-            // Fall back: convert distance to time using a 6:00/km recovery
-            // pace (360 sec/km). Conservative — better too long than too short.
-            duration = ((segment.distanceM! / 1000) * 360).round();
-          }
-          duration ??= 90;
-          steps.add(WorkoutIntervalStep(
-            kind: 'recovery',
-            durationSeconds: duration.clamp(15, 600),
-          ));
-          break;
-        case 'cooldown':
-          int? duration = segment.durationSeconds;
-          if ((duration == null || duration <= 0) &&
-              segment.distanceM != null &&
-              segment.distanceM! > 0) {
-            duration = ((segment.distanceM! / 1000) * 360).round();
-          }
-          duration ??= 300;
-          cooldownSeconds = duration.clamp(60, 600);
-          break;
-        case 'work':
-        default:
-          // Default branch handles unexpected `kind` values defensively as
-          // work segments rather than dropping them silently.
-          if (segment.distanceM != null && segment.distanceM! > 0) {
-            steps.add(WorkoutIntervalStep(
-              kind: 'work',
-              distanceM: segment.distanceM,
-            ));
-          } else if (segment.durationSeconds != null &&
-              segment.durationSeconds! > 0) {
-            steps.add(WorkoutIntervalStep(
-              kind: 'work',
-              durationSeconds: segment.durationSeconds,
-            ));
-          }
-          break;
-      }
-    }
-
-    // Cooldown is mandatory in our schema. If the day's payload somehow
-    // arrived without one, synthesize the default so the watch session
-    // still ends with one.
-    cooldownSeconds ??= 300;
-
-    return _IntervalPlan(
-      warmupSeconds: warmupSeconds,
-      cooldownSeconds: cooldownSeconds,
-      steps: steps,
-    );
   }
 
   Future<void> _showResultDialog(
@@ -445,21 +371,6 @@ class _Loaded extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Pure value object: the normalized payload ready to send to the native
-/// WorkoutKit bridge. Built by `_buildIntervalPlan` so the screen can
-/// pre-check shape (e.g. empty steps) before calling the bridge.
-class _IntervalPlan {
-  final int? warmupSeconds;
-  final int? cooldownSeconds;
-  final List<WorkoutIntervalStep> steps;
-
-  const _IntervalPlan({
-    required this.warmupSeconds,
-    required this.cooldownSeconds,
-    required this.steps,
-  });
 }
 
 class _SendingDialog extends StatelessWidget {
@@ -610,6 +521,48 @@ class _CoachAnalysisSection extends ConsumerWidget {
       complianceScore10: result.complianceScore,
       aiFeedback: text,
       onOpen: () => context.push('/schedule/day/$dayId/result'),
+    );
+  }
+}
+
+/// Inline "Share this run" CTA shown below the Coach Analysis card for
+/// completed days that have AI feedback. Lets the runner re-open the
+/// share-card sheet on demand (the boot popup is one-shot per run).
+class _ShareThisRunButton extends StatelessWidget {
+  final TrainingResult result;
+  const _ShareThisRunButton({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: CupertinoButton(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        color: AppColors.lightTan,
+        borderRadius: BorderRadius.circular(14),
+        onPressed: () => RunCelebrationSheet.show(context, result: result),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              CupertinoIcons.share,
+              size: 16,
+              color: AppColors.primaryInk,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              context.l10n.runShareInlineCta.toUpperCase(),
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primaryInk,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

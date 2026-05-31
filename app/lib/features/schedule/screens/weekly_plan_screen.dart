@@ -16,20 +16,33 @@ import 'package:app/router/app_router.dart'
     show floatingPromptBarBottomOffset, kBottomStackedReservedHeight;
 import 'package:app/features/dashboard/providers/dashboard_provider.dart';
 import 'package:app/features/schedule/data/schedule_coach_suggestions.dart';
+import 'package:app/features/schedule/models/plan_evaluation.dart';
 import 'package:app/features/schedule/models/training_day.dart';
 import 'package:app/features/schedule/models/training_day_pace_x.dart';
 import 'package:app/features/schedule/models/training_week.dart';
+import 'package:app/features/schedule/providers/plan_evaluations_provider.dart';
+import 'package:app/features/schedule/widgets/evaluation_card.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
+import 'package:app/features/schedule/widgets/schedule_week_chat_sheet.dart';
 import 'package:app/features/schedule/widgets/training_day_status.dart';
 
 const _goldAccent = Color(0xFF785600);
 const _labelMuted = Color(0xFF4F4535);
 
-class WeeklyPlanScreen extends ConsumerWidget {
+class WeeklyPlanScreen extends ConsumerStatefulWidget {
   const WeeklyPlanScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<WeeklyPlanScreen> createState() => _WeeklyPlanScreenState();
+}
+
+class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
+  // The week the user is looking at in the slider. Lifted to the parent
+  // so the floating prompt bar can pass it into ScheduleWeekChatSheet.
+  TrainingWeek? _visibleWeek;
+
+  @override
+  Widget build(BuildContext context) {
     final dashboardAsync = ref.watch(dashboardProvider);
 
     return GradientScaffold(
@@ -59,12 +72,20 @@ class WeeklyPlanScreen extends ConsumerWidget {
                               child: Text(context.l10n.schedNoTrainingWeek),
                             );
                           }
+                          final initialIdx = _initialWeekIndex(weeks);
+                          // First build only — keep the user's later
+                          // swipes authoritative via onPageChanged.
+                          _visibleWeek ??= weeks[initialIdx];
                           return IntroFx(
                             child: _WeekPages(
                               weeks: weeks,
-                              initialIndex: _initialWeekIndex(weeks),
+                              initialIndex: initialIdx,
                               onTapDay: (id) => context.go('/schedule/day/$id'),
-                              onTapCoach: () => startNewCoachChat(context, ref),
+                              onTapCoach: () => _openWeekChat(weeks),
+                              onWeekChanged: (i) {
+                                if (i < 0 || i >= weeks.length) return;
+                                setState(() => _visibleWeek = weeks[i]);
+                              },
                             ),
                           );
                         },
@@ -84,7 +105,14 @@ class WeeklyPlanScreen extends ConsumerWidget {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
                 child: CoachPromptBar.navigateAnimated(
-                  onTap: () => startNewCoachChat(context, ref),
+                  onTap: () {
+                    final week = _visibleWeek;
+                    if (week != null) {
+                      ScheduleWeekChatSheet.show(context, week);
+                    } else {
+                      startNewCoachChat(context, ref);
+                    }
+                  },
                   animatedSuggestions: scheduleCoachSuggestions(context.l10n),
                 ),
               ),
@@ -93,6 +121,17 @@ class WeeklyPlanScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  void _openWeekChat(List<TrainingWeek> weeks) {
+    final week = _visibleWeek;
+    if (week != null) {
+      ScheduleWeekChatSheet.show(context, week);
+    } else if (weeks.isNotEmpty) {
+      ScheduleWeekChatSheet.show(context, weeks[_initialWeekIndex(weeks)]);
+    } else {
+      startNewCoachChat(context, ref);
+    }
   }
 }
 
@@ -180,12 +219,17 @@ class _WeekPages extends StatefulWidget {
   final int initialIndex;
   final ValueChanged<int> onTapDay;
   final VoidCallback onTapCoach;
+  // Fires whenever the visible week changes (swipe or chevron). Used by
+  // the parent to keep its "current view" state in sync so the floating
+  // prompt bar opens the chat sheet against the right week.
+  final ValueChanged<int>? onWeekChanged;
 
   const _WeekPages({
     required this.weeks,
     required this.initialIndex,
     required this.onTapDay,
     required this.onTapCoach,
+    this.onWeekChanged,
   });
 
   @override
@@ -227,7 +271,10 @@ class _WeekPagesState extends State<_WeekPages> {
       controller: _controller,
       itemCount: widget.weeks.length,
       physics: const BouncingScrollPhysics(),
-      onPageChanged: (i) => setState(() => _currentPage = i),
+      onPageChanged: (i) {
+        setState(() => _currentPage = i);
+        widget.onWeekChanged?.call(i);
+      },
       itemBuilder: (context, i) {
         return _WeekBody(
           week: widget.weeks[i],
@@ -251,7 +298,7 @@ class _WeekPagesState extends State<_WeekPages> {
 // Week body
 // ---------------------------------------------------------------------------
 
-class _WeekBody extends StatelessWidget {
+class _WeekBody extends ConsumerWidget {
   final TrainingWeek week;
   final _Highlight highlight;
   final bool canGoPrev;
@@ -275,9 +322,17 @@ class _WeekBody extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final days = <TrainingDay>[...?week.trainingDays]..sort(
       (a, b) => a.order.compareTo(b.order),
+    );
+
+    final evaluationsAsync = ref.watch(planEvaluationsProvider);
+    final weekEvaluations = evaluationsAsync.maybeWhen(
+      data: (list) => list
+          .where((e) => e.trainingWeekId == week.id)
+          .toList(growable: false),
+      orElse: () => const <PlanEvaluation>[],
     );
 
     return SingleChildScrollView(
@@ -312,6 +367,13 @@ class _WeekBody extends StatelessWidget {
                     onTap: () => onTapDay(days[i].id),
                   ),
                   if (i < days.length - 1) const SizedBox(height: 8),
+                ],
+                for (final eval in weekEvaluations) ...[
+                  const SizedBox(height: 8),
+                  EvaluationCard(
+                    evaluation: eval,
+                    weekNumber: week.weekNumber,
+                  ),
                 ],
               ],
             ),

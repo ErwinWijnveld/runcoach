@@ -236,6 +236,85 @@ class WearableActivityController extends Controller
     }
 
     /**
+     * Return the most recent wearable activity worth celebrating with
+     * the shareable run-card pop-up. Criteria:
+     *  - matched to a training day (has a TrainingResult)
+     *  - AI feedback finished (`ai_feedback` non-null)
+     *  - activity started within the last 7 days
+     *  - newer than `since_activity_id` (default 0)
+     *
+     * Returns `{data: null}` when nothing qualifies. The TrainingResult
+     * is returned with its `wearable_activity` eager-loaded so the
+     * client can render the share card from a single response.
+     */
+    public function celebratableRun(Request $request): JsonResponse
+    {
+        $request->validate([
+            'since_activity_id' => 'sometimes|integer|min:0',
+        ]);
+        $sinceId = (int) $request->input('since_activity_id', 0);
+
+        $activity = $request->user()->wearableActivities()
+            ->whereIn('type', WearableActivity::RUN_TYPES)
+            ->where('start_date', '>=', now()->subDays(7))
+            ->where('id', '>', $sinceId)
+            ->whereHas('trainingResults', function ($q) {
+                $q->whereNotNull('ai_feedback');
+            })
+            ->with(['trainingResults' => function ($q) {
+                $q->whereNotNull('ai_feedback')->latest('id')->limit(1);
+            }])
+            ->orderByDesc('start_date')
+            ->first();
+
+        if ($activity === null) {
+            return response()->json(['data' => null]);
+        }
+
+        $result = $activity->trainingResults->first();
+        if ($result === null) {
+            return response()->json(['data' => null]);
+        }
+
+        // Attach the activity into the result payload so the client can
+        // render the share card without a second roundtrip. We re-use
+        // the relation key the schedule endpoints use so the existing
+        // `TrainingResult.fromJson` model handles it.
+        $result->setRelation('wearableActivity', $activity);
+
+        return response()->json(['data' => $result]);
+    }
+
+    /**
+     * Return the GPS polyline for a single wearable activity. Lives at
+     * its own endpoint because `WearableActivity` hides `raw_data` from
+     * the wire by default (the full Apple Health blob is ~10KB junk);
+     * routes are useful payload but only needed for the shareable
+     * run-card flow, so they're opt-in here.
+     *
+     * Returns `{data: {points: []}}` when the activity has no route
+     * data (treadmill / indoor / HealthKit denied during sync), never
+     * a 404 for missing route — same gracious fallback the share-card
+     * flow already handles.
+     */
+    public function route(Request $request, int $activity): JsonResponse
+    {
+        $row = $request->user()->wearableActivities()->find($activity);
+        if (! $row) {
+            return response()->json(['message' => 'Activity not found.'], 404);
+        }
+
+        $points = $row->raw_data['route'] ?? [];
+        if (! is_array($points)) {
+            $points = [];
+        }
+
+        return response()->json([
+            'data' => ['points' => array_values($points)],
+        ]);
+    }
+
+    /**
      * List the user's wearable activities, newest-first. Used by the schedule
      * day picker and (later) settings/debug screens.
      */

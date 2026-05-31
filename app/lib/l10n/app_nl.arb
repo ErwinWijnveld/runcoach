@@ -6,6 +6,17 @@
   "languageEnglish": "English",
   "languageDutch": "Nederlands",
 
+  "runShareSheetCta": "Deel deze run",
+  "runShareSheetSubtitle": "Tik om op te slaan of te delen",
+  "runShareInlineCta": "Deel deze run",
+  "runShareBarrierLabel": "Run samenvatting",
+  "runShareKpiDistance": "AFSTAND",
+  "runShareKpiTime": "TIJD",
+  "runShareKpiAvgPace": "GEM. TEMPO",
+  "runShareKpiAvgHr": "GEM. BPM",
+  "runShareKpiCompliance": "OP SCHEMA",
+  "runShareIndoorPill": "BINNEN GELOPEN",
+
   "commonContinue": "Doorgaan",
   "commonTryAgain": "Probeer opnieuw",
   "commonRetry": "Opnieuw proberen",
@@ -41,6 +52,7 @@
   "onbConnectHealthStageRequestingSub": "Tik op \"Sta toe\" in de systeemmelding.",
   "onbConnectHealthStageSyncing": "Je runs ophalen…",
   "onbConnectHealthStageSyncingSub": "De laatste 12 maanden uit Apple Health worden gelezen.",
+  "onbConnectHealthStageSyncingProgress": "{done} van {total} runs synchroniseren…",
   "onbConnectHealthStageDone": "{count} runs gesynchroniseerd",
   "onbConnectHealthStageDoneSub": "Je profiel wordt opgebouwd…",
   "onbConnectHealthErrorPermission": "Apple Health is niet bereikbaar. Probeer opnieuw?",
@@ -260,6 +272,24 @@
   "schedEmptyTitle": "Geen actief doel",
   "schedEmptyBody": "Kies een doel (of vraag de coach er een te bouwen) om je schema hier te zien.",
   "schedEmptyCta": "Naar Doelen",
+
+  "scheduleChatBarrierLabel": "Chat over deze week",
+  "scheduleChatViewingWeek": "Bekijkt week {weekNumber} · {dateRange}",
+  "scheduleChatTitle": "Week {weekNumber} ({dateRange})",
+  "scheduleChatEmptyTitle": "Vraag over deze week",
+  "scheduleChatEmptySubtitle": "Alles mag — tempo, intensiteit, swaps, herstel.",
+  "weekChatSuggestionIntervalPace": "Hoe loop ik de intervals op {dayName}?",
+  "weekChatSuggestionIntervalPaceSub": "Bepaal de juiste inspanning per rep.",
+  "weekChatSuggestionLongRunPace": "Hoe loop ik de long run op {dayName}?",
+  "weekChatSuggestionLongRunPaceSub": "Blijf aeroob, eindig sterk.",
+  "weekChatSuggestionDeloadWhy": "Waarom is deze week rustiger?",
+  "weekChatSuggestionDeloadWhySub": "Herstelweken en wat ze opleveren.",
+  "weekChatSuggestionRaceDayPrep": "Wat doe ik de dag voor mijn race?",
+  "weekChatSuggestionRaceDayPrepSub": "Routine, eten en slaap voor de wedstrijd.",
+  "weekChatSuggestionTooHard": "Is deze week te zwaar voor mij?",
+  "weekChatSuggestionTooHardSub": "Krijg een eerlijke check op de belasting.",
+  "weekChatSuggestionSwapInterval": "Kunnen we een interval ruilen voor een long run?",
+  "weekChatSuggestionSwapIntervalSub": "Pas de structuur van deze week aan.",
 
   "schedDayTarget": "DOEL",
   "schedDayActual": "WERKELIJK",
@@ -568,8 +598,36 @@
   "notificationsSheetEmpty": "Je bent volledig bijgewerkt.",
   "notificationsCardDismiss": "VERWIJDEREN",
   "notificationsCardApply": "TOEPASSEN",
-  "notificationsTertiaryEditHrZones": "Bewerk HR-zones",
-  "notificationsTypePaceAdjustment": "TEMPO-AANPASSING",
+  "notificationsCardViewEvaluation": "Bekijk je evaluatie",
+  "notificationsTypePlanEvaluation": "2-WEKEN EVALUATIE",
+
+  "evaluationCardEyebrow": "EVALUATIE",
+  "evaluationCardScheduledFor": "Gepland voor {date}",
+  "@evaluationCardScheduledFor": {
+    "placeholders": {"date": {"type": "String"}}
+  },
+  "evaluationCardWeekTitle": "Week {week} check-in",
+  "@evaluationCardWeekTitle": {
+    "placeholders": {"week": {"type": "int"}}
+  },
+  "evaluationCardStatusPending": "Volgende",
+  "evaluationCardStatusProcessing": "Bezig…",
+  "evaluationCardStatusReady": "Rapport klaar",
+  "evaluationCardStatusNoChange": "Geen aanpassing nodig",
+  "evaluationCardStatusAccepted": "Toegepast",
+  "evaluationCardStatusDismissed": "Genegeerd",
+  "evaluationCardCtaView": "Openen",
+  "evaluationDetailTitle": "2-weken evaluatie",
+  "evaluationDetailReportHeader": "Wat je coach zegt",
+  "evaluationDetailProposalHeader": "Voorgestelde aanpassing",
+  "evaluationDetailApply": "AANPASSING TOEPASSEN",
+  "evaluationDetailDismiss": "VERWIJDEREN",
+  "evaluationDetailClose": "SLUITEN",
+  "evaluationDetailNoReport": "Nog geen rapport beschikbaar.",
+  "evaluationDetailLoadError": "Kon de evaluatie niet laden.\n{error}",
+  "@evaluationDetailLoadError": {
+    "placeholders": {"error": {"type": "String"}}
+  },
 
   "hrZoneNameZ1": "Duurvermogen",
   "hrZoneNameZ2": "Matig",
@@ -699,5 +757,16 @@
   "trainingTypeTempo": "Tempo",
   "trainingTypeInterval": "Intervals",
   "trainingTypeLongRun": "Lange duurloop",
-  "trainingTypeThreshold": "Drempel"
+  "trainingTypeThreshold": "Drempel",
+
+  "paywallEyebrow": "JOUW PLAN",
+  "paywallPreviewTitle": "Jouw trainingsplan",
+  "paywallUnlockCta": "ONTGRENDEL RUNCOACH PRO",
+  "paywallNoDaysPlaceholder": "Geen sessies deze week.",
+  "paywallLockedHint": "PRO",
+  "paywallWeekEyebrow": "WEEK {weekNumber}",
+  "paywallWeekTotalKm": "{km} km totaal",
+  "paywallManageSubscription": "Beheer abonnement",
+  "paywallProBadge": "PRO",
+  "paywallProTrialBadge": "PRO · PROEF"
 }

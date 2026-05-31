@@ -10,6 +10,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Log;
 
 class GenerateWeeklyInsight implements ShouldQueue
 {
@@ -32,6 +33,18 @@ class GenerateWeeklyInsight implements ShouldQueue
         $user = $week->goal?->user;
         if ($user) {
             App::setLocale($user->preferredLocale());
+        }
+
+        // Pro gate — same rule as GenerateActivityFeedback. Anthropic-spending
+        // background jobs MUST skip silently for non-pro users (see
+        // api/CLAUDE.md → AI job checklist).
+        if ($user && ! $user->isPro()) {
+            Log::info('Skipping AI work for non-pro user', [
+                'user_id' => $user->id,
+                'job' => static::class,
+            ]);
+
+            return;
         }
 
         $completedDays = $week->trainingDays->filter(fn ($d) => $d->result !== null);

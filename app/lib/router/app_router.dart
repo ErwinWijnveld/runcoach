@@ -16,6 +16,7 @@ import 'package:app/features/dashboard/screens/dashboard_screen.dart';
 import 'package:app/features/schedule/screens/weekly_plan_screen.dart';
 import 'package:app/features/schedule/screens/training_day_detail_screen.dart';
 import 'package:app/features/schedule/screens/training_result_screen.dart';
+import 'package:app/features/schedule/screens/evaluation_detail_screen.dart';
 import 'package:app/features/coach/screens/coach_chat_list_screen.dart';
 import 'package:app/features/coach/screens/coach_chat_screen.dart';
 import 'package:app/features/goals/screens/goal_list_screen.dart';
@@ -28,6 +29,8 @@ import 'package:app/features/onboarding/screens/onboarding_generating_screen.dar
 import 'package:app/features/onboarding/screens/onboarding_zones_screen.dart';
 import 'package:app/features/organization/screens/connections_screen.dart';
 import 'package:app/features/organization/screens/invite_detail_screen.dart';
+import 'package:app/features/subscriptions/providers/pro_entitlement_provider.dart';
+import 'package:app/features/subscriptions/screens/plan_preview_screen.dart';
 
 part 'app_router.g.dart';
 
@@ -52,6 +55,10 @@ GoRouter appRouter(Ref ref) {
   // through `refreshListenable` without rebuilding the tree.
   final refresh = _AuthRefresh();
   ref.listen(authProvider, (_, _) => refresh.notify());
+  // Entitlement state drives the hard-paywall redirect — when the server-side
+  // sync finishes (or a purchase clears it), re-run the redirect so the user
+  // either lands on /onboarding/plan-preview or escapes from it.
+  ref.listen(proEntitlementProvider, (_, _) => refresh.notify());
   ref.onDispose(refresh.dispose);
 
   return GoRouter(
@@ -74,6 +81,12 @@ GoRouter appRouter(Ref ref) {
       // Once on a /coach/chat/ route we never bounce away — local auth state
       // can briefly disagree with the server during the navigate-then-refresh
       // window, and bouncing would cause the duplicate-GlobalKey assertion.
+      //
+      // Hard paywall: a completed plan generation routes to the plan-preview
+      // screen FOR NON-PRO USERS, and to coach/chat for pro users. The
+      // proEntitlementProvider notifies this redirect when the server-side
+      // sync resolves, so a fresh purchase auto-advances.
+      final isPro = ref.read(proEntitlementProvider).isPro;
       final pending = user?.pendingPlanGeneration;
       if (pending != null && !state.matchedLocation.startsWith('/coach/chat/')) {
         switch (pending.status) {
@@ -87,7 +100,15 @@ GoRouter appRouter(Ref ref) {
           case PlanGenerationStatus.completed:
             final cid = pending.conversationId;
             if (cid != null) {
-              return '/coach/chat/$cid';
+              if (!isPro) {
+                final target =
+                    '/onboarding/plan-preview?conversationId=$cid';
+                if (state.matchedLocation != '/onboarding/plan-preview') {
+                  return target;
+                }
+              } else {
+                return '/coach/chat/$cid';
+              }
             }
             break;
         }
@@ -166,6 +187,17 @@ GoRouter appRouter(Ref ref) {
         builder: (context, state) => const OnboardingGeneratingScreen(),
       ),
       GoRoute(
+        // Hard paywall screen — shown to non-pro users immediately after
+        // plan generation completes. Receives the conversationId of the
+        // freshly-created coach thread as a query param so we can navigate
+        // there after a successful purchase.
+        path: '/onboarding/plan-preview',
+        builder: (context, state) {
+          final cid = state.uri.queryParameters['conversationId'] ?? '';
+          return PlanPreviewScreen(conversationId: cid);
+        },
+      ),
+      GoRoute(
         path: '/connections',
         builder: (context, state) => const ConnectionsScreen(),
       ),
@@ -211,6 +243,17 @@ GoRouter appRouter(Ref ref) {
                 builder: (context, state) => HidesBottomNav(
                   child: TrainingResultScreen(
                     dayId: int.parse(state.pathParameters['dayId']!),
+                  ),
+                ),
+              ),
+              GoRoute(
+                path: 'evaluation/:evaluationId',
+                parentNavigatorKey: rootNavigatorKey,
+                builder: (context, state) => HidesBottomNav(
+                  child: EvaluationDetailScreen(
+                    evaluationId: int.parse(
+                      state.pathParameters['evaluationId']!,
+                    ),
                   ),
                 ),
               ),

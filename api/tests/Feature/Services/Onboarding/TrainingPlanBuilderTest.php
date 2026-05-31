@@ -751,4 +751,48 @@ class TrainingPlanBuilderTest extends TestCase
             $this->markTestSkipped('Tempo day not scheduled at week 6 for this form; cannot compare.');
         }
     }
+
+    public function test_evaluations_are_scheduled_every_other_week_and_skip_taper(): void
+    {
+        // 12-week half-marathon plan. Race day at now+12 weeks rounds to a
+        // 13-week structure (ceil((84 days + 1)/7) = 13). taperLengthForRamp
+        // clamps to min(3, floor(13/4)) = 3 — build weeks 1-10, taper 11-13.
+        // Evens within build: 2, 4, 6, 8, 10.
+        $payload = app(TrainingPlanBuilder::class)->build(
+            $this->snapshot(),
+            $this->form([
+                'distance_meters' => 21097,
+                'target_date' => now()->addWeeks(12)->toDateString(),
+                'goal_time_seconds' => 6600,
+            ]),
+        );
+
+        $this->assertArrayHasKey('evaluations', $payload);
+        $weekNumbers = array_map(fn ($e) => $e['week_number'], $payload['evaluations']);
+
+        $this->assertSame([2, 4, 6, 8, 10], $weekNumbers);
+
+        foreach ($payload['evaluations'] as $eval) {
+            $this->assertArrayHasKey('scheduled_for', $eval);
+            $expected = now()->startOfWeek()->addWeeks($eval['week_number'] - 1)->addDays(6)->toDateString();
+            $this->assertSame($expected, $eval['scheduled_for']);
+        }
+    }
+
+    public function test_short_plan_emits_one_evaluation(): void
+    {
+        // Race ~4 calendar weeks out → 5-week structure, taper=1, build=4.
+        // Evens within build: 2 and 4 (lastEvalWeek = 5 - 1 = 4).
+        $payload = app(TrainingPlanBuilder::class)->build(
+            $this->snapshot(),
+            $this->form([
+                'distance_meters' => 5000,
+                'target_date' => now()->addWeeks(4)->toDateString(),
+            ]),
+        );
+
+        $weekNumbers = array_map(fn ($e) => $e['week_number'], $payload['evaluations'] ?? []);
+
+        $this->assertSame([2, 4], $weekNumbers);
+    }
 }

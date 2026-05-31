@@ -4,6 +4,7 @@ namespace App\Services\Onboarding;
 
 use App\Enums\GoalDistance;
 use App\Enums\GoalType;
+use App\Enums\RunnerToneBucket;
 use App\Enums\TrainingType;
 use App\Support\Onboarding\AmbitionAssessment;
 use App\Support\Onboarding\FitnessSnapshot;
@@ -222,7 +223,48 @@ class TrainingPlanBuilder
             'preferred_weekdays' => $form->preferredWeekdays,
             'additional_notes' => $form->additionalNotes,
             'schedule' => ['weeks' => $weeks],
+            'evaluations' => $this->scheduleEvaluations($weeks, $planStart, $weeksCount),
         ];
+    }
+
+    /** Cadence + boundary for mid-plan evaluation moments. */
+    public const EVALUATION_EVERY_N_WEEKS = 2;
+
+    /**
+     * Place mid-plan evaluation moments every Nth week, skipping the
+     * taper-window (last few weeks before race-day). For each picked week
+     * we emit the Sunday date — the cron picks rows whose date has passed.
+     *
+     * @param  list<array<string, mixed>>  $weeks
+     * @return list<array{week_number: int, scheduled_for: string}>
+     */
+    private function scheduleEvaluations(array $weeks, CarbonImmutable $planStart, int $weeksCount): array
+    {
+        $taper = $this->taperLengthForRamp($weeksCount);
+        $lastEvalWeek = $weeksCount - $taper;
+
+        $evaluations = [];
+        foreach ($weeks as $week) {
+            $n = (int) ($week['week_number'] ?? 0);
+            if ($n < self::EVALUATION_EVERY_N_WEEKS) {
+                continue;
+            }
+            if ($n % self::EVALUATION_EVERY_N_WEEKS !== 0) {
+                continue;
+            }
+            if ($n > $lastEvalWeek) {
+                continue;
+            }
+
+            // Sunday of the evaluation week = planStart + (n-1) weeks + 6 days.
+            $sunday = $planStart->addWeeks($n - 1)->addDays(6);
+            $evaluations[] = [
+                'week_number' => $n,
+                'scheduled_for' => $sunday->toDateString(),
+            ];
+        }
+
+        return $evaluations;
     }
 
     private function resolveWeeksCount(
@@ -1021,11 +1063,19 @@ class TrainingPlanBuilder
      * mid-pack recreational runners; the optimizer's `normalizeIntervals`
      * post-pass will clamp warmup/recovery/cooldown durations.
      *
-     * Schedule progression (peaks at the final hard week):
-     *   sharpener  → 4 × 400m @ goal pace,  90s recovery
-     *   early      → 5 × 400m @ vo2max,     90s recovery
-     *   mid        → 5 × 800m @ vo2max,     120s recovery
-     *   peak       → 6 × 800m @ vo2max,     120s recovery
+     * Two progression tables, gated on `runner_level.toneBucket()`:
+     *
+     * Novice / Standard (Beginner, Intermediate):
+     *   sharpener  → 4 × 400m  @ goal pace,  90s recovery
+     *   early      → 5 × 400m  @ vo2max,     90s recovery
+     *   mid        → 5 × 800m  @ vo2max,    120s recovery
+     *   peak       → 6 × 800m  @ vo2max,    120s recovery
+     *
+     * Expert (Advanced, SubElite, Elite):
+     *   sharpener  → 4 × 600m  @ goal pace,  90s recovery
+     *   early      → 4 × 800m  @ vo2max,     90s recovery
+     *   mid        → 5 × 1000m @ vo2max,    120s recovery
+     *   peak       → 4 × 1200m @ vo2max,    150s recovery
      *
      * @return list<array<string, mixed>>
      */
@@ -1037,9 +1087,11 @@ class TrainingPlanBuilder
         int $weeksToRace,
         bool $isSharpener,
     ): array {
+        $isExpert = $form->runnerLevel->toneBucket() === RunnerToneBucket::Expert;
+
         if ($isSharpener) {
             $reps = 4;
-            $repDistanceM = 400;
+            $repDistanceM = $isExpert ? 600 : 400;
             $recoverySeconds = 90;
             $workPace = $this->goalPace($form) ?? $snapshot->vo2maxPaceSecondsPerKm;
         } else {
@@ -1048,18 +1100,34 @@ class TrainingPlanBuilder
             $cap = $snapshot->hasIntensityHistory ? 1.0 : 0.7;
             $progress = min($progress, $cap);
 
-            if ($progress < 0.33) {
-                $reps = 5;
-                $repDistanceM = 400;
-                $recoverySeconds = 90;
-            } elseif ($progress < 0.66) {
-                $reps = 5;
-                $repDistanceM = 800;
-                $recoverySeconds = 120;
+            if ($isExpert) {
+                if ($progress < 0.33) {
+                    $reps = 4;
+                    $repDistanceM = 800;
+                    $recoverySeconds = 90;
+                } elseif ($progress < 0.66) {
+                    $reps = 5;
+                    $repDistanceM = 1000;
+                    $recoverySeconds = 120;
+                } else {
+                    $reps = 4;
+                    $repDistanceM = 1200;
+                    $recoverySeconds = 150;
+                }
             } else {
-                $reps = 6;
-                $repDistanceM = 800;
-                $recoverySeconds = 120;
+                if ($progress < 0.33) {
+                    $reps = 5;
+                    $repDistanceM = 400;
+                    $recoverySeconds = 90;
+                } elseif ($progress < 0.66) {
+                    $reps = 5;
+                    $repDistanceM = 800;
+                    $recoverySeconds = 120;
+                } else {
+                    $reps = 6;
+                    $repDistanceM = 800;
+                    $recoverySeconds = 120;
+                }
             }
             $workPace = $snapshot->vo2maxPaceSecondsPerKm;
         }

@@ -17,9 +17,12 @@ use App\Ai\Tools\ProposeNewPlanCard;
 use App\Ai\Tools\SearchActivities;
 use App\Enums\CoachStyle;
 use App\Enums\RunnerLevel;
+use App\Models\TrainingWeek;
 use App\Models\User;
 use App\Services\PlanOptimizerService;
 use App\Services\ProposalService;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Laravel\Ai\Attributes\Timeout;
 use Laravel\Ai\Concerns\RemembersConversations;
 use Laravel\Ai\Contracts\Agent;
@@ -36,7 +39,24 @@ class RunCoachAgent implements Agent, Conversational, HasTools
 
     public function instructions(): string
     {
-        return $this->coachInstructions();
+        $base = $this->coachInstructions();
+        $weekContext = $this->resolveTrainingWeekContext();
+
+        if ($weekContext === null) {
+            return $base;
+        }
+
+        // Insert the week-view context BEFORE the trailing LanguageDirective
+        // so the directive stays the last thing in the prompt (its position
+        // affects how strongly the model treats it as instruction-level).
+        $directive = LanguageDirective::current();
+        if ($directive !== '' && str_ends_with($base, $directive)) {
+            $body = substr($base, 0, -strlen($directive));
+
+            return $body."\n\n## Current view context\n".$weekContext.$directive;
+        }
+
+        return $base."\n\n## Current view context\n".$weekContext;
     }
 
     private function coachInstructions(): string
@@ -196,5 +216,124 @@ class RunCoachAgent implements Agent, Conversational, HasTools
         $organization = $membership->organization;
 
         return $organization === null || $organization->coaches_own_plans !== true;
+    }
+
+    /**
+     * When the conversation is opened from the Schedule Overview's pop-up
+     * chat, it carries `subject_type='training_week'` + a subject_id. Bake
+     * a compact summary of THAT week into the system prompt so the agent
+     * answers "is this week too hard?" / "how do I pace Sunday's long run?"
+     * with full context, without burning a tool call to fetch the week.
+     * Returns null for plain conversations (no subject) so the regular
+     * coach prompt stays unchanged — keeps the Anthropic prompt-cache
+     * lineage shared across both flows for the bulk of users.
+     */
+    private function resolveTrainingWeekContext(): ?string
+    {
+        if (! $this->conversationId) {
+            return null;
+        }
+
+        $row = DB::table('agent_conversations')
+            ->where('id', $this->conversationId)
+            ->first(['subject_type', 'subject_id']);
+
+        if ($row === null || $row->subject_type !== 'training_week' || $row->subject_id === null) {
+            return null;
+        }
+
+        $week = TrainingWeek::with(['goal', 'trainingDays.result'])->find((int) $row->subject_id);
+
+        if ($week === null) {
+            return null;
+        }
+
+        return $this->buildWeekContext($week);
+    }
+
+    private function buildWeekContext(TrainingWeek $week): string
+    {
+        $goal = $week->goal;
+        $startsAt = $week->starts_at instanceof Carbon ? $week->starts_at : Carbon::parse($week->starts_at);
+        $endsAt = $startsAt->copy()->addDays(6);
+
+        $lines = [
+            'The runner is currently viewing this week of their plan in the Schedule Overview.',
+            'Default to grounding answers in THIS week\'s sessions when relevant; the runner can still ask about other weeks and you have GetCurrentSchedule for that.',
+            '',
+            "- week_number: {$week->week_number}",
+            "- date_range: {$startsAt->toDateString()} to {$endsAt->toDateString()}",
+            '- total_km: '.($week->total_km !== null ? (string) $week->total_km : 'unset'),
+            "- focus: {$week->focus}",
+        ];
+
+        $notes = trim((string) ($week->coach_notes ?? ''));
+        if ($notes !== '') {
+            $lines[] = '- coach_notes: '.$notes;
+        }
+
+        if ($goal !== null) {
+            $targetDate = $goal->target_date?->toDateString() ?? 'open';
+            $lines[] = "- goal: {$goal->name} (target_date: {$targetDate})";
+        }
+
+        $days = $week->trainingDays->sortBy(fn ($d) => $d->date)->values();
+
+        if ($days->isNotEmpty()) {
+            $lines[] = '';
+            $lines[] = '## Days in this week';
+
+            foreach ($days as $day) {
+                $date = $day->date instanceof Carbon
+                    ? $day->date->format('Y-m-d (l)')
+                    : (string) $day->date;
+                $type = $day->type?->label() ?? 'Run';
+                $status = $this->dayStatus($day);
+                $km = $day->target_km !== null ? $day->target_km.'km' : 'unset';
+                $pace = $day->target_pace_seconds_per_km !== null
+                    ? sprintf('%d:%02d/km', intdiv($day->target_pace_seconds_per_km, 60), $day->target_pace_seconds_per_km % 60)
+                    : 'unset';
+                $zone = $day->target_heart_rate_zone ? "Z{$day->target_heart_rate_zone}" : 'unset';
+
+                $line = "- {$date}: {$type}, {$km} @ {$pace}, HR {$zone}, status={$status}";
+
+                if ($day->type?->value === 'interval' && is_array($day->intervals_json) && count($day->intervals_json) > 0) {
+                    $line .= ' (intervals: '.json_encode($day->intervals_json).')';
+                }
+
+                $result = $day->result;
+                if ($result !== null) {
+                    $line .= sprintf(
+                        ' [actual: %.2fkm, compliance %s/10]',
+                        (float) ($result->actual_km ?? 0),
+                        $result->compliance_score ?? '—',
+                    );
+                }
+
+                $lines[] = $line;
+            }
+        }
+
+        return implode("\n", $lines);
+    }
+
+    private function dayStatus($day): string
+    {
+        if ($day->result !== null) {
+            return 'completed';
+        }
+        if ($day->date === null) {
+            return 'unscheduled';
+        }
+        $today = now()->startOfDay();
+        $date = $day->date instanceof Carbon ? $day->date->copy()->startOfDay() : Carbon::parse($day->date)->startOfDay();
+        if ($date->equalTo($today)) {
+            return 'today';
+        }
+        if ($date->lt($today)) {
+            return 'missed';
+        }
+
+        return 'upcoming';
     }
 }

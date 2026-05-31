@@ -29,4 +29,10 @@ return [
         'body' => "You're a year wiser — let's refresh your heart-rate zones to match.",
     ],
 
+    'plan_evaluation' => [
+        'title' => 'Your 2-week check-in is ready',
+        'body_with_proposal' => "We've suggested a small adjustment based on your last 2 weeks.",
+        'body_no_change' => 'Your plan still fits — no adjustments needed.',
+    ],
+
 ];

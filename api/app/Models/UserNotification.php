@@ -20,7 +20,7 @@ class UserNotification extends Model
 
     public const STATUS_DISMISSED = 'dismissed';
 
-    public const TYPE_PACE_ADJUSTMENT = 'pace_adjustment';
+    public const TYPE_PLAN_EVALUATION = 'plan_evaluation';
 
     protected function casts(): array
     {

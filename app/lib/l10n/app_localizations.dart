@@ -116,6 +116,66 @@ abstract class AppLocalizations {
   /// **'Nederlands'**
   String get languageDutch;
 
+  /// No description provided for @runShareSheetCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Share this run'**
+  String get runShareSheetCta;
+
+  /// No description provided for @runShareSheetSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to save or share with friends'**
+  String get runShareSheetSubtitle;
+
+  /// No description provided for @runShareInlineCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Share this run'**
+  String get runShareInlineCta;
+
+  /// No description provided for @runShareBarrierLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Run summary'**
+  String get runShareBarrierLabel;
+
+  /// No description provided for @runShareKpiDistance.
+  ///
+  /// In en, this message translates to:
+  /// **'DISTANCE'**
+  String get runShareKpiDistance;
+
+  /// No description provided for @runShareKpiTime.
+  ///
+  /// In en, this message translates to:
+  /// **'TIME'**
+  String get runShareKpiTime;
+
+  /// No description provided for @runShareKpiAvgPace.
+  ///
+  /// In en, this message translates to:
+  /// **'AVG PACE'**
+  String get runShareKpiAvgPace;
+
+  /// No description provided for @runShareKpiAvgHr.
+  ///
+  /// In en, this message translates to:
+  /// **'AVG BPM'**
+  String get runShareKpiAvgHr;
+
+  /// No description provided for @runShareKpiCompliance.
+  ///
+  /// In en, this message translates to:
+  /// **'ON-PLAN'**
+  String get runShareKpiCompliance;
+
+  /// No description provided for @runShareIndoorPill.
+  ///
+  /// In en, this message translates to:
+  /// **'INDOOR RUN'**
+  String get runShareIndoorPill;
+
   /// No description provided for @commonContinue.
   ///
   /// In en, this message translates to:
@@ -313,6 +373,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reading the last 12 months from Apple Health.'**
   String get onbConnectHealthStageSyncingSub;
+
+  /// No description provided for @onbConnectHealthStageSyncingProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Syncing {done} of {total} runs…'**
+  String onbConnectHealthStageSyncingProgress(int done, int total);
 
   /// No description provided for @onbConnectHealthStageDone.
   ///
@@ -1507,6 +1573,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Go to Goals'**
   String get schedEmptyCta;
+
+  /// No description provided for @scheduleChatBarrierLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule week chat'**
+  String get scheduleChatBarrierLabel;
+
+  /// No description provided for @scheduleChatViewingWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Viewing week {weekNumber} · {dateRange}'**
+  String scheduleChatViewingWeek(int weekNumber, String dateRange);
+
+  /// No description provided for @scheduleChatTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Week {weekNumber} ({dateRange})'**
+  String scheduleChatTitle(int weekNumber, String dateRange);
+
+  /// No description provided for @scheduleChatEmptyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask about this week'**
+  String get scheduleChatEmptyTitle;
+
+  /// No description provided for @scheduleChatEmptySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Anything goes — pace, intensity, swaps, recovery.'**
+  String get scheduleChatEmptySubtitle;
+
+  /// No description provided for @weekChatSuggestionIntervalPace.
+  ///
+  /// In en, this message translates to:
+  /// **'How should I pace the intervals on {dayName}?'**
+  String weekChatSuggestionIntervalPace(String dayName);
+
+  /// No description provided for @weekChatSuggestionIntervalPaceSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Set the right effort for each rep.'**
+  String get weekChatSuggestionIntervalPaceSub;
+
+  /// No description provided for @weekChatSuggestionLongRunPace.
+  ///
+  /// In en, this message translates to:
+  /// **'How should I pace the long run on {dayName}?'**
+  String weekChatSuggestionLongRunPace(String dayName);
+
+  /// No description provided for @weekChatSuggestionLongRunPaceSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Stay aerobic, finish strong.'**
+  String get weekChatSuggestionLongRunPaceSub;
+
+  /// No description provided for @weekChatSuggestionDeloadWhy.
+  ///
+  /// In en, this message translates to:
+  /// **'Why is this week lighter?'**
+  String get weekChatSuggestionDeloadWhy;
+
+  /// No description provided for @weekChatSuggestionDeloadWhySub.
+  ///
+  /// In en, this message translates to:
+  /// **'Recovery weeks and how they help.'**
+  String get weekChatSuggestionDeloadWhySub;
+
+  /// No description provided for @weekChatSuggestionRaceDayPrep.
+  ///
+  /// In en, this message translates to:
+  /// **'What should I do the day before the race?'**
+  String get weekChatSuggestionRaceDayPrep;
+
+  /// No description provided for @weekChatSuggestionRaceDayPrepSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Pre-race routine, food, sleep.'**
+  String get weekChatSuggestionRaceDayPrepSub;
+
+  /// No description provided for @weekChatSuggestionTooHard.
+  ///
+  /// In en, this message translates to:
+  /// **'Is this week too hard for me?'**
+  String get weekChatSuggestionTooHard;
+
+  /// No description provided for @weekChatSuggestionTooHardSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Get an honest read on the load.'**
+  String get weekChatSuggestionTooHardSub;
+
+  /// No description provided for @weekChatSuggestionSwapInterval.
+  ///
+  /// In en, this message translates to:
+  /// **'Can we swap an interval for a long run?'**
+  String get weekChatSuggestionSwapInterval;
+
+  /// No description provided for @weekChatSuggestionSwapIntervalSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust this week\'s structure.'**
+  String get weekChatSuggestionSwapIntervalSub;
 
   /// No description provided for @schedDayTarget.
   ///
@@ -3140,17 +3308,125 @@ abstract class AppLocalizations {
   /// **'APPLY'**
   String get notificationsCardApply;
 
-  /// No description provided for @notificationsTertiaryEditHrZones.
+  /// No description provided for @notificationsCardViewEvaluation.
   ///
   /// In en, this message translates to:
-  /// **'Edit HR Zones'**
-  String get notificationsTertiaryEditHrZones;
+  /// **'View your check-in'**
+  String get notificationsCardViewEvaluation;
 
-  /// No description provided for @notificationsTypePaceAdjustment.
+  /// No description provided for @notificationsTypePlanEvaluation.
   ///
   /// In en, this message translates to:
-  /// **'PACE ADJUSTMENT'**
-  String get notificationsTypePaceAdjustment;
+  /// **'2-WEEK CHECK-IN'**
+  String get notificationsTypePlanEvaluation;
+
+  /// No description provided for @evaluationCardEyebrow.
+  ///
+  /// In en, this message translates to:
+  /// **'CHECK-IN'**
+  String get evaluationCardEyebrow;
+
+  /// No description provided for @evaluationCardScheduledFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Scheduled for {date}'**
+  String evaluationCardScheduledFor(String date);
+
+  /// No description provided for @evaluationCardWeekTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Week {week} check-in'**
+  String evaluationCardWeekTitle(int week);
+
+  /// No description provided for @evaluationCardStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Up next'**
+  String get evaluationCardStatusPending;
+
+  /// No description provided for @evaluationCardStatusProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'Working on it…'**
+  String get evaluationCardStatusProcessing;
+
+  /// No description provided for @evaluationCardStatusReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Report ready'**
+  String get evaluationCardStatusReady;
+
+  /// No description provided for @evaluationCardStatusNoChange.
+  ///
+  /// In en, this message translates to:
+  /// **'No changes needed'**
+  String get evaluationCardStatusNoChange;
+
+  /// No description provided for @evaluationCardStatusAccepted.
+  ///
+  /// In en, this message translates to:
+  /// **'Applied'**
+  String get evaluationCardStatusAccepted;
+
+  /// No description provided for @evaluationCardStatusDismissed.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismissed'**
+  String get evaluationCardStatusDismissed;
+
+  /// No description provided for @evaluationCardCtaView.
+  ///
+  /// In en, this message translates to:
+  /// **'Open'**
+  String get evaluationCardCtaView;
+
+  /// No description provided for @evaluationDetailTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'2-week check-in'**
+  String get evaluationDetailTitle;
+
+  /// No description provided for @evaluationDetailReportHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Your coach\'s take'**
+  String get evaluationDetailReportHeader;
+
+  /// No description provided for @evaluationDetailProposalHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested adjustment'**
+  String get evaluationDetailProposalHeader;
+
+  /// No description provided for @evaluationDetailApply.
+  ///
+  /// In en, this message translates to:
+  /// **'APPLY ADJUSTMENT'**
+  String get evaluationDetailApply;
+
+  /// No description provided for @evaluationDetailDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'DISMISS'**
+  String get evaluationDetailDismiss;
+
+  /// No description provided for @evaluationDetailClose.
+  ///
+  /// In en, this message translates to:
+  /// **'CLOSE'**
+  String get evaluationDetailClose;
+
+  /// No description provided for @evaluationDetailNoReport.
+  ///
+  /// In en, this message translates to:
+  /// **'No report available yet.'**
+  String get evaluationDetailNoReport;
+
+  /// No description provided for @evaluationDetailLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load this evaluation.\n{error}'**
+  String evaluationDetailLoadError(String error);
 
   /// No description provided for @hrZoneNameZ1.
   ///
@@ -3817,6 +4093,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Threshold'**
   String get trainingTypeThreshold;
+
+  /// No description provided for @paywallEyebrow.
+  ///
+  /// In en, this message translates to:
+  /// **'YOUR PLAN'**
+  String get paywallEyebrow;
+
+  /// No description provided for @paywallPreviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your training plan'**
+  String get paywallPreviewTitle;
+
+  /// No description provided for @paywallUnlockCta.
+  ///
+  /// In en, this message translates to:
+  /// **'UNLOCK RUNCOACH PRO'**
+  String get paywallUnlockCta;
+
+  /// No description provided for @paywallNoDaysPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'No sessions this week.'**
+  String get paywallNoDaysPlaceholder;
+
+  /// No description provided for @paywallLockedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'PRO'**
+  String get paywallLockedHint;
+
+  /// No description provided for @paywallWeekEyebrow.
+  ///
+  /// In en, this message translates to:
+  /// **'WEEK {weekNumber}'**
+  String paywallWeekEyebrow(int weekNumber);
+
+  /// No description provided for @paywallWeekTotalKm.
+  ///
+  /// In en, this message translates to:
+  /// **'{km} km total'**
+  String paywallWeekTotalKm(String km);
+
+  /// No description provided for @paywallManageSubscription.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage subscription'**
+  String get paywallManageSubscription;
+
+  /// No description provided for @paywallProBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'PRO'**
+  String get paywallProBadge;
+
+  /// No description provided for @paywallProTrialBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'PRO · TRIAL'**
+  String get paywallProTrialBadge;
 }
 
 class _AppLocalizationsDelegate

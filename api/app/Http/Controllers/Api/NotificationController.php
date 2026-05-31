@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\GoalStatus;
+use App\Enums\PlanEvaluationStatus;
+use App\Enums\ProposalStatus;
 use App\Http\Controllers\Controller;
-use App\Models\TrainingDay;
+use App\Models\PlanEvaluation;
 use App\Models\User;
 use App\Models\UserNotification;
+use App\Services\ProposalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -18,6 +20,8 @@ class NotificationController extends Controller
      * certainly a bug or runaway producer that we'd rather cap than ship.
      */
     private const MAX_INBOX_ITEMS = 50;
+
+    public function __construct(private ProposalService $proposals) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -38,7 +42,7 @@ class NotificationController extends Controller
         abort_unless($notification->status === UserNotification::STATUS_PENDING, 422, 'Notification already handled.');
 
         match ($notification->type) {
-            UserNotification::TYPE_PACE_ADJUSTMENT => $this->applyPaceAdjustment($user, $notification),
+            UserNotification::TYPE_PLAN_EVALUATION => $this->applyPlanEvaluation($user, $notification),
             default => abort(422, "Unknown notification type: {$notification->type}"),
         };
 
@@ -52,8 +56,14 @@ class NotificationController extends Controller
 
     public function dismiss(Request $request, UserNotification $notification): JsonResponse
     {
-        abort_unless($notification->user_id === $request->user()->id, 403);
+        $user = $request->user();
+        abort_unless($notification->user_id === $user->id, 403);
         abort_unless($notification->status === UserNotification::STATUS_PENDING, 422, 'Notification already handled.');
+
+        if ($notification->type === UserNotification::TYPE_PLAN_EVALUATION) {
+            PlanEvaluation::where('notification_id', $notification->id)
+                ->update(['status' => PlanEvaluationStatus::Dismissed]);
+        }
 
         $notification->update([
             'status' => UserNotification::STATUS_DISMISSED,
@@ -64,39 +74,30 @@ class NotificationController extends Controller
     }
 
     /**
-     * Walk every upcoming training day of the same type (whole active
-     * plan, from today onward) and shift its target pace by the stored
-     * factor. Race day is sacred — its pace IS the user's goal — so we
-     * leave it untouched.
+     * Accept a plan-evaluation notification. If the AI attached a proposal,
+     * apply it via the standard ProposalService flow (same path as the
+     * coach-chat ProposalCard). When the agent decided no change was needed
+     * the row stays linked-but-proposal-less; accept just marks both rows
+     * accepted.
      */
-    private function applyPaceAdjustment(User $user, UserNotification $notification): void
+    private function applyPlanEvaluation(User $user, UserNotification $notification): void
     {
-        $factor = (float) ($notification->action_data['pace_factor'] ?? 1.0);
-        $type = (string) ($notification->action_data['training_type'] ?? '');
-        if ($factor === 1.0 || $type === '') {
+        $evaluation = PlanEvaluation::with('proposal')
+            ->where('notification_id', $notification->id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if ($evaluation === null) {
             return;
         }
 
-        $today = now()->startOfDay();
+        $proposal = $evaluation->proposal;
+        if ($proposal !== null
+            && $proposal->user_id === $user->id
+            && $proposal->status === ProposalStatus::Pending) {
+            $this->proposals->apply($proposal, $user);
+        }
 
-        TrainingDay::query()
-            ->whereHas('trainingWeek.goal', fn ($q) => $q
-                ->where('user_id', $user->id)
-                ->where('status', GoalStatus::Active)
-            )
-            ->with('trainingWeek.goal')
-            ->where('type', $type)
-            ->where('date', '>=', $today)
-            ->whereDoesntHave('result')
-            ->whereNotNull('target_pace_seconds_per_km')
-            ->each(function (TrainingDay $day) use ($factor) {
-                $goal = $day->trainingWeek?->goal;
-                if ($goal && $goal->target_date && $day->date->isSameDay($goal->target_date)) {
-                    return;
-                }
-                $day->update([
-                    'target_pace_seconds_per_km' => (int) round($day->target_pace_seconds_per_km * $factor),
-                ]);
-            });
+        $evaluation->update(['status' => PlanEvaluationStatus::Accepted]);
     }
 }

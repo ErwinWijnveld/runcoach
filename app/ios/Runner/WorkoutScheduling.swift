@@ -45,10 +45,16 @@ import WorkoutKit
 ///   it. Silent no-op when nothing was scheduled.
 ///     args: { "date": "YYYY-MM-DD", "dayId": 48 }
 ///
-/// All methods return: { "status": "scheduled" | "duplicate" | "denied" |
+/// All methods return: { "status": "scheduled" | "denied" |
 ///                                 "unavailable" | "failed" | "moved" |
 ///                                 "skipped",
 ///                       "message": String? }
+///
+/// Re-sending the same TrainingDay (same `dayId`) is always idempotent:
+/// any prior WorkoutPlan with our deterministic UUID is removed first,
+/// then the new payload is scheduled. This is how Send-to-watch after a
+/// content edit (different distance / different intervals) propagates —
+/// there is no `duplicate` short-circuit anymore.
 ///
 /// Requires iOS 17.0+ for scheduling, iOS 17.4+ for identity tracking +
 /// reschedule. Falls back to `status=unavailable` on older OSes.
@@ -68,6 +74,9 @@ enum WorkoutScheduling {
             case "rescheduleIfPresent":
                 let args = call.arguments as? [String: Any] ?? [:]
                 rescheduleIfPresent(args: args, result: result)
+            case "syncDays":
+                let args = call.arguments as? [String: Any] ?? [:]
+                syncDays(args: args, result: result)
             default:
                 result(FlutterMethodNotImplemented)
             }
@@ -103,19 +112,9 @@ enum WorkoutScheduling {
 
         guard await ensureAuthorized(result: result) else { return }
 
-        // Identity dedup: if our specific TrainingDay is already scheduled
-        // somewhere, replace it (or no-op if same date).
-        switch await ensureNoExistingForDay(dayId: dayId, at: components) {
-        case .duplicate:
-            result(duplicateResponse())
-            return
-        case .conflict:
-            // We can't reach here today (replaceExistingForDay never returns
-            // .conflict) but kept exhaustive for future tweaks.
-            return
-        case .ok:
-            break
-        }
+        // Always replace any prior plan for this dayId — covers both
+        // reschedule-to-new-date AND content-edited-on-same-date.
+        await removeExistingForDay(dayId: dayId)
 
         let goal = WorkoutGoal.distance(distanceKm, UnitLength.kilometers)
         let workout = SingleGoalWorkout(
@@ -154,6 +153,35 @@ enum WorkoutScheduling {
         let cooldownSeconds = (args["cooldownSeconds"] as? NSNumber)?.intValue
         let rawSteps = args["steps"] as? [[String: Any]] ?? []
 
+        guard let workout = buildCustomWorkout(
+            displayName: displayName,
+            warmupSeconds: warmupSeconds,
+            cooldownSeconds: cooldownSeconds,
+            rawSteps: rawSteps
+        ) else {
+            result(failedResponse("This interval session has no reps to send."))
+            return
+        }
+
+        guard await ensureAuthorized(result: result) else { return }
+
+        await removeExistingForDay(dayId: dayId)
+
+        let plan = buildPlan(.custom(workout), dayId: dayId)
+        await commitSchedule(plan: plan, at: components, result: result)
+    }
+
+    /// Build a `CustomWorkout` from the raw arg dictionary. Shared between
+    /// `scheduleIntervalsIOS17` (single-day path) and `syncDaysIOS174`
+    /// (batch path). Returns `nil` when the steps list contains no valid
+    /// reps — callers surface "no steps to send" to the user.
+    @available(iOS 17.0, *)
+    private static func buildCustomWorkout(
+        displayName: String?,
+        warmupSeconds: Int?,
+        cooldownSeconds: Int?,
+        rawSteps: [[String: Any]]
+    ) -> CustomWorkout? {
         var intervalSteps: [IntervalStep] = []
         for raw in rawSteps {
             let kind = (raw["kind"] as? String) ?? "work"
@@ -165,46 +193,25 @@ enum WorkoutScheduling {
             }
             intervalSteps.append(IntervalStep(purpose, step: WorkoutStep(goal: goal)))
         }
-
-        guard !intervalSteps.isEmpty else {
-            result(failedResponse("This interval session has no reps to send."))
-            return
-        }
-
-        guard await ensureAuthorized(result: result) else { return }
-
-        switch await ensureNoExistingForDay(dayId: dayId, at: components) {
-        case .duplicate:
-            result(duplicateResponse())
-            return
-        case .conflict:
-            return
-        case .ok:
-            break
-        }
+        guard !intervalSteps.isEmpty else { return nil }
 
         let warmupStep: WorkoutStep? = {
             guard let secs = warmupSeconds, secs > 0 else { return nil }
             return WorkoutStep(goal: .time(Double(secs), .seconds))
         }()
-
         let cooldownStep: WorkoutStep? = {
             guard let secs = cooldownSeconds, secs > 0 else { return nil }
             return WorkoutStep(goal: .time(Double(secs), .seconds))
         }()
 
-        let block = IntervalBlock(steps: intervalSteps, iterations: 1)
-
-        let workout = CustomWorkout(
+        return CustomWorkout(
             activity: .running,
             location: .outdoor,
             displayName: displayName,
             warmup: warmupStep,
-            blocks: [block],
+            blocks: [IntervalBlock(steps: intervalSteps, iterations: 1)],
             cooldown: cooldownStep
         )
-        let plan = buildPlan(.custom(workout), dayId: dayId)
-        await commitSchedule(plan: plan, at: components, result: result)
     }
 
     // MARK: - Reschedule helper
@@ -287,6 +294,130 @@ enum WorkoutScheduling {
         }
     }
 
+    // MARK: - Batch sync (iOS 17.4+)
+
+    /// Batched watch sync. Replaces any prior plans for these dayIds and
+    /// schedules each fresh. One auth gate + one `scheduledWorkouts` read
+    /// for the whole batch. iOS 17.0–17.3 has no identity tracking so the
+    /// batch path is refused outright (status=unavailable) — the manual
+    /// per-day button still works there as the only safe fallback.
+    ///
+    /// Args:
+    ///   { "days": [
+    ///       { "dayId": 48, "date": "YYYY-MM-DD", "distanceKm": 6.0 },
+    ///       { "dayId": 49, "date": "YYYY-MM-DD",
+    ///         "displayName": "6×800m", "warmupSeconds": 60,
+    ///         "cooldownSeconds": 300,
+    ///         "steps": [{"kind":"work","distanceM":800}, ...] },
+    ///       ...
+    ///   ] }
+    ///
+    /// Returns:
+    ///   { "status": "ok" | "denied" | "unavailable",
+    ///     "results": [ { "dayId": N, "status": "scheduled" | "skipped" | "failed",
+    ///                    "message": String? }, ... ] }
+    private static func syncDays(args: [String: Any], result: @escaping FlutterResult) {
+        if #available(iOS 17.4, *) {
+            Task { @MainActor in
+                await syncDaysIOS174(args: args, result: result)
+            }
+        } else {
+            result(["status": "unavailable", "results": []])
+        }
+    }
+
+    @available(iOS 17.4, *)
+    private static func syncDaysIOS174(args: [String: Any], result: @escaping FlutterResult) async {
+        let rawDays = args["days"] as? [[String: Any]] ?? []
+        guard !rawDays.isEmpty else {
+            result(["status": "ok", "results": []])
+            return
+        }
+
+        let scheduler = WorkoutScheduler.shared
+        var authState = await scheduler.authorizationState
+        if authState == .notDetermined {
+            authState = await scheduler.requestAuthorization()
+        }
+        guard authState == .authorized else {
+            result(["status": "denied", "results": []])
+            return
+        }
+
+        // One snapshot of currently-scheduled workouts; reused across all
+        // iterations. Avoids N calls to scheduler.scheduledWorkouts.
+        let existing = await scheduler.scheduledWorkouts
+
+        var results: [[String: Any]] = []
+        for raw in rawDays {
+            let dayId = (raw["dayId"] as? NSNumber)?.intValue ?? 0
+            let dateString = (raw["date"] as? String) ?? ""
+            guard dayId > 0, let components = parseDate(dateString) else {
+                results.append([
+                    "dayId": dayId,
+                    "status": "skipped",
+                    "message": "Invalid dayId or date."
+                ])
+                continue
+            }
+
+            // Remove existing (if any) — fail-soft.
+            let dayUUID = uuidForDay(dayId)
+            if let our = existing.first(where: { $0.plan.id == dayUUID }) {
+                try? await scheduler.remove(our.plan, at: our.date)
+            }
+
+            // Distinguish single-goal vs interval by presence of `steps`.
+            let rawSteps = raw["steps"] as? [[String: Any]] ?? []
+            let plan: WorkoutPlan
+            if !rawSteps.isEmpty {
+                guard let workout = buildCustomWorkout(
+                    displayName: raw["displayName"] as? String,
+                    warmupSeconds: (raw["warmupSeconds"] as? NSNumber)?.intValue,
+                    cooldownSeconds: (raw["cooldownSeconds"] as? NSNumber)?.intValue,
+                    rawSteps: rawSteps
+                ) else {
+                    results.append([
+                        "dayId": dayId,
+                        "status": "skipped",
+                        "message": "No valid interval steps."
+                    ])
+                    continue
+                }
+                plan = WorkoutPlan(.custom(workout), id: dayUUID)
+            } else {
+                let distanceKm = (raw["distanceKm"] as? NSNumber)?.doubleValue ?? 0
+                guard distanceKm > 0 else {
+                    results.append([
+                        "dayId": dayId,
+                        "status": "skipped",
+                        "message": "No distance set."
+                    ])
+                    continue
+                }
+                let workout = SingleGoalWorkout(
+                    activity: .running,
+                    location: .outdoor,
+                    goal: .distance(distanceKm, UnitLength.kilometers)
+                )
+                plan = WorkoutPlan(.goal(workout), id: dayUUID)
+            }
+
+            do {
+                try await scheduler.schedule(plan, at: components)
+                results.append(["dayId": dayId, "status": "scheduled"])
+            } catch {
+                results.append([
+                    "dayId": dayId,
+                    "status": "failed",
+                    "message": error.localizedDescription
+                ])
+            }
+        }
+
+        result(["status": "ok", "results": results])
+    }
+
     // MARK: - Identity helpers (iOS 17.4+)
 
     /// Deterministic UUID derived from the TrainingDay primary key. Format:
@@ -311,45 +442,27 @@ enum WorkoutScheduling {
         return WorkoutPlan(workout)
     }
 
-    private enum ExistingCheckResult {
-        case ok           // proceed with scheduling
-        case duplicate    // our workout already at this date — return duplicate
-        case conflict     // reserved for future use
-    }
-
-    /// Identity-aware pre-flight: if our TrainingDay is already scheduled at
-    /// a DIFFERENT date, remove it (caller will then schedule fresh at the
-    /// new date). If it's at the SAME date, return `.duplicate` so the
-    /// caller bails. On iOS < 17.4 (no IDs), always returns `.ok` —
-    /// scheduling is unrestricted.
+    /// Identity-aware pre-flight: if our TrainingDay is already scheduled
+    /// anywhere (same date or different date), remove it so the caller can
+    /// schedule fresh. Best-effort — remove failures are swallowed (the
+    /// verify-after-schedule pass would catch a duplicate landing, and we
+    /// prefer ending up with two entries than refusing to schedule). On
+    /// iOS < 17.4 (no identity tracking) this is a no-op — callers fall
+    /// back to "always schedule, no dedup".
     @available(iOS 17.0, *)
-    private static func ensureNoExistingForDay(
-        dayId: Int?,
-        at components: DateComponents
-    ) async -> ExistingCheckResult {
-        guard #available(iOS 17.4, *), let dayId, dayId > 0 else {
-            return .ok
-        }
+    private static func removeExistingForDay(dayId: Int?) async {
+        guard #available(iOS 17.4, *), let dayId, dayId > 0 else { return }
         let dayUUID = uuidForDay(dayId)
         let scheduler = WorkoutScheduler.shared
         let existing = await scheduler.scheduledWorkouts
         guard let our = existing.first(where: { $0.plan.id == dayUUID }) else {
-            return .ok
+            return
         }
-        let sameDate = our.date.year == components.year &&
-            our.date.month == components.month &&
-            our.date.day == components.day
-        if sameDate {
-            return .duplicate
-        }
-        // Different date — remove the stale entry so we can schedule fresh.
         do {
             try await scheduler.remove(our.plan, at: our.date)
         } catch {
-            // If remove fails we could end up with two entries; keep going.
-            // The verify-after-schedule pass will at least confirm one exists.
+            // See doc comment — best-effort.
         }
-        return .ok
     }
 
     // MARK: - Shared helpers
@@ -441,13 +554,6 @@ enum WorkoutScheduling {
         return [
             "status": "unavailable",
             "message": "Sending workouts to your watch needs iOS 17 or newer."
-        ]
-    }
-
-    private static func duplicateResponse() -> [String: String] {
-        return [
-            "status": "duplicate",
-            "message": "This workout is already on your watch for this day."
         ]
     }
 

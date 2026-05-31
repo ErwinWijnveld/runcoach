@@ -6,6 +6,7 @@ ini_set('memory_limit', '512M');
 // can take up to ~90s on a slow Anthropic day.
 ini_set('max_execution_time', PHP_SAPI === 'cli' ? '0' : '300');
 
+use App\Http\Middleware\RequireProEntitlement;
 use App\Http\Middleware\SetLocale;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -20,6 +21,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->appendToGroup('api', SetLocale::class);
+        $middleware->alias([
+            'require.pro' => RequireProEntitlement::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

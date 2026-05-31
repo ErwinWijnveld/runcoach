@@ -65,4 +65,18 @@ if [[ -n "$target_device" ]]; then
 fi
 
 echo "[run-dev] API_BASE_URL = $url"
-exec flutter run --dart-define=API_BASE_URL="$url" "$@"
+
+# RevenueCat public iOS SDK key. Bundled into the binary at build time. Read
+# from ~/.zshrc or the current env. Empty value is OK in dev (Purchases.configure
+# will fail safely; the paywall flow is exercised against a real key on
+# TestFlight). Set in ~/.zshrc:
+#   export REVENUECAT_PUBLIC_SDK_KEY=appl_xxxxxxxxxxxxxxxx
+RC_KEY="${REVENUECAT_PUBLIC_SDK_KEY:-}"
+if [[ -z "$RC_KEY" ]]; then
+  echo "[run-dev] REVENUECAT_PUBLIC_SDK_KEY not set; paywall flow will be disabled" >&2
+fi
+
+exec flutter run \
+  --dart-define=API_BASE_URL="$url" \
+  --dart-define=REVENUECAT_PUBLIC_SDK_KEY="$RC_KEY" \
+  "$@"

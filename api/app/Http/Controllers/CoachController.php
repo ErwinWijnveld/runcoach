@@ -6,12 +6,15 @@ use App\Ai\Agents\RunCoachAgent;
 use App\Enums\ProposalStatus;
 use App\Http\Requests\SendMessageRequest;
 use App\Models\CoachProposal;
+use App\Models\TrainingWeek;
 use App\Services\AgentStreamingService;
 use App\Services\ProposalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Laravel\Ai\Contracts\ConversationStore;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -24,10 +27,17 @@ class CoachController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        // Show plain coach chats AND schedule-week-scoped chats in the same
+        // list (both run through RunCoachAgent). Workout chats stay hidden
+        // because they're scoped to a different agent (WorkoutAgent) and
+        // surface only in the per-day sheet.
         $conversations = DB::table('agent_conversations')
             ->where('user_id', $request->user()->id)
             ->whereNull('context')
-            ->whereNull('subject_type')
+            ->where(function ($q) {
+                $q->whereNull('subject_type')
+                    ->orWhere('subject_type', 'training_week');
+            })
             ->orderByDesc('updated_at')
             ->get(['id', 'title', 'created_at', 'updated_at']);
 
@@ -36,13 +46,55 @@ class CoachController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $request->validate(['title' => 'sometimes|string|max:255']);
+        $request->validate([
+            'title' => ['sometimes', 'string', 'max:255'],
+            // Only `training_week` is supported for now. The workout-chat
+            // flow has its own controller / agent / endpoint, so we don't
+            // accept `training_day` here.
+            'subject_type' => ['sometimes', 'nullable', 'string', Rule::in(['training_week'])],
+            'subject_id' => ['required_with:subject_type', 'integer'],
+        ]);
 
+        $userId = $request->user()->id;
         $title = $request->input('title', 'New Chat');
+        $subjectType = $request->input('subject_type');
+        $subjectId = $request->input('subject_id');
 
-        // Just create the conversation record — no AI call needed
+        if ($subjectType === 'training_week') {
+            $owns = TrainingWeek::where('id', $subjectId)
+                ->whereHas('goal', fn ($q) => $q->where('user_id', $userId))
+                ->exists();
+            abort_unless($owns, 403, 'Training week not found for this user.');
+
+            // Direct DB insert mirrors WorkoutChatController — the SDK's
+            // ConversationStore::storeConversation contract doesn't expose
+            // subject binding, and we want the row created in one shot so
+            // the agent's resolveTrainingWeekContext picks it up on the
+            // first send.
+            $conversationId = (string) Str::uuid();
+            $now = now();
+            DB::table('agent_conversations')->insert([
+                'id' => $conversationId,
+                'user_id' => $userId,
+                'title' => $title,
+                'context' => null,
+                'subject_type' => 'training_week',
+                'subject_id' => $subjectId,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]);
+
+            return response()->json([
+                'data' => [
+                    'id' => $conversationId,
+                    'title' => $title,
+                ],
+            ], 201);
+        }
+
+        // Plain coach chat — let the SDK manage the row.
         $conversationId = app(ConversationStore::class)
-            ->storeConversation($request->user()->id, $title);
+            ->storeConversation($userId, $title);
 
         return response()->json([
             'data' => [

@@ -1,10 +1,10 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show ElevatedButton, Icons;
+import 'package:flutter/material.dart' show ElevatedButton;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
-import 'package:app/core/widgets/heart_rate_zones_sheet.dart';
 import 'package:app/features/notifications/models/user_notification.dart';
 import 'package:app/features/notifications/providers/notifications_provider.dart';
 import 'package:app/router/app_router.dart';
@@ -208,53 +208,61 @@ class _NotificationCardState extends ConsumerState<_NotificationCard> {
             ),
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _SecondaryButton(
-                  label: context.l10n.notificationsCardDismiss,
-                  onPressed: _busy
-                      ? null
-                      : () => _act(() => ref
-                          .read(notificationsProvider.notifier)
-                          .dismiss(n.id)),
-                ),
+          // Plan evaluations are never accepted/dismissed straight from the
+          // inbox — the runner must read the full report + proposal first.
+          // So we surface ONE inviting CTA that opens the detail screen,
+          // where Apply/Dismiss live. Other (future) notification types keep
+          // the inline Dismiss/Apply pair.
+          if (n.type == 'plan_evaluation')
+            SizedBox(
+              width: double.infinity,
+              child: _PrimaryButton(
+                label: context.l10n.notificationsCardViewEvaluation,
+                icon: CupertinoIcons.doc_text_fill,
+                busy: false,
+                onPressed: () {
+                  final id = n.actionData?['evaluation_id'];
+                  if (id == null) return;
+                  Navigator.of(context).pop();
+                  context.push('/schedule/evaluation/$id');
+                },
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 2,
-                child: _PrimaryButton(
-                  label: context.l10n.notificationsCardApply,
-                  busy: _busy,
-                  onPressed: _busy
-                      ? null
-                      : () => _act(() => ref
-                          .read(notificationsProvider.notifier)
-                          .accept(n.id)),
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: _SecondaryButton(
+                    label: context.l10n.notificationsCardDismiss,
+                    onPressed: _busy
+                        ? null
+                        : () => _act(() => ref
+                            .read(notificationsProvider.notifier)
+                            .dismiss(n.id)),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          // Pace-adjustment notifications are triggered by an HR mismatch.
-          // Surface a tertiary action so the runner can recalibrate their
-          // zones directly — addresses the root cause rather than just
-          // patching pace. Stacks under (not next to) the primary actions
-          // because it's a navigation action, not a decision on this card.
-          if (n.type == 'pace_adjustment') ...[
-            const SizedBox(height: 8),
-            _TertiaryButton(
-              label: context.l10n.notificationsTertiaryEditHrZones,
-              icon: Icons.edit_outlined,
-              onPressed: _busy ? null : () => showHeartRateZonesSheet(context),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: _PrimaryButton(
+                    label: context.l10n.notificationsCardApply,
+                    busy: _busy,
+                    onPressed: _busy
+                        ? null
+                        : () => _act(() => ref
+                            .read(notificationsProvider.notifier)
+                            .accept(n.id)),
+                  ),
+                ),
+              ],
             ),
-          ],
         ],
       ),
     );
   }
 
   String _typeLabel(String type) => switch (type) {
-        'pace_adjustment' => context.l10n.notificationsTypePaceAdjustment,
+        'plan_evaluation' => context.l10n.notificationsTypePlanEvaluation,
         _ => type.replaceAll('_', ' ').toUpperCase(),
       };
 }
@@ -264,14 +272,26 @@ class _PrimaryButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     required this.busy,
+    this.icon,
   });
 
   final String label;
   final VoidCallback? onPressed;
   final bool busy;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
+    final labelText = Text(
+      label,
+      style: GoogleFonts.spaceGrotesk(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.8,
+        color: AppColors.neutral,
+      ),
+    );
+
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
@@ -291,15 +311,17 @@ class _PrimaryButton extends StatelessWidget {
                 color: CupertinoColors.white,
               ),
             )
-          : Text(
-              label,
-              style: GoogleFonts.spaceGrotesk(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.8,
-                color: AppColors.neutral,
-              ),
-            ),
+          : icon == null
+              ? labelText
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, size: 16, color: AppColors.neutral),
+                    const SizedBox(width: 8),
+                    labelText,
+                  ],
+                ),
     );
   }
 }
@@ -330,50 +352,6 @@ class _SecondaryButton extends StatelessWidget {
           fontWeight: FontWeight.w700,
           letterSpacing: 0.8,
           color: AppColors.primaryInk,
-        ),
-      ),
-    );
-  }
-}
-
-/// Compact full-width text-link button used for tertiary navigation
-/// actions inside a card (e.g. "Edit HR Zones"). Smaller vertical
-/// padding + icon + text-style label keeps it visually subordinate to
-/// the primary/secondary CTAs above it.
-class _TertiaryButton extends StatelessWidget {
-  const _TertiaryButton({
-    required this.label,
-    required this.icon,
-    required this.onPressed,
-  });
-
-  final String label;
-  final IconData icon;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: CupertinoButton(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        minimumSize: Size.zero,
-        onPressed: onPressed,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: AppColors.tertiary),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: GoogleFonts.publicSans(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: AppColors.tertiary,
-              ),
-            ),
-          ],
         ),
       ),
     );

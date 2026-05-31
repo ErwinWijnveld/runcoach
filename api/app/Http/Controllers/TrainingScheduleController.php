@@ -6,11 +6,13 @@ use App\Jobs\GenerateActivityFeedback;
 use App\Models\Goal;
 use App\Models\TrainingDay;
 use App\Models\TrainingResult;
+use App\Models\TrainingWeek;
 use App\Models\WearableActivity;
 use App\Services\ComplianceScoringService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class TrainingScheduleController extends Controller
 {
@@ -37,6 +39,31 @@ class TrainingScheduleController extends Controller
             ->first();
 
         return response()->json(['data' => $week]);
+    }
+
+    /**
+     * Look up the RunCoachAgent conversation already attached to this week,
+     * if any. Returns `{data: {id}}` or `{data: null}`. The conversation
+     * itself is created lazily by `POST /coach/conversations` with
+     * `subject_type=training_week` on the first send — same pattern as the
+     * workout chat. Owning check goes through the goal.
+     */
+    public function weekChat(Request $request, TrainingWeek $week): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($week->goal()->where('user_id', $user->id)->exists(), 403);
+
+        $conversationId = DB::table('agent_conversations')
+            ->where('user_id', $user->id)
+            ->where('subject_type', 'training_week')
+            ->where('subject_id', $week->id)
+            ->value('id');
+
+        if ($conversationId === null) {
+            return response()->json(['data' => null]);
+        }
+
+        return response()->json(['data' => ['id' => (string) $conversationId]]);
     }
 
     public function showDay(Request $request, int $dayId): JsonResponse

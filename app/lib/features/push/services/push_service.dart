@@ -54,6 +54,14 @@ class PushService {
       // can verify/refresh zones now that their Tanaka-derived max HR
       // shifted by ~0.7 bpm.
       'birthday_zone_check' => '/profile/heart-rate-zones',
+      // 2-week mid-plan check-in. The evaluation id is required — if it's
+      // missing for any reason fall back to the schedule overview so the
+      // runner at least lands somewhere sensible.
+      'plan_evaluation' => () {
+          final id = payload['evaluation_id']?.toString();
+          if (id == null || id.isEmpty) return '/schedule';
+          return '/schedule/evaluation/$id';
+        }(),
       _ => null,
     };
   }

@@ -396,7 +396,7 @@ The plan-builder code lives under `app/Services/Onboarding/`, `app/Support/Onboa
 - Ambition thresholds: `PlanAmbitionAnalyzer::REALISTIC_IMPROVEMENT_PER_MONTH` (12 sec/km/month), `MIN_VOLUME_FOR_RACE_PREP` (5k=25, 10k=35, HM=50, M=65 km/week), `RACE_PACE_DELTA_FROM_THRESHOLD`.
 - Volume safety: `TrainingPlanBuilder::MAX_PEAK_VS_BASELINE_RATIO` (1.6× baseline default; ambition cranks to 1.7×/1.8×, intensity-bias floor 1.45× / ceiling 1.95×), `MAX_WEEKLY_GROWTH_RATIO` (1.30 W-o-W default; bias-tiered 1.22 → 1.36).
 - Intensity bias (`users.intensity_bias` enum): `AmbitionAssessment::applyBias()` shifts the analyzer's level ±1 against `EffectiveAmbitionLevel` (Conservative / Realistic / Ambitious / VeryAmbitious / AllIn), each tier carrying its own `peakVolumeMultiplier` + `weeklyGrowthRatio` + `qualityPaceRampGain` (multiplied into `tempoPace()` / `intervalBlueprint()` progress). Builder reads via private state cached at the top of `build()`. Spec: `../docs/superpowers/specs/2026-05-11-onboarding-intensity-bias-design.md`.
-- Runner level (`users.runner_level` enum, 5 cases Beginner → Elite): drives agent communication tone only. `RunnerLevel::toneBucket()` collapses to 3-case `RunnerToneBucket` (Novice / Standard / Expert) — `OnboardingAgent` reads it via priming-message line, `RunCoachAgent::coachInstructions()` reads `$user->runner_level->toneBucket()` directly. **No builder effect** — pinned by `BuildPlanRunnerLevelTest::test_plan_content_is_identical_across_runner_levels`. Spec: `../docs/superpowers/specs/2026-05-11-onboarding-runner-level-design.md`.
+- Runner level (`users.runner_level` enum, 5 cases Beginner → Elite): drives agent communication tone AND the interval blueprint shape. `RunnerLevel::toneBucket()` collapses to 3-case `RunnerToneBucket` (Novice / Standard / Expert) — `OnboardingAgent` reads it via priming-message line, `RunCoachAgent::coachInstructions()` reads `$user->runner_level->toneBucket()` directly. **Builder effect — Expert tier (Advanced/SubElite/Elite) uses a longer-rep interval progression**: early 4×800m/90s, mid 5×1000m/120s, peak 4×1200m/150s, sharpener 4×600m/90s @ goal pace. Novice/Standard (Beginner/Intermediate) keeps the original 5×400 → 5×800 → 6×800 + 4×400 sharpener. Pinning tests: `BuildPlanRunnerLevelTest::test_plan_content_is_identical_within_expert_tier` (Advanced/SubElite/Elite match), `..._within_non_expert_tiers` (Beginner/Intermediate match), `..._differs_between_novice_and_expert` (cross-bucket diverges). Volume/cadence/non-interval days are still tone-bucket-agnostic. Spec: `../docs/superpowers/specs/2026-05-11-onboarding-runner-level-design.md`.
 - Plan length: `DEFAULT_WEEKS_FOR_GOAL` + `DEFAULT_WEEKS_FOR_PR_ATTEMPT`. `weeksExtension` adds +0/+4/+8 by ambition level (only when target_date null).
 - Session mix: `TrainingPlanBuilder::pickSessionTypes()` (the 1-7 day table). `applyEasyToQualityUpgrade()` swaps one easy for a second quality at 5+ days/week if intervals/tempo is gold-ranked.
 - Long-run cap: `LONG_RUN_CAP_BY_RANK` (gold=0.48, silver=0.44, bronze=0.40, last=0.36) + session-count boost (+0.20 for 2-day weeks, +0.10 for 3-day).
@@ -587,33 +587,38 @@ After update, the day is auto-re-assigned to the matching `TrainingWeek` (week w
 ### Notifications inbox (action-required items)
 
 Generic per-user inbox for items the runner needs to act on. Backed by `user_notifications` (`App\Models\UserNotification`):
-- `type` (string discriminator: currently only `pace_adjustment`)
+- `type` (string discriminator: currently only `plan_evaluation`)
 - `title`, `body` — display copy
-- `action_data` (JSON) — type-specific payload
+- `action_data` (JSON) — type-specific payload (e.g. `{"evaluation_id": 42}`)
 - `status` (`pending` / `accepted` / `dismissed`) + `acted_at`
 
 **Endpoints** (all under `auth:sanctum`):
 - `GET /api/v1/notifications` → pending list, capped at 50 items (`NotificationController::MAX_INBOX_ITEMS`)
 - `POST /api/v1/notifications/{id}/accept` → routes by `type` to the right handler, marks accepted
-- `POST /api/v1/notifications/{id}/dismiss` → marks dismissed without applying
+- `POST /api/v1/notifications/{id}/dismiss` → marks dismissed (and cascades to the linked `PlanEvaluation` when applicable)
 
 **Adding a new type**:
 1. Pick a string like `profile_completion` and add as a `UserNotification::TYPE_*` constant
 2. Decide what `action_data` shape it needs and document it
-3. Add a producer (a service that creates the row when conditions trigger). For pace_adjustment, that's `App\Services\PaceAdjustmentEvaluator` — invoked from `GenerateActivityFeedback::handle()` inside a `try/catch report($e)` so a brittle producer can't silence the AI feedback / push pipeline.
+3. Add a producer (a service / job that creates the row when conditions trigger).
 4. Add a `match` arm in `NotificationController::accept` for the type, calling its specific handler. Default falls through to `abort(422, …)`.
-5. (Optional) extend the Flutter `_NotificationCard` with a tertiary action when the type warrants it (e.g. pace_adjustment surfaces "Edit HR Zones" so the runner can address the root-cause calibration). See `app/CLAUDE.md` for the UI pattern.
+5. (Optional) extend the Flutter `_NotificationCard` with a tertiary action when the type warrants it. See `app/CLAUDE.md` for the UI pattern.
 
-**Pace-adjustment producer rules** (`PaceAdjustmentEvaluator`):
-- Skips intervals (their day-level `target_pace_seconds_per_km` is always null + full-run avg pace isn't the right signal)
-- Skips when `pace_score < 8.0` (runner couldn't hold target pace, so the HR mismatch isn't a zone-calibration issue)
-- Skips when `heart_rate_score > 7.0` (HR was close enough to zone — no signal)
-- Pace-factor formula: `1 + (actual_hr − zone_mid) / zone_mid / 0.85`, clamped to `[0.85, 1.20]`
-- Skips when `|factor − 1| < 0.03` (adjustment too small to bother the user with)
-- Supersedes any pending notification of the same `training_type` (replace older suggestion when a fresh run confirms the pattern)
-- HR zone math goes through `App\Support\HeartRateZones` — single source of truth shared with `ComplianceScoringService`. Don't reimplement zone lookups inline.
+### Mid-plan evaluation moments
 
-**Tests:** `tests/Feature/Services/PaceAdjustmentEvaluatorTest.php` (producer trigger logic) + `tests/Feature/Http/NotificationControllerTest.php` (accept/dismiss/auth flow) + `tests/Feature/Jobs/GenerateActivityFeedbackTest.php::test_push_still_fires_when_pace_evaluator_throws` (resilience).
+`TrainingPlanBuilder::scheduleEvaluations()` emits `evaluations[]` entries every 2nd week (`EVALUATION_EVERY_N_WEEKS = 2`), skipping the taper window (last `taperLengthForRamp()` weeks). `ProposalService::applyCreateSchedule` persists them as `plan_evaluations` rows (status `pending`) linked to the goal + week.
+
+Every evening at 19:00 in the reminder timezone, `plan:run-evaluations` (`App\Console\Commands\RunPlanEvaluations`) dispatches `GeneratePlanEvaluation` for every pending row whose `scheduled_for` has arrived AND whose goal is still active. The job:
+1. Runs `PlanEvaluationAgent` (Sonnet, one-shot with `GetRecentRuns` / `GetComplianceReport` / `GetCurrentSchedule` read tools + `AdjustPlan` when `planMutationsAllowed()`).
+2. Detects any `EditActivePlan` proposal that `AdjustPlan` produced (by `id > snapshot_before`).
+3. Stores the AI markdown report + (optional) `proposal_id` on the `PlanEvaluation` row.
+4. Creates a `user_notifications` row (`type=plan_evaluation`) + dispatches `PlanEvaluationReady` APNs push. Push body differs by whether a proposal exists.
+
+Accept flow: `NotificationController::applyPlanEvaluation` resolves the linked evaluation, applies its `proposal` (if any) via `ProposalService::apply`, and flips the evaluation status to `Accepted`. Dismiss flips the evaluation to `Dismissed` without applying.
+
+Coach-managed clients (`organizations.coaches_own_plans = true`) get read tools only — agent produces a report but no proposal, so the runner just sees the markdown summary.
+
+**Tests:** `tests/Feature/Http/NotificationControllerTest.php` (accept/dismiss/auth flow).
 
 ### Interval pace contract (must read before touching interval code)
 
@@ -679,6 +684,24 @@ Notification classes that route through `__()`: `PlanGenerationCompleted`, `Plan
 - **Required-on-every-param**: every schema param MUST have `->required()`. For truly optional params, use `->required()->nullable()` — this satisfies OpenAI strict mode and is fine with Anthropic. Do NOT use `->default()`.
 - Tools that need user data take `User $user` in constructor, injected from the agent.
 - **UI-only tools** (`PresentRunningStats`, `OfferChoices`) return `json_encode(['display' => 'stats_card'|'chip_suggestions', ...])`. `CoachController::sendMessage` inspects `ToolResultEvent` payloads for `display` and forwards matching `data-stats` / `data-chips` SSE events to Flutter.
+
+### Pro entitlement gate for AI work
+
+**Every queued job that spends Anthropic budget MUST early-return when `$user->isPro()` is false.** HTTP routes are gated by the `require.pro` middleware (`App\Http\Middleware\RequireProEntitlement`, returns 402), but background jobs run outside the HTTP request lifecycle and need their own guard. Without it, a runner whose subscription expired keeps generating activity feedback, weekly insights, etc. — silent budget leak.
+
+Pattern (top of `handle()`, after the user is resolved but before any agent call):
+
+```php
+if ($user && ! $user->isPro()) {
+    Log::info('Skipping AI work for non-pro user', [
+        'user_id' => $user->id,
+        'job' => static::class,
+    ]);
+    return;
+}
+```
+
+Applied today: `GenerateActivityFeedback`, `GenerateWeeklyInsight`. `GeneratePlan` is the deliberate exception — onboarding runs it BEFORE the paywall (the paywall renders the generated plan as a teaser), so it's an unconditional acquisition cost. Spec: `../docs/superpowers/specs/2026-05-19-revenuecat-subscriptions.md` → "AI feature gate". When adding a new AI job, add to the checklist.
 
 ### Tool design guidelines
 

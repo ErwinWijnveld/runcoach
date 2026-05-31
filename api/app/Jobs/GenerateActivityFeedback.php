@@ -7,13 +7,13 @@ use App\Enums\TrainingType;
 use App\Models\TrainingResult;
 use App\Models\WearableActivity;
 use App\Notifications\WorkoutAnalyzed;
-use App\Services\PaceAdjustmentEvaluator;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Log;
 
 class GenerateActivityFeedback implements ShouldQueue
 {
@@ -37,26 +37,24 @@ class GenerateActivityFeedback implements ShouldQueue
             App::setLocale($user->preferredLocale());
         }
 
+        // Pro gate. AI feedback is a paid feature; skip silently for expired
+        // users so they keep syncing activities (which IS free) without
+        // burning Anthropic budget on them.
+        if ($user && ! $user->isPro()) {
+            Log::info('Skipping AI work for non-pro user', [
+                'user_id' => $user->id,
+                'job' => static::class,
+            ]);
+
+            return;
+        }
+
         $response = ActivityFeedbackAgent::make()->prompt($this->buildPrompt($result));
 
         $result->update(['ai_feedback' => $response->text]);
 
-        // Push BEFORE evaluator so a downstream throw can't drop it. Once
-        // ai_feedback is set, the early-return at the top of handle() makes
-        // a job retry a no-op — meaning whatever runs last in the success
-        // path is "all-or-nothing" on retry. The push is user-visible and
-        // critical; the evaluator is opportunistic. Order them accordingly.
         if ($user) {
             $user->notify(new WorkoutAnalyzed($result->id));
-        }
-
-        // Evaluator failures are non-fatal: log and move on so a brittle
-        // edge case in pace-adjustment heuristics can't take down the AI
-        // feedback pipeline.
-        try {
-            app(PaceAdjustmentEvaluator::class)->evaluate($result);
-        } catch (\Throwable $e) {
-            report($e);
         }
     }
 

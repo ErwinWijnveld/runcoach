@@ -33,6 +33,13 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            // Default factory users are Pro so existing tests that exercise
+            // AI features (coach chat, activity feedback, weekly insight) keep
+            // working after the entitlement gate landed. Tests that need a
+            // non-pro user override with `->create(['pro_active_until' => null])`
+            // or use the `nonPro()` state.
+            'pro_active_until' => now()->addYears(10),
+            'pro_product_id' => 'runcoach_pro_yearly',
         ];
     }
 
@@ -43,6 +50,17 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'email_verified_at' => null,
+        ]);
+    }
+
+    /**
+     * Indicate that the user does NOT have an active Pro entitlement.
+     */
+    public function nonPro(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'pro_active_until' => null,
+            'pro_product_id' => null,
         ]);
     }
 }

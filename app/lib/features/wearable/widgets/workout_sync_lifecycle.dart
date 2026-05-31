@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/permissions/services/permissions_service.dart';
+import 'package:app/features/schedule/services/watch_sync_service.dart';
 import 'package:app/features/wearable/providers/workout_sync_provider.dart';
 
 /// Wraps the app's router and triggers a foreground sync whenever:
@@ -56,11 +57,21 @@ class _WorkoutSyncLifecycleState extends ConsumerState<WorkoutSyncLifecycle>
     if (user.hasCompletedOnboarding != true) return;
     // Fire-and-forget — sync() handles its own errors and debouncing.
     unawaited(ref.read(workoutSyncProvider.notifier).sync());
+    // One-time GPS-route backfill (last 30d). Guarded internally by a
+    // `shared_preferences` flag so this is a no-op on every launch after
+    // the first one post-update.
+    unawaited(ref.read(workoutSyncProvider.notifier).backfillRoutesIfNeeded());
     // Re-prompts HealthKit + push on every foreground. iOS only shows the
     // system dialog when permission is `notDetermined`; already-decided
     // states are silent no-ops. Onboarding is gated above, so the
     // connect-health screen still owns the first prompt.
     unawaited(ref.read(permissionsServiceProvider).ensureRequested());
+    // Re-sync any upcoming TrainingDays the coach (or admin) edited
+    // server-side since our last successful sync. No-op when nothing's
+    // changed (the common case). The schedule provider has already been
+    // refreshed by an earlier foreground hop / planVersion bump, so
+    // syncDeltas reads fresh updated_at values.
+    unawaited(ref.read(watchSyncProvider.notifier).syncDeltas());
   }
 
   @override

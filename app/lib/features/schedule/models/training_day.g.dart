@@ -20,6 +20,9 @@ _TrainingDay _$TrainingDayFromJson(Map<String, dynamic> json) => _TrainingDay(
   result: json['result'] == null
       ? null
       : TrainingResult.fromJson(json['result'] as Map<String, dynamic>),
+  updatedAt: json['updated_at'] == null
+      ? null
+      : DateTime.parse(json['updated_at'] as String),
 );
 
 Map<String, dynamic> _$TrainingDayToJson(_TrainingDay instance) =>
@@ -35,4 +38,5 @@ Map<String, dynamic> _$TrainingDayToJson(_TrainingDay instance) =>
       'intervals_json': instance.intervals,
       'order': instance.order,
       'result': instance.result,
+      'updated_at': instance.updatedAt?.toIso8601String(),
     };

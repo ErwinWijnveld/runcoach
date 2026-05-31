@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:health/health.dart';
+import 'package:app/features/wearable/services/workout_route_service.dart';
 
 /// Reads workouts and HR samples from Apple HealthKit and shapes them into
 /// the payload the backend `POST /wearable/activities` endpoint expects.
@@ -12,12 +13,17 @@ import 'package:health/health.dart';
 /// any HR samples that overlap the workout window, which usually means
 /// workout HR but can include resting watch readings on either side).
 class HealthKitService {
-  HealthKitService([Health? health, MethodChannel? prChannel])
-      : _health = health ?? Health(),
-        _prChannel = prChannel ?? const MethodChannel('nl.runcoach/healthkit_prs');
+  HealthKitService([
+    Health? health,
+    MethodChannel? prChannel,
+    WorkoutRouteService? routeService,
+  ])  : _health = health ?? Health(),
+        _prChannel = prChannel ?? const MethodChannel('nl.runcoach/healthkit_prs'),
+        _routeService = routeService ?? WorkoutRouteService();
 
   final Health _health;
   final MethodChannel _prChannel;
+  final WorkoutRouteService _routeService;
 
   static const _workoutType = HealthDataType.WORKOUT;
   static const _hrType = HealthDataType.HEART_RATE;
@@ -76,8 +82,16 @@ class HealthKitService {
   /// summary field), so without this extra pass the backend would see
   /// every Apple Health workout as HR-less and the coach would say
   /// "I don't have heart-rate data for these runs".
+  /// When [includeRoutes] is false, the slow per-workout GPS route queries are
+  /// skipped and `raw_data.route` is left empty. The onboarding/metrics sync
+  /// passes false: routes are only needed for the shareable run-card (a much
+  /// smaller, recent window) and are backfilled lazily afterwards. Stripping
+  /// them keeps each activity ~500 bytes instead of tens of KB, so even a
+  /// thousand runs sync in a few small batches without tripping
+  /// `post_max_size`.
   Future<List<Map<String, dynamic>>> fetchWorkouts({
     Duration window = const Duration(days: 365),
+    bool includeRoutes = true,
   }) async {
     final now = DateTime.now();
     final start = now.subtract(window);
@@ -132,12 +146,43 @@ class HealthKitService {
       }
     }
 
+    // GPS route per workout — feeds the shareable run-card flow. Empty
+    // arrays (treadmill / no-GPS / permission denied) are persisted as
+    // `raw_data.route: []` so the card flow can confidently render the
+    // no-route variant without re-querying HealthKit. Skipped entirely for
+    // metric-only syncs (onboarding) — see [includeRoutes].
+    int routesAttached = 0;
+    if (includeRoutes) {
+      const routeBatchSize = 10;
+      for (var i = 0; i < pending.length; i += routeBatchSize) {
+        final end = (i + routeBatchSize < pending.length)
+            ? i + routeBatchSize
+            : pending.length;
+        final batch = pending.sublist(i, end);
+        final routes = await Future.wait(
+          batch.map((entry) => _routeService.fetchRoute(entry.$1.uuid)),
+        );
+        for (var j = 0; j < batch.length; j++) {
+          final points = routes[j];
+          if (points.isEmpty) continue;
+          final shaped = batch[j].$2;
+          final rawData = Map<String, dynamic>.from(
+            shaped['raw_data'] as Map? ?? const <String, dynamic>{},
+          );
+          rawData['route'] =
+              points.map((p) => p.toJson()).toList(growable: false);
+          shaped['raw_data'] = rawData;
+          routesAttached++;
+        }
+      }
+    }
+
     final workouts = pending.map((e) => e.$2).toList();
 
     // ignore: avoid_print
     print('[HealthKit] window=${window.inDays}d found ${workouts.length} runs '
-        '(hr_attached=$hrAttached, skipped non-run=$skippedNonRun, '
-        'zero-distance=$skippedZeroDistance)');
+        '(hr_attached=$hrAttached, routes_attached=$routesAttached, '
+        'skipped non-run=$skippedNonRun, zero-distance=$skippedZeroDistance)');
 
     return workouts;
   }

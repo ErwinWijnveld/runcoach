@@ -18,6 +18,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get languageDutch => 'Nederlands';
 
   @override
+  String get runShareSheetCta => 'Share this run';
+
+  @override
+  String get runShareSheetSubtitle => 'Tap to save or share with friends';
+
+  @override
+  String get runShareInlineCta => 'Share this run';
+
+  @override
+  String get runShareBarrierLabel => 'Run summary';
+
+  @override
+  String get runShareKpiDistance => 'DISTANCE';
+
+  @override
+  String get runShareKpiTime => 'TIME';
+
+  @override
+  String get runShareKpiAvgPace => 'AVG PACE';
+
+  @override
+  String get runShareKpiAvgHr => 'AVG BPM';
+
+  @override
+  String get runShareKpiCompliance => 'ON-PLAN';
+
+  @override
+  String get runShareIndoorPill => 'INDOOR RUN';
+
+  @override
   String get commonContinue => 'Continue';
 
   @override
@@ -126,6 +156,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get onbConnectHealthStageSyncingSub =>
       'Reading the last 12 months from Apple Health.';
+
+  @override
+  String onbConnectHealthStageSyncingProgress(int done, int total) {
+    return 'Syncing $done of $total runs…';
+  }
 
   @override
   String onbConnectHealthStageDone(int count) {
@@ -786,6 +821,72 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedEmptyCta => 'Go to Goals';
+
+  @override
+  String get scheduleChatBarrierLabel => 'Schedule week chat';
+
+  @override
+  String scheduleChatViewingWeek(int weekNumber, String dateRange) {
+    return 'Viewing week $weekNumber · $dateRange';
+  }
+
+  @override
+  String scheduleChatTitle(int weekNumber, String dateRange) {
+    return 'Week $weekNumber ($dateRange)';
+  }
+
+  @override
+  String get scheduleChatEmptyTitle => 'Ask about this week';
+
+  @override
+  String get scheduleChatEmptySubtitle =>
+      'Anything goes — pace, intensity, swaps, recovery.';
+
+  @override
+  String weekChatSuggestionIntervalPace(String dayName) {
+    return 'How should I pace the intervals on $dayName?';
+  }
+
+  @override
+  String get weekChatSuggestionIntervalPaceSub =>
+      'Set the right effort for each rep.';
+
+  @override
+  String weekChatSuggestionLongRunPace(String dayName) {
+    return 'How should I pace the long run on $dayName?';
+  }
+
+  @override
+  String get weekChatSuggestionLongRunPaceSub => 'Stay aerobic, finish strong.';
+
+  @override
+  String get weekChatSuggestionDeloadWhy => 'Why is this week lighter?';
+
+  @override
+  String get weekChatSuggestionDeloadWhySub =>
+      'Recovery weeks and how they help.';
+
+  @override
+  String get weekChatSuggestionRaceDayPrep =>
+      'What should I do the day before the race?';
+
+  @override
+  String get weekChatSuggestionRaceDayPrepSub =>
+      'Pre-race routine, food, sleep.';
+
+  @override
+  String get weekChatSuggestionTooHard => 'Is this week too hard for me?';
+
+  @override
+  String get weekChatSuggestionTooHardSub => 'Get an honest read on the load.';
+
+  @override
+  String get weekChatSuggestionSwapInterval =>
+      'Can we swap an interval for a long run?';
+
+  @override
+  String get weekChatSuggestionSwapIntervalSub =>
+      'Adjust this week\'s structure.';
 
   @override
   String get schedDayTarget => 'TARGET';
@@ -1713,10 +1814,70 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notificationsCardApply => 'APPLY';
 
   @override
-  String get notificationsTertiaryEditHrZones => 'Edit HR Zones';
+  String get notificationsCardViewEvaluation => 'View your check-in';
 
   @override
-  String get notificationsTypePaceAdjustment => 'PACE ADJUSTMENT';
+  String get notificationsTypePlanEvaluation => '2-WEEK CHECK-IN';
+
+  @override
+  String get evaluationCardEyebrow => 'CHECK-IN';
+
+  @override
+  String evaluationCardScheduledFor(String date) {
+    return 'Scheduled for $date';
+  }
+
+  @override
+  String evaluationCardWeekTitle(int week) {
+    return 'Week $week check-in';
+  }
+
+  @override
+  String get evaluationCardStatusPending => 'Up next';
+
+  @override
+  String get evaluationCardStatusProcessing => 'Working on it…';
+
+  @override
+  String get evaluationCardStatusReady => 'Report ready';
+
+  @override
+  String get evaluationCardStatusNoChange => 'No changes needed';
+
+  @override
+  String get evaluationCardStatusAccepted => 'Applied';
+
+  @override
+  String get evaluationCardStatusDismissed => 'Dismissed';
+
+  @override
+  String get evaluationCardCtaView => 'Open';
+
+  @override
+  String get evaluationDetailTitle => '2-week check-in';
+
+  @override
+  String get evaluationDetailReportHeader => 'Your coach\'s take';
+
+  @override
+  String get evaluationDetailProposalHeader => 'Suggested adjustment';
+
+  @override
+  String get evaluationDetailApply => 'APPLY ADJUSTMENT';
+
+  @override
+  String get evaluationDetailDismiss => 'DISMISS';
+
+  @override
+  String get evaluationDetailClose => 'CLOSE';
+
+  @override
+  String get evaluationDetailNoReport => 'No report available yet.';
+
+  @override
+  String evaluationDetailLoadError(String error) {
+    return 'Could not load this evaluation.\n$error';
+  }
 
   @override
   String get hrZoneNameZ1 => 'Endurance';
@@ -2081,4 +2242,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get trainingTypeThreshold => 'Threshold';
+
+  @override
+  String get paywallEyebrow => 'YOUR PLAN';
+
+  @override
+  String get paywallPreviewTitle => 'Your training plan';
+
+  @override
+  String get paywallUnlockCta => 'UNLOCK RUNCOACH PRO';
+
+  @override
+  String get paywallNoDaysPlaceholder => 'No sessions this week.';
+
+  @override
+  String get paywallLockedHint => 'PRO';
+
+  @override
+  String paywallWeekEyebrow(int weekNumber) {
+    return 'WEEK $weekNumber';
+  }
+
+  @override
+  String paywallWeekTotalKm(String km) {
+    return '$km km total';
+  }
+
+  @override
+  String get paywallManageSubscription => 'Manage subscription';
+
+  @override
+  String get paywallProBadge => 'PRO';
+
+  @override
+  String get paywallProTrialBadge => 'PRO · TRIAL';
 }

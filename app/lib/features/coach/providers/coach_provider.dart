@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +14,7 @@ import 'package:app/l10n/app_localizations.dart';
 import 'package:app/features/coach/models/conversation.dart';
 import 'package:app/features/coach/models/vercel_stream_event.dart';
 import 'package:app/features/schedule/providers/plan_version_provider.dart';
+import 'package:app/features/schedule/services/watch_sync_service.dart';
 
 part 'coach_provider.g.dart';
 
@@ -69,9 +72,15 @@ class ProposalActions extends _$ProposalActions {
     final api = ref.read(coachApiProvider);
     final planVersion = ref.read(planVersionProvider.notifier);
     final auth = ref.read(authProvider.notifier);
+    final watchSync = ref.read(watchSyncProvider.notifier);
     await api.acceptProposal(proposalId);
     planVersion.bump();
     await auth.loadProfile();
+    // Fire-and-forget — first time the runner sees the WorkoutKit
+    // permission prompt, in the context of a plan they just committed
+    // to. Failures (denied / unavailable) are silent; the runner can
+    // still use the per-day Send-to-watch button as a fallback.
+    unawaited(watchSync.syncUpcoming());
   }
 
   Future<void> reject(int proposalId) async {
@@ -254,9 +263,11 @@ class CoachChat extends _$CoachChat {
     final api = ref.read(coachApiProvider);
     final planVersion = ref.read(planVersionProvider.notifier);
     final auth = ref.read(authProvider.notifier);
+    final watchSync = ref.read(watchSyncProvider.notifier);
     await api.acceptProposal(proposalId);
     planVersion.bump();
     await auth.loadProfile();
+    unawaited(watchSync.syncUpcoming());
   }
 
   Future<void> rejectProposal(int proposalId) async {

@@ -26,6 +26,11 @@ sealed class TrainingDay with _$TrainingDay {
     List<TrainingInterval>? intervals,
     @JsonKey(fromJson: toInt) required int order,
     TrainingResult? result,
+
+    /// Server-side `updated_at` (ISO-8601). The watch auto-sync compares
+    /// this against a locally-stored `lastSyncedAt` to decide which days
+    /// to re-ship on app foreground (coach-driven edits).
+    @JsonKey(name: 'updated_at') DateTime? updatedAt,
   }) = _TrainingDay;
 
   factory TrainingDay.fromJson(Map<String, dynamic> json) =>

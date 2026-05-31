@@ -360,28 +360,36 @@ Native MethodChannel bridge instead of `firebase_messaging` — keeps Firebase o
 
 ### 11. Send to watch (WorkoutKit, iOS 17+)
 
-Native MethodChannel bridge `nl.runcoach/workout` (`ios/Runner/WorkoutScheduling.swift`, registered in `AppDelegate.didInitializeImplicitFlutterEngine`). Three Dart→Native methods:
+Native MethodChannel bridge `nl.runcoach/workout` (`ios/Runner/WorkoutScheduling.swift`, registered in `AppDelegate.didInitializeImplicitFlutterEngine`). The watch is kept in sync **automatically** — runners no longer have to press a per-day button before going running. The manual button remains as a force-resync for one day at a time.
 
-- **`scheduleRun`** — `SingleGoalWorkout(activity:.running, location:.outdoor, goal:.distance(km, .kilometers))` for non-interval days. Args: `{date, distanceKm, dayId}`.
-- **`scheduleIntervals`** — `CustomWorkout` with `warmup` (time-only `WorkoutStep` if provided), one `IntervalBlock` of work/recovery `IntervalStep`s, and a time-only `cooldown`. Args: `{date, dayId, displayName, warmupSeconds, cooldownSeconds, steps:[{kind, distanceM, durationSeconds}]}`.
-- **`rescheduleIfPresent`** — fire-and-forget watch sync. Looks up our scheduled plan by deterministic UUID, removes from old date, schedules at new date. Silent no-op when nothing to do or auth not granted (does NOT prompt). Args: `{date, dayId}`.
+**Auto-sync triggers (Flutter side, all routed through `WatchSyncService` in `features/schedule/services/watch_sync_service.dart`):**
+- **Plan accept** (`coach_provider.dart::ProposalActions.accept` + `CoachChat.acceptProposal`) → `syncUpcoming(7)`. First place the WorkoutKit permission prompt fires for most runners.
+- **Reschedule day** (`reschedule_day_sheet.dart::_save`) → `syncUpcoming(7)` (replaces the old `rescheduleIfPresent` single-day call).
+- **Notification accept** (`notifications_provider.dart::Notifications.accept`) → `syncUpcoming(7)` (covers pace-adjustment cascades and any future plan-mutating notification type).
+- **App foreground** (`workout_sync_lifecycle.dart::_maybeSync`) → `syncDeltas()` — re-ships only days whose server-side `TrainingDay.updated_at` is newer than the locally-stored `lastSyncedAt[dayId]` (in `shared_preferences` under `watch_synced_at_v1`). No-op when nothing changed.
 
-All return `{status: 'scheduled'|'duplicate'|'denied'|'unavailable'|'failed'|'moved'|'skipped', message}`.
+**Native methods:**
+- **`syncDays`** (batch, iOS 17.4+) — used by `WatchSyncService`. One auth gate + one `scheduledWorkouts` read for up to N days. Args: `{days: [{dayId, date, distanceKm?, displayName?, warmupSeconds?, cooldownSeconds?, steps?}, ...]}`. Returns `{status: 'ok'|'denied'|'unavailable', results: [{dayId, status: 'scheduled'|'skipped'|'failed', message?}]}`.
+- **`scheduleRun` / `scheduleIntervals`** (per-day) — backing the manual Send-to-watch button. Always replace any prior plan with the same `dayId` UUID (the old `.duplicate` short-circuit was removed — content edits now propagate). Return `{status: 'scheduled'|'denied'|'unavailable'|'failed', message?}`.
+- **`rescheduleIfPresent`** — kept for backward compat but no longer called by the app code. `reschedule_day_sheet` now goes through `WatchSyncService.syncUpcoming`. Remove the native method if it's still unused after a release cycle.
 
-**Identity tracking** (iOS 17.4+): every `WorkoutPlan` is created with a deterministic UUID derived from the `TrainingDay.id`: `00000000-0000-0000-0000-{dayId masked to 48 bits as 12 hex chars}` (see `WorkoutScheduling.uuidForDay`). The mask prevents 64-bit overflow from breaking the UUID format. Identity tracking lets us:
-- de-dup ONLY against ourselves (other apps' workouts on the same day are allowed),
-- find-and-replace when sending the same TrainingDay to a different date,
-- auto-move on reschedule via `rescheduleIfPresent`.
+**Identity tracking** (iOS 17.4+): every `WorkoutPlan` carries a deterministic UUID derived from `TrainingDay.id`: `00000000-0000-0000-0000-{dayId masked to 48 bits as 12 hex chars}` (`WorkoutScheduling.uuidForDay`). The mask prevents 64-bit overflow from breaking the UUID format. Without it the parse would silently fall back to a random UUID and defeat identity tracking. With it, `syncDays` and the per-day methods can find-and-replace our own scheduled plan without disturbing other apps' workouts on the same day.
 
-On iOS 17.0–17.3, custom IDs aren't available → no de-dup, no auto-reschedule. Multiple sends per day end up as multiple watch entries (rare audience in 2026).
+**iOS 17.0–17.3 fallback:** no identity tracking, so `syncDays` returns `status=unavailable` outright (would otherwise create duplicate entries on every batch). The manual per-day button still works — multiple sends just stack up as multiple entries until the runner prunes them in the Fitness app. Rare audience in 2026.
 
-**Cooldown is required by schema** (`api/CLAUDE.md` → "Interval session rules"). The screen's `_buildIntervalPlan` defensively synthesizes a 300s cooldown if a row's `intervals_json` lacks one (covers pre-rule data). Distance-based recoveries are converted to seconds via 360 sec/km recovery pace. Cooldown segments are hoisted to the `cooldownSeconds` arg, never sent as steps.
+**Permission UX:** the WorkoutKit prompt fires the first time `syncUpcoming` runs (almost always at plan-accept). Earlier surfaces (the manual button) still trigger it too if they get there first. The auth state is read once at the top of the batch; subsequent days in the same call don't re-prompt.
 
-**Reschedule auto-syncs the watch**: `reschedule_day_sheet.dart::_save` awaits `WorkoutSchedulerService.rescheduleIfPresent` after a successful `PATCH /training-days/{day}`. Awaited (not unawaited) to avoid a race with a quick follow-up Send-to-watch tap.
+**Interval payload shape** (canonical reference: `buildIntervalPlan` in `workout_scheduler_service.dart`, top-level — used by BOTH the manual button and the batched auto-sync, so the rules live in exactly one place):
+- Warmup hoisted to its own slot, time-based, clamped to [15s, 120s].
+- Work + recovery flow into the IntervalBlock as steps.
+- Cooldown hoisted to its own slot, time-based, clamped to [60s, 600s]; synthesized at 300s if the day's `intervals_json` lacks one (defensive — covers pre-rule data).
+- Distance-based recoveries are converted to seconds via 360 sec/km. Cooldown segments are NEVER sent as steps.
 
-**Cannot be tested on the iOS Simulator.** WorkoutKit + Fitness app sync only work on real hardware.
+**Cannot be tested on the iOS Simulator.** WorkoutKit + Fitness app sync only work on real hardware. Unit tests for `WatchSyncService` (`test/features/schedule/services/watch_sync_service_test.dart`) mock the scheduler service so the delta-detection logic and 7-day clamp are covered without the bridge.
 
 **Pbxproj entries:** `WorkoutScheduling.swift` is registered in `Runner.xcodeproj/project.pbxproj` in 3 places (PBXBuildFile, PBXFileReference, PBXGroup, PBXSourcesBuildPhase). When adding new `.swift` files in `ios/Runner/`, replicate the pattern of `HealthKitPersonalRecords.swift` / `PushNotifications.swift` there or `flutter run` fails with "Cannot find 'X' in scope".
+
+**Plan:** `docs/superpowers/plans/2026-05-19-watch-auto-sync.md`.
 
 ### 12. Reschedule day sheet
 
@@ -459,12 +467,14 @@ Header bell + bottom-sheet inbox + cold-start reminder for items the runner must
 **Card action pattern** (`_NotificationCard`):
 - Always: white card, gold-glow eyebrow pill with the type label, italic Garamond title, Public Sans body
 - Always: bottom row with `DISMISS` (left, 1× flex, `lightTan`) + `APPLY` (right, 2× flex, gold `secondary`) primary CTAs
-- Per-type tertiary action (full-width below the row, `_TertiaryButton`): conditionally rendered when the type warrants it. **For `pace_adjustment`**: `Edit HR Zones` with edit icon → `showHeartRateZonesSheet(context)`. The principle: if the notification's underlying cause has a calibration UI, surface that UI as a tertiary action so the runner can address the root cause rather than just patching the symptom.
+- Per-type tertiary action (full-width below the row, `_TertiaryButton`): conditionally rendered when the type warrants it. **For `plan_evaluation`**: `View full report` with doc icon → pops the sheet + `context.push('/schedule/evaluation/${evaluation_id}')` so the runner can read the AI markdown report before deciding.
 
 **Adding a new notification type:**
 1. Backend produces the row with a new `type` string + `action_data` shape (see `api/CLAUDE.md`).
 2. (Optional) extend `_typeLabel` switch in `notifications_sheet.dart` for a humanised eyebrow label — falls through to `replaceAll('_', ' ').toUpperCase()` if not added.
-3. (Optional) add a tertiary action arm in `_NotificationCard.build` (the `if (n.type == 'pace_adjustment')` block) when the type has a calibration sheet to surface.
+3. (Optional) add a tertiary action arm in `_NotificationCard.build` (the `if (n.type == 'plan_evaluation')` block) when the type has supporting context worth surfacing on the card.
+
+**Plan evaluations** (2-week check-in): `PlanEvaluation` rows live alongside training days on the active goal. `EvaluationCard` (`features/schedule/widgets/evaluation_card.dart`) renders them inline in `weekly_plan_screen.dart` — distinct white card with gold-glow eyebrow, no km/pace tiles, status glyph + status title + `scheduled_for` + `Open` CTA. Statuses: `pending` / `processing` (non-tappable), `ready` / `no_change_needed` / `accepted` / `dismissed` (tap → `/schedule/evaluation/{id}`). `EvaluationDetailScreen` shows the markdown report via `GptMarkdown` plus, when present, an embedded `PlanContent` widget over the proposal payload — same diff-rendering as the coach-chat revision card. Apply/Dismiss CTAs route through `NotificationsProvider.accept`/`dismiss` for the linked notification so the existing watch-sync side-effect + proposal-apply fires. Endpoints: `GET /plan-evaluations` (list for active goal), `GET /plan-evaluations/{id}` (full detail with eager-loaded proposal). Plan: `docs/superpowers/plans/2026-05-22-plan-evaluations.md`.
 
 ### 16. Screen intro animations
 

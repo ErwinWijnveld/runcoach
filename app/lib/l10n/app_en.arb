@@ -9,6 +9,17 @@
   "languageEnglish": "English",
   "languageDutch": "Nederlands",
 
+  "runShareSheetCta": "Share this run",
+  "runShareSheetSubtitle": "Tap to save or share with friends",
+  "runShareInlineCta": "Share this run",
+  "runShareBarrierLabel": "Run summary",
+  "runShareKpiDistance": "DISTANCE",
+  "runShareKpiTime": "TIME",
+  "runShareKpiAvgPace": "AVG PACE",
+  "runShareKpiAvgHr": "AVG BPM",
+  "runShareKpiCompliance": "ON-PLAN",
+  "runShareIndoorPill": "INDOOR RUN",
+
   "commonContinue": "Continue",
   "commonTryAgain": "Try again",
   "commonRetry": "Retry",
@@ -47,6 +58,13 @@
   "onbConnectHealthStageRequestingSub": "Tap \"Allow\" on the system prompt.",
   "onbConnectHealthStageSyncing": "Pulling your runs…",
   "onbConnectHealthStageSyncingSub": "Reading the last 12 months from Apple Health.",
+  "onbConnectHealthStageSyncingProgress": "Syncing {done} of {total} runs…",
+  "@onbConnectHealthStageSyncingProgress": {
+    "placeholders": {
+      "done": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
   "onbConnectHealthStageDone": "Synced {count} runs",
   "@onbConnectHealthStageDone": {
     "placeholders": { "count": { "type": "int" } }
@@ -311,6 +329,42 @@
   "schedEmptyTitle": "No active goal",
   "schedEmptyBody": "Pick a goal (or ask the coach to build one) to see its schedule here.",
   "schedEmptyCta": "Go to Goals",
+
+  "scheduleChatBarrierLabel": "Schedule week chat",
+  "scheduleChatViewingWeek": "Viewing week {weekNumber} · {dateRange}",
+  "@scheduleChatViewingWeek": {
+    "placeholders": {
+      "weekNumber": { "type": "int" },
+      "dateRange": { "type": "String" }
+    }
+  },
+  "scheduleChatTitle": "Week {weekNumber} ({dateRange})",
+  "@scheduleChatTitle": {
+    "placeholders": {
+      "weekNumber": { "type": "int" },
+      "dateRange": { "type": "String" }
+    }
+  },
+  "scheduleChatEmptyTitle": "Ask about this week",
+  "scheduleChatEmptySubtitle": "Anything goes — pace, intensity, swaps, recovery.",
+  "weekChatSuggestionIntervalPace": "How should I pace the intervals on {dayName}?",
+  "@weekChatSuggestionIntervalPace": {
+    "placeholders": { "dayName": { "type": "String" } }
+  },
+  "weekChatSuggestionIntervalPaceSub": "Set the right effort for each rep.",
+  "weekChatSuggestionLongRunPace": "How should I pace the long run on {dayName}?",
+  "@weekChatSuggestionLongRunPace": {
+    "placeholders": { "dayName": { "type": "String" } }
+  },
+  "weekChatSuggestionLongRunPaceSub": "Stay aerobic, finish strong.",
+  "weekChatSuggestionDeloadWhy": "Why is this week lighter?",
+  "weekChatSuggestionDeloadWhySub": "Recovery weeks and how they help.",
+  "weekChatSuggestionRaceDayPrep": "What should I do the day before the race?",
+  "weekChatSuggestionRaceDayPrepSub": "Pre-race routine, food, sleep.",
+  "weekChatSuggestionTooHard": "Is this week too hard for me?",
+  "weekChatSuggestionTooHardSub": "Get an honest read on the load.",
+  "weekChatSuggestionSwapInterval": "Can we swap an interval for a long run?",
+  "weekChatSuggestionSwapIntervalSub": "Adjust this week's structure.",
 
   "schedDayTarget": "TARGET",
   "schedDayActual": "ACTUAL",
@@ -715,8 +769,36 @@
   "notificationsSheetEmpty": "You're all caught up.",
   "notificationsCardDismiss": "DISMISS",
   "notificationsCardApply": "APPLY",
-  "notificationsTertiaryEditHrZones": "Edit HR Zones",
-  "notificationsTypePaceAdjustment": "PACE ADJUSTMENT",
+  "notificationsCardViewEvaluation": "View your check-in",
+  "notificationsTypePlanEvaluation": "2-WEEK CHECK-IN",
+
+  "evaluationCardEyebrow": "CHECK-IN",
+  "evaluationCardScheduledFor": "Scheduled for {date}",
+  "@evaluationCardScheduledFor": {
+    "placeholders": {"date": {"type": "String"}}
+  },
+  "evaluationCardWeekTitle": "Week {week} check-in",
+  "@evaluationCardWeekTitle": {
+    "placeholders": {"week": {"type": "int"}}
+  },
+  "evaluationCardStatusPending": "Up next",
+  "evaluationCardStatusProcessing": "Working on it…",
+  "evaluationCardStatusReady": "Report ready",
+  "evaluationCardStatusNoChange": "No changes needed",
+  "evaluationCardStatusAccepted": "Applied",
+  "evaluationCardStatusDismissed": "Dismissed",
+  "evaluationCardCtaView": "Open",
+  "evaluationDetailTitle": "2-week check-in",
+  "evaluationDetailReportHeader": "Your coach's take",
+  "evaluationDetailProposalHeader": "Suggested adjustment",
+  "evaluationDetailApply": "APPLY ADJUSTMENT",
+  "evaluationDetailDismiss": "DISMISS",
+  "evaluationDetailClose": "CLOSE",
+  "evaluationDetailNoReport": "No report available yet.",
+  "evaluationDetailLoadError": "Could not load this evaluation.\n{error}",
+  "@evaluationDetailLoadError": {
+    "placeholders": {"error": {"type": "String"}}
+  },
 
   "hrZoneNameZ1": "Endurance",
   "hrZoneNameZ2": "Moderate",
@@ -867,5 +949,26 @@
   "trainingTypeTempo": "Tempo",
   "trainingTypeInterval": "Intervals",
   "trainingTypeLongRun": "Long run",
-  "trainingTypeThreshold": "Threshold"
+  "trainingTypeThreshold": "Threshold",
+
+  "paywallEyebrow": "YOUR PLAN",
+  "paywallPreviewTitle": "Your training plan",
+  "paywallUnlockCta": "UNLOCK RUNCOACH PRO",
+  "paywallNoDaysPlaceholder": "No sessions this week.",
+  "paywallLockedHint": "PRO",
+  "paywallWeekEyebrow": "WEEK {weekNumber}",
+  "@paywallWeekEyebrow": {
+    "placeholders": {
+      "weekNumber": { "type": "int" }
+    }
+  },
+  "paywallWeekTotalKm": "{km} km total",
+  "@paywallWeekTotalKm": {
+    "placeholders": {
+      "km": { "type": "String" }
+    }
+  },
+  "paywallManageSubscription": "Manage subscription",
+  "paywallProBadge": "PRO",
+  "paywallProTrialBadge": "PRO · TRIAL"
 }

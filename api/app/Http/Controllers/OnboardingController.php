@@ -82,12 +82,16 @@ class OnboardingController extends Controller
         if ($profile === null) {
             // No activities synced yet (HealthKit push hasn't happened or
             // returned zero runs). Return ready+empty so the UI can proceed.
+            // `metrics` MUST be null, not [] — an empty PHP array JSON-encodes
+            // as `[]` (a list), and the Flutter `OnboardingProfileMetrics?`
+            // field parses a Map. `[]` → "type 'List<dynamic>' is not a
+            // subtype of type 'Map<String, dynamic>' in type cast".
             return response()->json([
                 'status' => 'ready',
                 'analyzed_at' => null,
                 'data_start_date' => null,
                 'data_end_date' => null,
-                'metrics' => [],
+                'metrics' => null,
                 'narrative_summary' => null,
                 'personal_records' => $personalRecords,
                 'baseline' => $baseline,

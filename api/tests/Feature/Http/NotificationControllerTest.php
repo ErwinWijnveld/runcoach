@@ -3,15 +3,19 @@
 namespace Tests\Feature\Http;
 
 use App\Enums\GoalStatus;
+use App\Enums\PlanEvaluationStatus;
+use App\Enums\ProposalStatus;
+use App\Enums\ProposalType;
+use App\Models\CoachProposal;
 use App\Models\Goal;
-use App\Models\TrainingDay;
-use App\Models\TrainingResult;
+use App\Models\PlanEvaluation;
 use App\Models\TrainingWeek;
 use App\Models\User;
 use App\Models\UserNotification;
-use App\Models\WearableActivity;
+use App\Services\ProposalService;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Carbon;
+use Mockery;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 class NotificationControllerTest extends TestCase
@@ -33,79 +37,87 @@ class NotificationControllerTest extends TestCase
             ->assertJsonCount(1, 'data');
     }
 
-    public function test_accept_pace_adjustment_shifts_upcoming_easy_days_and_preserves_race_day(): void
+    public function test_accept_plan_evaluation_applies_proposal_and_marks_accepted(): void
     {
-        Carbon::setTestNow('2026-05-04'); // Monday
+        [$user, $goal] = $this->activeGoal('2026-06-15');
 
-        [$user, $goal, $week] = $this->activeGoalWithWeek('2026-06-15');
-
-        // Past easy day with a result — must NOT be touched.
-        $past = TrainingDay::factory()->create([
-            'training_week_id' => $week->id,
-            'type' => 'easy',
-            'date' => '2026-04-30',
-            'target_pace_seconds_per_km' => 360,
-        ]);
-        $activity = WearableActivity::factory()->create(['user_id' => $user->id]);
-        TrainingResult::factory()->create([
-            'training_day_id' => $past->id,
-            'wearable_activity_id' => $activity->id,
-        ]);
-
-        // Upcoming easy + tempo + race day.
-        $upcomingEasy = TrainingDay::factory()->create([
-            'training_week_id' => $week->id,
-            'type' => 'easy',
-            'date' => '2026-05-08',
-            'target_pace_seconds_per_km' => 360,
-        ]);
-        $upcomingTempo = TrainingDay::factory()->create([
-            'training_week_id' => $week->id,
-            'type' => 'tempo',
-            'date' => '2026-05-09',
-            'target_pace_seconds_per_km' => 300,
-        ]);
-        $raceDay = TrainingDay::factory()->create([
-            'training_week_id' => $week->id,
-            'type' => 'easy',
-            'date' => '2026-06-15', // matches goal.target_date
-            'target_pace_seconds_per_km' => 280,
+        $proposal = CoachProposal::factory()->create([
+            'user_id' => $user->id,
+            'type' => ProposalType::EditActivePlan,
+            'status' => ProposalStatus::Pending,
+            'payload' => ['goal_id' => $goal->id, 'schedule' => ['weeks' => []]],
         ]);
 
         $notification = UserNotification::factory()->create([
             'user_id' => $user->id,
-            'action_data' => [
-                'source_training_result_id' => null,
-                'training_type' => 'easy',
-                'pace_factor' => 1.10,
-            ],
+            'type' => UserNotification::TYPE_PLAN_EVALUATION,
         ]);
+
+        $evaluation = PlanEvaluation::factory()->create([
+            'user_id' => $user->id,
+            'goal_id' => $goal->id,
+            'proposal_id' => $proposal->id,
+            'notification_id' => $notification->id,
+            'status' => PlanEvaluationStatus::Ready,
+        ]);
+
+        $this->mock(ProposalService::class, function (MockInterface $mock) use ($proposal, $user) {
+            $mock->shouldReceive('apply')
+                ->once()
+                ->with(Mockery::on(fn ($p) => $p->id === $proposal->id), Mockery::on(fn ($u) => $u->id === $user->id));
+        });
 
         $this->actingAs($user)
             ->postJson("/api/v1/notifications/{$notification->id}/accept")
             ->assertOk();
 
         $this->assertSame(UserNotification::STATUS_ACCEPTED, $notification->fresh()->status);
-        $this->assertSame(360, $past->fresh()->target_pace_seconds_per_km, 'past day untouched');
-        $this->assertSame(396, $upcomingEasy->fresh()->target_pace_seconds_per_km, 'upcoming easy shifted by factor');
-        $this->assertSame(300, $upcomingTempo->fresh()->target_pace_seconds_per_km, 'tempo of different type untouched');
-        $this->assertSame(280, $raceDay->fresh()->target_pace_seconds_per_km, 'race day preserved');
+        $this->assertSame(PlanEvaluationStatus::Accepted, $evaluation->fresh()->status);
     }
 
-    public function test_dismiss_marks_status_without_touching_schedule(): void
+    public function test_accept_plan_evaluation_without_proposal_just_marks_accepted(): void
     {
-        [$user, $goal, $week] = $this->activeGoalWithWeek('2026-06-15');
-
-        $day = TrainingDay::factory()->create([
-            'training_week_id' => $week->id,
-            'type' => 'easy',
-            'date' => now()->addDays(7),
-            'target_pace_seconds_per_km' => 360,
-        ]);
+        [$user, $goal] = $this->activeGoal('2026-06-15');
 
         $notification = UserNotification::factory()->create([
             'user_id' => $user->id,
-            'action_data' => ['training_type' => 'easy', 'pace_factor' => 1.10],
+            'type' => UserNotification::TYPE_PLAN_EVALUATION,
+        ]);
+
+        $evaluation = PlanEvaluation::factory()->create([
+            'user_id' => $user->id,
+            'goal_id' => $goal->id,
+            'notification_id' => $notification->id,
+            'proposal_id' => null,
+            'status' => PlanEvaluationStatus::NoChangeNeeded,
+        ]);
+
+        $this->mock(ProposalService::class, function (MockInterface $mock) {
+            $mock->shouldNotReceive('apply');
+        });
+
+        $this->actingAs($user)
+            ->postJson("/api/v1/notifications/{$notification->id}/accept")
+            ->assertOk();
+
+        $this->assertSame(UserNotification::STATUS_ACCEPTED, $notification->fresh()->status);
+        $this->assertSame(PlanEvaluationStatus::Accepted, $evaluation->fresh()->status);
+    }
+
+    public function test_dismiss_plan_evaluation_marks_evaluation_dismissed_too(): void
+    {
+        [$user, $goal] = $this->activeGoal('2026-06-15');
+
+        $notification = UserNotification::factory()->create([
+            'user_id' => $user->id,
+            'type' => UserNotification::TYPE_PLAN_EVALUATION,
+        ]);
+
+        $evaluation = PlanEvaluation::factory()->create([
+            'user_id' => $user->id,
+            'goal_id' => $goal->id,
+            'notification_id' => $notification->id,
+            'status' => PlanEvaluationStatus::Ready,
         ]);
 
         $this->actingAs($user)
@@ -113,7 +125,7 @@ class NotificationControllerTest extends TestCase
             ->assertOk();
 
         $this->assertSame(UserNotification::STATUS_DISMISSED, $notification->fresh()->status);
-        $this->assertSame(360, $day->fresh()->target_pace_seconds_per_km);
+        $this->assertSame(PlanEvaluationStatus::Dismissed, $evaluation->fresh()->status);
     }
 
     public function test_cannot_act_on_another_users_notification(): void
@@ -140,7 +152,7 @@ class NotificationControllerTest extends TestCase
     /**
      * @return array{0: User, 1: Goal, 2: TrainingWeek}
      */
-    private function activeGoalWithWeek(string $targetDate): array
+    private function activeGoal(string $targetDate): array
     {
         $user = User::factory()->create();
         $goal = Goal::factory()->create([

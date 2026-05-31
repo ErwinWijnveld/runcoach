@@ -18,6 +18,36 @@ class AppLocalizationsNl extends AppLocalizations {
   String get languageDutch => 'Nederlands';
 
   @override
+  String get runShareSheetCta => 'Deel deze run';
+
+  @override
+  String get runShareSheetSubtitle => 'Tik om op te slaan of te delen';
+
+  @override
+  String get runShareInlineCta => 'Deel deze run';
+
+  @override
+  String get runShareBarrierLabel => 'Run samenvatting';
+
+  @override
+  String get runShareKpiDistance => 'AFSTAND';
+
+  @override
+  String get runShareKpiTime => 'TIJD';
+
+  @override
+  String get runShareKpiAvgPace => 'GEM. TEMPO';
+
+  @override
+  String get runShareKpiAvgHr => 'GEM. BPM';
+
+  @override
+  String get runShareKpiCompliance => 'OP SCHEMA';
+
+  @override
+  String get runShareIndoorPill => 'BINNEN GELOPEN';
+
+  @override
   String get commonContinue => 'Doorgaan';
 
   @override
@@ -126,6 +156,11 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get onbConnectHealthStageSyncingSub =>
       'De laatste 12 maanden uit Apple Health worden gelezen.';
+
+  @override
+  String onbConnectHealthStageSyncingProgress(int done, int total) {
+    return '$done van $total runs synchroniseren…';
+  }
 
   @override
   String onbConnectHealthStageDone(int count) {
@@ -788,6 +823,73 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get schedEmptyCta => 'Naar Doelen';
+
+  @override
+  String get scheduleChatBarrierLabel => 'Chat over deze week';
+
+  @override
+  String scheduleChatViewingWeek(int weekNumber, String dateRange) {
+    return 'Bekijkt week $weekNumber · $dateRange';
+  }
+
+  @override
+  String scheduleChatTitle(int weekNumber, String dateRange) {
+    return 'Week $weekNumber ($dateRange)';
+  }
+
+  @override
+  String get scheduleChatEmptyTitle => 'Vraag over deze week';
+
+  @override
+  String get scheduleChatEmptySubtitle =>
+      'Alles mag — tempo, intensiteit, swaps, herstel.';
+
+  @override
+  String weekChatSuggestionIntervalPace(String dayName) {
+    return 'Hoe loop ik de intervals op $dayName?';
+  }
+
+  @override
+  String get weekChatSuggestionIntervalPaceSub =>
+      'Bepaal de juiste inspanning per rep.';
+
+  @override
+  String weekChatSuggestionLongRunPace(String dayName) {
+    return 'Hoe loop ik de long run op $dayName?';
+  }
+
+  @override
+  String get weekChatSuggestionLongRunPaceSub => 'Blijf aeroob, eindig sterk.';
+
+  @override
+  String get weekChatSuggestionDeloadWhy => 'Waarom is deze week rustiger?';
+
+  @override
+  String get weekChatSuggestionDeloadWhySub =>
+      'Herstelweken en wat ze opleveren.';
+
+  @override
+  String get weekChatSuggestionRaceDayPrep =>
+      'Wat doe ik de dag voor mijn race?';
+
+  @override
+  String get weekChatSuggestionRaceDayPrepSub =>
+      'Routine, eten en slaap voor de wedstrijd.';
+
+  @override
+  String get weekChatSuggestionTooHard => 'Is deze week te zwaar voor mij?';
+
+  @override
+  String get weekChatSuggestionTooHardSub =>
+      'Krijg een eerlijke check op de belasting.';
+
+  @override
+  String get weekChatSuggestionSwapInterval =>
+      'Kunnen we een interval ruilen voor een long run?';
+
+  @override
+  String get weekChatSuggestionSwapIntervalSub =>
+      'Pas de structuur van deze week aan.';
 
   @override
   String get schedDayTarget => 'DOEL';
@@ -1716,10 +1818,70 @@ class AppLocalizationsNl extends AppLocalizations {
   String get notificationsCardApply => 'TOEPASSEN';
 
   @override
-  String get notificationsTertiaryEditHrZones => 'Bewerk HR-zones';
+  String get notificationsCardViewEvaluation => 'Bekijk je evaluatie';
 
   @override
-  String get notificationsTypePaceAdjustment => 'TEMPO-AANPASSING';
+  String get notificationsTypePlanEvaluation => '2-WEKEN EVALUATIE';
+
+  @override
+  String get evaluationCardEyebrow => 'EVALUATIE';
+
+  @override
+  String evaluationCardScheduledFor(String date) {
+    return 'Gepland voor $date';
+  }
+
+  @override
+  String evaluationCardWeekTitle(int week) {
+    return 'Week $week check-in';
+  }
+
+  @override
+  String get evaluationCardStatusPending => 'Volgende';
+
+  @override
+  String get evaluationCardStatusProcessing => 'Bezig…';
+
+  @override
+  String get evaluationCardStatusReady => 'Rapport klaar';
+
+  @override
+  String get evaluationCardStatusNoChange => 'Geen aanpassing nodig';
+
+  @override
+  String get evaluationCardStatusAccepted => 'Toegepast';
+
+  @override
+  String get evaluationCardStatusDismissed => 'Genegeerd';
+
+  @override
+  String get evaluationCardCtaView => 'Openen';
+
+  @override
+  String get evaluationDetailTitle => '2-weken evaluatie';
+
+  @override
+  String get evaluationDetailReportHeader => 'Wat je coach zegt';
+
+  @override
+  String get evaluationDetailProposalHeader => 'Voorgestelde aanpassing';
+
+  @override
+  String get evaluationDetailApply => 'AANPASSING TOEPASSEN';
+
+  @override
+  String get evaluationDetailDismiss => 'VERWIJDEREN';
+
+  @override
+  String get evaluationDetailClose => 'SLUITEN';
+
+  @override
+  String get evaluationDetailNoReport => 'Nog geen rapport beschikbaar.';
+
+  @override
+  String evaluationDetailLoadError(String error) {
+    return 'Kon de evaluatie niet laden.\n$error';
+  }
 
   @override
   String get hrZoneNameZ1 => 'Duurvermogen';
@@ -2088,4 +2250,38 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get trainingTypeThreshold => 'Drempel';
+
+  @override
+  String get paywallEyebrow => 'JOUW PLAN';
+
+  @override
+  String get paywallPreviewTitle => 'Jouw trainingsplan';
+
+  @override
+  String get paywallUnlockCta => 'ONTGRENDEL RUNCOACH PRO';
+
+  @override
+  String get paywallNoDaysPlaceholder => 'Geen sessies deze week.';
+
+  @override
+  String get paywallLockedHint => 'PRO';
+
+  @override
+  String paywallWeekEyebrow(int weekNumber) {
+    return 'WEEK $weekNumber';
+  }
+
+  @override
+  String paywallWeekTotalKm(String km) {
+    return '$km km totaal';
+  }
+
+  @override
+  String get paywallManageSubscription => 'Beheer abonnement';
+
+  @override
+  String get paywallProBadge => 'PRO';
+
+  @override
+  String get paywallProTrialBadge => 'PRO · PROEF';
 }

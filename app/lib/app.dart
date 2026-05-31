@@ -10,6 +10,10 @@ import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/notifications/providers/notifications_provider.dart';
 import 'package:app/features/notifications/widgets/notifications_sheet.dart';
 import 'package:app/features/push/services/push_service.dart';
+import 'package:app/features/share/providers/celebration_provider.dart';
+import 'package:app/features/share/widgets/run_celebration_sheet.dart';
+import 'package:app/features/subscriptions/providers/pro_entitlement_provider.dart';
+import 'package:app/features/subscriptions/services/purchases_service.dart';
 import 'package:app/features/wearable/providers/workout_sync_provider.dart';
 import 'package:app/features/wearable/widgets/workout_sync_lifecycle.dart';
 import 'package:app/l10n/app_localizations.dart';
@@ -84,7 +88,9 @@ class _RunCoachAppState extends ConsumerState<RunCoachApp> {
       supportedLocales: AppLocalizations.supportedLocales,
       builder: (context, child) {
         return WorkoutSyncLifecycle(
-          child: _BootPopupHost(child: child ?? const SizedBox.shrink()),
+          child: _SubscriptionBoot(
+            child: _BootPopupHost(child: child ?? const SizedBox.shrink()),
+          ),
         );
       },
     );
@@ -124,6 +130,53 @@ class _RunCoachAppState extends ConsumerState<RunCoachApp> {
   }
 }
 
+/// Configure the RevenueCat SDK once auth resolves with a user, then fire a
+/// server-side entitlement sync so the router has authoritative pro-state for
+/// its redirect logic. Runs once per app launch — Riverpod listeners are
+/// idempotent against repeated identical state changes.
+///
+/// The configure call needs the user's id as `appUserID` so purchases
+/// attribute to the right server-side row; the sync call hits our backend
+/// which in turn calls RC's REST API (server is the source of truth).
+class _SubscriptionBoot extends ConsumerStatefulWidget {
+  const _SubscriptionBoot({required this.child});
+
+  final Widget child;
+
+  @override
+  ConsumerState<_SubscriptionBoot> createState() => _SubscriptionBootState();
+}
+
+class _SubscriptionBootState extends ConsumerState<_SubscriptionBoot> {
+  bool _booted = false;
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen<AsyncValue<User?>>(authProvider, (prev, next) {
+      if (_booted) return;
+      if (next.isLoading) return;
+      final user = next.value;
+      if (user == null) return;
+      _booted = true;
+      _bootOnce(user);
+    });
+    return widget.child;
+  }
+
+  Future<void> _bootOnce(User user) async {
+    final purchases = ref.read(purchasesServiceProvider);
+    try {
+      await purchases.configure(user);
+    } catch (e, st) {
+      debugPrint('[subscription-boot] configure failed: $e');
+      debugPrintStack(stackTrace: st);
+    }
+    // Even if the SDK couldn't initialize (no key in dev), still sync — the
+    // server resolves pro-state independently via its REST call to RC.
+    await ref.read(proEntitlementProvider.notifier).syncFromServer();
+  }
+}
+
 /// Cold-start "Action required" reminder. Mounted INSIDE the router via
 /// `CupertinoApp.router(builder: ...)` so the dialog has a Navigator
 /// ancestor — which is the requirement for `showCupertinoDialog` to find
@@ -152,6 +205,8 @@ class _BootPopupHostState extends ConsumerState<_BootPopupHost> {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) return;
         await _showReminder(context);
+        if (!mounted) return;
+        await _maybeShowCelebration(context);
       });
     });
     return widget.child;
@@ -196,6 +251,40 @@ class _BootPopupHostState extends ConsumerState<_BootPopupHost> {
     } catch (e, st) {
       if (kDebugMode) {
         debugPrint('[boot-popup] error: $e\n$st');
+      }
+    }
+  }
+
+  /// Pop the shareable run-card sheet for the most recent analyzed run
+  /// when nothing else is grabbing focus. Runs AFTER the notifications
+  /// reminder — actionable items win over delight moments.
+  Future<void> _maybeShowCelebration(BuildContext ctx) async {
+    try {
+      // Skip when notifications popup just took focus (a runner doesn't
+      // need two modals stacked on cold start).
+      final pending = await ref.read(notificationsProvider.future);
+      if (pending.isNotEmpty) return;
+
+      final celebration = ref.read(celebrationProvider.notifier);
+      final result = await celebration.findCelebratableRun();
+      if (kDebugMode) {
+        debugPrint('[boot-popup] celebration result=${result?.id}');
+      }
+      if (!mounted || result == null) return;
+      final activityId = result.wearableActivity?.id;
+      if (activityId == null) return;
+
+      final navCtx = rootNavigatorKey.currentContext;
+      if (navCtx == null || !navCtx.mounted) return;
+
+      // Mark celebrated FIRST so a hard close mid-sheet doesn't re-fire
+      // the popup next boot.
+      await celebration.markCelebrated(activityId);
+
+      await RunCelebrationSheet.show(navCtx, result: result);
+    } catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('[boot-popup] celebration error: $e\n$st');
       }
     }
   }

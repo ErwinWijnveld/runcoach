@@ -38,6 +38,11 @@ class _OnboardingConnectHealthScreenState
   bool _showEmpty = false;
   int _synced = 0;
 
+  /// Live progress for the chunked upload, surfaced as "X / Y" while syncing
+  /// so a large history doesn't look stuck. 0 total = not yet known.
+  int _syncProgress = 0;
+  int _syncTotal = 0;
+
   Future<void> _connectAndSync() async {
     // Double-tap / re-entrancy guard. The button is hidden when not idle
     // but a frame-perfect double-tap before setState lands could fire twice.
@@ -75,7 +80,12 @@ class _OnboardingConnectHealthScreenState
     final Map<String, Map<String, dynamic>?> prs;
     try {
       final results = await Future.wait([
-        hk.fetchWorkouts(),
+        // Onboarding only needs run metrics for the fitness profile — NOT GPS
+        // routes (those feed the shareable run-card and are backfilled lazily
+        // afterwards). Stripping routes keeps each activity ~500 bytes so even
+        // a thousand-run history syncs in a handful of small batches without
+        // tripping the server's body-size limit.
+        hk.fetchWorkouts(includeRoutes: false),
         hk.fetchPersonalRecords(distancesMeters: const [5000, 10000, 21097, 42195]),
       ]);
       workouts = results[0] as List<Map<String, dynamic>>;
@@ -101,17 +111,28 @@ class _OnboardingConnectHealthScreenState
       return;
     }
 
-    // Push activities. Backend cap is 200/req; chunk at 200 to minimize
-    // round-trips. Each chunk gets up to 3 attempts with a small backoff
-    // so a single transient blip doesn't bail the whole onboarding.
+    // Push activities in route-free batches. Each row is ~500 bytes so the
+    // backend's 200/req cap is the only limit that matters — a thousand-run
+    // history is just a few round-trips. Each chunk gets up to 3 attempts with
+    // a small backoff so a single transient blip doesn't bail the whole
+    // onboarding. Progress is surfaced live via `_syncProgress / _syncTotal`.
     final api = ref.read(wearableApiProvider);
-    const chunkSize = 200;
+    const chunkSize = kWearableIngestChunkSize;
+    if (mounted) {
+      setState(() {
+        _syncTotal = workouts.length;
+        _syncProgress = 0;
+      });
+    }
     try {
       for (var i = 0; i < workouts.length; i += chunkSize) {
         final end =
             (i + chunkSize < workouts.length) ? i + chunkSize : workouts.length;
         final chunk = workouts.sublist(i, end);
         await _withRetry(() => api.ingest({'activities': chunk}));
+        if (mounted) {
+          setState(() => _syncProgress = end);
+        }
       }
     } catch (e) {
       if (!mounted) return;
@@ -252,7 +273,12 @@ class _OnboardingConnectHealthScreenState
       case _Stage.syncing:
         return _StatusBody(
           title: context.l10n.onbConnectHealthStageSyncing,
-          subtitle: context.l10n.onbConnectHealthStageSyncingSub,
+          subtitle: _syncTotal > 0
+              ? context.l10n.onbConnectHealthStageSyncingProgress(
+                  _syncProgress,
+                  _syncTotal,
+                )
+              : context.l10n.onbConnectHealthStageSyncingSub,
         );
       case _Stage.done:
         return _StatusBody(

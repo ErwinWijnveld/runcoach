@@ -5,10 +5,12 @@ namespace App\Services;
 use App\Enums\GoalDistance;
 use App\Enums\GoalStatus;
 use App\Enums\GoalType;
+use App\Enums\PlanEvaluationStatus;
 use App\Enums\ProposalStatus;
 use App\Enums\ProposalType;
 use App\Models\CoachProposal;
 use App\Models\Goal;
+use App\Models\PlanEvaluation;
 use App\Models\TrainingDay;
 use App\Models\User;
 use Carbon\Carbon;
@@ -267,6 +269,49 @@ class ProposalService
                     'order' => $dayData['day_of_week'],
                 ]);
             }
+        }
+
+        $this->persistEvaluations($user, $goal, $payload['evaluations'] ?? []);
+    }
+
+    /**
+     * Persist scheduled mid-plan evaluation moments. Skips entries whose
+     * date is already in the past (e.g. a long onboarding session that
+     * carried over a day boundary) so we don't immediately fire an eval.
+     *
+     * @param  list<array{week_number?: int, scheduled_for?: string}>  $evaluations
+     */
+    private function persistEvaluations(User $user, Goal $goal, array $evaluations): void
+    {
+        if ($evaluations === []) {
+            return;
+        }
+
+        $today = now()->startOfDay();
+
+        foreach ($evaluations as $entry) {
+            $rawDate = $entry['scheduled_for'] ?? null;
+            if (! is_string($rawDate) || $rawDate === '') {
+                continue;
+            }
+
+            $date = Carbon::parse($rawDate);
+            if ($date->lt($today)) {
+                continue;
+            }
+
+            $weekNumber = isset($entry['week_number']) ? (int) $entry['week_number'] : null;
+            $week = $weekNumber
+                ? $goal->trainingWeeks()->where('week_number', $weekNumber)->first()
+                : null;
+
+            PlanEvaluation::create([
+                'user_id' => $user->id,
+                'goal_id' => $goal->id,
+                'training_week_id' => $week?->id,
+                'scheduled_for' => $date->toDateString(),
+                'status' => PlanEvaluationStatus::Pending,
+            ]);
         }
     }
 

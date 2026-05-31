@@ -94,6 +94,194 @@ class WearableActivityIngestionTest extends TestCase
         $this->assertSame(360, WearableActivity::first()->average_pace_seconds_per_km);
     }
 
+    public function test_celebratable_run_returns_null_when_no_recent_analyzed_activity(): void
+    {
+        [, $headers] = $this->authUser();
+
+        $response = $this->getJson('/api/v1/share/celebratable-run', $headers);
+
+        $response->assertOk();
+        $this->assertNull($response->json('data'));
+    }
+
+    public function test_celebratable_run_returns_recent_run_with_ai_feedback(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $goal = Goal::factory()->create([
+            'user_id' => $user->id,
+            'status' => GoalStatus::Active,
+        ]);
+        $week = TrainingWeek::factory()->create([
+            'goal_id' => $goal->id,
+            'starts_at' => now()->startOfWeek()->toDateString(),
+        ]);
+        $day = TrainingDay::factory()->create([
+            'training_week_id' => $week->id,
+            'date' => now()->subDay()->toDateString(),
+        ]);
+
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'Run',
+            'start_date' => now()->subDay(),
+        ]);
+
+        TrainingResult::factory()->create([
+            'training_day_id' => $day->id,
+            'wearable_activity_id' => $activity->id,
+            'ai_feedback' => '**Strong negative split.** Solid effort.',
+        ]);
+
+        $response = $this->getJson('/api/v1/share/celebratable-run', $headers);
+
+        $response->assertOk();
+        $data = $response->json('data');
+        $this->assertNotNull($data);
+        $this->assertStringContainsString('negative split', $data['ai_feedback']);
+        $this->assertSame($activity->id, $data['wearable_activity']['id']);
+    }
+
+    public function test_celebratable_run_skips_when_since_activity_id_filters(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $goal = Goal::factory()->create([
+            'user_id' => $user->id,
+            'status' => GoalStatus::Active,
+        ]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
+        $day = TrainingDay::factory()->create([
+            'training_week_id' => $week->id,
+        ]);
+
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'Run',
+            'start_date' => now()->subDay(),
+        ]);
+        TrainingResult::factory()->create([
+            'training_day_id' => $day->id,
+            'wearable_activity_id' => $activity->id,
+            'ai_feedback' => '**Solid.**',
+        ]);
+
+        $response = $this->getJson(
+            "/api/v1/share/celebratable-run?since_activity_id={$activity->id}",
+            $headers,
+        );
+
+        $response->assertOk();
+        $this->assertNull($response->json('data'));
+    }
+
+    public function test_celebratable_run_skips_old_activities(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $goal = Goal::factory()->create([
+            'user_id' => $user->id,
+            'status' => GoalStatus::Active,
+        ]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
+        $day = TrainingDay::factory()->create([
+            'training_week_id' => $week->id,
+        ]);
+
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'Run',
+            'start_date' => now()->subDays(30),
+        ]);
+        TrainingResult::factory()->create([
+            'training_day_id' => $day->id,
+            'wearable_activity_id' => $activity->id,
+            'ai_feedback' => '**Solid.**',
+        ]);
+
+        $response = $this->getJson('/api/v1/share/celebratable-run', $headers);
+
+        $response->assertOk();
+        $this->assertNull($response->json('data'));
+    }
+
+    public function test_route_endpoint_returns_polyline(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'raw_data' => [
+                'route' => [
+                    ['lat' => 52.3676, 'lng' => 4.9041, 't' => 1716297600000],
+                    ['lat' => 52.3678, 'lng' => 4.9043, 't' => 1716297605000],
+                ],
+            ],
+        ]);
+
+        $response = $this
+            ->getJson("/api/v1/wearable/activities/{$activity->id}/route", $headers);
+
+        $response->assertOk();
+        $this->assertCount(2, $response->json('data.points'));
+        $this->assertEquals(52.3676, $response->json('data.points.0.lat'));
+    }
+
+    public function test_route_endpoint_returns_empty_for_no_gps_activity(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'raw_data' => ['splits' => []],
+        ]);
+
+        $response = $this
+            ->getJson("/api/v1/wearable/activities/{$activity->id}/route", $headers);
+
+        $response->assertOk();
+        $this->assertEquals([], $response->json('data.points'));
+    }
+
+    public function test_route_endpoint_404s_for_other_users_activity(): void
+    {
+        $other = User::factory()->create();
+        $activity = WearableActivity::factory()->create(['user_id' => $other->id]);
+
+        [, $headers] = $this->authUser();
+        $this
+            ->getJson("/api/v1/wearable/activities/{$activity->id}/route", $headers)
+            ->assertNotFound();
+    }
+
+    public function test_persists_gps_route_in_raw_data(): void
+    {
+        Queue::fake();
+        [$user, $headers] = $this->authUser();
+
+        $route = [
+            ['lat' => 52.3676, 'lng' => 4.9041, 't' => 1716297600000],
+            ['lat' => 52.3678, 'lng' => 4.9043, 't' => 1716297605000],
+            ['lat' => 52.3680, 'lng' => 4.9045, 't' => 1716297610000],
+        ];
+
+        $this->postJson(
+            '/api/v1/wearable/activities',
+            [
+                'activities' => [
+                    $this->payload([
+                        'raw_data' => ['splits' => [], 'route' => $route],
+                    ]),
+                ],
+            ],
+            $headers,
+        )->assertStatus(201);
+
+        $activity = WearableActivity::where('user_id', $user->id)->first();
+        $this->assertNotNull($activity);
+        $stored = $activity->raw_data['route'] ?? null;
+        $this->assertIsArray($stored);
+        $this->assertCount(3, $stored);
+        $this->assertEquals(52.3676, $stored[0]['lat']);
+        $this->assertEquals(4.9041, $stored[0]['lng']);
+        $this->assertEquals(1716297600000, $stored[0]['t']);
+    }
+
     public function test_skips_match_attempt_when_user_has_no_active_plan(): void
     {
         // First sign-in onboarding pushes 75-200 historical workouts before

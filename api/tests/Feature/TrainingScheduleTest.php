@@ -74,6 +74,11 @@ class TrainingScheduleTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonFragment(['title' => $day->title]);
+        // The Flutter watch auto-sync compares this against a locally-stored
+        // lastSyncedAt map to decide which days to re-ship on foreground.
+        // Default Eloquent serialization includes it — this assertion pins
+        // the contract so a future `$hidden` rule can't silently break it.
+        $this->assertNotNull($response->json('data.updated_at'));
     }
 
     public function test_get_training_result(): void

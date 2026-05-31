@@ -20,7 +20,7 @@ class PlanRevisionContent extends StatelessWidget {
     final goalOps = <Map<String, dynamic>>[];
 
     for (final op in ops) {
-      if (op['op'] == 'set_goal') {
+      if (op['action'] == 'set_goal') {
         goalOps.add(op);
         continue;
       }
@@ -172,19 +172,21 @@ class _OpRow extends StatelessWidget {
 
   (IconData, Color, String, String?) _render(BuildContext context, Map<String, dynamic> op) {
     final l10n = context.l10n;
-    final name = op['op']?.toString() ?? '';
+    // Backend `AdjustPlan` ships ops with `action` (not `op`) and puts the
+    // mutable fields at the top level (no `fields` wrapper). Action values:
+    // add / remove / shift / replace / adjust / set_goal.
+    final name = op['action']?.toString() ?? '';
     switch (name) {
-      case 'add_day':
+      case 'add':
         final dow = (op['day_of_week'] as num?)?.toInt();
-        final fields = (op['fields'] as Map?)?.cast<String, dynamic>() ?? {};
-        final title = fields['title']?.toString() ?? _humanType(context, fields['type']);
+        final title = op['title']?.toString() ?? _humanType(context, op['type']);
         return (
           Icons.add_rounded,
           const Color(0xFF2F8F4E),
           l10n.coachRevisionAddedOn(PlanRevisionContent.dayLabel(context, dow)),
-          _composeDayDetail(context, title, fields),
+          _composeDayDetail(context, title, op),
         );
-      case 'remove_day':
+      case 'remove':
         final dow = (op['day_of_week'] as num?)?.toInt();
         return (
           Icons.remove_rounded,
@@ -192,7 +194,7 @@ class _OpRow extends StatelessWidget {
           l10n.coachRevisionRemovedSession(PlanRevisionContent.dayLabel(context, dow)),
           null,
         );
-      case 'shift_day':
+      case 'shift':
         final from = (op['from_day_of_week'] as num?)?.toInt();
         final to = (op['to_day_of_week'] as num?)?.toInt();
         return (
@@ -201,59 +203,58 @@ class _OpRow extends StatelessWidget {
           l10n.coachRevisionMovedTo(PlanRevisionContent.dayLabel(context, to)),
           l10n.coachRevisionWasOn(PlanRevisionContent.dayLabel(context, from)),
         );
-      case 'set_day':
+      case 'replace':
+      case 'adjust':
         final dow = (op['day_of_week'] as num?)?.toInt();
-        final fields = (op['fields'] as Map?)?.cast<String, dynamic>() ?? {};
         return (
           Icons.edit_rounded,
           const Color(0xFF7A5B1F),
           l10n.coachRevisionUpdatedDay(PlanRevisionContent.dayLabel(context, dow)),
-          _composeDayDetail(context, null, fields),
+          _composeDayDetail(context, null, op),
         );
       case 'set_goal':
-        final fields = (op['fields'] as Map?)?.cast<String, dynamic>() ?? {};
         return (
           Icons.flag_rounded,
           const Color(0xFF7A5B1F),
           l10n.coachRevisionGoalUpdated,
-          _composeGoalDetail(context, fields),
+          _composeGoalDetail(context, op),
         );
       default:
         return (Icons.change_circle_outlined, AppColors.inkMuted, name, null);
     }
   }
 
-  String? _composeDayDetail(BuildContext context, String? title, Map<String, dynamic> fields) {
+  String? _composeDayDetail(BuildContext context, String? title, Map<String, dynamic> op) {
     final parts = <String>[];
     if (title != null && title.isNotEmpty) parts.add(title);
-    if (fields['type'] != null && (title == null || title.isEmpty)) {
-      parts.add(_humanType(context, fields['type']));
+    if (op['type'] != null && (title == null || title.isEmpty)) {
+      parts.add(_humanType(context, op['type']));
     }
-    if (fields['target_km'] != null) parts.add('${_num(fields['target_km'])} km');
-    if (fields['target_pace_seconds_per_km'] != null) {
-      parts.add(_pace(fields['target_pace_seconds_per_km']));
+    if (op['target_km'] != null) parts.add('${_num(op['target_km'])} km');
+    if (op['target_pace_seconds_per_km'] != null) {
+      parts.add(_pace(op['target_pace_seconds_per_km']));
     }
-    if (fields['target_heart_rate_zone'] != null) {
-      parts.add('Z${fields['target_heart_rate_zone']}');
+    if (op['target_heart_rate_zone'] != null) {
+      parts.add('Z${op['target_heart_rate_zone']}');
     }
     return parts.isEmpty ? null : parts.join(' · ');
   }
 
-  String? _composeGoalDetail(BuildContext context, Map<String, dynamic> fields) {
+  String? _composeGoalDetail(BuildContext context, Map<String, dynamic> op) {
     final l10n = context.l10n;
     final parts = <String>[];
-    if (fields['goal_name'] != null) parts.add(l10n.coachRevisionGoalFieldName(fields['goal_name'].toString()));
-    if (fields['distance'] != null) parts.add(l10n.coachRevisionGoalFieldDistance(fields['distance'].toString()));
-    if (fields['target_date'] != null) {
+    if (op['goal_name'] != null) parts.add(l10n.coachRevisionGoalFieldName(op['goal_name'].toString()));
+    if (op['distance'] != null) parts.add(l10n.coachRevisionGoalFieldDistance(op['distance'].toString()));
+    if (op['target_date'] != null) {
       parts.add(l10n.coachRevisionGoalFieldDate(
-        formatDateString(fields['target_date']?.toString(), fallback: fields['target_date'].toString()),
+        formatDateString(op['target_date']?.toString(), fallback: op['target_date'].toString()),
       ));
     }
-    if (fields['goal_time_seconds'] != null) {
-      parts.add(l10n.coachRevisionGoalFieldGoalTime(_duration(fields['goal_time_seconds'])));
+    if (op['goal_time_seconds'] != null) {
+      parts.add(l10n.coachRevisionGoalFieldGoalTime(_duration(op['goal_time_seconds'])));
     }
-    if (fields['preferred_weekdays'] != null) {
-      final days = (fields['preferred_weekdays'] as List)
+    if (op['preferred_weekdays'] is List) {
+      final days = (op['preferred_weekdays'] as List)
           .map((d) {
             final label = PlanRevisionContent.dayLabel(context, d is num ? d.toInt() : null);
             return label.length >= 3 ? label.substring(0, 3) : label;

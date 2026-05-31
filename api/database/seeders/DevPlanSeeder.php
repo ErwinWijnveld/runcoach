@@ -94,7 +94,7 @@ class DevPlanSeeder extends Seeder
         }
 
         $this->seedUnmatchedActivities($user);
-        $this->seedPaceAdjustmentNotification($user);
+        $this->seedPlanEvaluationNotification($user);
 
         $this->command?->info(sprintf(
             'DevPlanSeeder: seeded "%s" for %s (week 1 starts %s, race day %s).',
@@ -173,31 +173,19 @@ class DevPlanSeeder extends Seeder
     }
 
     /**
-     * Drop a sample "your easy runs are too hard" suggestion in the inbox so
-     * the bell badge + boot popup have something to show in dev. Mirrors what
-     * `PaceAdjustmentEvaluator` would emit after a real run came back with HR
-     * well above the planned zone.
+     * Drop a sample plan-evaluation notification in the inbox so the bell
+     * badge + boot popup have something to show in dev. Mirrors what
+     * `GeneratePlanEvaluation` produces after the 2-weekly cron tick.
      */
-    private function seedPaceAdjustmentNotification(User $user): void
+    private function seedPlanEvaluationNotification(User $user): void
     {
-        $sourceResult = TrainingResult::query()
-            ->whereHas(
-                'trainingDay',
-                fn ($q) => $q->where('type', TrainingType::Easy->value)
-                    ->whereHas('trainingWeek.goal', fn ($g) => $g->where('user_id', $user->id))
-            )
-            ->latest('id')
-            ->first();
-
         UserNotification::create([
             'user_id' => $user->id,
-            'type' => UserNotification::TYPE_PACE_ADJUSTMENT,
-            'title' => 'Your Easy runs are too hard',
-            'body' => 'Your heart rate sat outside the planned zone — try slowing every upcoming easy run by +25s/km.',
+            'type' => UserNotification::TYPE_PLAN_EVALUATION,
+            'title' => 'Your 2-week check-in is ready',
+            'body' => "We've suggested a small adjustment based on your last 2 weeks.",
             'action_data' => [
-                'source_training_result_id' => $sourceResult?->id,
-                'training_type' => TrainingType::Easy->value,
-                'pace_factor' => 1.07,
+                'evaluation_id' => null,
             ],
             'status' => UserNotification::STATUS_PENDING,
         ]);
@@ -215,7 +203,7 @@ class DevPlanSeeder extends Seeder
             ->delete();
 
         UserNotification::where('user_id', $user->id)
-            ->where('type', UserNotification::TYPE_PACE_ADJUSTMENT)
+            ->where('type', UserNotification::TYPE_PLAN_EVALUATION)
             ->delete();
     }
 

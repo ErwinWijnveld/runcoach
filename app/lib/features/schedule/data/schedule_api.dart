@@ -41,6 +41,13 @@ abstract class ScheduleApi {
 
   @GET('/workout-chat/{dayId}')
   Future<dynamic> getWorkoutChat(@Path() int dayId);
+
+  /// Look up the RunCoachAgent conversation attached to this training
+  /// week, if any. Returns `{data: {id}}` or `{data: null}`. The
+  /// conversation itself is created lazily via the regular
+  /// `POST /coach/conversations` (with subject binding) on first send.
+  @GET('/schedule/weeks/{weekId}/chat')
+  Future<dynamic> getWeekChat(@Path() int weekId);
 }
 
 @riverpod

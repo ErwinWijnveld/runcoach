@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:app/features/schedule/providers/plan_version_provider.dart';
 import 'package:app/features/wearable/data/wearable_api.dart';
 import 'package:app/features/wearable/models/analyzing_run.dart';
@@ -119,9 +120,9 @@ class WorkoutSync extends _$WorkoutSync {
         return;
       }
 
-      // Backend cap is 200/req. Foreground sync rarely surfaces more
-      // than a handful of runs, but chunk anyway to stay correct.
-      const chunkSize = 200;
+      // Foreground sync carries routes (fetchWorkouts default) — keep batches
+      // small to stay under post_max_size.
+      const chunkSize = kWearableRouteIngestChunkSize;
       var created = 0;
       var updated = 0;
       final newRuns = <AnalyzingRun>[];
@@ -209,6 +210,45 @@ class WorkoutSync extends _$WorkoutSync {
       // debounce, but don't write a misleading lastSyncResult.
       state = state.copyWith(isSyncing: false);
       debugPrint('[WorkoutSync] sync failed: $e\n$st');
+    }
+  }
+
+  /// One-time route backfill — pulls the last 30 days of HealthKit
+  /// workouts (wider than the 14d rolling sync window) so existing
+  /// runs gain a GPS polyline on `raw_data.route` after a fresh app
+  /// update. Gated by a `shared_preferences` flag so it only runs once.
+  /// Idempotent: re-running is a no-op.
+  Future<void> backfillRoutesIfNeeded() async {
+    final prefs = await SharedPreferences.getInstance();
+    const flagKey = 'route_backfill_done_v1';
+    if (prefs.getBool(flagKey) == true) return;
+
+    try {
+      final hk = ref.read(healthKitServiceProvider);
+      final api = ref.read(wearableApiProvider);
+      final workouts = await hk.fetchWorkouts(
+        window: const Duration(days: 30),
+      );
+      if (workouts.isEmpty) {
+        await prefs.setBool(flagKey, true);
+        return;
+      }
+      // The route-attaching happens inside fetchWorkouts, so these payloads
+      // are the heaviest — keep chunks small to stay under post_max_size.
+      const chunkSize = kWearableRouteIngestChunkSize;
+      for (var i = 0; i < workouts.length; i += chunkSize) {
+        final end = (i + chunkSize < workouts.length)
+            ? i + chunkSize
+            : workouts.length;
+        await api.ingest({'activities': workouts.sublist(i, end)});
+      }
+      await prefs.setBool(flagKey, true);
+      debugPrint(
+        '[WorkoutSync] route backfill done — ${workouts.length} workouts',
+      );
+    } catch (e, st) {
+      // Don't set the flag on failure so the next launch retries.
+      debugPrint('[WorkoutSync] backfill failed: $e\n$st');
     }
   }
 

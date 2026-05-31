@@ -12,18 +12,20 @@ class OnboardingProfileTest extends TestCase
 {
     use LazilyRefreshDatabase;
 
-    public function test_returns_ready_with_empty_metrics_when_user_has_no_activities(): void
+    public function test_returns_ready_with_null_metrics_when_user_has_no_activities(): void
     {
         // Activities are pushed by the app via POST /wearable/activities.
         // Until that happens the endpoint returns ready+empty so the UI can
-        // proceed without polling.
+        // proceed without polling. `metrics` MUST be null (not []) — an empty
+        // PHP array JSON-encodes as a list and breaks the Flutter
+        // `OnboardingProfileMetrics?` (Map) parse.
         $user = User::factory()->create();
 
         $this->actingAs($user)
             ->getJson('/api/v1/onboarding/profile')
             ->assertOk()
             ->assertJsonPath('status', 'ready')
-            ->assertJsonPath('metrics', []);
+            ->assertJsonPath('metrics', null);
     }
 
     public function test_returns_ready_with_metrics_when_profile_exists(): void
@@ -66,7 +68,7 @@ class OnboardingProfileTest extends TestCase
             ->getJson('/api/v1/onboarding/profile')
             ->assertOk()
             ->assertJsonPath('status', 'ready')
-            ->assertJsonPath('metrics', []);
+            ->assertJsonPath('metrics', null);
     }
 
     public function test_profile_baseline_block_is_null_when_no_wearable_and_no_self_report(): void

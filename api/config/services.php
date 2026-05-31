@@ -42,4 +42,16 @@ return [
         'bundle_id' => env('APPLE_BUNDLE_ID', 'com.erwinwijnveld.runcoach'),
     ],
 
+    'revenuecat' => [
+        // Shared secret pasted into the RC dashboard webhook config and matched
+        // against the Authorization header on every incoming webhook request.
+        'webhook_secret' => env('REVENUECAT_WEBHOOK_SECRET'),
+        // v2 secret REST API key for server-side entitlement fetches (used by
+        // the /subscriptions/sync endpoint as defense-in-depth against webhook
+        // delays/loss). Never exposed to the client.
+        'rest_api_key' => env('REVENUECAT_REST_API_KEY'),
+        // RC project id (NOT the public SDK key — that lives in the Flutter app).
+        'project_id' => env('REVENUECAT_PROJECT_ID'),
+    ],
+
 ];

@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
-import 'package:app/features/schedule/services/workout_scheduler_service.dart';
+import 'package:app/features/schedule/services/watch_sync_service.dart';
 
 /// Cupertino-style modal that lets the runner pick a new date for a training
 /// day. Today renders with a gold ring, the picked date with a filled brown
@@ -70,18 +70,12 @@ class _RescheduleDaySheetState extends ConsumerState<RescheduleDaySheet> {
           .read(rescheduleDayProvider.notifier)
           .reschedule(dayId: widget.dayId, date: _selected);
 
-      // Best-effort sync: if a watch workout was already scheduled for this
-      // training day, move it to the new date too. Silent no-op otherwise.
-      //
-      // Awaited intentionally: a fire-and-forget call here would race with
-      // a quick follow-up Send-to-watch tap (both ops would read the same
-      // pre-move state, both would try to schedule, and we'd end up with
-      // two entries). The native call short-circuits when nothing's on the
-      // watch, so the cost is sub-second on the cold path.
-      await ref.read(workoutSchedulerServiceProvider).rescheduleIfPresent(
-            dayId: widget.dayId,
-            newDate: _selected,
-          );
+      // Re-sync the next 7 days as a batch — covers both the date-move
+      // for this day AND any other days the rescheduling cascaded into
+      // (re-assigned training_week, neighbouring days bumping order).
+      // The native bridge is idempotent under the deterministic UUID,
+      // so days that didn't actually change are cheap no-ops.
+      await ref.read(watchSyncProvider.notifier).syncUpcoming();
 
       if (!mounted) return;
       // RescheduleDay notifier already bumps planVersion, which invalidates

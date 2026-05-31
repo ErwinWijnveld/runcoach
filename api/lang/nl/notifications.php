@@ -26,4 +26,10 @@ return [
         'body' => 'Je bent een jaar wijzer — laten we je hartslagzones bijwerken.',
     ],
 
+    'plan_evaluation' => [
+        'title' => 'Je 2-weken evaluatie staat klaar',
+        'body_with_proposal' => 'We hebben een kleine aanpassing voorgesteld op basis van je laatste 2 weken.',
+        'body_no_change' => 'Je plan klopt nog — geen aanpassingen nodig.',
+    ],
+
 ];

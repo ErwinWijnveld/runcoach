@@ -25,7 +25,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'apple_sub', 'coach_style', 'intensity_bias', 'runner_level', 'has_completed_onboarding', 'heart_rate_zones', 'heart_rate_zones_source', 'date_of_birth', 'personal_records', 'is_superadmin', 'self_reported_weekly_km', 'self_reported_easy_pace_seconds_per_km', 'self_reported_stats_at', 'locale'])]
+#[Fillable(['name', 'email', 'password', 'apple_sub', 'coach_style', 'intensity_bias', 'runner_level', 'has_completed_onboarding', 'heart_rate_zones', 'heart_rate_zones_source', 'date_of_birth', 'personal_records', 'is_superadmin', 'self_reported_weekly_km', 'self_reported_easy_pace_seconds_per_km', 'self_reported_stats_at', 'locale', 'pro_active_until', 'pro_product_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser, HasLocalePreference
 {
@@ -49,7 +49,18 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference
             'self_reported_weekly_km' => 'decimal:1',
             'self_reported_easy_pace_seconds_per_km' => 'integer',
             'self_reported_stats_at' => 'datetime',
+            'pro_active_until' => 'datetime',
         ];
+    }
+
+    public function subscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class);
+    }
+
+    public function isPro(): bool
+    {
+        return $this->pro_active_until?->isFuture() ?? false;
     }
 
     public function goals(): HasMany

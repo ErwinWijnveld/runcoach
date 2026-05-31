@@ -56,5 +56,12 @@ import UIKit
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "WorkoutScheduling") {
       WorkoutScheduling.register(controller: registrar.messenger())
     }
+
+    // HKWorkoutRouteQuery bridge — reads GPS polyline of a finished
+    // workout. Used by the shareable run-card flow to draw the route as
+    // an abstract gold polyline.
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "WorkoutRoute") {
+      WorkoutRoute.register(controller: registrar.messenger())
+    }
   }
 }
