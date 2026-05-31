@@ -16,6 +16,10 @@ import 'package:app/features/coach/widgets/proposal_card.dart';
 
 class CoachChatView extends ConsumerStatefulWidget {
   final String conversationId;
+  // When true, the agent's priming FIRST user message is not rendered (the
+  // kickoff prompt the onboarding agent is seeded with). Onboarding only —
+  // every other surface leaves this false so all messages show.
+  final bool hideFirstUserMessage;
   final AsyncValue<List<CoachMessage>> Function(WidgetRef) watchMessages;
   final Future<void> Function(WidgetRef, String text, {String? chipValue}) sendMessage;
   final Future<void> Function(WidgetRef, String messageId)? onRetry;
@@ -38,6 +42,7 @@ class CoachChatView extends ConsumerStatefulWidget {
   const CoachChatView({
     super.key,
     required this.conversationId,
+    this.hideFirstUserMessage = false,
     required this.watchMessages,
     required this.sendMessage,
     this.onRetry,
@@ -90,6 +95,14 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
     );
   }
 
+  // Remove the first user-role message (the onboarding agent's priming
+  // prompt). Returns the list unchanged when there's no user message yet.
+  List<CoachMessage> _withoutFirstUserMessage(List<CoachMessage> messages) {
+    final index = messages.indexWhere((m) => m.role == 'user');
+    if (index == -1) return messages;
+    return [...messages]..removeAt(index);
+  }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -108,7 +121,13 @@ class _CoachChatViewState extends ConsumerState<CoachChatView> {
           child: messagesAsync.when(
             loading: () => const AppSpinner(),
             error: (err, _) => AppErrorState(title: context.l10n.commonErrorWithMessage(err.toString())),
-            data: (messages) {
+            data: (allMessages) {
+              // Onboarding: drop the agent's priming first user message (the
+              // internal kickoff prompt). Only the FIRST user-role message is
+              // removed — anything the runner types afterwards still shows.
+              final messages = widget.hideFirstUserMessage
+                  ? _withoutFirstUserMessage(allMessages)
+                  : allMessages;
               if (messages.isEmpty) {
                 return _EmptyState(
                   onQuickAction: (text) => _send(text),

@@ -50,6 +50,101 @@ final class ConversationsProvider
 
 String _$conversationsHash() => r'2e10a6a3adfefcacaa630ffa97b1cca79ad7854c';
 
+/// Whether [conversationId] is the onboarding conversation. Reads the show
+/// endpoint's `context` field directly so it's correct on a cold-start deep
+/// link (the conversation list isn't consulted). Used by the chat screen to
+/// hide the agent's priming first user message during onboarding.
+
+@ProviderFor(conversationIsOnboarding)
+final conversationIsOnboardingProvider = ConversationIsOnboardingFamily._();
+
+/// Whether [conversationId] is the onboarding conversation. Reads the show
+/// endpoint's `context` field directly so it's correct on a cold-start deep
+/// link (the conversation list isn't consulted). Used by the chat screen to
+/// hide the agent's priming first user message during onboarding.
+
+final class ConversationIsOnboardingProvider
+    extends $FunctionalProvider<AsyncValue<bool>, bool, FutureOr<bool>>
+    with $FutureModifier<bool>, $FutureProvider<bool> {
+  /// Whether [conversationId] is the onboarding conversation. Reads the show
+  /// endpoint's `context` field directly so it's correct on a cold-start deep
+  /// link (the conversation list isn't consulted). Used by the chat screen to
+  /// hide the agent's priming first user message during onboarding.
+  ConversationIsOnboardingProvider._({
+    required ConversationIsOnboardingFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'conversationIsOnboardingProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$conversationIsOnboardingHash();
+
+  @override
+  String toString() {
+    return r'conversationIsOnboardingProvider'
+        ''
+        '($argument)';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<bool> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<bool> create(Ref ref) {
+    final argument = this.argument as String;
+    return conversationIsOnboarding(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ConversationIsOnboardingProvider &&
+        other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$conversationIsOnboardingHash() =>
+    r'ff4e60ee709e37b4a2b99e332d0cdde68ccb9256';
+
+/// Whether [conversationId] is the onboarding conversation. Reads the show
+/// endpoint's `context` field directly so it's correct on a cold-start deep
+/// link (the conversation list isn't consulted). Used by the chat screen to
+/// hide the agent's priming first user message during onboarding.
+
+final class ConversationIsOnboardingFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<bool>, String> {
+  ConversationIsOnboardingFamily._()
+    : super(
+        retry: null,
+        name: r'conversationIsOnboardingProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Whether [conversationId] is the onboarding conversation. Reads the show
+  /// endpoint's `context` field directly so it's correct on a cold-start deep
+  /// link (the conversation list isn't consulted). Used by the chat screen to
+  /// hide the agent's priming first user message during onboarding.
+
+  ConversationIsOnboardingProvider call(String conversationId) =>
+      ConversationIsOnboardingProvider._(argument: conversationId, from: this);
+
+  @override
+  String toString() => r'conversationIsOnboardingProvider';
+}
+
 /// Standalone accept/reject helpers so onboarding can use them without
 /// activating [CoachChat] (which would load messages from the wrong endpoint).
 

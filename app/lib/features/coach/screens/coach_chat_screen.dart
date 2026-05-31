@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
+import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/coach/providers/coach_provider.dart';
 import 'package:app/features/coach/widgets/coach_chat_view.dart';
 
@@ -12,27 +13,48 @@ class CoachChatScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return GradientScaffold(
-      child: SafeArea(
-        bottom: false,
-        child: Column(
+    // Lock the runner into the onboarding chat: while a plan generation is
+    // pending for THIS conversation (post-paywall / post-admin-grant, before
+    // the proposal is accepted) there is no back affordance and the iOS
+    // swipe-back gesture is disabled. `pendingPlanGeneration.conversationId`
+    // is only set during the completed-but-unaccepted onboarding window, so
+    // normal chats — and revisits after acceptance — are unaffected.
+    final pendingCid =
+        ref.watch(authProvider).value?.pendingPlanGeneration?.conversationId;
+    final locked = pendingCid == conversationId;
+
+    // Hide the agent's priming first user message, but only in the onboarding
+    // conversation. Read from the conversation's `context` so it's correct
+    // even on a cold-start deep link (the chat list isn't consulted).
+    final isOnboarding =
+        ref.watch(conversationIsOnboardingProvider(conversationId)).value ??
+        false;
+
+    return PopScope(
+      canPop: !locked,
+      child: GradientScaffold(
+        child: SafeArea(
+          bottom: false,
+          child: Column(
             children: [
-              _TopBar(
-                onBack: () {
-                  // Refresh the list so the auto-generated title (derived from
-                  // the first user message by the backend) shows up after the
-                  // user returns from the chat.
-                  ref.invalidate(conversationsProvider);
-                  if (context.canPop()) {
-                    context.pop();
-                  } else {
-                    context.go('/coach');
-                  }
-                },
-              ),
+              if (!locked)
+                _TopBar(
+                  onBack: () {
+                    // Refresh the list so the auto-generated title (derived
+                    // from the first user message by the backend) shows up
+                    // after the user returns from the chat.
+                    ref.invalidate(conversationsProvider);
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go('/coach');
+                    }
+                  },
+                ),
               Expanded(
                 child: CoachChatView(
                   conversationId: conversationId,
+                  hideFirstUserMessage: isOnboarding,
                   watchMessages: (ref) =>
                       ref.watch(coachChatProvider(conversationId)),
                   sendMessage: (ref, text, {chipValue}) => ref
@@ -60,6 +82,7 @@ class CoachChatScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
     );
   }
 }

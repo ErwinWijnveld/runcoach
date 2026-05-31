@@ -133,6 +133,10 @@ class CoachController extends Controller
             'data' => [
                 'id' => $conversation->id,
                 'title' => $conversation->title,
+                // Surfaced so the Flutter chat screen can tell the onboarding
+                // conversation apart (it hides the agent's priming first user
+                // message there). Null for normal coach chats.
+                'context' => $conversation->context,
                 'messages' => $messagesWithProposals,
             ],
         ]);

@@ -56,6 +56,18 @@ Future<List<Conversation>> conversations(Ref ref) async {
   return list.map((e) => Conversation.fromJson(e as Map<String, dynamic>)).toList();
 }
 
+/// Whether [conversationId] is the onboarding conversation. Reads the show
+/// endpoint's `context` field directly so it's correct on a cold-start deep
+/// link (the conversation list isn't consulted). Used by the chat screen to
+/// hide the agent's priming first user message during onboarding.
+@riverpod
+Future<bool> conversationIsOnboarding(Ref ref, String conversationId) async {
+  final api = ref.watch(coachApiProvider);
+  final data = await api.getConversation(conversationId);
+  final convData = data['data'] as Map<String, dynamic>;
+  return convData['context'] == 'onboarding';
+}
+
 /// Standalone accept/reject helpers so onboarding can use them without
 /// activating [CoachChat] (which would load messages from the wrong endpoint).
 @Riverpod(keepAlive: true)
