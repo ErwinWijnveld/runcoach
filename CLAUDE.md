@@ -206,6 +206,7 @@ A previous "push to main" or "build and push iOS" instruction authorizes THAT on
 - Log in with seeded admin (`php artisan db:seed --class=AdminUserSeeder` → `admin@runcoach.local` / `admin`)
 - Access gated via `User::canAccessPanel()` — `local` env allows any user, others require email in `ADMIN_EMAILS`
 - Resources:
+  - **Users** (`/admin/users`) — full user list (email/name/Pro status/Pro-until/onboarded). Per-row action group grants comp Pro (1 month / 1 year via `EntitlementSyncService::grantComp`) or revokes it (`::expire`). Read-only otherwise (no create — users come from Sign in with Apple). Use this to comp a tester whose RevenueCat purchase can't complete (e.g. Paid Apps Agreement still processing). Files: `app/Filament/Resources/Users/`. Test: `tests/Feature/Filament/UserResourceProActionsTest.php`.
   - **Token Usage** (`/admin/token-usages`) — tracks per-call token spend for every agent. Filter by context (`coach`, `onboarding`, `activity_feedback`, `weekly_insight`, `plan_explanation`, `running_narrative`), user, model. Dashboard widgets show totals this week, tokens by context, and top users. Rows are written by `App\Listeners\RecordAgentTokenUsage` which is auto-discovered from its `handle(AgentPrompted|AgentStreamed $event)` signature — DO NOT also register it manually via `Event::listen` or every call gets logged twice.
 
 ## Coach panel (separate from /admin)
