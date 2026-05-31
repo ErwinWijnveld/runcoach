@@ -80,6 +80,7 @@ class ProEntitlement extends _$ProEntitlement {
       productId: response.productId,
       isPro: response.isPro,
       loading: false,
+      resolved: true,
     );
   }
 
@@ -141,6 +142,7 @@ class ProEntitlement extends _$ProEntitlement {
         productId: entitlement.productIdentifier,
         isPro: true,
         loading: false,
+        resolved: true,
       );
     } catch (e) {
       debugPrint('[pro] client refresh failed: $e');
@@ -160,11 +162,18 @@ class ProEntitlementState {
   final bool isPro;
   final bool loading;
 
+  /// True once the server (or client fallback) has given a definitive
+  /// entitlement answer at least once this session. The router gates the
+  /// lapsed-user hard paywall on this so a Pro user is never flashed to the
+  /// paywall before the async cold-start sync resolves their state.
+  final bool resolved;
+
   const ProEntitlementState({
     this.activeUntil,
     this.productId,
     this.isPro = false,
     this.loading = false,
+    this.resolved = false,
   });
 
   ProEntitlementState copyWith({
@@ -172,12 +181,14 @@ class ProEntitlementState {
     String? productId,
     bool? isPro,
     bool? loading,
+    bool? resolved,
   }) {
     return ProEntitlementState(
       activeUntil: activeUntil ?? this.activeUntil,
       productId: productId ?? this.productId,
       isPro: isPro ?? this.isPro,
       loading: loading ?? this.loading,
+      resolved: resolved ?? this.resolved,
     );
   }
 

@@ -30,6 +30,7 @@ import 'package:app/features/onboarding/screens/onboarding_zones_screen.dart';
 import 'package:app/features/organization/screens/connections_screen.dart';
 import 'package:app/features/organization/screens/invite_detail_screen.dart';
 import 'package:app/features/subscriptions/providers/pro_entitlement_provider.dart';
+import 'package:app/features/subscriptions/screens/paywall_screen.dart';
 import 'package:app/features/subscriptions/screens/plan_preview_screen.dart';
 
 part 'app_router.g.dart';
@@ -86,7 +87,8 @@ GoRouter appRouter(Ref ref) {
       // screen FOR NON-PRO USERS, and to coach/chat for pro users. The
       // proEntitlementProvider notifies this redirect when the server-side
       // sync resolves, so a fresh purchase auto-advances.
-      final isPro = ref.read(proEntitlementProvider).isPro;
+      final entitlement = ref.read(proEntitlementProvider);
+      final isPro = entitlement.isPro;
       final pending = user?.pendingPlanGeneration;
       if (pending != null && !state.matchedLocation.startsWith('/coach/chat/')) {
         switch (pending.status) {
@@ -121,6 +123,23 @@ GoRouter appRouter(Ref ref) {
           !state.matchedLocation.startsWith('/onboarding') &&
           !state.matchedLocation.startsWith('/coach/chat/')) {
         return '/onboarding';
+      }
+
+      // Onboarded but no active Pro entitlement — a lapsed subscriber, an
+      // admin-revoked user, or a pre-subscriptions (grandfathered) user.
+      // Hard paywall, same all-or-nothing gate as fresh onboarding; there's
+      // no plan teaser to show, so route to the bare paywall screen. Gated on
+      // `resolved` so a Pro user is never flashed to the paywall before the
+      // cold-start entitlement sync confirms their state. Background run
+      // ingestion stays free (the gate is on AI endpoints), so history keeps
+      // building while locked.
+      if (isLoggedIn &&
+          user?.hasCompletedOnboarding == true &&
+          pending == null &&
+          entitlement.resolved &&
+          !entitlement.isPro &&
+          state.matchedLocation != '/paywall') {
+        return '/paywall';
       }
 
       // Web has no HealthKit — the connect-health screen would just sit on
@@ -196,6 +215,13 @@ GoRouter appRouter(Ref ref) {
           final cid = state.uri.queryParameters['conversationId'] ?? '';
           return PlanPreviewScreen(conversationId: cid);
         },
+      ),
+      GoRoute(
+        // Hard paywall for an onboarded runner with no active Pro entitlement
+        // (lapsed / admin-revoked / pre-subscriptions grandfathered). No plan
+        // teaser — the router sends them here via the lapsed-user gate above.
+        path: '/paywall',
+        builder: (context, state) => const PaywallScreen(),
       ),
       GoRoute(
         path: '/connections',
