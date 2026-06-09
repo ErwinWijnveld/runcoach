@@ -57,6 +57,9 @@ Route::prefix('v1')->group(function () {
         Route::get('training-days/{day}/available-activities', [TrainingScheduleController::class, 'availableActivitiesForDay']);
         Route::post('training-days/{day}/match-activity', [TrainingScheduleController::class, 'matchActivityToDay']);
         Route::delete('training-days/{day}/match-activity', [TrainingScheduleController::class, 'unlinkActivityFromDay']);
+        // Link an off-plan ("buiten schema") run to a planned session: relocates
+        // that session's calendar entry onto the run's actual date and scores it.
+        Route::post('wearable/activities/{activity}/link-day', [TrainingScheduleController::class, 'linkActivityToScheduleDay']);
 
         // Wearable activities (HealthKit ingestion from the app)
         // Ingest + index stay free so non-pro users still build up history.

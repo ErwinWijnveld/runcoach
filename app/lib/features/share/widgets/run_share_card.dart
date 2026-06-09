@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
@@ -18,9 +17,20 @@ import 'package:app/features/wearable/services/workout_route_service.dart';
 /// bottom). Designed to be wrapped in a `RepaintBoundary` by the host
 /// sheet so it can be exported to PNG for the iOS share sheet.
 ///
+/// The intro is driven by a single internal [AnimationController] so the
+/// elements flow in as one coordinated sequence: the polyline draws while
+/// a "runner" marker rides its leading edge, and the verdict + KPIs fade
+/// in overlapping the tail of that draw (no dead gap). [onIntroComplete]
+/// fires once the controller settles — the host gates the Share button
+/// on it so the exported PNG never catches a half-drawn frame.
+///
 /// The card aspects to a fixed 9:16 — callers should provide a sized
 /// container (typically via `AspectRatio(aspectRatio: 9/16)`).
-class RunShareCard extends StatelessWidget {
+class RunShareCard extends StatefulWidget {
+  /// Total intro-animation duration. Exposed so the host sheet can stay
+  /// in sync without duplicating the number.
+  static const Duration introDuration = Duration(milliseconds: 2200);
+
   /// GPS polyline. Pass an empty list for treadmill / no-GPS runs;
   /// the card falls back to a route-less layout with bigger KPI tiles.
   final List<WorkoutRoutePoint> route;
@@ -46,10 +56,13 @@ class RunShareCard extends StatelessWidget {
   /// Raw AI feedback string; we extract the first **bold** sentence.
   final String? aiFeedback;
 
-  /// 0.0 → 1.0 — drives the polyline stroke-draw + marker pop-in.
-  /// Pass `1.0` for the static final state (e.g. golden tests / when
-  /// rendering after the animation finished).
-  final double routeProgress;
+  /// When false (or when Reduce Motion is on) the card renders at its
+  /// final state immediately — no intro animation.
+  final bool animate;
+
+  /// Fires once the intro animation settles (or immediately when not
+  /// animating). Used by the host to enable the Share CTA.
+  final VoidCallback? onIntroComplete;
 
   const RunShareCard({
     super.key,
@@ -61,15 +74,111 @@ class RunShareCard extends StatelessWidget {
     this.averageHeartRate,
     this.complianceScore,
     this.aiFeedback,
-    this.routeProgress = 1.0,
+    this.animate = true,
+    this.onIntroComplete,
   });
 
-  bool get _hasRoute => route.length >= 2;
+  @override
+  State<RunShareCard> createState() => _RunShareCardState();
+}
+
+class _RunShareCardState extends State<RunShareCard>
+    with SingleTickerProviderStateMixin {
+  /// Number of KPI tiles that stagger in (3 top + 2 bottom).
+  static const _kKpiTileCount = 5;
+
+  late final AnimationController _controller;
+
+  // Pre-built sub-animations so the card layout builds ONCE and only the
+  // individual transitions (+ the route painter) tick per frame.
+  late final Animation<double> _eyebrowFade;
+  late final Animation<double> _routeAnim;
+  late final Animation<double> _pillFade;
+  late final Animation<double> _verdictFade;
+  late final Animation<Offset> _verdictSlide;
+  late final List<Animation<double>> _kpiFades;
+  late final List<Animation<Offset>> _kpiSlides;
+
+  bool _started = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: RunShareCard.introDuration,
+    )..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          widget.onIntroComplete?.call();
+        }
+      });
+
+    _eyebrowFade = _fade(0.0, 0.16);
+    // The route is the hero — it draws over most of the timeline while a
+    // "runner" marker rides its tip. The verdict + KPIs start before it
+    // finishes so there's no dead gap.
+    _routeAnim = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.0, 0.68, curve: Curves.easeInOutCubic),
+    );
+    _pillFade = _fade(0.10, 0.30);
+    _verdictFade = _fade(0.52, 0.82);
+    _verdictSlide = _slide(0.52, 0.82, 0.15);
+
+    _kpiFades = [
+      for (var i = 0; i < _kKpiTileCount; i++)
+        _fade(0.56 + 0.07 * i, _clamp01(0.78 + 0.07 * i)),
+    ];
+    _kpiSlides = [
+      for (var i = 0; i < _kKpiTileCount; i++)
+        _slide(0.56 + 0.07 * i, _clamp01(0.78 + 0.07 * i), 0.2),
+    ];
+  }
+
+  Animation<double> _fade(double start, double end) => CurvedAnimation(
+        parent: _controller,
+        curve: Interval(start, end, curve: Curves.easeOutCubic),
+      );
+
+  Animation<Offset> _slide(double start, double end, double dy) =>
+      Tween<Offset>(begin: Offset(0, dy), end: Offset.zero).animate(
+        CurvedAnimation(
+          parent: _controller,
+          curve: Interval(start, end, curve: Curves.easeOutCubic),
+        ),
+      );
+
+  static double _clamp01(double v) => v > 1.0 ? 1.0 : v;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_started) return;
+    _started = true;
+    final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (!widget.animate || reduceMotion) {
+      _controller.value = 1.0;
+      // Defer to after this frame so the parent can setState safely.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.onIntroComplete?.call();
+      });
+    } else {
+      _controller.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  bool get _hasRoute => widget.route.length >= 2;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final verdict = extractVerdict(aiFeedback);
+    final verdict = extractVerdict(widget.aiFeedback);
 
     return AspectRatio(
       aspectRatio: 9 / 16,
@@ -91,50 +200,48 @@ class RunShareCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _Eyebrow(date: activityDate)
-                  .animate()
-                  .fadeIn(duration: 300.ms, curve: Curves.easeOut),
+              FadeTransition(
+                opacity: _eyebrowFade,
+                child: _Eyebrow(date: widget.activityDate),
+              ),
               const SizedBox(height: 12),
               Expanded(
                 flex: _hasRoute ? 5 : 0,
                 child: _hasRoute
                     ? _RoutePanel(
-                        route: route,
-                        progress: routeProgress,
+                        route: widget.route,
+                        progress: _routeAnim,
                       )
                     : const SizedBox.shrink(),
               ),
               if (!_hasRoute) ...[
                 const SizedBox(height: 12),
-                _IndoorPill(label: l10n.runShareIndoorPill)
-                    .animate()
-                    .fadeIn(duration: 300.ms, curve: Curves.easeOut),
+                FadeTransition(
+                  opacity: _pillFade,
+                  child: _IndoorPill(label: l10n.runShareIndoorPill),
+                ),
               ],
               const SizedBox(height: 18),
               if (verdict != null) ...[
-                _Verdict(verdict: verdict)
-                    .animate()
-                    .fadeIn(
-                      delay: 1500.ms,
-                      duration: 400.ms,
-                      curve: Curves.easeOutCubic,
-                    )
-                    .slideY(
-                      begin: 0.15,
-                      end: 0,
-                      duration: 400.ms,
-                      curve: Curves.easeOutCubic,
-                    ),
+                FadeTransition(
+                  opacity: _verdictFade,
+                  child: SlideTransition(
+                    position: _verdictSlide,
+                    child: _Verdict(verdict: verdict),
+                  ),
+                ),
                 const SizedBox(height: 18),
               ],
               _KpiGrid(
                 l10n: l10n,
-                distanceKm: distanceKm,
-                durationSeconds: durationSeconds,
-                averagePaceSecondsPerKm: averagePaceSecondsPerKm,
-                averageHeartRate: averageHeartRate,
-                complianceScore: complianceScore,
+                distanceKm: widget.distanceKm,
+                durationSeconds: widget.durationSeconds,
+                averagePaceSecondsPerKm: widget.averagePaceSecondsPerKm,
+                averageHeartRate: widget.averageHeartRate,
+                complianceScore: widget.complianceScore,
                 hasRoute: _hasRoute,
+                fades: _kpiFades,
+                slides: _kpiSlides,
               ),
             ],
           ),
@@ -180,12 +287,15 @@ class _Eyebrow extends StatelessWidget {
 
 class _RoutePanel extends StatelessWidget {
   final List<WorkoutRoutePoint> route;
-  final double progress;
+  final Animation<double> progress;
 
   const _RoutePanel({required this.route, required this.progress});
 
   @override
   Widget build(BuildContext context) {
+    // The painter is built ONCE and repaints off [progress]
+    // (`super(repaint: progress)`), so the Douglas-Peucker simplification
+    // doesn't re-run every frame.
     return SizedBox.expand(
       child: CustomPaint(
         painter: RoutePolylinePainter(
@@ -263,6 +373,11 @@ class _KpiGrid extends StatelessWidget {
   final double? complianceScore;
   final bool hasRoute;
 
+  /// Per-tile fade + slide animations, indexed 0..4 (0,1,2 top row;
+  /// 3,4 bottom row).
+  final List<Animation<double>> fades;
+  final List<Animation<Offset>> slides;
+
   const _KpiGrid({
     required this.l10n,
     required this.distanceKm,
@@ -271,6 +386,8 @@ class _KpiGrid extends StatelessWidget {
     required this.averageHeartRate,
     required this.complianceScore,
     required this.hasRoute,
+    required this.fades,
+    required this.slides,
   });
 
   @override
@@ -279,20 +396,9 @@ class _KpiGrid extends StatelessWidget {
     final hasCompliance = complianceScore != null;
     final hasSecondRow = hasHr || hasCompliance;
 
-    // Stagger params per spec — KPI tiles fade-slide in starting at 1700ms.
-    Widget stagger(int index, Widget child) => child
-        .animate()
-        .fadeIn(
-          delay: (1700 + 80 * index).ms,
-          duration: 400.ms,
-          curve: Curves.easeOutCubic,
-        )
-        .slideY(
-          begin: 0.2,
-          end: 0,
-          delay: (1700 + 80 * index).ms,
-          duration: 400.ms,
-          curve: Curves.easeOutCubic,
+    Widget tile(int index, Widget child) => FadeTransition(
+          opacity: fades[index],
+          child: SlideTransition(position: slides[index], child: child),
         );
 
     return Column(
@@ -300,7 +406,7 @@ class _KpiGrid extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: stagger(
+              child: tile(
                 0,
                 _KpiTile(
                   value: _formatDistance(distanceKm),
@@ -310,7 +416,7 @@ class _KpiGrid extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: stagger(
+              child: tile(
                 1,
                 _KpiTile(
                   value: _formatDuration(durationSeconds),
@@ -320,7 +426,7 @@ class _KpiGrid extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: stagger(
+              child: tile(
                 2,
                 _KpiTile(
                   value: _formatPace(averagePaceSecondsPerKm),
@@ -337,7 +443,7 @@ class _KpiGrid extends StatelessWidget {
               if (hasHr)
                 Expanded(
                   flex: hasCompliance ? 1 : 2,
-                  child: stagger(
+                  child: tile(
                     3,
                     _KpiTile(
                       value: averageHeartRate!.round().toString(),
@@ -349,7 +455,7 @@ class _KpiGrid extends StatelessWidget {
               if (hasCompliance)
                 Expanded(
                   flex: hasHr ? 1 : 2,
-                  child: stagger(
+                  child: tile(
                     4,
                     _KpiTile(
                       value: '${(complianceScore! * 10).round()}%',

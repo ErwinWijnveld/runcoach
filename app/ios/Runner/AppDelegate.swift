@@ -16,6 +16,10 @@ import UIKit
       }
       PushNotifications.shared.setInitialPayload(converted)
     }
+    // Re-arm the HealthKit workout observer on every launch (incl. a
+    // background launch triggered by new Health data). No-op until Dart
+    // has configured credentials via `nl.runcoach/bg-sync`.
+    HealthKitBackgroundSync.shared.start()
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
@@ -62,6 +66,13 @@ import UIKit
     // an abstract gold polyline.
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "WorkoutRoute") {
       WorkoutRoute.register(controller: registrar.messenger())
+    }
+
+    // HKObserverQuery background-delivery bridge — Dart pushes {baseUrl,
+    // token} here so the native observer can auto-sync new runs to the
+    // backend while the app is backgrounded/terminated (Strava-style).
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "BackgroundSync") {
+      HealthKitBackgroundSync.shared.register(controller: registrar.messenger())
     }
   }
 }

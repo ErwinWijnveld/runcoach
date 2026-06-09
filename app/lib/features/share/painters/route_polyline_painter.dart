@@ -22,12 +22,14 @@ import 'package:app/features/wearable/services/workout_route_service.dart';
 ///   `Path.computeMetrics()` + `extractPath`.
 ///
 /// Douglas-Peucker simplification is applied once at construction time,
-/// not per repaint, so dragging an animation slider stays smooth even
-/// for marathon-length routes.
+/// not per repaint, so the intro animation stays smooth even for
+/// marathon-length routes. The painter is constructed ONCE and repaints
+/// off the [progress] animation (`super(repaint: progress)`) — never
+/// rebuild it per frame or the simplification re-runs 60×/sec.
 class RoutePolylinePainter extends CustomPainter {
-  /// Animation progress in [0, 1]. 0 = nothing drawn; 1 = full polyline
-  /// + both markers visible.
-  final double progress;
+  /// Animation driving the intro draw. `value` in [0, 1]: 0 = nothing
+  /// drawn; 1 = full polyline + both markers visible.
+  final Animation<double> progress;
 
   /// Simplified points in display order (start → end).
   final List<WorkoutRoutePoint> simplified;
@@ -49,11 +51,13 @@ class RoutePolylinePainter extends CustomPainter {
         _minLat = _bbox(points).$1,
         _maxLat = _bbox(points).$2,
         _minLng = _bbox(points).$3,
-        _maxLng = _bbox(points).$4;
+        _maxLng = _bbox(points).$4,
+        super(repaint: progress);
 
   @override
   void paint(Canvas canvas, Size size) {
     if (simplified.length < 2) return;
+    final progress = this.progress.value;
 
     // Aspect-correct projection: pick the smaller of the two scale
     // factors so the polyline fits inside [size] without distortion.
@@ -91,8 +95,10 @@ class RoutePolylinePainter extends CustomPainter {
 
     // Clip the path to the animated progress fraction. computeMetrics
     // walks the path lazily, so we cap iterations at one metric (our
-    // path is a single subpath).
+    // path is a single subpath). While drawing we also capture the
+    // leading-edge position so a "runner" marker can ride the tip.
     Path drawnPath;
+    Offset? tip;
     if (progress >= 1.0) {
       drawnPath = fullPath;
     } else if (progress <= 0.0) {
@@ -100,8 +106,9 @@ class RoutePolylinePainter extends CustomPainter {
     } else {
       drawnPath = Path();
       for (final metric in fullPath.computeMetrics()) {
-        final extracted = metric.extractPath(0, metric.length * progress);
-        drawnPath.addPath(extracted, Offset.zero);
+        final len = metric.length * progress;
+        drawnPath.addPath(metric.extractPath(0, len), Offset.zero);
+        tip = metric.getTangentForOffset(len)?.position;
       }
     }
 
@@ -136,6 +143,37 @@ class RoutePolylinePainter extends CustomPainter {
           ..color = const Color(0xFF1C1C15).withValues(alpha: 0.15)
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1.5
+          ..isAntiAlias = true,
+      );
+    }
+
+    // Leading-edge "runner" marker — rides the tip of the stroke while
+    // it's being drawn, so the polyline reads as a pointer running the
+    // route. Suppressed at the very end where the end-ring takes over.
+    if (tip != null && progress < 0.98) {
+      // Soft halo.
+      canvas.drawCircle(
+        tip,
+        13,
+        Paint()
+          ..color = const Color(0xFFE9B638).withValues(alpha: 0.22)
+          ..isAntiAlias = true,
+      );
+      // Solid core with a thin light rim for contrast on the polyline.
+      canvas.drawCircle(
+        tip,
+        6,
+        Paint()
+          ..color = const Color(0xFFD4831F)
+          ..isAntiAlias = true,
+      );
+      canvas.drawCircle(
+        tip,
+        6,
+        Paint()
+          ..color = const Color(0xFFFAF8F4)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2
           ..isAntiAlias = true,
       );
     }

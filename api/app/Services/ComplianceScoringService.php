@@ -105,6 +105,12 @@ class ComplianceScoringService
         return $totalWeight > 0 ? $weighted / $totalWeight : 0.0;
     }
 
+    /**
+     * Auto-match only when the run falls on a planned session's EXACT date.
+     * Runs on any other day are intentionally left unmatched so they surface
+     * as off-plan ("buiten schema") runs the user can manually link to a
+     * session via POST /wearable/activities/{activity}/link-day.
+     */
     private function findMatchingDay(User $user, WearableActivity $activity): ?TrainingDay
     {
         $candidates = TrainingDay::whereHas('trainingWeek.goal', function ($query) use ($user) {
@@ -112,22 +118,14 @@ class ComplianceScoringService
                 ->where('status', GoalStatus::Active);
         })
             ->whereDoesntHave('result')
-            ->whereBetween('date', [
-                $activity->start_date->copy()->subDay()->toDateString(),
-                $activity->start_date->copy()->addDay()->toDateString(),
-            ])
+            ->whereDate('date', $activity->start_date->toDateString())
             ->get();
 
         if ($candidates->isEmpty()) {
             return null;
         }
 
-        $activityDate = $activity->start_date->toDateString();
-        $exactMatch = $candidates->where('date', $activityDate);
-        if ($exactMatch->isNotEmpty()) {
-            $candidates = $exactMatch;
-        }
-
+        // Rare: two planned sessions share the date — pick the closest by distance.
         return $candidates->sortBy(function ($day) use ($activity) {
             if (! $day->target_km) {
                 return PHP_INT_MAX;

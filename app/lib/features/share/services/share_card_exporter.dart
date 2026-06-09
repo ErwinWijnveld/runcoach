@@ -19,7 +19,9 @@ class ShareCardExporter {
   /// share sheet. The widget must be mounted inside a `RepaintBoundary`
   /// whose `key` matches [boundaryKey].
   ///
-  /// [origin] anchors the share sheet on iPad (`Rect.zero` works on iPhone).
+  /// [origin] anchors the share sheet/popover. iOS rejects a zero rect
+  /// outright ("sharePositionOrigin must be non-zero"), so pass the rect of
+  /// the triggering control (or the host view) — never the `Rect.zero` default.
   static Future<void> capture({
     required GlobalKey boundaryKey,
     String? subject,

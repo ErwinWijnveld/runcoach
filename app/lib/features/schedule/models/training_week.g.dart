@@ -18,6 +18,11 @@ _TrainingWeek _$TrainingWeekFromJson(Map<String, dynamic> json) =>
       trainingDays: (json['training_days'] as List<dynamic>?)
           ?.map((e) => TrainingDay.fromJson(e as Map<String, dynamic>))
           .toList(),
+      unplannedRuns: (json['unplanned_runs'] as List<dynamic>?)
+          ?.map(
+            (e) => WearableActivitySummary.fromJson(e as Map<String, dynamic>),
+          )
+          .toList(),
     );
 
 Map<String, dynamic> _$TrainingWeekToJson(_TrainingWeek instance) =>
@@ -30,4 +35,5 @@ Map<String, dynamic> _$TrainingWeekToJson(_TrainingWeek instance) =>
       'focus': instance.focus,
       'coach_notes': instance.coachNotes,
       'training_days': instance.trainingDays,
+      'unplanned_runs': instance.unplannedRuns,
     };

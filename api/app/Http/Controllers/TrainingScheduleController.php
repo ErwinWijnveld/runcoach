@@ -7,8 +7,10 @@ use App\Models\Goal;
 use App\Models\TrainingDay;
 use App\Models\TrainingResult;
 use App\Models\TrainingWeek;
+use App\Models\User;
 use App\Models\WearableActivity;
 use App\Services\ComplianceScoringService;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -25,7 +27,71 @@ class TrainingScheduleController extends Controller
             ->orderBy('week_number')
             ->get();
 
+        $this->attachUnplannedRuns($request->user(), $weeks);
+
         return response()->json(['data' => $weeks]);
+    }
+
+    /**
+     * Attach off-plan ("buiten schema") runs to each week: run-type activities
+     * that fall within the week's [starts_at, starts_at + 7d) range but never
+     * matched a planned session (no TrainingResult). One query for the whole
+     * plan span, grouped in PHP. Each entry is shaped to match the Flutter
+     * `WearableActivitySummary` model so the app reuses it as-is.
+     *
+     * @param  Collection<int, TrainingWeek>  $weeks
+     */
+    private function attachUnplannedRuns(User $user, Collection $weeks): void
+    {
+        if ($weeks->isEmpty()) {
+            return;
+        }
+
+        $rangeStart = Carbon::parse($weeks->first()->starts_at)->startOfDay();
+        $rangeEnd = Carbon::parse($weeks->last()->starts_at)->addDays(7)->startOfDay();
+
+        $runs = WearableActivity::query()
+            ->where('user_id', $user->id)
+            ->whereIn('type', WearableActivity::RUN_TYPES)
+            ->whereBetween('start_date', [$rangeStart, $rangeEnd])
+            ->whereDoesntHave('trainingResults')
+            ->orderBy('start_date')
+            ->get();
+
+        foreach ($weeks as $week) {
+            $weekStart = Carbon::parse($week->starts_at)->startOfDay();
+            $weekEnd = $weekStart->copy()->addDays(7);
+
+            $week->setAttribute('unplanned_runs', $runs
+                ->filter(fn (WearableActivity $r) => $r->start_date >= $weekStart && $r->start_date < $weekEnd)
+                ->map(fn (WearableActivity $r) => $this->unplannedRunPayload($r))
+                ->values()
+                ->all());
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function unplannedRunPayload(WearableActivity $activity): array
+    {
+        return [
+            'id' => $activity->id,
+            'source' => $activity->source,
+            'source_activity_id' => $activity->source_activity_id,
+            'type' => $activity->type,
+            'name' => $activity->name,
+            'distance_meters' => $activity->distance_meters,
+            'duration_seconds' => $activity->duration_seconds,
+            'elapsed_seconds' => $activity->elapsed_seconds,
+            'average_pace_seconds_per_km' => $activity->average_pace_seconds_per_km,
+            'average_heartrate' => $activity->average_heartrate !== null ? (float) $activity->average_heartrate : null,
+            'max_heartrate' => $activity->max_heartrate !== null ? (float) $activity->max_heartrate : null,
+            'elevation_gain_meters' => $activity->elevation_gain_meters,
+            'calories_kcal' => $activity->calories_kcal,
+            'start_date' => $activity->start_date->toIso8601String(),
+            'end_date' => $activity->end_date?->toIso8601String(),
+        ];
     }
 
     public function currentWeek(Request $request, Goal $goal): JsonResponse
@@ -257,5 +323,77 @@ class TrainingScheduleController extends Controller
         $day->result?->delete();
 
         return response()->json(['data' => null]);
+    }
+
+    /**
+     * Link an off-plan ("buiten schema") run to a planned session. Relocates the
+     * chosen training day's calendar entry onto the run's ACTUAL date — the date
+     * the run was really done, never the other way around — re-assigns it to the
+     * matching week, then scores the run against it. The session becomes a
+     * completed day on the run's date and the run stops surfacing as off-plan.
+     */
+    public function linkActivityToScheduleDay(
+        Request $request,
+        int $activityId,
+        ComplianceScoringService $compliance,
+    ): JsonResponse {
+        $request->validate(['training_day_id' => 'required|integer']);
+
+        $user = $request->user();
+
+        $activity = WearableActivity::where('user_id', $user->id)->findOrFail($activityId);
+
+        if (! in_array($activity->type, WearableActivity::RUN_TYPES, true)) {
+            abort(422, 'Only running activities can be linked to a training day.');
+        }
+
+        if (TrainingResult::where('wearable_activity_id', $activity->id)->exists()) {
+            abort(409, 'This run is already linked to a training day.');
+        }
+
+        $day = TrainingDay::whereHas('trainingWeek.goal', function ($query) use ($user) {
+            $query->where('user_id', $user->id);
+        })->with('trainingWeek.goal')->findOrFail((int) $request->input('training_day_id'));
+
+        abort_if(
+            $day->result()->exists(),
+            422,
+            'That training already has a result. Unlink it first.'
+        );
+
+        $goal = $day->trainingWeek->goal;
+
+        // The race-day entry has to stay on the goal date (optimizer invariant).
+        if (
+            $goal->target_date !== null
+            && $day->date !== null
+            && $goal->target_date->toDateString() === Carbon::parse($day->date)->toDateString()
+        ) {
+            abort(422, 'The goal day has to stay on the goal date — it can\'t be linked to a run.');
+        }
+
+        // Move the session onto the run's real date. Past dates are allowed here
+        // (runs are in the past) — this is what `updateDay` deliberately forbids.
+        $runDate = $activity->start_date->copy()->startOfDay();
+
+        $matchingWeek = $goal->trainingWeeks()
+            ->where('starts_at', '<=', $runDate->toDateString())
+            ->where('starts_at', '>', $runDate->copy()->subDays(7)->toDateString())
+            ->orderByDesc('starts_at')
+            ->first();
+
+        $day->update([
+            'date' => $runDate->toDateString(),
+            'training_week_id' => $matchingWeek?->id ?? $day->training_week_id,
+            'order' => (int) $runDate->isoWeekday(),
+        ]);
+
+        $result = $compliance->scoreDay($day->fresh(['trainingWeek.goal']), $activity);
+
+        GenerateActivityFeedback::dispatch($result->id);
+
+        return response()->json([
+            'data' => $day->fresh(['trainingWeek', 'result.wearableActivity']),
+        ]);
     }
 }

@@ -39,6 +39,14 @@ abstract class ScheduleApi {
   @DELETE('/training-days/{dayId}/match-activity')
   Future<void> unlinkActivity(@Path() int dayId);
 
+  /// Link an off-plan run to a planned session. The backend relocates that
+  /// session's calendar entry onto the run's actual date and scores it.
+  @POST('/wearable/activities/{activityId}/link-day')
+  Future<dynamic> linkActivityToDay(
+    @Path() int activityId,
+    @Body() Map<String, dynamic> body,
+  );
+
   @GET('/workout-chat/{dayId}')
   Future<dynamic> getWorkoutChat(@Path() int dayId);
 

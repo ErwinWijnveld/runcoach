@@ -584,6 +584,14 @@ Leap-year edge (Feb 29) is intentionally not handled in v1 — affected users (~
 
 After update, the day is auto-re-assigned to the matching `TrainingWeek` (week whose `[starts_at, starts_at + 7d)` contains the new date) so weekly views stay coherent. The optimizer is NOT re-run — `updateDay` is a date-only mutation.
 
+### Off-plan run linking ("buiten schema")
+
+`ComplianceScoringService::findMatchingDay` auto-matches a run ONLY when it lands on a planned session's **exact date** (was a ±1-day window). Runs on any other day get no `TrainingResult` and surface as off-plan runs.
+
+- `TrainingScheduleController::schedule` attaches `unplanned_runs` to each week: run-type `wearable_activities` within the week's `[starts_at, starts_at + 7d)` range that `whereDoesntHave('trainingResults')`. One query for the whole plan span, grouped in PHP, shaped to match the Flutter `WearableActivitySummary` model. (`currentWeek` does NOT attach them — only the full schedule, which both the schedule screen and dashboard read.)
+- `POST /wearable/activities/{activity}/link-day` (`linkActivityToScheduleDay`) links an off-plan run to a planned session: it **relocates the chosen `TrainingDay` onto the run's actual `start_date`** (reusing `updateDay`'s week-reassign logic but allowing past dates — that's the whole point, unlike `updateDay` which forbids `< today`), then `ComplianceScoringService::scoreDay($day, $activity)` + `GenerateActivityFeedback::dispatch`. Guards: activity owned + run-type + not already linked (409); day owned + no result + not the race day (422). Sits in the general auth group (NOT `require.pro`), alongside `match-activity`.
+- Tests: `tests/Feature/Http/TrainingDayMatchTest.php` (`test_link_*`), `tests/Feature/TrainingScheduleTest.php` (`test_schedule_includes_off_plan_runs_in_their_week`), `tests/Feature/ComplianceScoringTest.php` (`test_run_one_day_off_does_not_auto_match`).
+
 ### Notifications inbox (action-required items)
 
 Generic per-user inbox for items the runner needs to act on. Backed by `user_notifications` (`App\Models\UserNotification`):

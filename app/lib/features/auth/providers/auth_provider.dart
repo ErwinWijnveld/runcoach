@@ -9,8 +9,10 @@ import 'package:app/features/auth/data/auth_api.dart';
 import 'package:app/features/auth/models/derived_zones.dart';
 import 'package:app/features/auth/models/hr_zone.dart';
 import 'package:app/features/auth/models/user.dart';
+import 'package:app/core/api/dio_client.dart';
 import 'package:app/features/onboarding/models/plan_generation.dart';
 import 'package:app/features/push/services/push_service.dart';
+import 'package:app/features/wearable/services/background_sync_service.dart';
 
 part 'auth_provider.g.dart';
 
@@ -45,6 +47,7 @@ class Auth extends _$Auth {
       await tokenStorage.setToken(response.token);
 
       state = AsyncValue.data(response.user);
+      unawaited(_configureBackgroundSync());
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
@@ -71,6 +74,7 @@ class Auth extends _$Auth {
       await tokenStorage.setToken(response.token);
 
       state = AsyncValue.data(response.user);
+      unawaited(_configureBackgroundSync());
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
@@ -85,6 +89,8 @@ class Auth extends _$Auth {
       // Refresh the device-token row server-side. No-op (returns null) if
       // the user previously denied the iOS permission prompt.
       unawaited(ref.read(pushServiceProvider).registerIfPermitted());
+      // Re-hand the bearer to the native background-sync bridge.
+      unawaited(_configureBackgroundSync());
     } catch (e, st) {
       state = AsyncValue.error(e, st);
     }
@@ -98,6 +104,8 @@ class Auth extends _$Auth {
     try {
       await ref.read(pushServiceProvider).unregister();
     } catch (_) {}
+    // Stop native background sync + wipe its stored bearer.
+    await ref.read(backgroundSyncServiceProvider).clear();
     try {
       await api.logout();
     } catch (_) {}
@@ -157,6 +165,7 @@ class Auth extends _$Auth {
     final api = ref.read(authApiProvider);
     final tokenStorage = ref.read(tokenStorageProvider);
     await api.deleteAccount();
+    await ref.read(backgroundSyncServiceProvider).clear();
     await tokenStorage.clearToken();
     state = const AsyncValue.data(null);
   }
@@ -170,6 +179,17 @@ class Auth extends _$Auth {
     final current = state.value;
     if (current == null) return;
     state = AsyncValue.data(current.copyWith(pendingPlanGeneration: row));
+  }
+
+  /// Hand the native HealthKit background-sync bridge the current bearer +
+  /// API base URL so it can auto-sync new runs while the app is closed.
+  /// iOS-only no-op elsewhere. Fire-and-forget.
+  Future<void> _configureBackgroundSync() async {
+    final token = await ref.read(tokenStorageProvider).getToken();
+    if (token == null) return;
+    await ref
+        .read(backgroundSyncServiceProvider)
+        .configure(baseUrl: baseUrl, token: token);
   }
 
   bool get isLoggedIn => state.value != null;

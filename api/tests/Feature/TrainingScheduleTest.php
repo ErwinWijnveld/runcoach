@@ -7,6 +7,7 @@ use App\Models\TrainingDay;
 use App\Models\TrainingResult;
 use App\Models\TrainingWeek;
 use App\Models\User;
+use App\Models\WearableActivity;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
@@ -34,6 +35,51 @@ class TrainingScheduleTest extends TestCase
         $response->assertOk();
         $this->assertCount(1, $response->json('data'));
         $this->assertCount(7, $response->json('data.0.training_days'));
+    }
+
+    public function test_schedule_includes_off_plan_runs_in_their_week(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $goal = Goal::factory()->create(['user_id' => $user->id]);
+        $week = TrainingWeek::factory()->create([
+            'goal_id' => $goal->id,
+            'week_number' => 1,
+            'starts_at' => now()->startOfWeek()->toDateString(),
+        ]);
+        TrainingDay::factory()->create([
+            'training_week_id' => $week->id,
+            'date' => now()->startOfWeek()->addDay()->toDateString(),
+        ]);
+
+        // An unmatched run inside the week → surfaces as off-plan.
+        $offPlan = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'Run',
+            'start_date' => now()->startOfWeek()->addDays(3),
+        ]);
+
+        // A run that already has a result → must NOT appear as off-plan.
+        $matchedDay = TrainingDay::factory()->create([
+            'training_week_id' => $week->id,
+            'date' => now()->startOfWeek()->addDays(4)->toDateString(),
+        ]);
+        $matchedRun = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'Run',
+            'start_date' => now()->startOfWeek()->addDays(4),
+        ]);
+        TrainingResult::factory()->create([
+            'training_day_id' => $matchedDay->id,
+            'wearable_activity_id' => $matchedRun->id,
+        ]);
+
+        $response = $this->getJson("/api/v1/goals/{$goal->id}/schedule", $headers);
+
+        $response->assertOk();
+        $runs = $response->json('data.0.unplanned_runs');
+        $this->assertIsArray($runs);
+        $this->assertCount(1, $runs);
+        $this->assertSame($offPlan->id, $runs[0]['id']);
     }
 
     public function test_get_current_week(): void
