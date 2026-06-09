@@ -16,6 +16,7 @@ import 'package:app/features/dashboard/models/dashboard_data.dart';
 import 'package:app/features/dashboard/providers/dashboard_provider.dart';
 import 'package:app/features/schedule/models/training_day.dart';
 import 'package:app/features/schedule/models/training_week.dart';
+import 'package:app/features/schedule/models/wearable_activity_summary.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
 import 'package:app/features/wearable/widgets/analyzing_run_chip.dart';
 import 'package:app/router/app_router.dart'
@@ -501,6 +502,8 @@ Color _barColor(_DayCell cell) {
       return _inkBlack;
     case _CellState.upcoming:
       return AppColors.secondary;
+    case _CellState.unplanned:
+      return AppColors.offPlan;
   }
 }
 
@@ -837,6 +840,8 @@ Color _cellColor(_DayCell cell) {
       return _upcomingCell;
     case _CellState.race:
       return _inkBlack;
+    case _CellState.unplanned:
+      return AppColors.offPlan;
   }
 }
 
@@ -883,6 +888,7 @@ class _Legend extends StatelessWidget {
         _LegendDot(color: AppColors.success, label: l10n.dashLegendDone),
         _LegendDot(color: AppColors.danger, label: l10n.dashLegendMissed),
         _LegendDot(color: _upcomingCell, label: l10n.dashLegendUpcoming),
+        _LegendDot(color: AppColors.offPlan, label: l10n.dashLegendUnplanned),
       ],
     );
   }
@@ -1009,7 +1015,7 @@ class _EmptyState extends StatelessWidget {
 // Model + derivation helpers
 // ---------------------------------------------------------------------------
 
-enum _CellState { rest, done, missed, upcoming, race }
+enum _CellState { rest, done, missed, upcoming, race, unplanned }
 
 class _DayCell {
   final _CellState state;
@@ -1051,6 +1057,21 @@ List<_DayCell> _buildWeekCells(
       targetKm: day.targetKm,
       type: day.type,
       day: day,
+    );
+  }
+
+  // Off-plan ("buiten schema") runs colour an otherwise-empty (rest) slot blue
+  // so the dashboard reflects volume the runner logged outside the plan.
+  for (final run in week.unplannedRuns ?? const <WearableActivitySummary>[]) {
+    final date = DateTime.tryParse(run.startDate);
+    if (date == null) continue;
+    final weekday = date.weekday - 1; // Mon=0..Sun=6
+    if (weekday < 0 || weekday > 6) continue;
+    if (cells[weekday].state != _CellState.rest) continue;
+    cells[weekday] = _DayCell(
+      state: _CellState.unplanned,
+      isToday: cells[weekday].isToday,
+      targetKm: run.distanceMeters / 1000,
     );
   }
 

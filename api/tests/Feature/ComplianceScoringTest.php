@@ -82,6 +82,29 @@ class ComplianceScoringTest extends TestCase
         $this->assertDatabaseCount('training_results', 0);
     }
 
+    public function test_run_one_day_off_does_not_auto_match(): void
+    {
+        // A run the day BEFORE a planned session no longer auto-matches — it's
+        // left unmatched so it surfaces as an off-plan run the user can link
+        // manually. (Previously a ±1-day window would have matched it.)
+        [$user, $day] = $this->createUserWithPlan(); // planned day is today
+
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'distance_meters' => 8000,
+            'duration_seconds' => 2280,
+            'average_pace_seconds_per_km' => 285,
+            'average_heartrate' => 160,
+            'start_date' => now()->subDay(),
+        ]);
+
+        $result = $this->service->matchAndScore($user, $activity);
+
+        $this->assertNull($result);
+        $this->assertNull($day->fresh()->result);
+        $this->assertDatabaseCount('training_results', 0);
+    }
+
     public function test_missing_heart_rate_redistributes_weights(): void
     {
         [$user, $day] = $this->createUserWithPlan();

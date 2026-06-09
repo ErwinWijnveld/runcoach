@@ -1,8 +1,9 @@
 # cupertino_native requires iOS 14.0 minimum. purchases_ui_flutter's
-# PaywallView requires iOS 15.0 minimum. iOS 26 Liquid Glass tab bar material
-# is applied automatically when running on iOS 26+; older iOS gets the pre-26
-# translucent UITabBar.
-platform :ios, '15.0'
+# PaywallView requires iOS 15.0 minimum. HealthKitBackgroundSync uses
+# HKWorkout.statistics(for:) which requires iOS 16.0. iOS 26 Liquid Glass tab
+# bar material is applied automatically when running on iOS 26+; older iOS gets
+# the pre-26 translucent UITabBar.
+platform :ios, '16.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'

@@ -28,6 +28,11 @@ class AppColors {
   static const inputBorder = Color(0xFFE6DDC6);
   static const goldGlow = Color(0xFFF5E0AF);
 
+  /// Off-plan ("buiten schema") run accent — a calm blue that reads as "extra,
+  /// not yet linked". Parallel to the gold (`secondary` + `goldGlow`) pair.
+  static const offPlan = Color(0xFF3E72C7);
+  static const offPlanGlow = Color(0xFFD8E6FB);
+
   /// Warm cream → gold gradient used on the onboarding overview screen.
   static const onboardingGradient = LinearGradient(
     begin: Alignment.topCenter,

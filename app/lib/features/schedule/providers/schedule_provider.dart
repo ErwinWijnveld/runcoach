@@ -123,6 +123,32 @@ class RescheduleDay extends _$RescheduleDay {
   }
 }
 
+/// Link an off-plan ("buiten schema") run to a planned session. The chosen
+/// training day relocates onto the run's actual date and is scored against it,
+/// so the run stops surfacing as off-plan. Captures deps before the await (§1b)
+/// because the host sheet can be torn down while the request is in flight.
+@riverpod
+class LinkUnplannedRun extends _$LinkUnplannedRun {
+  @override
+  void build() {}
+
+  Future<TrainingDay> link({
+    required int activityId,
+    required int trainingDayId,
+  }) async {
+    final api = ref.read(scheduleApiProvider);
+    final planVersion = ref.read(planVersionProvider.notifier);
+    final response = await api.linkActivityToDay(
+      activityId,
+      {'training_day_id': trainingDayId},
+    );
+    planVersion.bump();
+    return TrainingDay.fromJson(
+      Map<String, dynamic>.from(response['data'] as Map),
+    );
+  }
+}
+
 /// Polls `/training-days/{id}/result` every 5s until `ai_feedback` is non-null,
 /// then yields the text and closes. Yields `null` while pending so the UI can
 /// keep the spinner on screen. Auto-disposes when the screen leaves.

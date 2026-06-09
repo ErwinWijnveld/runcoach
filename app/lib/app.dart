@@ -10,8 +10,6 @@ import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/notifications/providers/notifications_provider.dart';
 import 'package:app/features/notifications/widgets/notifications_sheet.dart';
 import 'package:app/features/push/services/push_service.dart';
-import 'package:app/features/share/providers/celebration_provider.dart';
-import 'package:app/features/share/widgets/run_celebration_sheet.dart';
 import 'package:app/features/subscriptions/providers/pro_entitlement_provider.dart';
 import 'package:app/features/subscriptions/services/purchases_service.dart';
 import 'package:app/features/wearable/providers/workout_sync_provider.dart';
@@ -205,8 +203,6 @@ class _BootPopupHostState extends ConsumerState<_BootPopupHost> {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (!mounted) return;
         await _showReminder(context);
-        if (!mounted) return;
-        await _maybeShowCelebration(context);
       });
     });
     return widget.child;
@@ -255,37 +251,4 @@ class _BootPopupHostState extends ConsumerState<_BootPopupHost> {
     }
   }
 
-  /// Pop the shareable run-card sheet for the most recent analyzed run
-  /// when nothing else is grabbing focus. Runs AFTER the notifications
-  /// reminder — actionable items win over delight moments.
-  Future<void> _maybeShowCelebration(BuildContext ctx) async {
-    try {
-      // Skip when notifications popup just took focus (a runner doesn't
-      // need two modals stacked on cold start).
-      final pending = await ref.read(notificationsProvider.future);
-      if (pending.isNotEmpty) return;
-
-      final celebration = ref.read(celebrationProvider.notifier);
-      final result = await celebration.findCelebratableRun();
-      if (kDebugMode) {
-        debugPrint('[boot-popup] celebration result=${result?.id}');
-      }
-      if (!mounted || result == null) return;
-      final activityId = result.wearableActivity?.id;
-      if (activityId == null) return;
-
-      final navCtx = rootNavigatorKey.currentContext;
-      if (navCtx == null || !navCtx.mounted) return;
-
-      // Mark celebrated FIRST so a hard close mid-sheet doesn't re-fire
-      // the popup next boot.
-      await celebration.markCelebrated(activityId);
-
-      await RunCelebrationSheet.show(navCtx, result: result);
-    } catch (e, st) {
-      if (kDebugMode) {
-        debugPrint('[boot-popup] celebration error: $e\n$st');
-      }
-    }
-  }
 }

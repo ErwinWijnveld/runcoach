@@ -20,11 +20,13 @@ import 'package:app/features/schedule/models/plan_evaluation.dart';
 import 'package:app/features/schedule/models/training_day.dart';
 import 'package:app/features/schedule/models/training_day_pace_x.dart';
 import 'package:app/features/schedule/models/training_week.dart';
+import 'package:app/features/schedule/models/wearable_activity_summary.dart';
 import 'package:app/features/schedule/providers/plan_evaluations_provider.dart';
 import 'package:app/features/schedule/widgets/evaluation_card.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
 import 'package:app/features/schedule/widgets/schedule_week_chat_sheet.dart';
 import 'package:app/features/schedule/widgets/training_day_status.dart';
+import 'package:app/features/schedule/widgets/unplanned_run_sheet.dart';
 
 const _goldAccent = Color(0xFF785600);
 const _labelMuted = Color(0xFF4F4535);
@@ -323,9 +325,18 @@ class _WeekBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final days = <TrainingDay>[...?week.trainingDays]..sort(
-      (a, b) => a.order.compareTo(b.order),
-    );
+    // Planned sessions + off-plan runs, merged in weekday order. On a tie the
+    // planned session renders before its off-plan run.
+    final entries = <_WeekEntry>[
+      for (final d in (week.trainingDays ?? const <TrainingDay>[]))
+        _WeekEntry.day(d),
+      for (final r in (week.unplannedRuns ?? const <WearableActivitySummary>[]))
+        _WeekEntry.run(r),
+    ]..sort((a, b) {
+      final c = a.sortKey.compareTo(b.sortKey);
+      if (c != 0) return c;
+      return (a.isRun ? 1 : 0).compareTo(b.isRun ? 1 : 0);
+    });
 
     final evaluationsAsync = ref.watch(planEvaluationsProvider);
     final weekEvaluations = evaluationsAsync.maybeWhen(
@@ -358,15 +369,21 @@ class _WeekBody extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
             child: Column(
               children: [
-                for (int i = 0; i < days.length; i++) ...[
-                  _DayTile(
-                    day: days[i],
-                    highlight: highlight.dayId == days[i].id
-                        ? highlight.kind
-                        : _DayHighlight.none,
-                    onTap: () => onTapDay(days[i].id),
-                  ),
-                  if (i < days.length - 1) const SizedBox(height: 8),
+                for (int i = 0; i < entries.length; i++) ...[
+                  if (entries[i].isRun)
+                    _UnplannedRunTile(
+                      run: entries[i].run!,
+                      goalId: week.goalId,
+                    )
+                  else
+                    _DayTile(
+                      day: entries[i].day!,
+                      highlight: highlight.dayId == entries[i].day!.id
+                          ? highlight.kind
+                          : _DayHighlight.none,
+                      onTap: () => onTapDay(entries[i].day!.id),
+                    ),
+                  if (i < entries.length - 1) const SizedBox(height: 8),
                 ],
                 for (final eval in weekEvaluations) ...[
                   const SizedBox(height: 8),
@@ -939,6 +956,175 @@ class _CircleIcon extends StatelessWidget {
       decoration: BoxDecoration(shape: BoxShape.circle, color: bg),
       alignment: Alignment.center,
       child: Icon(icon, color: iconColor, size: iconSize),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Off-plan ("buiten schema") run tile — blue clone of _DayTile with a plus
+// glyph. Tapping opens the detail + link sheet.
+// ---------------------------------------------------------------------------
+
+/// A merged week row: either a planned [TrainingDay] or an off-plan run.
+/// `sortKey` is the ISO weekday (1=Mon..7=Sun) so both sort into one list.
+class _WeekEntry {
+  final TrainingDay? day;
+  final WearableActivitySummary? run;
+  final int sortKey;
+  const _WeekEntry._(this.day, this.run, this.sortKey);
+
+  factory _WeekEntry.day(TrainingDay d) => _WeekEntry._(d, null, d.order);
+  factory _WeekEntry.run(WearableActivitySummary r) =>
+      _WeekEntry._(null, r, DateTime.tryParse(r.startDate)?.weekday ?? 7);
+
+  bool get isRun => run != null;
+}
+
+class _UnplannedRunTile extends StatelessWidget {
+  final WearableActivitySummary run;
+  final int goalId;
+  const _UnplannedRunTile({required this.run, required this.goalId});
+
+  DateTime? get _date => DateTime.tryParse(run.startDate);
+
+  String get _subtitle {
+    final km = run.distanceMeters / 1000;
+    final kmLabel = km == km.truncate()
+        ? '${km.toInt()} km'
+        : '${km.toStringAsFixed(1)} km';
+    final pace = run.averagePaceSecondsPerKm;
+    if (pace > 0) {
+      final m = pace ~/ 60;
+      final s = (pace % 60).toString().padLeft(2, '0');
+      return '$kmLabel · $m:$s /km';
+    }
+    return kmLabel;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const accent = AppColors.offPlan;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x333E72C7),
+            offset: Offset(0, 6),
+            blurRadius: 18,
+            spreadRadius: -8,
+          ),
+          BoxShadow(color: Color(0x1F3E72C7), blurRadius: 0, spreadRadius: 1),
+        ],
+      ),
+      child: Material(
+        color: CupertinoColors.white,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          onTap: () => showUnplannedRunSheet(context, run: run, goalId: goalId),
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: RadialGradient(
+                center: Alignment.centerRight,
+                radius: 3.5,
+                colors: [
+                  accent.withValues(alpha: 0.15),
+                  accent.withValues(alpha: 0.0),
+                ],
+              ),
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 40,
+                  child: _DayStamp(date: _date, highlighted: false),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          _OffPlanBadge(label: context.l10n.schedOffPlanBadge),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              context.l10n.schedOffPlanRunTitle,
+                              style: GoogleFonts.inter(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primaryInk,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _subtitle,
+                        style: GoogleFonts.spaceGrotesk(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: accent,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: accent,
+                  ),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.add_rounded,
+                    color: CupertinoColors.white,
+                    size: 20,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OffPlanBadge extends StatelessWidget {
+  final String label;
+  const _OffPlanBadge({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.offPlanGlow,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.spaceGrotesk(
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
+          color: AppColors.offPlan,
+        ),
+      ),
     );
   }
 }

@@ -791,6 +791,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashLegendUpcoming => 'Upcoming';
 
   @override
+  String get dashLegendUnplanned => 'Off-plan';
+
+  @override
   String get dashEmptyTitle => 'No active plan';
 
   @override
@@ -962,6 +965,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get commonClose => 'Close';
+
+  @override
+  String get commonBack => 'Back';
+
+  @override
+  String get schedOffPlanBadge => 'OFF-PLAN';
+
+  @override
+  String get schedOffPlanRunTitle => 'Run';
+
+  @override
+  String get schedOffPlanLinkCta => 'Link to a training';
+
+  @override
+  String get schedOffPlanLinkErrorTitle => 'Couldn\'t link this run';
+
+  @override
+  String get schedOffPlanPickTitle => 'Pick a training';
+
+  @override
+  String get schedOffPlanPickEmpty => 'No nearby training to link to.';
 
   @override
   String get schedSectionIntervals => 'Intervals';

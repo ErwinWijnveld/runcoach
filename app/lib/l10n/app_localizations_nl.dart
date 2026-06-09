@@ -793,6 +793,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get dashLegendUpcoming => 'Aankomend';
 
   @override
+  String get dashLegendUnplanned => 'Buiten schema';
+
+  @override
   String get dashEmptyTitle => 'Geen actief plan';
 
   @override
@@ -965,6 +968,28 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get commonClose => 'Sluiten';
+
+  @override
+  String get commonBack => 'Terug';
+
+  @override
+  String get schedOffPlanBadge => 'BUITEN SCHEMA';
+
+  @override
+  String get schedOffPlanRunTitle => 'Run';
+
+  @override
+  String get schedOffPlanLinkCta => 'Koppel aan training';
+
+  @override
+  String get schedOffPlanLinkErrorTitle => 'Koppelen mislukt';
+
+  @override
+  String get schedOffPlanPickTitle => 'Kies een training';
+
+  @override
+  String get schedOffPlanPickEmpty =>
+      'Geen training dichtbij om aan te koppelen.';
 
   @override
   String get schedSectionIntervals => 'Intervals';

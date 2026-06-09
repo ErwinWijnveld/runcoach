@@ -36,15 +36,6 @@ abstract class WearableApi {
   @GET('/wearable/activities/{id}/route')
   Future<dynamic> route(@Path('id') int id);
 
-  /// Returns the most recent AI-analyzed run worth celebrating with the
-  /// shareable run-card popup. `sinceActivityId` is the watermark of the
-  /// last activity we already showed — null/omitted = no watermark. The
-  /// response data is `null` when nothing qualifies.
-  @GET('/share/celebratable-run')
-  Future<dynamic> getCelebratableRun(
-    @Query('since_activity_id') int? sinceActivityId,
-  );
-
   @POST('/wearable/personal-records')
   Future<dynamic> ingestPersonalRecords(@Body() Map<String, dynamic> body);
 }

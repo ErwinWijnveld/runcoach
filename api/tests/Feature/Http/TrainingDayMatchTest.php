@@ -303,4 +303,241 @@ class TrainingDayMatchTest extends TestCase
 
         Queue::assertPushed(GenerateActivityFeedback::class);
     }
+
+    // ---- Linking an off-plan run to a planned session -----------------------
+
+    public function test_link_moves_day_to_run_date_and_scores_it(): void
+    {
+        [$user, $headers] = $this->authUser();
+
+        // Planned session sits a couple of days AFTER the run.
+        $day = $this->scheduleDay($user, [
+            'date' => now()->addDays(2)->toDateString(),
+            'target_km' => 5.0,
+            'target_pace_seconds_per_km' => 360,
+            'target_heart_rate_zone' => 2,
+        ]);
+
+        $runDate = now()->subDay()->startOfDay();
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'Run',
+            'distance_meters' => 5050,
+            'duration_seconds' => 1830,
+            'average_pace_seconds_per_km' => 362,
+            'average_heartrate' => 140,
+            'start_date' => $runDate,
+        ]);
+
+        $response = $this->postJson(
+            "/api/v1/wearable/activities/{$activity->id}/link-day",
+            ['training_day_id' => $day->id],
+            $headers,
+        );
+
+        $response->assertOk();
+        // The session entry relocated onto the run's REAL date.
+        $this->assertSame($runDate->toDateString(), substr($response->json('data.date'), 0, 10));
+        $this->assertSame($runDate->toDateString(), $day->fresh()->date->toDateString());
+        $this->assertDatabaseHas('training_results', [
+            'training_day_id' => $day->id,
+            'wearable_activity_id' => $activity->id,
+        ]);
+    }
+
+    public function test_link_reassigns_day_to_week_containing_run_date(): void
+    {
+        [$user, $headers] = $this->authUser();
+
+        $goal = Goal::factory()->create(['user_id' => $user->id]);
+        $weekThis = TrainingWeek::factory()->create([
+            'goal_id' => $goal->id,
+            'week_number' => 2,
+            'starts_at' => now()->startOfWeek()->toDateString(),
+        ]);
+        $weekLast = TrainingWeek::factory()->create([
+            'goal_id' => $goal->id,
+            'week_number' => 1,
+            'starts_at' => now()->startOfWeek()->subWeek()->toDateString(),
+        ]);
+
+        // Day currently lives in THIS week, on a future date.
+        $day = TrainingDay::factory()->create([
+            'training_week_id' => $weekThis->id,
+            'date' => now()->addDay()->toDateString(),
+            'target_km' => 5.0,
+        ]);
+
+        // Run happened mid last week → the day should follow into weekLast.
+        $runDate = now()->startOfWeek()->subWeek()->addDays(2)->startOfDay();
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'Run',
+            'distance_meters' => 5000,
+            'start_date' => $runDate,
+        ]);
+
+        $this->postJson(
+            "/api/v1/wearable/activities/{$activity->id}/link-day",
+            ['training_day_id' => $day->id],
+            $headers,
+        )->assertOk();
+
+        $fresh = $day->fresh();
+        $this->assertSame($weekLast->id, $fresh->training_week_id);
+        $this->assertSame($runDate->toDateString(), $fresh->date->toDateString());
+    }
+
+    public function test_link_refuses_when_day_is_the_race_day(): void
+    {
+        [$user, $headers] = $this->authUser();
+
+        $raceDate = now()->addWeeks(4)->toDateString();
+        $goal = Goal::factory()->create([
+            'user_id' => $user->id,
+            'target_date' => $raceDate,
+        ]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
+        $day = TrainingDay::factory()->create([
+            'training_week_id' => $week->id,
+            'date' => $raceDate,
+            'target_km' => 21.1,
+        ]);
+
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'Run',
+            'start_date' => now()->subDay(),
+        ]);
+
+        $this->postJson(
+            "/api/v1/wearable/activities/{$activity->id}/link-day",
+            ['training_day_id' => $day->id],
+            $headers,
+        )->assertStatus(422);
+    }
+
+    public function test_link_refuses_when_run_already_linked(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $dayA = $this->scheduleDay($user);
+        $dayB = $this->scheduleDay($user, ['date' => now()->addDays(3)->toDateString()]);
+
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'Run',
+        ]);
+        TrainingResult::factory()->create([
+            'training_day_id' => $dayA->id,
+            'wearable_activity_id' => $activity->id,
+        ]);
+
+        $this->postJson(
+            "/api/v1/wearable/activities/{$activity->id}/link-day",
+            ['training_day_id' => $dayB->id],
+            $headers,
+        )->assertStatus(409);
+    }
+
+    public function test_link_rejects_non_run(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $day = $this->scheduleDay($user);
+
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'Ride',
+        ]);
+
+        $this->postJson(
+            "/api/v1/wearable/activities/{$activity->id}/link-day",
+            ['training_day_id' => $day->id],
+            $headers,
+        )->assertStatus(422);
+    }
+
+    public function test_link_refuses_when_day_already_has_a_result(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $day = $this->scheduleDay($user);
+
+        $existing = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'Run',
+        ]);
+        TrainingResult::factory()->create([
+            'training_day_id' => $day->id,
+            'wearable_activity_id' => $existing->id,
+        ]);
+
+        $newRun = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'Run',
+            'start_date' => now()->subDays(2),
+        ]);
+
+        $this->postJson(
+            "/api/v1/wearable/activities/{$newRun->id}/link-day",
+            ['training_day_id' => $day->id],
+            $headers,
+        )->assertStatus(422);
+    }
+
+    public function test_link_refuses_another_users_activity(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $day = $this->scheduleDay($user);
+
+        $stranger = WearableActivity::factory()->create(['type' => 'Run']);
+
+        $this->postJson(
+            "/api/v1/wearable/activities/{$stranger->id}/link-day",
+            ['training_day_id' => $day->id],
+            $headers,
+        )->assertNotFound();
+    }
+
+    public function test_link_cannot_target_another_users_day(): void
+    {
+        [$victim] = $this->authUser();
+        $victimDay = $this->scheduleDay($victim);
+
+        [$attacker, $attackerHeaders] = $this->authUser();
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $attacker->id,
+            'type' => 'Run',
+            'start_date' => now()->subDay(),
+        ]);
+
+        $this->postJson(
+            "/api/v1/wearable/activities/{$activity->id}/link-day",
+            ['training_day_id' => $victimDay->id],
+            $attackerHeaders,
+        )->assertNotFound();
+    }
+
+    public function test_link_dispatches_feedback_generation(): void
+    {
+        Queue::fake();
+
+        [$user, $headers] = $this->authUser();
+        $day = $this->scheduleDay($user, ['date' => now()->addDays(2)->toDateString()]);
+
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'type' => 'Run',
+            'distance_meters' => 5050,
+            'duration_seconds' => 1830,
+            'average_pace_seconds_per_km' => 362,
+            'start_date' => now()->subDay(),
+        ]);
+
+        $this->postJson(
+            "/api/v1/wearable/activities/{$activity->id}/link-day",
+            ['training_day_id' => $day->id],
+            $headers,
+        )->assertOk();
+
+        Queue::assertPushed(GenerateActivityFeedback::class);
+    }
 }

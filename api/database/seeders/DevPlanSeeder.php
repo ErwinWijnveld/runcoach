@@ -33,6 +33,17 @@ class DevPlanSeeder extends Seeder
 
     private const SEED_ACTIVITY_PREFIX = 'dev-seed-';
 
+    private const SAMPLE_ROUTE_FIXTURE = 'fixtures/dev_sample_route.json';
+
+    /**
+     * Cached GPS polyline loaded once from the fixture and re-used across
+     * every seeded run so the shareable run-card flow has a real route to
+     * render. Lazily populated by {@see sampleRoute()}.
+     *
+     * @var list<array{lat: float, lng: float, t: int}>|null
+     */
+    private ?array $sampleRoute = null;
+
     public function run(): void
     {
         if (! app()->environment('local')) {
@@ -166,7 +177,7 @@ class DevPlanSeeder extends Seeder
                 'calories_kcal' => (int) round($s['km'] * 65),
                 'start_date' => $startedAt,
                 'end_date' => $startedAt->copy()->addSeconds($duration),
-                'raw_data' => [],
+                'raw_data' => ['route' => $this->sampleRoute()],
                 'synced_at' => now(),
             ]);
         }
@@ -258,7 +269,7 @@ class DevPlanSeeder extends Seeder
             'calories_kcal' => (int) round($actualKmFloat * 65),
             'start_date' => $startedAt,
             'end_date' => $startedAt->copy()->addSeconds($duration),
-            'raw_data' => [],
+            'raw_data' => ['route' => $this->sampleRoute()],
             'synced_at' => now(),
         ]);
 
@@ -354,6 +365,34 @@ class DevPlanSeeder extends Seeder
     private function jitter(float $min, float $max): float
     {
         return $min + (mt_rand() / mt_getrandmax()) * ($max - $min);
+    }
+
+    /**
+     * A real ~10.5km GPS polyline (downsampled, timestamps rebased to 0)
+     * captured from a synced Apple Health run. Attached to every seeded
+     * run so the shareable run-card's animated polyline has genuine route
+     * shape to draw in dev. The route distance is intentionally NOT matched
+     * to each run's km — the share card only renders the polyline shape +
+     * the run's own KPIs, so any run becomes shareable for testing.
+     *
+     * Returns an empty list (no route) if the fixture is missing.
+     *
+     * @return list<array{lat: float, lng: float, t: int}>
+     */
+    private function sampleRoute(): array
+    {
+        if ($this->sampleRoute !== null) {
+            return $this->sampleRoute;
+        }
+
+        $path = database_path('seeders/'.self::SAMPLE_ROUTE_FIXTURE);
+        if (! is_file($path)) {
+            return $this->sampleRoute = [];
+        }
+
+        $decoded = json_decode((string) file_get_contents($path), true);
+
+        return $this->sampleRoute = is_array($decoded) ? $decoded : [];
     }
 
     private function weeklyKm(int $week): float

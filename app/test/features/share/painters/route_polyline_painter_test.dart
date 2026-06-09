@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/animation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:app/features/share/painters/route_polyline_painter.dart';
 import 'package:app/features/wearable/services/workout_route_service.dart';
@@ -7,11 +8,13 @@ import 'package:app/features/wearable/services/workout_route_service.dart';
 WorkoutRoutePoint p(double lat, double lng) =>
     WorkoutRoutePoint(lat: lat, lng: lng, timestampMs: 0);
 
+Animation<double> anim(double v) => AlwaysStoppedAnimation<double>(v);
+
 void main() {
   group('RoutePolylinePainter simplification', () {
     test('keeps start and end of a straight line', () {
       final input = [for (var i = 0; i < 10; i++) p(0.0, i * 0.001)];
-      final painter = RoutePolylinePainter(progress: 1.0, points: input);
+      final painter = RoutePolylinePainter(progress: anim(1.0), points: input);
       expect(painter.simplified.first, input.first);
       expect(painter.simplified.last, input.last);
       // Straight line should collapse to just the endpoints.
@@ -30,19 +33,19 @@ void main() {
         input.add(p(lat, lng));
       }
       final painter =
-          RoutePolylinePainter(progress: 1.0, points: input, maxPoints: 500);
+          RoutePolylinePainter(progress: anim(1.0), points: input, maxPoints: 500);
       expect(painter.simplified.length, lessThanOrEqualTo(501)); // +1 for final
     });
 
     test('handles 1-point input safely', () {
       final painter =
-          RoutePolylinePainter(progress: 1.0, points: [p(52.0, 4.0)]);
+          RoutePolylinePainter(progress: anim(1.0), points: [p(52.0, 4.0)]);
       expect(painter.simplified.length, 1);
     });
 
     test('handles empty input safely', () {
       final painter =
-          RoutePolylinePainter(progress: 1.0, points: const []);
+          RoutePolylinePainter(progress: anim(1.0), points: const []);
       expect(painter.simplified, isEmpty);
     });
   });
@@ -50,8 +53,8 @@ void main() {
   group('RoutePolylinePainter shouldRepaint', () {
     test('repaints when progress changes', () {
       final pts = [p(0, 0), p(1, 1)];
-      final a = RoutePolylinePainter(progress: 0.5, points: pts);
-      final b = RoutePolylinePainter(progress: 0.7, points: pts);
+      final a = RoutePolylinePainter(progress: anim(0.5), points: pts);
+      final b = RoutePolylinePainter(progress: anim(0.7), points: pts);
       expect(a.shouldRepaint(b), true);
     });
   });

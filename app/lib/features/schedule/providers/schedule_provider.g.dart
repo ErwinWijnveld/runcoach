@@ -557,6 +557,76 @@ abstract class _$RescheduleDay extends $Notifier<void> {
   }
 }
 
+/// Link an off-plan ("buiten schema") run to a planned session. The chosen
+/// training day relocates onto the run's actual date and is scored against it,
+/// so the run stops surfacing as off-plan. Captures deps before the await (§1b)
+/// because the host sheet can be torn down while the request is in flight.
+
+@ProviderFor(LinkUnplannedRun)
+final linkUnplannedRunProvider = LinkUnplannedRunProvider._();
+
+/// Link an off-plan ("buiten schema") run to a planned session. The chosen
+/// training day relocates onto the run's actual date and is scored against it,
+/// so the run stops surfacing as off-plan. Captures deps before the await (§1b)
+/// because the host sheet can be torn down while the request is in flight.
+final class LinkUnplannedRunProvider
+    extends $NotifierProvider<LinkUnplannedRun, void> {
+  /// Link an off-plan ("buiten schema") run to a planned session. The chosen
+  /// training day relocates onto the run's actual date and is scored against it,
+  /// so the run stops surfacing as off-plan. Captures deps before the await (§1b)
+  /// because the host sheet can be torn down while the request is in flight.
+  LinkUnplannedRunProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'linkUnplannedRunProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$linkUnplannedRunHash();
+
+  @$internal
+  @override
+  LinkUnplannedRun create() => LinkUnplannedRun();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(void value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<void>(value),
+    );
+  }
+}
+
+String _$linkUnplannedRunHash() => r'3e33349ac7dc61f9b47e92a0c5f3e7c6468907c7';
+
+/// Link an off-plan ("buiten schema") run to a planned session. The chosen
+/// training day relocates onto the run's actual date and is scored against it,
+/// so the run stops surfacing as off-plan. Captures deps before the await (§1b)
+/// because the host sheet can be torn down while the request is in flight.
+
+abstract class _$LinkUnplannedRun extends $Notifier<void> {
+  void build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<void, void>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<void, void>,
+              void,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
 /// Polls `/training-days/{id}/result` every 5s until `ai_feedback` is non-null,
 /// then yields the text and closes. Yields `null` while pending so the UI can
 /// keep the spinner on screen. Auto-disposes when the screen leaves.

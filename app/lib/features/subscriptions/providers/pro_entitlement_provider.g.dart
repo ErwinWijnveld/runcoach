@@ -83,7 +83,7 @@ final class ProEntitlementProvider
   }
 }
 
-String _$proEntitlementHash() => r'a07f8bfbcf26ad4360e3a0edb270013b6c2a18eb';
+String _$proEntitlementHash() => r'9fb073fbc329647b7594305614cb25010cafb717';
 
 /// App-wide entitlement state. The Flutter side mirrors the server's
 /// `users.pro_active_until` — the server is always the source of truth, but

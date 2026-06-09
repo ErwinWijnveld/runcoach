@@ -9,11 +9,6 @@ import 'package:app/features/share/widgets/run_share_card.dart';
 import 'package:app/features/wearable/data/wearable_api.dart';
 import 'package:app/features/wearable/services/workout_route_service.dart';
 
-/// Total intro-animation duration of the share card, in ms. Used to
-/// gate the Share button until the polyline has finished drawing —
-/// otherwise the exported PNG would catch a half-drawn frame.
-const _kCardAnimationDurationMs = 2400;
-
 /// Full-screen modal that celebrates a completed, AI-analyzed run.
 /// Renders the share card with intro animation, then exposes a Share
 /// CTA that captures the card to PNG and hands it to the iOS share
@@ -46,6 +41,7 @@ class _RunCelebrationOverlay extends ConsumerStatefulWidget {
 class _RunCelebrationOverlayState
     extends ConsumerState<_RunCelebrationOverlay> {
   final _boundaryKey = GlobalKey();
+  final _shareCtaKey = GlobalKey();
 
   List<WorkoutRoutePoint>? _route;
   bool _routeLoading = true;
@@ -56,13 +52,6 @@ class _RunCelebrationOverlayState
   void initState() {
     super.initState();
     _loadRoute();
-    // Mark the animation as complete after the card's total intro
-    // duration. We rely on the wall clock rather than a callback because
-    // the card composes many independent flutter_animate animations and
-    // the simplest "everything settled" signal is "enough time passed".
-    Future.delayed(const Duration(milliseconds: _kCardAnimationDurationMs), () {
-      if (mounted) setState(() => _animationDone = true);
-    });
   }
 
   Future<void> _loadRoute() async {
@@ -111,6 +100,7 @@ class _RunCelebrationOverlayState
       await ShareCardExporter.capture(
         boundaryKey: _boundaryKey,
         subject: context.l10n.runShareBarrierLabel,
+        origin: _shareCtaOrigin(),
       );
     } catch (e) {
       // Don't crash the sheet on export failure — keep it open so the
@@ -119,6 +109,21 @@ class _RunCelebrationOverlayState
     } finally {
       if (mounted) setState(() => _sharing = false);
     }
+  }
+
+  /// iOS requires a non-zero `sharePositionOrigin` (anchors the share
+  /// sheet/popover on iPad and is rejected outright on iPhone when zero).
+  /// Anchor it to the Share CTA's rect; fall back to the full sheet rect.
+  Rect _shareCtaOrigin() {
+    final box = _shareCtaKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box != null && box.hasSize) {
+      return box.localToGlobal(Offset.zero) & box.size;
+    }
+    final fallback = context.findRenderObject() as RenderBox?;
+    if (fallback != null && fallback.hasSize) {
+      return fallback.localToGlobal(Offset.zero) & fallback.size;
+    }
+    return Rect.zero;
   }
 
   @override
@@ -161,6 +166,11 @@ class _RunCelebrationOverlayState
                               averageHeartRate: hr,
                               complianceScore: result.complianceScore,
                               aiFeedback: result.aiFeedback,
+                              onIntroComplete: () {
+                                if (mounted) {
+                                  setState(() => _animationDone = true);
+                                }
+                              },
                             ),
                           ),
                   ),
@@ -173,6 +183,7 @@ class _RunCelebrationOverlayState
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _ShareCta(
+                    key: _shareCtaKey,
                     label: l10n.runShareSheetCta,
                     onPressed: canShare ? _share : null,
                     busy: _sharing,
@@ -231,6 +242,7 @@ class _ShareCta extends StatelessWidget {
   final bool busy;
 
   const _ShareCta({
+    super.key,
     required this.label,
     required this.onPressed,
     required this.busy,

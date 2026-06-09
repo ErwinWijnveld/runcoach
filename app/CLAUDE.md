@@ -525,6 +525,26 @@ Onboarded runners with no active Pro entitlement (a lapsed subscriber, an admin-
 - **Run ingestion stays free**: the gate is on AI endpoints (`require.pro`), NOT `POST /wearable/activities`, so a locked user's history keeps building — they get full value the moment they resubscribe.
 - **Admin unblock**: grant Pro via `/admin/users` (see `../CLAUDE.md`); next cold-start sync flips `resolved + isPro` and the gate releases to `/dashboard`.
 
+### 19. Off-plan runs ("buiten schema")
+
+Runs that didn't auto-match a planned session (backend now matches on the exact date only — see `../api/CLAUDE.md` → "Off-plan run linking") surface as **blue** entries the runner can link.
+
+- **Model**: `TrainingWeek.unplannedRuns` (`List<WearableActivitySummary>?`, JSON `unplanned_runs`) — reuses the existing summary model, no new model.
+- **Schedule** (`weekly_plan_screen.dart`): `_WeekBody` merges planned days + off-plan runs into one weekday-ordered list (`_WeekEntry`); off-plan rows render as `_UnplannedRunTile` — a blue clone of `_DayTile` (blue halo, plus glyph, distance·pace subtitle). Tap → `showUnplannedRunSheet(context, run:, goalId:)`.
+- **Sheet** (`features/schedule/widgets/unplanned_run_sheet.dart`): two-state `showCupertinoModalPopup`. Details (run stats + blue "Koppel aan training" CTA) → picker ("Kies een training") listing uncompleted, non-race sessions within **±7 days** of the run (computed client-side from `scheduleProvider(goalId)`; the plan's last-dated/race day is excluded). Tap a row → `LinkUnplannedRun` mutator → `POST /wearable/activities/{id}/link-day` → the chosen session **relocates onto the run's date** + is scored, `planVersion.bump()` refreshes everything. No watch-sync (the day lands in the past).
+- **Dashboard** (`dashboard_screen.dart`): `_CellState.unplanned` colours an otherwise-rest weekday slot blue in BOTH the 7-day bar chart and the multi-week matrix (`_buildWeekCells` overlay, `targetKm` from the run's distance so the bar has height), plus an "Off-plan" `_LegendDot`.
+- **Tokens**: `AppColors.offPlan` (#3E72C7) + `AppColors.offPlanGlow`. **l10n**: `schedOffPlan*`, `dashLegendUnplanned`, `commonBack`.
+
+### 20. HealthKit background auto-sync (Strava-style)
+
+New runs auto-sync to the backend while the app is backgrounded/terminated, so the AI analysis + the existing `WorkoutAnalyzed` push are ready before the runner opens the app. The Flutter foreground sync (`WorkoutSyncLifecycle`) stays as the guaranteed fallback. Spec: `../docs/superpowers/specs/2026-06-02-healthkit-background-sync.md`.
+
+- **Native is the whole engine.** `ios/Runner/HealthKitBackgroundSync.swift` owns an `HKObserverQuery` on `workoutType()` with `enableBackgroundDelivery(.immediate)`, fetches only new runs via an `HKAnchoredObjectQuery`, builds the payload **in Swift** (mirrors `health_kit_service.dart::_shape()`), and POSTs to `/wearable/activities` with `URLSession` — because the Dart engine isn't running on a background launch (`flutter/flutter#103384`). HR avg/max via workout-scoped `HKStatisticsQuery(predicateForObjects(from:))` (more accurate than the Dart time-window read). **No backend changes, no new push types** — downstream (match → score → AI → `WorkoutAnalyzed`) is unchanged.
+- **Config bridge** `nl.runcoach/bg-sync` (Dart `BackgroundSyncService`, `features/wearable/services/background_sync_service.dart`): Dart hands native the two things it can't see — `baseUrl` (from `dio_client.dart`) + the Sanctum `token`. `configure` stores baseUrl in `UserDefaults` + token in the **Keychain** (`kSecAttrAccessibleAfterFirstUnlock`, so a locked-device wake can authenticate) and arms the observer; `clear` wipes the token + stops delivery. Wired in `auth_provider.dart`: `configure` after login (dev + Apple) and in `loadProfile` (cold start); `clear` in `logout` + `deleteAccount`. iOS-only no-op via `defaultTargetPlatform`.
+- **Observer re-armed every launch** from `AppDelegate.didFinishLaunchingWithOptions` (`HealthKitBackgroundSync.shared.start()`) — observers don't survive launches; `start()` is a no-op until credentials are configured. Channel registered in `didInitializeImplicitFlutterEngine` (plugin name `"BackgroundSync"`).
+- **Anchor priming** (`bg_sync_workout_anchor_v1` in UserDefaults): first fire with no anchor records a baseline WITHOUT posting, so the background path never replays history (foreground sync owns backfill). Anchor only advances on a 2xx POST (failed POST retries next wake). `clear()` resets the anchor so a new login re-primes.
+- **Caveats** (documented in the spec): force-quit suspends delivery until the next manual launch (same as Strava); only Apple Watch users (or apps that write `HKWorkout`) have runs to deliver; `.immediate` latency is best-effort. **Pbxproj**: `HealthKitBackgroundSync.swift` registered in the 4 standard spots (IDs `AB10A1B8…BGSYN` / `AB10A1B9…BGSYN`). **Cannot be tested on the simulator.**
+
 ## Running and building
 
 ```bash
@@ -582,10 +602,7 @@ Required Info.plist usage strings (already set):
 - `NSHealthShareUsageDescription` — copy shown in the iOS read-permission prompt
 - `NSHealthUpdateUsageDescription` — required even though we don't write to HealthKit
 
-**Deferred capabilities** (when adding background HealthKit delivery):
-- `com.apple.developer.healthkit.background-delivery` entitlement
-- `Background Modes` capability + check `Background fetch` + `Background processing`
-- App Store Review will ask for justification — describe the use case in the submission notes
+**HealthKit background delivery** is now implemented — see section 19. The `com.apple.developer.healthkit.background-delivery` entitlement is in `Runner.entitlements`; it must ALSO be enabled on the App ID at developer.apple.com (HealthKit → Background Delivery). No `Background Modes` / `UIBackgroundModes` are needed for pure `HKObserverQuery` delivery (common misconception). App Store / first external-TestFlight review needs a privacy-policy + a one-line justification in the review notes.
 
 ### Release builds + TestFlight
 

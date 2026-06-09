@@ -1514,6 +1514,12 @@ abstract class AppLocalizations {
   /// **'Upcoming'**
   String get dashLegendUpcoming;
 
+  /// No description provided for @dashLegendUnplanned.
+  ///
+  /// In en, this message translates to:
+  /// **'Off-plan'**
+  String get dashLegendUnplanned;
+
   /// No description provided for @dashEmptyTitle.
   ///
   /// In en, this message translates to:
@@ -1825,6 +1831,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close'**
   String get commonClose;
+
+  /// No description provided for @commonBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get commonBack;
+
+  /// No description provided for @schedOffPlanBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'OFF-PLAN'**
+  String get schedOffPlanBadge;
+
+  /// No description provided for @schedOffPlanRunTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Run'**
+  String get schedOffPlanRunTitle;
+
+  /// No description provided for @schedOffPlanLinkCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Link to a training'**
+  String get schedOffPlanLinkCta;
+
+  /// No description provided for @schedOffPlanLinkErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t link this run'**
+  String get schedOffPlanLinkErrorTitle;
+
+  /// No description provided for @schedOffPlanPickTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a training'**
+  String get schedOffPlanPickTitle;
+
+  /// No description provided for @schedOffPlanPickEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No nearby training to link to.'**
+  String get schedOffPlanPickEmpty;
 
   /// No description provided for @schedSectionIntervals.
   ///
