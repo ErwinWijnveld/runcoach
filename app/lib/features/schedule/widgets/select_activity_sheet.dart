@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/features/schedule/models/available_activity.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
 
@@ -82,14 +83,11 @@ class _SelectActivitySheetState extends ConsumerState<SelectActivitySheet> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          RunBoostHeading(
                             context.l10n.selectActivityTitle,
-                            style: GoogleFonts.ebGaramond(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w400,
-                              height: 30 / 26,
-                              color: AppColors.primaryInk,
-                            ),
+                            size: 24,
+                            maxLines: 2,
+                            topPadding: 0,
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -213,14 +211,12 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
+            RunBoostHeading(
               message,
+              size: 20,
               textAlign: TextAlign.center,
-              style: GoogleFonts.ebGaramond(
-                fontSize: 20,
-                fontWeight: FontWeight.w500,
-                color: AppColors.primaryInk,
-              ),
+              maxLines: 2,
+              topPadding: 0,
             ),
             const SizedBox(height: 8),
             Text(
@@ -280,15 +276,11 @@ class _ActivityRow extends StatelessWidget {
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
+                            child: RunBoostHeading(
                               run.name,
-                              style: GoogleFonts.ebGaramond(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.primaryInk,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                              size: 16,
+                              maxLines: 2,
+                              topPadding: 0,
                             ),
                           ),
                           if (synced)

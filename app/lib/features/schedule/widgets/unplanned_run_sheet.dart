@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/features/schedule/models/training_day.dart';
 import 'package:app/features/schedule/models/training_day_pace_x.dart';
 import 'package:app/features/schedule/models/training_week.dart';
@@ -173,15 +174,11 @@ class _DetailsView extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
+          RunBoostHeading(
             title,
-            style: GoogleFonts.ebGaramond(
-              fontSize: 26,
-              fontWeight: FontWeight.w500,
-              fontStyle: FontStyle.italic,
-              color: AppColors.primaryInk,
-              height: 1.1,
-            ),
+            size: 24,
+            maxLines: 2,
+            topPadding: 0,
           ),
           const SizedBox(height: 16),
           Row(
@@ -270,14 +267,12 @@ class _PickerView extends ConsumerWidget {
                 ),
               ),
               Expanded(
-                child: Text(
+                child: RunBoostHeading(
                   context.l10n.schedOffPlanPickTitle,
+                  size: 20,
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.ebGaramond(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.primaryInk,
-                  ),
+                  maxLines: 2,
+                  topPadding: 0,
                 ),
               ),
               const SizedBox(width: 76),

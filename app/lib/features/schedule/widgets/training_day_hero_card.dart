@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
-import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/features/schedule/widgets/training_day_status.dart';
 
 /// Figma-faithful hero card: full-bleed illustration background with a
@@ -95,17 +95,12 @@ class TrainingDayHeroCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
+                      RunBoostHeading(
                         title,
+                        size: 30,
+                        height: 1.05,
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.ebGaramond(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.primaryInk,
-                          height: 1.05,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
                       ),
                       const SizedBox(height: 4),
                       Row(

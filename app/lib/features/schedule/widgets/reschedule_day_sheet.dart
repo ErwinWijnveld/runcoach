@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
 import 'package:app/features/schedule/services/watch_sync_service.dart';
 
@@ -208,14 +209,12 @@ class _Header extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Text(
+            child: RunBoostHeading(
               context.l10n.schedDayRescheduleAction,
+              size: 20,
               textAlign: TextAlign.center,
-              style: GoogleFonts.ebGaramond(
-                fontSize: 20,
-                fontWeight: FontWeight.w500,
-                color: AppColors.primaryInk,
-              ),
+              maxLines: 2,
+              topPadding: 0,
             ),
           ),
           // Visual balancer for the Cancel button so the title centers properly.
@@ -332,13 +331,10 @@ class _MonthHeader extends StatelessWidget {
     return Row(
       children: [
         const SizedBox(width: 4),
-        Text(
+        RunBoostHeading(
           '${DateFormat.MMMM(locale).format(month)} ${month.year}',
-          style: GoogleFonts.ebGaramond(
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-            color: AppColors.primaryInk,
-          ),
+          size: 16,
+          topPadding: 0,
         ),
         const Spacer(),
         _ChevronButton(

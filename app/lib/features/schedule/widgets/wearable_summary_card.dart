@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/features/schedule/models/wearable_activity_summary.dart';
 
 /// Compact card showing the wearable run that was matched to a training day.
@@ -59,16 +60,11 @@ class WearableSummaryCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          RunBoostHeading(
                             activity.name ?? context.l10n.wearableActivityFallbackName,
-                            style: GoogleFonts.ebGaramond(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.primaryInk,
-                              height: 1.1,
-                            ),
+                            size: 20,
                             maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                            topPadding: 0,
                           ),
                           const SizedBox(height: 2),
                           Text(

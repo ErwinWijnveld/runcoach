@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/features/coach/widgets/plan_revision_content.dart';
 
 /// Pure rendering of a training plan — header, optional ambition/feasibility
@@ -271,15 +272,12 @@ class _LockedWeeks extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          Text(
+                          RunBoostHeading(
                             l10n.paywallLockedWeeksTitle(weeks.length),
+                            size: 20,
+                            topPadding: 0,
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.ebGaramond(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w500,
-                              fontStyle: FontStyle.italic,
-                              color: AppColors.primaryInk,
-                            ),
+                            maxLines: 2,
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -329,14 +327,11 @@ class _Header extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
+              RunBoostHeading(
                 isRevision ? l10n.planDetailsRevisionTitle : goalName,
-                style: GoogleFonts.ebGaramond(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w400,
-                  height: 32 / 28,
-                  color: AppColors.primaryInk,
-                ),
+                size: 26,
+                topPadding: 0,
+                maxLines: 2,
               ),
             ],
           ),
@@ -486,16 +481,12 @@ class _WeekCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                     ],
-                    Text(
+                    RunBoostHeading(
                       weekNumber != null
                           ? context.l10n.planDetailsWeekLabel(weekNumber)
                           : context.l10n.planDetailsWeekFallback,
-                      style: GoogleFonts.ebGaramond(
-                        fontSize: 30,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.primaryInk,
-                        height: 1.0,
-                      ),
+                      size: 28,
+                      topPadding: 0,
                     ),
                   ],
                 ),
@@ -967,14 +958,13 @@ class _FeasibilityZoneBar extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Expanded(
-                child: Text(
+                child: RunBoostHeading(
                   label,
-                  style: GoogleFonts.ebGaramond(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w500,
-                    color: isUnrealistic ? AppColors.danger : AppColors.primaryInk,
-                    height: 1.15,
-                  ),
+                  size: 20,
+                  topPadding: 0,
+                  height: 1.15,
+                  color: isUnrealistic ? AppColors.danger : AppColors.primaryInk,
+                  maxLines: 2,
                 ),
               ),
               Text(

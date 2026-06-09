@@ -11,6 +11,7 @@ import 'package:app/core/widgets/app_header.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/core/widgets/intro_fx.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/router/app_router.dart' show kBottomNavReservedHeight;
 import 'package:app/features/coach/data/coach_api.dart';
 import 'package:app/features/coach/models/conversation.dart';
@@ -145,9 +146,9 @@ class _ListBody extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
-                  child: Text(
+                  child: RunBoostHeading(
                     context.l10n.coachChatListTitle,
-                    style: RunCoreText.serifTitle(size: 38, height: 1.0),
+                    size: 38,
                   ),
                 ),
                 CircleIconButton(icon: Icons.add, onTap: onNewChat),

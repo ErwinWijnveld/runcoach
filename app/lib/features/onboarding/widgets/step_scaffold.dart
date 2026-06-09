@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/features/onboarding/widgets/onboarding_primary_button.dart';
 import 'package:app/features/onboarding/widgets/progress_dots.dart';
 
@@ -59,10 +60,7 @@ class StepScaffold extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
-                title,
-                style: RunCoreText.serifTitle(size: 32).copyWith(height: 1.15),
-              ),
+              RunBoostHeading(title, size: 30, height: 1.08, maxLines: 3),
               if (subtitle != null) ...[
                 const SizedBox(height: 6),
                 Text(

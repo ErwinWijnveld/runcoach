@@ -9,6 +9,7 @@ import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/core/widgets/runcore_logo.dart';
 import 'package:app/features/auth/models/derived_zones.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
@@ -309,10 +310,7 @@ class _IntroBody extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
-        Text(
-          l10n.onbConnectHealthIntroTitle,
-          style: RunCoreText.serifTitle(size: 32),
-        ),
+        RunBoostHeading(l10n.onbConnectHealthIntroTitle, size: 30, maxLines: 2),
         const SizedBox(height: 6),
         Text(
           l10n.onbConnectHealthIntroBody,
@@ -382,10 +380,7 @@ class _EmptyHistoryBody extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
-        Text(
-          l10n.onbConnectHealthEmptyTitle,
-          style: RunCoreText.serifTitle(size: 28),
-        ),
+        RunBoostHeading(l10n.onbConnectHealthEmptyTitle, size: 26, maxLines: 2),
         const SizedBox(height: 8),
         Text(
           l10n.onbConnectHealthEmptyBody,
@@ -452,7 +447,12 @@ class _StatusBody extends StatelessWidget {
           else
             const AppSpinner(),
           const SizedBox(height: 20),
-          Text(title, style: RunCoreText.serifTitle(size: 24)),
+          RunBoostHeading(
+            title,
+            size: 22,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+          ),
           const SizedBox(height: 8),
           Text(
             subtitle,

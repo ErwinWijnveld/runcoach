@@ -11,6 +11,7 @@ import 'package:app/core/widgets/app_header.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/core/widgets/intro_fx.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/router/app_router.dart'
     show floatingPromptBarBottomOffset, kBottomStackedReservedHeight;
 import 'package:app/core/widgets/coach_prompt_bar.dart';
@@ -145,15 +146,7 @@ class _GoalsHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Text(
-          context.l10n.goalsListYourGoals,
-          style: GoogleFonts.ebGaramond(
-            fontSize: 32,
-            fontWeight: FontWeight.w500,
-            color: AppColors.primaryInk,
-            height: 1.0,
-          ),
-        ),
+        RunBoostHeading(context.l10n.goalsListYourGoals, size: 32),
       ],
     );
   }
@@ -229,16 +222,11 @@ class _ActiveGoalCard extends StatelessWidget {
           children: [
             Row(children: [GoldBadge(label: context.l10n.goalsCardActive)]),
             const SizedBox(height: 8),
-            Text(
+            RunBoostHeading(
               goal.name,
-              style: GoogleFonts.ebGaramond(
-                fontSize: 28,
-                fontWeight: FontWeight.w500,
-                color: AppColors.primaryInk,
-                height: 1.05,
-              ),
+              size: 26,
               maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+              topPadding: 0,
             ),
             const SizedBox(height: 16),
             Row(
@@ -405,14 +393,12 @@ class _OtherGoalTile extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
+              RunBoostHeading(
                 context.l10n.goalsSwitchTitle,
+                size: 20,
                 textAlign: TextAlign.center,
-                style: GoogleFonts.ebGaramond(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.primaryInk,
-                ),
+                maxLines: 2,
+                topPadding: 0,
               ),
               const SizedBox(height: 8),
               Text(
@@ -466,13 +452,11 @@ class _EmptyState extends StatelessWidget {
               color: AppColors.inkMuted,
             ),
             const SizedBox(height: 12),
-            Text(
+            RunBoostHeading(
               context.l10n.goalsListEmptyTitle,
-              style: GoogleFonts.ebGaramond(
-                fontSize: 24,
-                fontWeight: FontWeight.w500,
-                color: AppColors.primaryInk,
-              ),
+              size: 22,
+              maxLines: 2,
+              topPadding: 0,
             ),
             const SizedBox(height: 6),
             Text(

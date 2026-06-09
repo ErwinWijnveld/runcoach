@@ -10,6 +10,7 @@ import 'package:app/core/utils/date_formatter.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/core/widgets/intro_fx.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/features/coach/widgets/plan_content.dart';
 import 'package:app/features/notifications/providers/notifications_provider.dart';
 import 'package:app/features/schedule/models/plan_evaluation.dart';
@@ -92,15 +93,11 @@ class _LoadedState extends ConsumerState<_Loaded> {
               children: [
                 _Eyebrow(label: context.l10n.evaluationCardEyebrow),
                 const SizedBox(height: 8),
-                Text(
+                RunBoostHeading(
                   context.l10n.evaluationDetailTitle,
-                  style: GoogleFonts.ebGaramond(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w500,
-                    fontStyle: FontStyle.italic,
-                    height: 1.1,
-                    color: AppColors.primaryInk,
-                  ),
+                  size: 26,
+                  maxLines: 2,
+                  topPadding: 0,
                 ),
                 const SizedBox(height: 6),
                 Text(

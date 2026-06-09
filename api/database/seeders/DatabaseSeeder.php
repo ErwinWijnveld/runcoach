@@ -25,7 +25,7 @@ class DatabaseSeeder extends Seeder
         // DevPlanSeeder: post-onboarding flow — seeds a half-marathon
         // plan with last week's completed runs so the workout agent +
         // schedule UI have realistic data to render.
-        // $this->call(DevOnboardingSeeder::class);
-        $this->call(DevPlanSeeder::class);
+        $this->call(DevOnboardingSeeder::class);
+        // $this->call(DevPlanSeeder::class);
     }
 }

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/core/widgets/runcore_logo.dart';
 import 'package:app/l10n/app_localizations.dart';
 import 'package:app/features/share/painters/route_polyline_painter.dart';
@@ -341,18 +342,12 @@ class _Verdict extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
+    return RunBoostHeading(
       _smartQuote(verdict),
-      textAlign: TextAlign.left,
-      style: GoogleFonts.ebGaramond(
-        fontSize: 26,
-        fontWeight: FontWeight.w500,
-        fontStyle: FontStyle.italic,
-        color: AppColors.primaryInk,
-        height: 1.1,
-      ),
+      size: 24,
       maxLines: 3,
-      overflow: TextOverflow.ellipsis,
+      textAlign: TextAlign.left,
+      topPadding: 0,
     );
   }
 

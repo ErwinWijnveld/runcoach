@@ -11,6 +11,7 @@ import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/coach_prompt_bar.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/core/widgets/intro_fx.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/features/coach/providers/coach_provider.dart';
 import 'package:app/router/app_router.dart'
     show floatingPromptBarBottomOffset, kBottomStackedReservedHeight;
@@ -478,10 +479,7 @@ class _WeekHeader extends StatelessWidget {
                 onBackToToday: onBackToToday,
               ),
               const SizedBox(height: 4),
-              Text(
-                context.l10n.schedWeeklyPlanTitle,
-                style: RunCoreText.serifTitle(size: 38, height: 1.0),
-              ),
+              RunBoostHeading(context.l10n.schedWeeklyPlanTitle, size: 38),
             ],
           ),
         ),

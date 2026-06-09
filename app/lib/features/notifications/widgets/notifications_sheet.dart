@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/features/notifications/models/user_notification.dart';
 import 'package:app/features/notifications/providers/notifications_provider.dart';
 import 'package:app/router/app_router.dart';
@@ -189,14 +190,11 @@ class _NotificationCardState extends ConsumerState<_NotificationCard> {
             ],
           ),
           const SizedBox(height: 12),
-          Text(
+          RunBoostHeading(
             n.title,
-            style: GoogleFonts.ebGaramond(
-              fontSize: 22,
-              fontWeight: FontWeight.w500,
-              color: AppColors.primaryInk,
-              height: 1.15,
-            ),
+            size: 20,
+            maxLines: 2,
+            topPadding: 0,
           ),
           const SizedBox(height: 8),
           Text(

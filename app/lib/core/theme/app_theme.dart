@@ -19,7 +19,8 @@ class AppColors {
   static const neutral = Color(0xFFFDF9ED);
   static const neutralHighlight = Color(0xFFF7F3E8);
   static const primary = Color(0xFF1A1A1A);
-  static const primaryInk = Color(0xFF1C1C15);
+  // Brand "Ink" (#171206) — primary text & dark surfaces.
+  static const primaryInk = Color(0xFF171206);
   static const secondary = Color(0xFFE9B638);
   static const tertiary = Color(0xFF8C7A5B);
   static const eyebrow = Color(0xFF4E4635);
@@ -56,13 +57,16 @@ class AppColors {
   );
 }
 
-/// Three-font design system: EB Garamond (display/serif), Space Grotesk
-/// (UI labels, badges, button caps), Inter (body, stat numbers).
+/// RunBoost type system (Brand Guidelines · Edition 01): Inter (body, UI,
+/// titles — the workhorse), Space Mono (kickers/eyebrows, technical labels),
+/// Anton (reserved for hero display — applied at call sites with the −9° lean,
+/// see [RunBoostText]). No serif anywhere. Method names are unchanged so every
+/// existing call site keeps working; only the underlying families changed.
 class RunCoreText {
-  // ---- Space Grotesk ----
+  // ---- Space Mono (kickers / eyebrows / technical labels) ----
 
   static TextStyle eyebrow({Color color = AppColors.eyebrow}) =>
-      GoogleFonts.spaceGrotesk(
+      GoogleFonts.spaceMono(
         fontSize: 12,
         fontWeight: FontWeight.w700,
         letterSpacing: 3.6,
@@ -71,7 +75,7 @@ class RunCoreText {
 
   /// Tiny uppercase label like the gold "TODAY" pill.
   static TextStyle badge({Color color = const Color(0xFFFFFFFF)}) =>
-      GoogleFonts.spaceGrotesk(
+      GoogleFonts.spaceMono(
         fontSize: 10,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.8,
@@ -80,64 +84,65 @@ class RunCoreText {
 
   /// Section eyebrow like "GOAL PROGRESSION".
   static TextStyle sectionEyebrow({Color color = const Color(0xFF785A00)}) =>
-      GoogleFonts.spaceGrotesk(
+      GoogleFonts.spaceMono(
         fontSize: 12,
-        fontWeight: FontWeight.w500,
+        fontWeight: FontWeight.w400,
         letterSpacing: 1.32,
         color: color,
       );
 
+  // ---- Inter (UI labels, buttons, tabs) ----
+
   static TextStyle buttonCaps({Color color = AppColors.neutral}) =>
-      GoogleFonts.spaceGrotesk(
+      GoogleFonts.inter(
         fontSize: 14,
         fontWeight: FontWeight.w700,
         color: color,
       );
 
   static TextStyle tabLabel({required Color color, bool active = false}) =>
-      GoogleFonts.spaceGrotesk(
+      GoogleFonts.inter(
         fontSize: 10,
         fontWeight: active ? FontWeight.w700 : FontWeight.w400,
         color: color,
       );
 
-  // ---- EB Garamond ----
+  // ---- Inter (titles / display — replaces the old serif) ----
 
   static TextStyle logo({
-    Color color = const Color(0xFF000000),
+    Color color = AppColors.primaryInk,
     double size = 32.42,
-  }) => GoogleFonts.ebGaramond(
+  }) => GoogleFonts.inter(
     fontSize: size,
-    fontWeight: FontWeight.w500,
+    fontWeight: FontWeight.w700,
     color: color,
   );
 
-  /// Large hero serif (welcome page).
+  /// Large hero title (was serif). Pass `style: FontStyle.italic` for emphasis.
   static TextStyle serifDisplay({
     double size = 55,
     FontStyle style = FontStyle.normal,
     Color color = AppColors.primaryInk,
     double? height,
-  }) => GoogleFonts.ebGaramond(
+  }) => GoogleFonts.inter(
     fontSize: size,
     fontStyle: style,
-    fontWeight: FontWeight.w400,
+    fontWeight: FontWeight.w700,
     color: color,
     height: height,
   );
 
   /// Medium card title (e.g. "Threshold Intervals", "AI Coach"). Upright by
-  /// default; pass `style: FontStyle.italic` to opt back into italic on the
-  /// home/welcome surfaces.
+  /// default; pass `style: FontStyle.italic` for emphasis.
   static TextStyle serifTitle({
     double size = 36,
     Color color = AppColors.primaryInk,
     double? height,
     FontStyle style = FontStyle.normal,
-  }) => GoogleFonts.ebGaramond(
+  }) => GoogleFonts.inter(
     fontSize: size,
     fontStyle: style,
-    fontWeight: FontWeight.w500,
+    fontWeight: FontWeight.w700,
     color: color,
     height: height,
   );
@@ -146,14 +151,14 @@ class RunCoreText {
   static TextStyle italicSmall({
     double size = 14,
     Color color = AppColors.primaryInk,
-  }) => GoogleFonts.ebGaramond(
+  }) => GoogleFonts.inter(
     fontSize: size,
     fontStyle: FontStyle.italic,
     fontWeight: FontWeight.w500,
     color: color,
   );
 
-  // ---- Inter ----
+  // ---- Inter (body, stats) ----
 
   /// Stat label (e.g. "DISTANCE").
   static TextStyle statLabel({Color color = AppColors.inkMuted}) =>

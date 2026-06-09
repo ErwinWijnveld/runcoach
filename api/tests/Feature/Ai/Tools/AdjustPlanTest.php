@@ -291,7 +291,7 @@ class AdjustPlanTest extends TestCase
         $this->assertStringContainsString('race day', $result['rejected'][0]['reason']);
     }
 
-    public function test_pace_override_clamped_to_tolerance_window(): void
+    public function test_pace_override_is_honored_exactly_on_quality_day(): void
     {
         $user = User::factory()->create();
         $proposal = $this->seedProposal($user);
@@ -309,20 +309,22 @@ class AdjustPlanTest extends TestCase
             }
         }
         if ($tempoDay === null) {
-            $this->markTestSkipped('Plan has no tempo day to clamp.');
+            $this->markTestSkipped('Plan has no tempo day.');
         }
         $original = (int) $tempoDay['target_pace_seconds_per_km'];
-        $absurd = $original - 60; // ask for 60 sec/km faster — should clamp to -15
+        // Ask for 60 sec/km faster — a far bigger jump than the old ±15s
+        // window. The runner explicitly requested it, so it must stick verbatim.
+        $requested = $original - 60;
 
         $result = json_decode($this->makeTool($user)->handle(new Request([
-            'reason' => 'Test pace clamp.',
+            'reason' => 'Runner asked for a much faster tempo pace.',
             'operations' => json_encode([
                 'operations' => [
                     [
                         'action' => 'adjust',
                         'week' => $tempoWeek['week_number'],
                         'day_of_week' => $tempoDay['day_of_week'],
-                        'target_pace_seconds_per_km' => $absurd,
+                        'target_pace_seconds_per_km' => $requested,
                     ],
                 ],
             ]),
@@ -332,8 +334,51 @@ class AdjustPlanTest extends TestCase
         $newWeek = collect($newProposal->payload['schedule']['weeks'])
             ->firstWhere('week_number', $tempoWeek['week_number']);
         $newTempo = collect($newWeek['days'])->firstWhere('day_of_week', $tempoDay['day_of_week']);
-        // Allowed minimum is original − 15.
-        $this->assertSame($original - 15, $newTempo['target_pace_seconds_per_km']);
+        $this->assertSame($requested, $newTempo['target_pace_seconds_per_km']);
+    }
+
+    public function test_pace_override_is_honored_on_easy_day(): void
+    {
+        $user = User::factory()->create();
+        $proposal = $this->seedProposal($user);
+
+        // Find an easy day. Easy/long-run paces used to be silently ignored
+        // (they "tracked the snapshot"); now an explicit request must stick.
+        $easyDay = null;
+        $easyWeek = null;
+        foreach ($proposal->payload['schedule']['weeks'] as $w) {
+            foreach ($w['days'] as $d) {
+                if ($d['type'] === TrainingType::Easy->value) {
+                    $easyDay = $d;
+                    $easyWeek = $w;
+                    break 2;
+                }
+            }
+        }
+        if ($easyDay === null) {
+            $this->markTestSkipped('Plan has no easy day.');
+        }
+        $requested = 300; // 5:00/km — well inside the physiological sanity window
+
+        $result = json_decode($this->makeTool($user)->handle(new Request([
+            'reason' => 'Runner asked to set their easy pace explicitly.',
+            'operations' => json_encode([
+                'operations' => [
+                    [
+                        'action' => 'adjust',
+                        'week' => $easyWeek['week_number'],
+                        'day_of_week' => $easyDay['day_of_week'],
+                        'target_pace_seconds_per_km' => $requested,
+                    ],
+                ],
+            ]),
+        ])), true);
+
+        $newProposal = CoachProposal::find($result['proposal_id']);
+        $newWeek = collect($newProposal->payload['schedule']['weeks'])
+            ->firstWhere('week_number', $easyWeek['week_number']);
+        $editedDay = collect($newWeek['days'])->firstWhere('day_of_week', $easyDay['day_of_week']);
+        $this->assertSame($requested, $editedDay['target_pace_seconds_per_km']);
     }
 
     public function test_no_pending_proposal_returns_error(): void

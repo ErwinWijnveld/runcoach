@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/utils/date_formatter.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/features/schedule/models/plan_evaluation.dart';
 
 /// Card representing a `PlanEvaluation` row inside the weekly schedule.
@@ -93,15 +94,11 @@ class EvaluationCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
+                  RunBoostHeading(
                     title,
-                    style: GoogleFonts.ebGaramond(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      fontStyle: FontStyle.italic,
-                      color: AppColors.primaryInk,
-                      height: 1.15,
-                    ),
+                    size: 16,
+                    maxLines: 2,
+                    topPadding: 0,
                   ),
                   const SizedBox(height: 2),
                   Text(

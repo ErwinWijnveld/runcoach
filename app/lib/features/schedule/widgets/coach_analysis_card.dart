@@ -4,6 +4,7 @@ import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/ai_glow_card.dart';
 import 'package:app/core/widgets/compliance_ring.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/features/coach/widgets/swooshing_star.dart';
 
 /// Coach analysis card on the training day detail screen. Shows a large
@@ -65,14 +66,11 @@ class CoachAnalysisCard extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 6),
-                        Text(
+                        RunBoostHeading(
                           l10n.coachAnalysisCompliance,
-                          style: GoogleFonts.ebGaramond(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.primaryInk,
-                            height: 1.05,
-                          ),
+                          size: 22,
+                          maxLines: 2,
+                          topPadding: 0,
                         ),
                       ],
                     ),

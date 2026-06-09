@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/core/widgets/runcore_logo.dart';
 import 'package:app/l10n/app_localizations.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
@@ -282,10 +283,12 @@ class _LoadingBody extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          Text(
+          RunBoostHeading(
             l10n.onbGeneratingTitle,
+            size: 34,
+            height: 1.05,
             textAlign: TextAlign.center,
-            style: RunCoreText.serifTitle(size: 36).copyWith(height: 1.1),
+            maxLines: 2,
           ),
           const SizedBox(height: 12),
           AnimatedSwitcher(
@@ -396,10 +399,11 @@ class _ErrorBody extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
+          RunBoostHeading(
             l10n.onbGeneratingErrorTitle,
+            size: 26,
             textAlign: TextAlign.center,
-            style: RunCoreText.serifTitle(size: 28),
+            maxLines: 2,
           ),
           const SizedBox(height: 12),
           Text(

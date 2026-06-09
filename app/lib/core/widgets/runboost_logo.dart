@@ -37,17 +37,97 @@ class RunBoostSpark extends StatelessWidget {
 /// Rendered straight from the outlined brand SVG (`assets/icons/runboost_logo.svg`,
 /// inlined below). The wordmark is OUTLINED vector paths with the brand's −9°
 /// lean already baked in, so there's no font dependency, no `Transform` skew,
-/// and nothing to align by hand — it just draws crisp at any [height]. Fills
-/// are the brand ink + gold, sized for a light surface.
+/// and nothing to align by hand — it just draws crisp at any [height].
+///
+/// Defaults to the brand fills (ink wordmark + gold spark) for light surfaces.
+/// Override [wordmarkColor] / [sparkColor] for reversed/monochrome lockups
+/// (e.g. cream wordmark on a dark surface) — the SVG fills are swapped inline.
 class RunBoostWordmark extends StatelessWidget {
   /// Rendered height in logical pixels (width follows the 836:240 viewBox).
   final double height;
 
-  const RunBoostWordmark({super.key, this.height = 54});
+  /// Overrides the wordmark (ink) fill. Null keeps the brand ink.
+  final Color? wordmarkColor;
+
+  /// Overrides the spark (gold) fill. Null keeps the brand gold.
+  final Color? sparkColor;
+
+  const RunBoostWordmark({
+    super.key,
+    this.height = 54,
+    this.wordmarkColor,
+    this.sparkColor,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return SvgPicture.string(_logoSvg, height: height);
+    var svg = _logoSvg;
+    if (wordmarkColor != null) {
+      svg = svg.replaceAll('#171206', _hex(wordmarkColor!));
+    }
+    if (sparkColor != null) {
+      svg = svg.replaceAll('#E9B638', _hex(sparkColor!));
+    }
+    return SvgPicture.string(svg, height: height);
+  }
+}
+
+/// `#RRGGBB` for the inline-SVG fill swap.
+String _hex(Color c) =>
+    '#${(c.toARGB32() & 0xFFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase()}';
+
+/// A page/section heading in the brand display style — Anton, UPPERCASE, with
+/// the −9° lean. Use for screen titles ("Weekly plan", "Your goals", …).
+///
+/// Anton sits flush to the top of its line box (far less ascent gap than the
+/// old serif/Inter titles), which visually eats the space above the heading.
+/// A proportional [topPadding] is baked in by default so breathing room stays
+/// consistent everywhere — override per call site if a layout needs less.
+class RunBoostHeading extends StatelessWidget {
+  final String text;
+  final double size;
+  final Color color;
+  final double height;
+  final int? maxLines;
+  final TextAlign? textAlign;
+
+  /// Space above the caps. Defaults to ~0.5× the font size — generous breathing
+  /// room above the heading (Anton's tight metrics otherwise eat the gap).
+  final double? topPadding;
+
+  const RunBoostHeading(
+    this.text, {
+    super.key,
+    this.size = 38,
+    this.color = AppColors.rbInk,
+    this.height = 1.0,
+    this.maxLines,
+    this.textAlign,
+    this.topPadding,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final centered = textAlign == TextAlign.center;
+    return Padding(
+      padding: EdgeInsets.only(top: topPadding ?? size * 0.5),
+      child: Transform(
+        alignment: centered ? Alignment.center : Alignment.bottomLeft,
+        transform: kRunBoostLean,
+        child: Text(
+          text.toUpperCase(),
+          textAlign: textAlign,
+          maxLines: maxLines,
+          overflow: maxLines != null ? TextOverflow.ellipsis : null,
+          // Even leading centers Anton's caps within the line box, so the
+          // heading aligns optically with adjacent icons/text in a Row.
+          textHeightBehavior: const TextHeightBehavior(
+            leadingDistribution: TextLeadingDistribution.even,
+          ),
+          style: RunBoostText.display(size: size, color: color, height: height),
+        ),
+      ),
+    );
   }
 }
 

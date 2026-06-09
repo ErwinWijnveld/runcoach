@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/core/widgets/runcore_logo.dart';
 import 'package:app/features/onboarding/data/onboarding_api.dart';
 import 'package:app/features/onboarding/models/onboarding_profile.dart';
@@ -193,7 +194,7 @@ class _BaselineFormState extends ConsumerState<_BaselineForm> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 8),
-                  Text(title, style: RunCoreText.serifTitle(size: 30)),
+                  RunBoostHeading(title, size: 28),
                   const SizedBox(height: 6),
                   Text(
                     subtitle,
@@ -352,10 +353,11 @@ class _SyncingState extends StatelessWidget {
         children: [
           const CupertinoActivityIndicator(radius: 16),
           const SizedBox(height: 20),
-          Text(
+          RunBoostHeading(
             context.l10n.onbOverviewLoadingTitle,
+            size: 22,
             textAlign: TextAlign.center,
-            style: RunCoreText.serifTitle(size: 24),
+            maxLines: 2,
           ),
         ],
       ),
@@ -381,10 +383,11 @@ class _ErrorState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
+          RunBoostHeading(
             l10n.onbOverviewErrorTitle,
-            style: RunCoreText.serifTitle(size: 24),
+            size: 22,
             textAlign: TextAlign.center,
+            maxLines: 2,
           ),
           const SizedBox(height: 8),
           Text(

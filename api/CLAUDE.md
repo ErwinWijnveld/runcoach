@@ -218,7 +218,7 @@ The coach uses **Laravel AI SDK** (`laravel/ai` v0.5.1). Default provider is **A
     - `GetComplianceReport` — compliance breakdown + trends
   - **Plan-mutation tools (the unified Adjust + Build pattern):**
     - `BuildPlan` — generates a complete plan from form-style inputs (goal_type, distance_meters, target_date, goal_time_seconds, days_per_week, preferred_weekdays, run_type_preferences, additional_notes). Used by both onboarding (first plan) AND coach-chat (full rebuilds when the goal changes). No verify loop, no JSON authoring — pure deterministic builder. ~6s wall clock.
-    - `AdjustPlan` — targeted edits to the latest pending proposal OR the active goal (auto-detects). Operations: `replace` / `add` / `remove` / `adjust` / `shift` / `set_goal`. Server clamps everything (pace ±15s tempo, ±10s interval, distance [4 km, 1.5×]). Race day untouchable. Used by both agents for ANY tweak. ~10s wall clock.
+    - `AdjustPlan` — targeted edits to the latest pending proposal OR the active goal (auto-detects). Operations: `replace` / `add` / `remove` / `adjust` / `shift` / `set_goal`. Pace is honored verbatim for every non-interval day (only an absolute [150, 720] s/km sanity window applies — no relative-to-snapshot clamp); distance clamped [4 km, 1.5×]. Race day untouchable. Used by both agents for ANY tweak. ~10s wall clock.
     - `ModifySchedule` — legacy bulk-editor for active plans. Largely superseded by `AdjustPlan`; kept only if a legacy proposal type still references it.
     - `EditWorkout` — workout-chat-only single-day edit (used by `WorkoutAgent`); internally delegates to `AdjustPlan`.
     - `ProposeNewPlanCard` — emits `display: new_plan_card` (SSE `data-new-plan`). Replaces the multi-turn `offer_choices` chip flow for new-plan requests; Flutter renders a "Start new training plan" card whose tap drops the runner into `/onboarding/form?for=new-plan&step=goal_type`. `BuildPlan` is no longer in `RunCoachAgent`'s toolset; only `OnboardingAgent` (driven by the form submit) still uses it.
@@ -315,8 +315,9 @@ POST /onboarding/generate-plan
 
 [AdjustOnboardingPlan tool — optional second pass, AI-driven tweaks]
     Operates on the latest pending proposal. Operations: replace, add,
-    remove, adjust per (week, day_of_week). Pace overrides clamped to
-    ±15s tempo / ±10s interval-work. Distance clamped to [4 km, 1.5×
+    remove, adjust per (week, day_of_week). Pace overrides honored
+    verbatim (non-interval days; [150, 720] s/km sanity window only).
+    Distance clamped to [4 km, 1.5×
     builder]. Race day untouchable. `add` respects preferred_weekdays.
     Re-runs optimizer + persists a new pending proposal (supersedes the
     previous).
@@ -353,7 +354,7 @@ RunCoachAgent ── tools ──→
 ```
 
 Plan-mutation contract:
-- **Tweaks** (change a day, swap session type, shift weekday, update goal time, race date moved, etc) → `adjust_plan`. Server clamps pace/distance, race-day untouchable. Active-goal edits emit `EditActivePlan` proposals carrying a `diff` array for the "PLAN REVISION" UI.
+- **Tweaks** (change a day, swap session type, shift weekday, update goal time, race date moved, etc) → `adjust_plan`. Pace honored verbatim (non-interval days, sanity window only), distance clamped, race-day untouchable. Active-goal edits emit `EditActivePlan` proposals carrying a `diff` array for the "PLAN REVISION" UI.
 - **Rebuilds** (different goal_type, race cancelled, original goal complete) → `build_plan`. Same form-style input as onboarding. On accept, `applyCreateSchedule` creates a new `Goal` and `GoalService::activate` deactivates the old one.
 
 #### Plan generation lifecycle (async, onboarding only)
@@ -387,7 +388,7 @@ The plan-builder code lives under `app/Services/Onboarding/`, `app/Support/Onboa
 - **Quality-pace ramps** (`tempoPace` + `intervalBlueprint` workPace) — peak at the LAST BUILD WEEK (`weeksToRace = taperLen`). Tempos end at `goal_pace + 5s` (sustainable); interval work ends at `goal_pace` (race-pace specificity in intervals, not tempos).
 - **`FitnessSnapshot`** + **`OnboardingFormInput`** + **`AmbitionAssessment`** (`app/Support/Onboarding/`) — readonly value objects. `OnboardingFormInput::fromArray()` normalises form aliases (`'pr'` → `pr_attempt`, `'fitness'` / `'weight_loss'` → `general_fitness`) and the `runTypePreferences` ranking. The ranking influences quality-slot type, easy→quality upgrade at 5+ days, and long-run length cap. `AmbitionAssessment::toFeasibilityPayload()` exposes the wire-shape `{feasibility_pct, pace_score_pct, volume_score_pct, verdict_zone, verdict_label, detail, adjust_prefill, ...}` consumed by the Flutter plan-details modal; returns null when no measurable goal. Constants `PACE_WEIGHT` (0.6), `VOLUME_WEIGHT` (0.4), `ZONE_OK_MIN_PCT` (70), `ZONE_STRETCH_MIN_PCT` (40) are tunable on the class. Spec: `../docs/superpowers/specs/2026-05-12-plan-feasibility-analysis-design.md`.
 - **`BuildPlan` tool** (`app/Ai/Tools/`) — used by BOTH agents. Wraps snapshot → ambition (two-pass) → builder → optimizer → proposal. Returns `{requires_approval, proposal_id, plan_structure, fitness_summary, ambition}`. The `ambition` field carries `level + summary + suggestion` so the agent can warn the runner naturally. Also injects `AmbitionAssessment::toFeasibilityPayload()` into the persisted `CoachProposal.payload['ambition']` so the Flutter plan-details modal can render its feasibility section without re-running the analyzer (skipped when goal has no measurable target). Spec: `../docs/superpowers/specs/2026-05-12-plan-feasibility-analysis-design.md`.
-- **`AdjustPlan` tool** (`app/Ai/Tools/`) — used by BOTH agents. Auto-targets latest pending proposal → active goal → fallback. Operations: `replace` / `add` / `remove` / `adjust` / `shift` / `set_goal`. Server clamps everything: pace ±15s tempo / ±10s interval-work, distance [4 km, 1.5× existing], race-day untouchable, `add` respects `preferred_weekdays`. Active-goal edits emit `EditActivePlan` proposals carrying a `diff` array for the "PLAN REVISION" UI. **Type-swap behavior**: when a `replace`/`adjust` op changes `type`, the old `title` and `target_pace_seconds_per_km` are cleared so the optimizer regenerates them; switching TO `interval` without an explicit `intervals[]` triggers `PlanOptimizerService::defaultIntervalSkeleton` (4×400m + 90s recovery + warmup + cooldown).
+- **`AdjustPlan` tool** (`app/Ai/Tools/`) — used by BOTH agents. Auto-targets latest pending proposal → active goal → fallback. Operations: `replace` / `add` / `remove` / `adjust` / `shift` / `set_goal`. Pace honored verbatim for every non-interval day (only an absolute [150, 720] s/km sanity window — no relative clamp; interval pace lives per-segment in `intervals[]`), distance [4 km, 1.5× existing], race-day untouchable, `add` respects `preferred_weekdays`. Active-goal edits emit `EditActivePlan` proposals carrying a `diff` array for the "PLAN REVISION" UI. **Type-swap behavior**: when a `replace`/`adjust` op changes `type`, the old `title` and `target_pace_seconds_per_km` are cleared so the optimizer regenerates them; switching TO `interval` without an explicit `intervals[]` triggers `PlanOptimizerService::defaultIntervalSkeleton` (4×400m + 90s recovery + warmup + cooldown).
 - **`OnboardingAgent`** (`app/Ai/Agents/`) — minimal Sonnet agent. Tools: `BuildPlan`, `AdjustPlan`, `GetRecentRuns`. Prompt has injury-aware step 2 (any mention of pain / tendonitis / "coming back from" MUST trigger `adjust_plan` to replace tempos+intervals with easy in early weeks).
 - **`RunCoachAgent`** (`app/Ai/Agents/`) — full coach-chat agent. Tools: query tools (`GetRunningProfile`, `GetRecentRuns`, `SearchActivities`, `GetActivityDetails`, `GetCurrentSchedule`, `GetCurrentProposal`, `GetGoalInfo`, `GetComplianceReport`) + `BuildPlan` + `AdjustPlan` (gated by `planMutationsAllowed()` for coach-managed clients).
 
@@ -402,7 +403,7 @@ The plan-builder code lives under `app/Services/Onboarding/`, `app/Support/Onboa
 - Long-run cap: `LONG_RUN_CAP_BY_RANK` (gold=0.48, silver=0.44, bronze=0.40, last=0.36) + session-count boost (+0.20 for 2-day weeks, +0.10 for 3-day).
 - Interval reps: `TrainingPlanBuilder::intervalBlueprint()` (4×400 → 5×800 → 6×800 progression, sharpener at goal pace).
 - Taper: `TrainingPlanBuilder::TAPER_WEEKS` (3), `TAPER_FRACTIONS` ([0.70, 0.55, 0.40]).
-- Adjust clamps: `AdjustPlan::TEMPO_PACE_TOLERANCE_SECONDS` (15), `INTERVAL_WORK_PACE_TOLERANCE_SECONDS` (10), `KM_MAX_MULTIPLIER` (1.5), `KM_MIN` (4), `KM_ADD_CEILING` (30).
+- Adjust clamps: `AdjustPlan::PACE_MIN_SECONDS` (150) / `PACE_MAX_SECONDS` (720) — absolute pace sanity window only, no relative-to-snapshot clamp (explicit pace requests are honored verbatim on non-interval days), `KM_MAX_MULTIPLIER` (1.5), `KM_MIN` (4), `KM_ADD_CEILING` (30).
 
 Tests: `tests/Feature/Services/Onboarding/FitnessSnapshotServiceTest.php`, `TrainingPlanBuilderTest.php`, `tests/Feature/Ai/Tools/AdjustPlanTest.php`. Each derivation tier, each days-per-week branch, ranking effects, low-volume long-run regressions, and adjust-tool guard rails (clamps, race-day protection, shift collisions, set_goal validation, active-goal targeting + diff) all have coverage.
 

@@ -11,6 +11,7 @@ import 'package:app/core/widgets/ai_glow_card.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/compliance_ring.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/features/schedule/models/training_result.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
 
@@ -160,13 +161,10 @@ class _Header extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 4),
-          Text(
+          RunBoostHeading(
             context.l10n.trainingResultHeader,
-            style: GoogleFonts.ebGaramond(
-              fontSize: 22,
-              fontWeight: FontWeight.w500,
-              color: AppColors.primaryInk,
-            ),
+            size: 20,
+            topPadding: 0,
           ),
         ],
       ),

@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/features/coach/widgets/swooshing_star.dart';
 
 /// Coach loading card — shown while the agent is working before it emits
@@ -28,7 +28,7 @@ class _ThinkingCardState extends State<ThinkingCard>
       vsync: this,
       duration: const Duration(milliseconds: 1600),
     )..repeat(reverse: true);
-    _pulse = Tween<double>(begin: 0.45, end: 1.0).animate(
+    _pulse = Tween<double>(begin: 0.35, end: 0.70).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
   }
@@ -84,14 +84,10 @@ class _ThinkingCardState extends State<ThinkingCard>
                 const SwooshingStar(),
                 const SizedBox(width: 12),
                 Flexible(
-                  child: Text(
+                  child: RunBoostHeading(
                     widget.label ?? context.l10n.coachThinking,
-                    style: GoogleFonts.ebGaramond(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w400,
-                      height: 20 / 16,
-                      color: AppColors.primaryInk,
-                    ),
+                    size: 16,
+                    topPadding: 0,
                   ),
                 ),
               ],

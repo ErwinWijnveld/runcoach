@@ -10,6 +10,7 @@ import 'package:app/core/widgets/birth_date_picker.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/core/widgets/heart_rate_zones_sheet.dart';
 import 'package:app/core/widgets/hr_zones_readonly_list.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/core/widgets/runcore_logo.dart';
 import 'package:app/l10n/app_localizations.dart';
 import 'package:app/features/auth/models/derived_zones.dart';
@@ -201,7 +202,7 @@ class _HrConfirmedBody extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
-        Text(l10n.onbZonesTitle, style: RunCoreText.serifTitle(size: 30)),
+        RunBoostHeading(l10n.onbZonesTitle, size: 28),
         const SizedBox(height: 8),
         Text(
           _subtitle(l10n, source, result),
@@ -285,7 +286,7 @@ class _DobKnownBodyState extends State<_DobKnownBody> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
-        Text(l10n.onbZonesTitle, style: RunCoreText.serifTitle(size: 30)),
+        RunBoostHeading(l10n.onbZonesTitle, size: 28),
         const SizedBox(height: 8),
         Text(
           l10n.onbZonesDobBody,
@@ -392,7 +393,7 @@ class _NoDobBody extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
-        Text(l10n.onbZonesTitle, style: RunCoreText.serifTitle(size: 30)),
+        RunBoostHeading(l10n.onbZonesTitle, size: 28),
         const SizedBox(height: 8),
         Text(
           l10n.onbZonesNoDobBody,

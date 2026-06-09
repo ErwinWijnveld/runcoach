@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/core/widgets/coach_prompt_bar.dart';
 import 'package:app/features/coach/models/coach_message.dart';
 import 'package:app/features/coach/widgets/message_bubble.dart';
@@ -286,10 +287,12 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
+          RunBoostHeading(
             title ?? l10n.coachEmptyStateTitle,
-            style: RunCoreText.serifTitle(size: 32).copyWith(height: 1.15),
+            size: 30,
+            height: 1.1,
             textAlign: TextAlign.center,
+            maxLines: 3,
           ),
           const SizedBox(height: 6),
           Text(

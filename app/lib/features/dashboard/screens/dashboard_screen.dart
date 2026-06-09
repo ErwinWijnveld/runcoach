@@ -11,6 +11,7 @@ import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/coach_prompt_bar.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
 import 'package:app/core/widgets/intro_fx.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/features/coach/providers/coach_provider.dart';
 import 'package:app/features/dashboard/models/dashboard_data.dart';
 import 'package:app/features/dashboard/providers/dashboard_provider.dart';
@@ -228,13 +229,11 @@ class _TodayCard extends StatelessWidget {
                 style: RunCoreText.sectionEyebrow(color: _eyebrowGold),
               ),
               const SizedBox(height: 6),
-              Text(
+              RunBoostHeading(
                 context.l10n.dashNoUpcomingTitle,
-                style: RunCoreText.serifTitle(
-                  size: 26,
-                  height: 30 / 26,
-                  style: FontStyle.italic,
-                ),
+                size: 24,
+                maxLines: 2,
+                topPadding: 0,
               ),
               const SizedBox(height: 4),
               Text(
@@ -310,15 +309,19 @@ class _TodayCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    day.title,
-                    style: RunCoreText.serifTitle(
-                      size: 26,
-                      height: 30 / 26,
-                      style: FontStyle.italic,
+                  Transform(
+                    alignment: Alignment.bottomLeft,
+                    transform: kRunBoostLean,
+                    child: Text(
+                      day.title.toUpperCase(),
+                      style: RunBoostText.display(
+                        size: 24,
+                        color: AppColors.primaryInk,
+                        height: 1.05,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),

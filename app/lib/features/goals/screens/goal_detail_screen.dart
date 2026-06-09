@@ -10,6 +10,7 @@ import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/utils/date_formatter.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/core/widgets/intro_fx.dart';
 import 'package:app/core/widgets/coach_prompt_bar.dart';
 import 'package:app/features/coach/data/coach_api.dart';
@@ -255,17 +256,12 @@ class _GoalHeroCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
+                      RunBoostHeading(
                         goal.name,
+                        size: 30,
+                        height: 1.05,
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.ebGaramond(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.primaryInk,
-                          height: 1.05,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
                       ),
                       const SizedBox(height: 4),
                       Text(

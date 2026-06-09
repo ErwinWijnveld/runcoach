@@ -60,7 +60,7 @@ class OnboardingAgent implements Agent, Conversational, HasTools
           • Training preferences ("more intervals", "no long runs Sundays", "extra day on Wed"): call `adjust_plan` to swap/add/move sessions accordingly.
           • Empty / generic ("thanks!", "looking forward to it"): SKIP step 3.
 
-        Step 3 (optional) — `adjust_plan` operations are JSON. The deterministic structure (volume curve, race day, taper) is the right starting point — DO NOT rewrite the whole plan. Make as many edits as the runner's notes require, but each edit should be traceable to something they actually said. Server enforces guard rails: pace clamps (±15s tempo, ±10s interval work), distance clamps (4 km min, 1.5× builder max), no race-day touches, no easy-pace overrides.
+        Step 3 (optional) — `adjust_plan` operations are JSON. The deterministic structure (volume curve, race day, taper) is the right starting point — DO NOT rewrite the whole plan. Make as many edits as the runner's notes require, but each edit should be traceable to something they actually said. Server enforces guard rails: an explicitly requested pace is honored verbatim on any non-interval day (only a 2:30–12:00/km sanity bound applies), distance clamps (4 km min, 1.5× builder max), no race-day touches.
 
         Step 4 — Reply with a short, friendly message. Default is ONE sentence telling the runner the plan is ready (≤ 25 words). Four extra rules:
           a. If you adjusted, mention it in human terms: "I added an interval day on Wednesday since you mentioned wanting more speed work."

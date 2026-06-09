@@ -8,6 +8,7 @@ import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/gradient_scaffold.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/features/subscriptions/providers/pro_entitlement_provider.dart';
 
 /// Hard paywall for an already-onboarded runner with no active Pro
@@ -115,10 +116,12 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                Text(
+                RunBoostHeading(
                   l10n.paywallLapsedTitle,
+                  size: 28,
+                  height: 1.08,
                   textAlign: TextAlign.center,
-                  style: RunCoreText.serifTitle(size: 30).copyWith(height: 1.15),
+                  maxLines: 3,
                 ),
                 const SizedBox(height: 12),
                 Text(

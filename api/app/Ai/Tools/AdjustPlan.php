@@ -37,9 +37,10 @@ use Laravel\Ai\Tools\Request;
  *   • {"action":"set_goal","goal_name":"...","distance":"5k","goal_time_seconds":1500,"target_date":"...","preferred_weekdays":[2,4,6],"additional_notes":"..."}
  *
  * Server-side guard rails (silent clamps):
- *   • Pace overrides on tempo/threshold days clamped to ±15 sec/km vs the
- *     existing pace. Easy/long-run paces are not overridable (they track
- *     the runner's snapshot, the optimizer fills them).
+ *   • Pace overrides are honored verbatim for every non-interval day —
+ *     an explicit request always wins, bounded only by an absolute
+ *     physiological sanity window [150, 720] sec/km. Interval days carry
+ *     pace per `work` segment in `intervals[]`, never at the day level.
  *   • Distance clamped to [4 km, 1.5× the existing day's km] (or 30 km
  *     ceiling when adding from scratch).
  *   • Race day (date == target_date) is untouchable. Any op against it
@@ -57,9 +58,11 @@ use Laravel\Ai\Tools\Request;
  */
 class AdjustPlan implements Tool
 {
-    public const TEMPO_PACE_TOLERANCE_SECONDS = 15;
+    /** Absolute physiological sanity floor for an explicit pace request (2:30/km). */
+    public const PACE_MIN_SECONDS = 150;
 
-    public const INTERVAL_WORK_PACE_TOLERANCE_SECONDS = 10;
+    /** Absolute physiological sanity ceiling for an explicit pace request (12:00/km). */
+    public const PACE_MAX_SECONDS = 720;
 
     public const KM_MAX_MULTIPLIER = 1.5;
 
@@ -114,7 +117,7 @@ class AdjustPlan implements Tool
           Update goal metadata. `distance` must be a GoalDistance enum value (one of: {$distanceCsv}). `goal_type` and `coach_style` are NOT editable here — use `build_plan` for those.
 
         Server clamps (silent — out-of-range values get capped):
-        - target_pace_seconds_per_km: ±15s for tempo/threshold, ±10s for interval `work` segments. Easy/long-run paces cannot be overridden (server backfills from runner's snapshot).
+        - target_pace_seconds_per_km: honored verbatim for every non-interval day (easy, long-run, tempo, threshold) — set whatever pace the runner explicitly asks for. Only an absolute sanity window applies (150–720 s/km, i.e. 2:30–12:00/km). Interval days take their pace per `work` segment inside `intervals[]`, never at the day level.
         - target_km: [4 km min, 1.5× the existing value max], or [4, 30] for `add`.
 
         Use as many operations as the runner needs (no hard cap), but don't rewrite the whole plan — for that, call `build_plan`. The reply should NOT mention this tool, "operations", or internal mechanics; describe changes in human terms ("I added an interval on Wednesday").
@@ -613,19 +616,15 @@ class AdjustPlan implements Tool
 
         if (array_key_exists('target_pace_seconds_per_km', $op) && is_numeric($op['target_pace_seconds_per_km'])) {
             $type = $next['type'] ?? TrainingType::Easy->value;
-            // Easy / long-run paces are not overridable here (they track the snapshot).
-            if (in_array($type, [TrainingType::Tempo->value, TrainingType::Threshold->value], true)) {
-                $existingPace = (int) ($existing['target_pace_seconds_per_km'] ?? 0);
+            // An explicit pace request is honored verbatim for every day type
+            // EXCEPT interval — interval day-level pace is always null (the
+            // per-rep paces live in `intervals[]`; `PlanOptimizerService::
+            // computePaces` would null any day-level value anyway). The only
+            // remaining guard is an absolute physiological sanity window so a
+            // fat-fingered value can't corrupt the plan (2:30/km – 12:00/km).
+            if ($type !== TrainingType::Interval->value) {
                 $proposed = (int) $op['target_pace_seconds_per_km'];
-                if ($existingPace > 0) {
-                    $next['target_pace_seconds_per_km'] = max(
-                        $existingPace - self::TEMPO_PACE_TOLERANCE_SECONDS,
-                        min($existingPace + self::TEMPO_PACE_TOLERANCE_SECONDS, $proposed),
-                    );
-                } else {
-                    // No prior pace — accept the proposed value within sanity bounds.
-                    $next['target_pace_seconds_per_km'] = max(150, min(720, $proposed));
-                }
+                $next['target_pace_seconds_per_km'] = max(self::PACE_MIN_SECONDS, min(self::PACE_MAX_SECONDS, $proposed));
             }
         }
 

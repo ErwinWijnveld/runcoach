@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/runboost_logo.dart';
 
 /// In-chat CTA rendered when the coach agent calls `propose_new_plan_card`.
 /// Tapping the gold CTA hands the runner over to the existing onboarding
@@ -48,14 +49,11 @@ class NewPlanCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            Text(
+            RunBoostHeading(
               l10n.coachNewPlanCardCta,
-              style: GoogleFonts.ebGaramond(
-                fontSize: 22,
-                fontWeight: FontWeight.w500,
-                color: AppColors.primaryInk,
-                height: 1.1,
-              ),
+              size: 20,
+              maxLines: 2,
+              topPadding: 0,
             ),
             const SizedBox(height: 8),
             Text(
