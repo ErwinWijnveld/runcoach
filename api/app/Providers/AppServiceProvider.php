@@ -4,13 +4,16 @@ namespace App\Providers;
 
 use App\Ai\Support\AnthropicPromptCaching;
 use App\Ai\Support\AnthropicToolInputSanitizer;
+use App\Support\Apn;
 use GuzzleHttp\Psr7\Utils;
+use Illuminate\Notifications\Events\NotificationSending;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Ai\Events\InvokingTool;
 use Laravel\Ai\Events\ToolInvoked;
+use NotificationChannels\Apn\ApnChannel;
 use Psr\Http\Message\ResponseInterface;
 
 class AppServiceProvider extends ServiceProvider
@@ -27,10 +30,40 @@ class AppServiceProvider extends ServiceProvider
         Http::globalRequestMiddleware(new AnthropicToolInputSanitizer);
         Http::globalRequestMiddleware(new AnthropicPromptCaching);
 
+        $this->skipApnWhenUnconfigured();
+
         if ($this->app->environment('local')) {
             $this->logAgentToolInvocations();
             $this->logAnthropicHttpErrors();
         }
+    }
+
+    /**
+     * Cancel any APNs notification send when no signing key is configured.
+     *
+     * Returning false from NotificationSending halts that channel's send.
+     * Locally the `.p8` key is usually absent, and Pushok throws an
+     * ErrorException mid-send that fails the queued job (and can kill the
+     * worker). Skipping cleanly keeps the worker alive — pushes simply
+     * no-op until a key is present.
+     */
+    private function skipApnWhenUnconfigured(): void
+    {
+        Event::listen(function (NotificationSending $event): ?bool {
+            if ($event->channel !== ApnChannel::class) {
+                return null;
+            }
+
+            if (Apn::configured()) {
+                return null;
+            }
+
+            Log::debug('Skipping APNs notification — no signing key configured', [
+                'notification' => $event->notification::class,
+            ]);
+
+            return false;
+        });
     }
 
     /**

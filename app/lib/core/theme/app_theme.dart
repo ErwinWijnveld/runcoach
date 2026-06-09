@@ -28,6 +28,16 @@ class AppColors {
   static const inputBorder = Color(0xFFE6DDC6);
   static const goldGlow = Color(0xFFF5E0AF);
 
+  // RunBoost brand tokens (Brand Guidelines · Edition 01). The exact palette
+  // from the brand book — used for the rebranded welcome/marketing surfaces.
+  // Proportion guide: ~60% Cream / 28% Ink / 12% Gold.
+  static const rbInk = Color(0xFF171206); // Primary — text & dark backgrounds
+  static const rbGold = Color(0xFFE9B638); // Accent — the spark, emphasis
+  static const rbCream = Color(0xFFFDF9ED); // Base — light surface
+  static const rbGoldDeep = Color(0xFFC9971F); // Gold type on light backgrounds
+  static const rbGoldSoft = Color(0xFFF8E4AE); // Tint — washes & fills
+  static const rbStone = Color(0xFF8A7547); // Muted — captions & hairlines
+
   /// Off-plan ("buiten schema") run accent — a calm blue that reads as "extra,
   /// not yet linked". Parallel to the gold (`secondary` + `goldGlow`) pair.
   static const offPlan = Color(0xFF3E72C7);
@@ -180,6 +190,40 @@ class RunCoreText {
   }) => GoogleFonts.inter(
     fontSize: size,
     fontWeight: weight,
+    color: color,
+  );
+}
+
+/// RunBoost brand typography (Brand Guidelines · Edition 01).
+/// Display: Anton (uppercase, italic-lean via skew — Anton ships no true
+/// italic). Detail/labels: Space Mono. Body: Inter (shared with [RunCoreText]).
+class RunBoostText {
+  /// The brand's signature italic lean, applied as a horizontal skew.
+  static const double slantDegrees = 9;
+
+  /// Big Anton display headline / wordmark text. UPPERCASE, tight leading.
+  static TextStyle display({
+    double size = 64,
+    Color color = AppColors.rbInk,
+    double height = 0.9,
+    double letterSpacing = 0.5,
+  }) => GoogleFonts.anton(
+    fontSize: size,
+    height: height,
+    letterSpacing: letterSpacing,
+    color: color,
+  );
+
+  /// Mono kicker / technical label (e.g. "YOUR AI RUNCOACH").
+  static TextStyle kicker({
+    double size = 12,
+    Color color = AppColors.rbStone,
+    double letterSpacing = 3.4,
+    FontWeight weight = FontWeight.w700,
+  }) => GoogleFonts.spaceMono(
+    fontSize: size,
+    fontWeight: weight,
+    letterSpacing: letterSpacing,
     color: color,
   );
 }

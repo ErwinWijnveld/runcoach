@@ -59,6 +59,15 @@ class DevPlanSeeder extends Seeder
 
         $this->wipePriorDevSeed($user);
 
+        // A fully-onboarded mid-plan user is Pro — otherwise the router
+        // hard-gates them to /paywall on cold start and the seeded schedule
+        // is unreachable. Grant a year of comp Pro so local dev lands
+        // straight on the dashboard.
+        $user->forceFill([
+            'pro_active_until' => Carbon::now()->addYear(),
+            'pro_product_id' => 'dev_comp_pro',
+        ])->save();
+
         $weekStart = Carbon::now()->startOfWeek()->subWeek();
         $totalWeeks = 8;
 
