@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:app/core/utils/json_converters.dart';
+import 'package:app/features/dashboard/models/recent_run.dart';
 import 'package:app/features/schedule/models/training_day.dart';
 
 part 'dashboard_data.freezed.dart';
@@ -12,6 +13,9 @@ sealed class DashboardData with _$DashboardData {
     @JsonKey(name: 'next_training') TrainingDay? nextTraining,
     @JsonKey(name: 'active_goal') ActiveGoalSummary? activeGoal,
     @JsonKey(name: 'coach_insight') String? coachInsight,
+    @JsonKey(name: 'recent_runs')
+    @Default(<RecentRun>[])
+    List<RecentRun> recentRuns,
   }) = _DashboardData;
 
   factory DashboardData.fromJson(Map<String, dynamic> json) =>

@@ -19,6 +19,11 @@ _DashboardData _$DashboardDataFromJson(
       ? null
       : ActiveGoalSummary.fromJson(json['active_goal'] as Map<String, dynamic>),
   coachInsight: json['coach_insight'] as String?,
+  recentRuns:
+      (json['recent_runs'] as List<dynamic>?)
+          ?.map((e) => RecentRun.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const <RecentRun>[],
 );
 
 Map<String, dynamic> _$DashboardDataToJson(_DashboardData instance) =>
@@ -27,6 +32,7 @@ Map<String, dynamic> _$DashboardDataToJson(_DashboardData instance) =>
       'next_training': instance.nextTraining,
       'active_goal': instance.activeGoal,
       'coach_insight': instance.coachInsight,
+      'recent_runs': instance.recentRuns,
     };
 
 _WeeklySummary _$WeeklySummaryFromJson(Map<String, dynamic> json) =>

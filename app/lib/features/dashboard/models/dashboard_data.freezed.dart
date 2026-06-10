@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$DashboardData {
 
-@JsonKey(name: 'weekly_summary') WeeklySummary? get weeklySummary;@JsonKey(name: 'next_training') TrainingDay? get nextTraining;@JsonKey(name: 'active_goal') ActiveGoalSummary? get activeGoal;@JsonKey(name: 'coach_insight') String? get coachInsight;
+@JsonKey(name: 'weekly_summary') WeeklySummary? get weeklySummary;@JsonKey(name: 'next_training') TrainingDay? get nextTraining;@JsonKey(name: 'active_goal') ActiveGoalSummary? get activeGoal;@JsonKey(name: 'coach_insight') String? get coachInsight;@JsonKey(name: 'recent_runs') List<RecentRun> get recentRuns;
 /// Create a copy of DashboardData
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $DashboardDataCopyWith<DashboardData> get copyWith => _$DashboardDataCopyWithImp
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DashboardData&&(identical(other.weeklySummary, weeklySummary) || other.weeklySummary == weeklySummary)&&(identical(other.nextTraining, nextTraining) || other.nextTraining == nextTraining)&&(identical(other.activeGoal, activeGoal) || other.activeGoal == activeGoal)&&(identical(other.coachInsight, coachInsight) || other.coachInsight == coachInsight));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DashboardData&&(identical(other.weeklySummary, weeklySummary) || other.weeklySummary == weeklySummary)&&(identical(other.nextTraining, nextTraining) || other.nextTraining == nextTraining)&&(identical(other.activeGoal, activeGoal) || other.activeGoal == activeGoal)&&(identical(other.coachInsight, coachInsight) || other.coachInsight == coachInsight)&&const DeepCollectionEquality().equals(other.recentRuns, recentRuns));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,weeklySummary,nextTraining,activeGoal,coachInsight);
+int get hashCode => Object.hash(runtimeType,weeklySummary,nextTraining,activeGoal,coachInsight,const DeepCollectionEquality().hash(recentRuns));
 
 @override
 String toString() {
-  return 'DashboardData(weeklySummary: $weeklySummary, nextTraining: $nextTraining, activeGoal: $activeGoal, coachInsight: $coachInsight)';
+  return 'DashboardData(weeklySummary: $weeklySummary, nextTraining: $nextTraining, activeGoal: $activeGoal, coachInsight: $coachInsight, recentRuns: $recentRuns)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $DashboardDataCopyWith<$Res>  {
   factory $DashboardDataCopyWith(DashboardData value, $Res Function(DashboardData) _then) = _$DashboardDataCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'weekly_summary') WeeklySummary? weeklySummary,@JsonKey(name: 'next_training') TrainingDay? nextTraining,@JsonKey(name: 'active_goal') ActiveGoalSummary? activeGoal,@JsonKey(name: 'coach_insight') String? coachInsight
+@JsonKey(name: 'weekly_summary') WeeklySummary? weeklySummary,@JsonKey(name: 'next_training') TrainingDay? nextTraining,@JsonKey(name: 'active_goal') ActiveGoalSummary? activeGoal,@JsonKey(name: 'coach_insight') String? coachInsight,@JsonKey(name: 'recent_runs') List<RecentRun> recentRuns
 });
 
 
@@ -65,13 +65,14 @@ class _$DashboardDataCopyWithImpl<$Res>
 
 /// Create a copy of DashboardData
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? weeklySummary = freezed,Object? nextTraining = freezed,Object? activeGoal = freezed,Object? coachInsight = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? weeklySummary = freezed,Object? nextTraining = freezed,Object? activeGoal = freezed,Object? coachInsight = freezed,Object? recentRuns = null,}) {
   return _then(_self.copyWith(
 weeklySummary: freezed == weeklySummary ? _self.weeklySummary : weeklySummary // ignore: cast_nullable_to_non_nullable
 as WeeklySummary?,nextTraining: freezed == nextTraining ? _self.nextTraining : nextTraining // ignore: cast_nullable_to_non_nullable
 as TrainingDay?,activeGoal: freezed == activeGoal ? _self.activeGoal : activeGoal // ignore: cast_nullable_to_non_nullable
 as ActiveGoalSummary?,coachInsight: freezed == coachInsight ? _self.coachInsight : coachInsight // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,recentRuns: null == recentRuns ? _self.recentRuns : recentRuns // ignore: cast_nullable_to_non_nullable
+as List<RecentRun>,
   ));
 }
 /// Create a copy of DashboardData
@@ -189,10 +190,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'weekly_summary')  WeeklySummary? weeklySummary, @JsonKey(name: 'next_training')  TrainingDay? nextTraining, @JsonKey(name: 'active_goal')  ActiveGoalSummary? activeGoal, @JsonKey(name: 'coach_insight')  String? coachInsight)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'weekly_summary')  WeeklySummary? weeklySummary, @JsonKey(name: 'next_training')  TrainingDay? nextTraining, @JsonKey(name: 'active_goal')  ActiveGoalSummary? activeGoal, @JsonKey(name: 'coach_insight')  String? coachInsight, @JsonKey(name: 'recent_runs')  List<RecentRun> recentRuns)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DashboardData() when $default != null:
-return $default(_that.weeklySummary,_that.nextTraining,_that.activeGoal,_that.coachInsight);case _:
+return $default(_that.weeklySummary,_that.nextTraining,_that.activeGoal,_that.coachInsight,_that.recentRuns);case _:
   return orElse();
 
 }
@@ -210,10 +211,10 @@ return $default(_that.weeklySummary,_that.nextTraining,_that.activeGoal,_that.co
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'weekly_summary')  WeeklySummary? weeklySummary, @JsonKey(name: 'next_training')  TrainingDay? nextTraining, @JsonKey(name: 'active_goal')  ActiveGoalSummary? activeGoal, @JsonKey(name: 'coach_insight')  String? coachInsight)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'weekly_summary')  WeeklySummary? weeklySummary, @JsonKey(name: 'next_training')  TrainingDay? nextTraining, @JsonKey(name: 'active_goal')  ActiveGoalSummary? activeGoal, @JsonKey(name: 'coach_insight')  String? coachInsight, @JsonKey(name: 'recent_runs')  List<RecentRun> recentRuns)  $default,) {final _that = this;
 switch (_that) {
 case _DashboardData():
-return $default(_that.weeklySummary,_that.nextTraining,_that.activeGoal,_that.coachInsight);}
+return $default(_that.weeklySummary,_that.nextTraining,_that.activeGoal,_that.coachInsight,_that.recentRuns);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -227,10 +228,10 @@ return $default(_that.weeklySummary,_that.nextTraining,_that.activeGoal,_that.co
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'weekly_summary')  WeeklySummary? weeklySummary, @JsonKey(name: 'next_training')  TrainingDay? nextTraining, @JsonKey(name: 'active_goal')  ActiveGoalSummary? activeGoal, @JsonKey(name: 'coach_insight')  String? coachInsight)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'weekly_summary')  WeeklySummary? weeklySummary, @JsonKey(name: 'next_training')  TrainingDay? nextTraining, @JsonKey(name: 'active_goal')  ActiveGoalSummary? activeGoal, @JsonKey(name: 'coach_insight')  String? coachInsight, @JsonKey(name: 'recent_runs')  List<RecentRun> recentRuns)?  $default,) {final _that = this;
 switch (_that) {
 case _DashboardData() when $default != null:
-return $default(_that.weeklySummary,_that.nextTraining,_that.activeGoal,_that.coachInsight);case _:
+return $default(_that.weeklySummary,_that.nextTraining,_that.activeGoal,_that.coachInsight,_that.recentRuns);case _:
   return null;
 
 }
@@ -242,13 +243,20 @@ return $default(_that.weeklySummary,_that.nextTraining,_that.activeGoal,_that.co
 @JsonSerializable()
 
 class _DashboardData implements DashboardData {
-  const _DashboardData({@JsonKey(name: 'weekly_summary') this.weeklySummary, @JsonKey(name: 'next_training') this.nextTraining, @JsonKey(name: 'active_goal') this.activeGoal, @JsonKey(name: 'coach_insight') this.coachInsight});
+  const _DashboardData({@JsonKey(name: 'weekly_summary') this.weeklySummary, @JsonKey(name: 'next_training') this.nextTraining, @JsonKey(name: 'active_goal') this.activeGoal, @JsonKey(name: 'coach_insight') this.coachInsight, @JsonKey(name: 'recent_runs') final  List<RecentRun> recentRuns = const <RecentRun>[]}): _recentRuns = recentRuns;
   factory _DashboardData.fromJson(Map<String, dynamic> json) => _$DashboardDataFromJson(json);
 
 @override@JsonKey(name: 'weekly_summary') final  WeeklySummary? weeklySummary;
 @override@JsonKey(name: 'next_training') final  TrainingDay? nextTraining;
 @override@JsonKey(name: 'active_goal') final  ActiveGoalSummary? activeGoal;
 @override@JsonKey(name: 'coach_insight') final  String? coachInsight;
+ final  List<RecentRun> _recentRuns;
+@override@JsonKey(name: 'recent_runs') List<RecentRun> get recentRuns {
+  if (_recentRuns is EqualUnmodifiableListView) return _recentRuns;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_recentRuns);
+}
+
 
 /// Create a copy of DashboardData
 /// with the given fields replaced by the non-null parameter values.
@@ -263,16 +271,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DashboardData&&(identical(other.weeklySummary, weeklySummary) || other.weeklySummary == weeklySummary)&&(identical(other.nextTraining, nextTraining) || other.nextTraining == nextTraining)&&(identical(other.activeGoal, activeGoal) || other.activeGoal == activeGoal)&&(identical(other.coachInsight, coachInsight) || other.coachInsight == coachInsight));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DashboardData&&(identical(other.weeklySummary, weeklySummary) || other.weeklySummary == weeklySummary)&&(identical(other.nextTraining, nextTraining) || other.nextTraining == nextTraining)&&(identical(other.activeGoal, activeGoal) || other.activeGoal == activeGoal)&&(identical(other.coachInsight, coachInsight) || other.coachInsight == coachInsight)&&const DeepCollectionEquality().equals(other._recentRuns, _recentRuns));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,weeklySummary,nextTraining,activeGoal,coachInsight);
+int get hashCode => Object.hash(runtimeType,weeklySummary,nextTraining,activeGoal,coachInsight,const DeepCollectionEquality().hash(_recentRuns));
 
 @override
 String toString() {
-  return 'DashboardData(weeklySummary: $weeklySummary, nextTraining: $nextTraining, activeGoal: $activeGoal, coachInsight: $coachInsight)';
+  return 'DashboardData(weeklySummary: $weeklySummary, nextTraining: $nextTraining, activeGoal: $activeGoal, coachInsight: $coachInsight, recentRuns: $recentRuns)';
 }
 
 
@@ -283,7 +291,7 @@ abstract mixin class _$DashboardDataCopyWith<$Res> implements $DashboardDataCopy
   factory _$DashboardDataCopyWith(_DashboardData value, $Res Function(_DashboardData) _then) = __$DashboardDataCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'weekly_summary') WeeklySummary? weeklySummary,@JsonKey(name: 'next_training') TrainingDay? nextTraining,@JsonKey(name: 'active_goal') ActiveGoalSummary? activeGoal,@JsonKey(name: 'coach_insight') String? coachInsight
+@JsonKey(name: 'weekly_summary') WeeklySummary? weeklySummary,@JsonKey(name: 'next_training') TrainingDay? nextTraining,@JsonKey(name: 'active_goal') ActiveGoalSummary? activeGoal,@JsonKey(name: 'coach_insight') String? coachInsight,@JsonKey(name: 'recent_runs') List<RecentRun> recentRuns
 });
 
 
@@ -300,13 +308,14 @@ class __$DashboardDataCopyWithImpl<$Res>
 
 /// Create a copy of DashboardData
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? weeklySummary = freezed,Object? nextTraining = freezed,Object? activeGoal = freezed,Object? coachInsight = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? weeklySummary = freezed,Object? nextTraining = freezed,Object? activeGoal = freezed,Object? coachInsight = freezed,Object? recentRuns = null,}) {
   return _then(_DashboardData(
 weeklySummary: freezed == weeklySummary ? _self.weeklySummary : weeklySummary // ignore: cast_nullable_to_non_nullable
 as WeeklySummary?,nextTraining: freezed == nextTraining ? _self.nextTraining : nextTraining // ignore: cast_nullable_to_non_nullable
 as TrainingDay?,activeGoal: freezed == activeGoal ? _self.activeGoal : activeGoal // ignore: cast_nullable_to_non_nullable
 as ActiveGoalSummary?,coachInsight: freezed == coachInsight ? _self.coachInsight : coachInsight // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,recentRuns: null == recentRuns ? _self._recentRuns : recentRuns // ignore: cast_nullable_to_non_nullable
+as List<RecentRun>,
   ));
 }
 
