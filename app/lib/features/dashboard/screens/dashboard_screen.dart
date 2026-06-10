@@ -40,6 +40,15 @@ const _restCell = Color(0xFFEFE7D2);
 const _upcomingCell = Color(0xFFE0D4B0);
 const _lineSoft = Color(0x2E7A6A4E);
 
+/// Brand tile behind the spark on linked recent-run rows. Mirrors the
+/// brandkit square: #FDF9ED → #FCEFC8 @ 70% (flattened to #FCF2D3) → #F8E4AE.
+const _sparkTileGradient = LinearGradient(
+  begin: Alignment.topCenter,
+  end: Alignment.bottomCenter,
+  colors: [Color(0xFFFDF9ED), Color(0xFFFCF2D3), Color(0xFFF8E4AE)],
+  stops: [0.0, 0.5, 1.0],
+);
+
 const int _weeksPerPage = 16;
 
 // ---------------------------------------------------------------------------
@@ -1045,7 +1054,7 @@ class _RecentRunRow extends StatelessWidget {
       height: 40,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: AppColors.goldGlow,
+        gradient: _sparkTileGradient,
       ),
       alignment: Alignment.center,
       child: const RunBoostSpark(size: 20),
