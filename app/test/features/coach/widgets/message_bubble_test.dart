@@ -4,6 +4,8 @@ import 'package:app/features/coach/models/coach_message.dart';
 import 'package:app/features/coach/widgets/message_bubble.dart';
 import 'package:app/l10n/app_localizations.dart';
 
+import '../../../helpers/finders.dart';
+
 CoachMessage _msg({
   required String content,
   bool streaming = false,
@@ -30,7 +32,7 @@ void main() {
         ),
       );
 
-      expect(find.text('Thinking'), findsOneWidget);
+      expect(findHeading('Thinking'), findsOneWidget);
     },
   );
 
@@ -51,7 +53,7 @@ void main() {
     );
 
     // trailing ellipsis stripped for the card
-    expect(find.text('Looking up your activities'), findsOneWidget);
+    expect(findHeading('Looking up your activities'), findsOneWidget);
   });
 
   testWidgets('does not render thinking card when not streaming',
@@ -66,6 +68,6 @@ void main() {
       ),
     );
 
-    expect(find.text('Thinking'), findsNothing);
+    expect(findHeading('Thinking'), findsNothing);
   });
 }

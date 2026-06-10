@@ -278,7 +278,7 @@ Coaches use Filament for v1. A native iOS coach app comes later. The data model 
 
 1. **Org admin** clicks "Invite client" → enters email + (optional) assigned coach
 2. Backend creates `organization_memberships` row with `status=invited`, `invite_token=Str::random(40)`, `invite_email=...`, `invited_by_user_id=...`
-3. Email sent to that address with link `https://runcoach.free.laravel.cloud/invites/{token}`
+3. Email sent to that address with link `https://runcoach.laravel.cloud/invites/{token}`
 4. Two cases:
    - **Email matches existing user** → opens deep link `runcoach://invites/{token}` → app shows "Coach Sarah at Amsterdam Running Club has invited you" → Accept / Reject
    - **No account yet** → opens web page → "Create account to accept invite" → after Strava OAuth signup, the membership row is automatically linked by email and activated

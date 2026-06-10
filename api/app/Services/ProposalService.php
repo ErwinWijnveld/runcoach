@@ -13,6 +13,7 @@ use App\Models\Goal;
 use App\Models\PlanEvaluation;
 use App\Models\TrainingDay;
 use App\Models\User;
+use App\Support\Intervals\IntervalBlueprint;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -357,56 +358,17 @@ class ProposalService
     }
 
     /**
-     * Normalise the optional `intervals` array on a training day payload.
-     * Returns null if missing/empty so the DB column stays clean for
-     * non-interval runs.
+     * Normalise the optional `intervals` on a training day payload into the
+     * canonical grouped blueprint. Accepts either the grouped form or a legacy
+     * flat segment list; returns null for non-interval runs so the DB column
+     * stays clean.
      *
      * @param  mixed  $intervals
-     * @return array<int, array<string, mixed>>|null
+     * @return array<string, mixed>|null
      */
     private function normalizeIntervals($intervals): ?array
     {
-        if (! is_array($intervals) || $intervals === []) {
-            return null;
-        }
-
-        $allowedKinds = ['warmup', 'work', 'recovery', 'cooldown'];
-        $out = [];
-        foreach ($intervals as $segment) {
-            if (! is_array($segment)) {
-                continue;
-            }
-
-            $kind = $segment['kind'] ?? 'work';
-            if (! in_array($kind, $allowedKinds, true)) {
-                $kind = 'work';
-            }
-
-            $distance = isset($segment['distance_m']) ? (int) $segment['distance_m'] : null;
-            if ($distance !== null && $distance <= 0) {
-                $distance = null;
-            }
-
-            $duration = isset($segment['duration_seconds']) ? (int) $segment['duration_seconds'] : null;
-            if ($duration !== null && $duration <= 0) {
-                $duration = null;
-            }
-
-            $pace = isset($segment['target_pace_seconds_per_km']) ? (int) $segment['target_pace_seconds_per_km'] : null;
-            if ($pace !== null && $pace <= 0) {
-                $pace = null;
-            }
-
-            $out[] = [
-                'kind' => $kind,
-                'label' => (string) ($segment['label'] ?? 'Segment'),
-                'distance_m' => $distance,
-                'duration_seconds' => $duration,
-                'target_pace_seconds_per_km' => $pace,
-            ];
-        }
-
-        return $out === [] ? null : $out;
+        return IntervalBlueprint::normalize($intervals);
     }
 
     private function applyModifySchedule(User $user, array $payload): void

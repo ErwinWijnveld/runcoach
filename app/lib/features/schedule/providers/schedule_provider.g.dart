@@ -557,6 +557,76 @@ abstract class _$RescheduleDay extends $Notifier<void> {
   }
 }
 
+/// Edit a single training day's content (distance / pace) in place via
+/// PATCH /training-days/{id}. Date is untouched (use [RescheduleDay] for that).
+/// Captures deps before the await (§1b) — the host sheet can be torn down
+/// mid-request. The backend drops day-level pace on interval days.
+
+@ProviderFor(EditTrainingDay)
+final editTrainingDayProvider = EditTrainingDayProvider._();
+
+/// Edit a single training day's content (distance / pace) in place via
+/// PATCH /training-days/{id}. Date is untouched (use [RescheduleDay] for that).
+/// Captures deps before the await (§1b) — the host sheet can be torn down
+/// mid-request. The backend drops day-level pace on interval days.
+final class EditTrainingDayProvider
+    extends $NotifierProvider<EditTrainingDay, void> {
+  /// Edit a single training day's content (distance / pace) in place via
+  /// PATCH /training-days/{id}. Date is untouched (use [RescheduleDay] for that).
+  /// Captures deps before the await (§1b) — the host sheet can be torn down
+  /// mid-request. The backend drops day-level pace on interval days.
+  EditTrainingDayProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'editTrainingDayProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$editTrainingDayHash();
+
+  @$internal
+  @override
+  EditTrainingDay create() => EditTrainingDay();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(void value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<void>(value),
+    );
+  }
+}
+
+String _$editTrainingDayHash() => r'aff3eba7c7010031050349b698ccc9c748ab5fc8';
+
+/// Edit a single training day's content (distance / pace) in place via
+/// PATCH /training-days/{id}. Date is untouched (use [RescheduleDay] for that).
+/// Captures deps before the await (§1b) — the host sheet can be torn down
+/// mid-request. The backend drops day-level pace on interval days.
+
+abstract class _$EditTrainingDay extends $Notifier<void> {
+  void build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<void, void>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<void, void>,
+              void,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
 /// Link an off-plan ("buiten schema") run to a planned session. The chosen
 /// training day relocates onto the run's actual date and is scored against it,
 /// so the run stops surfacing as off-plan. Captures deps before the await (§1b)

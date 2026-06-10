@@ -3,15 +3,18 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 
-/// Cupertino bottom-sheet with a dual-wheel picker for selecting an easy-run
-/// pace in mm:ss/km. Minutes 3-12, seconds in steps of 5. Returns the chosen
-/// total seconds when the user taps Done; returns null on Cancel or dismiss.
+/// Cupertino bottom-sheet with a dual-wheel picker for selecting a pace in
+/// mm:ss/km. Minutes [minMinutes]–12 (default 3 — day-level paces are
+/// backend-validated to ≥2:30/km; the interval editor passes 2 for per-rep
+/// work paces, which have no day-level floor), seconds in steps of 5.
+/// Returns the chosen total seconds on Done; null on Cancel or dismiss.
 Future<int?> showPaceWheelPicker(
   BuildContext context, {
   required int initialSecondsPerKm,
+  int minMinutes = 3,
 }) async {
-  final clamped = initialSecondsPerKm.clamp(180, 12 * 60 + 55);
-  final initialMinutes = (clamped ~/ 60).clamp(3, 12);
+  final clamped = initialSecondsPerKm.clamp(minMinutes * 60, 12 * 60 + 55);
+  final initialMinutes = (clamped ~/ 60).clamp(minMinutes, 12);
   final initialSecondsRaw = clamped % 60;
   final initialSecondsIndex = (initialSecondsRaw ~/ 5).clamp(0, 11);
 
@@ -39,12 +42,12 @@ Future<int?> showPaceWheelPicker(
                   Expanded(
                     child: CupertinoPicker(
                       itemExtent: 36,
-                      scrollController: FixedExtentScrollController(initialItem: initialMinutes - 3),
-                      onSelectedItemChanged: (i) => minutes = i + 3,
-                      children: List<Widget>.generate(10, (i) {
+                      scrollController: FixedExtentScrollController(initialItem: initialMinutes - minMinutes),
+                      onSelectedItemChanged: (i) => minutes = i + minMinutes,
+                      children: List<Widget>.generate(13 - minMinutes, (i) {
                         return Center(
                           child: Text(
-                            '${i + 3}',
+                            '${i + minMinutes}',
                             style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w500),
                           ),
                         );

@@ -19,6 +19,9 @@ return [
         'fallback_body' => 'Tap to see the details.',
         // Used when km + type label are available, e.g. "Today: 5km Easy".
         'title_with_km' => 'Today: :km km :type',
+        // Used when the day has no target distance (e.g. an interval day
+        // whose blueprint was emptied), e.g. "Today: Intervals".
+        'title_without_km' => 'Today: :type',
         // Body composed of parts joined with ". ".
         'target_pace' => 'Target pace :pace/km',
         'tap_for_details' => 'Tap for details.',

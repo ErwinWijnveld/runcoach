@@ -122,6 +122,10 @@ class _OpRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (icon, tint, headline, detail) = _render(context, op);
+    final (beforeLine, afterLine) = _diffLines(context, op);
+    final adjustments = (op['adjustments'] is List)
+        ? (op['adjustments'] as List).map((e) => e.toString()).where((s) => s.isNotEmpty).toList()
+        : const <String>[];
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -162,6 +166,44 @@ class _OpRow extends StatelessWidget {
                     ),
                   ),
                 ],
+                if (beforeLine != null)
+                  _DiffLine(
+                    label: context.l10n.coachRevisionBeforeChip,
+                    text: beforeLine,
+                    color: AppColors.danger,
+                    background: AppColors.dangerBg,
+                  ),
+                if (afterLine != null)
+                  _DiffLine(
+                    label: context.l10n.coachRevisionAfterChip,
+                    text: afterLine,
+                    color: AppColors.successInk,
+                    background: AppColors.successBg,
+                  ),
+                for (final note in adjustments) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(top: 1),
+                        child: Icon(Icons.info_outline_rounded, size: 13, color: Color(0xFF7A5B1F)),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          note,
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                            color: const Color(0xFF7A5B1F),
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -179,18 +221,17 @@ class _OpRow extends StatelessWidget {
     switch (name) {
       case 'add':
         final dow = (op['day_of_week'] as num?)?.toInt();
-        final title = op['title']?.toString() ?? _humanType(context, op['type']);
         return (
           Icons.add_rounded,
-          const Color(0xFF2F8F4E),
+          AppColors.successInk,
           l10n.coachRevisionAddedOn(PlanRevisionContent.dayLabel(context, dow)),
-          _composeDayDetail(context, title, op),
+          null,
         );
       case 'remove':
         final dow = (op['day_of_week'] as num?)?.toInt();
         return (
           Icons.remove_rounded,
-          const Color(0xFF8F3A3A),
+          AppColors.danger,
           l10n.coachRevisionRemovedSession(PlanRevisionContent.dayLabel(context, dow)),
           null,
         );
@@ -210,7 +251,7 @@ class _OpRow extends StatelessWidget {
           Icons.edit_rounded,
           const Color(0xFF7A5B1F),
           l10n.coachRevisionUpdatedDay(PlanRevisionContent.dayLabel(context, dow)),
-          _composeDayDetail(context, null, op),
+          null,
         );
       case 'set_goal':
         return (
@@ -222,6 +263,28 @@ class _OpRow extends StatelessWidget {
       default:
         return (Icons.change_circle_outlined, AppColors.inkMuted, name, null);
     }
+  }
+
+  /// The red BEFORE / green AFTER lines for day-level ops. Edits show both
+  /// (when the `before` snapshot exists), `add` shows only the new state,
+  /// `remove` only the dropped one. Goal/shift ops render no diff lines.
+  (String?, String?) _diffLines(BuildContext context, Map<String, dynamic> op) {
+    String? before;
+    if (op['before'] is Map) {
+      final beforeMap = Map<String, dynamic>.from(op['before'] as Map);
+      before = _composeDayDetail(context, beforeMap['title']?.toString(), beforeMap);
+    }
+    final after = _composeDayDetail(context, op['title']?.toString(), op);
+
+    return switch (op['action']?.toString()) {
+      // A description-only edit summarizes identically on both sides;
+      // showing a matching red line would read as a change that didn't
+      // happen, so collapse to the green state.
+      'replace' || 'adjust' => before == after ? (null, after) : (before, after),
+      'add' => (null, after),
+      'remove' => (before, null),
+      _ => (null, null),
+    };
   }
 
   String? _composeDayDetail(BuildContext context, String? title, Map<String, dynamic> op) {
@@ -236,6 +299,12 @@ class _OpRow extends StatelessWidget {
     }
     if (op['target_heart_rate_zone'] != null) {
       parts.add('Z${op['target_heart_rate_zone']}');
+    }
+    // Stored work-set summary ("4×800m @4:30/km (rec 90s)") shipped by
+    // AdjustPlan's diff for interval days (warm-up/cool-down omitted
+    // server-side — runners don't review those here).
+    if (op['intervals'] is String) {
+      parts.add(op['intervals'] as String);
     }
     return parts.isEmpty ? null : parts.join(' · ');
   }
@@ -302,5 +371,66 @@ class _OpRow extends StatelessWidget {
     final m = (s % 3600) ~/ 60;
     if (h == 0) return '${m}m';
     return '${h}h ${m.toString().padLeft(2, '0')}m';
+  }
+}
+
+/// One side of a day diff: a small VOOR/NA chip + the day summary, both in
+/// the same tint (red = old state, green = new state).
+class _DiffLine extends StatelessWidget {
+  final String label;
+  final String text;
+  final Color color;
+  final Color background;
+
+  const _DiffLine({
+    required this.label,
+    required this.text,
+    required this.color,
+    required this.background,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            // Min-width keeps BEFORE/AFTER (and VOOR/NA) chips equally wide
+            // so both summary lines start at the same x.
+            constraints: const BoxConstraints(minWidth: 52),
+            alignment: Alignment.center,
+            margin: const EdgeInsets.only(top: 1),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+            decoration: BoxDecoration(
+              color: background,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              label,
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6,
+                color: color,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                height: 1.4,
+                color: color,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

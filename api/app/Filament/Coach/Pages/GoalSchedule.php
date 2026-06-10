@@ -5,8 +5,11 @@ namespace App\Filament\Coach\Pages;
 use App\Enums\TrainingType;
 use App\Models\Goal;
 use App\Models\TrainingDay;
+use App\Models\TrainingResult;
 use App\Models\TrainingWeek;
 use App\Models\User;
+use App\Models\WearableActivity;
+use App\Support\Intervals\IntervalBlueprint;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -24,8 +27,12 @@ use Filament\Panel;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\View;
 use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\HtmlString;
+use Illuminate\Support\Str;
 
 class GoalSchedule extends Page implements HasActions
 {
@@ -84,7 +91,7 @@ class GoalSchedule extends Page implements HasActions
             return null;
         }
 
-        return Goal::with(['trainingWeeks.trainingDays.result', 'user'])->find($this->goalId);
+        return Goal::with(['trainingWeeks.trainingDays.result.wearableActivity', 'user'])->find($this->goalId);
     }
 
     /**
@@ -113,6 +120,121 @@ class GoalSchedule extends Page implements HasActions
         }
 
         return $date->lt($today) ? 'missed' : 'upcoming';
+    }
+
+    /**
+     * Color band for a 0-10 compliance score — thresholds mirror Flutter's
+     * `ComplianceColors` (good ≥ 8.0, ok ≥ 5.0) so coach and runner see the
+     * same verdict for the same run.
+     */
+    public function complianceBand(float $score): string
+    {
+        if ($score >= 8.0) {
+            return 'good';
+        }
+
+        return $score >= 5.0 ? 'ok' : 'bad';
+    }
+
+    /**
+     * One-decimal grade out of 10, matching the runner-facing app ("8.7"
+     * in the compliance ring). Null renders as an em dash.
+     */
+    public function formatScore(float|string|null $score): string
+    {
+        if ($score === null) {
+            return '—';
+        }
+
+        return number_format((float) $score, 1);
+    }
+
+    /**
+     * Inline actuals line for a completed day row, e.g.
+     * "Ran 8.2 km @ 4:46/km · avg HR 162". HR is omitted when absent.
+     */
+    public function resultSummaryLine(TrainingResult $result): string
+    {
+        $parts = [];
+
+        $km = $this->kmText($result->actual_km);
+        $pace = $this->paceToText((int) $result->actual_pace_seconds_per_km);
+        if ($km !== null) {
+            $parts[] = $pace !== null ? "Ran {$km} km @ {$pace}/km" : "Ran {$km} km";
+        }
+
+        if ($result->actual_avg_heart_rate !== null) {
+            $parts[] = 'avg HR '.round((float) $result->actual_avg_heart_rate);
+        }
+
+        return implode(' · ', $parts);
+    }
+
+    /**
+     * Completed/total + average compliance for one week, or null when the
+     * week has no results yet (header renders unchanged in that case).
+     *
+     * @return array{done: int, total: int, avg: float|null}|null
+     */
+    public function weekResultStats(TrainingWeek $week): ?array
+    {
+        $stats = $this->resultStats($week->trainingDays);
+
+        return $stats['done'] > 0 ? $stats : null;
+    }
+
+    /**
+     * Plan-wide completed/total + average compliance for the hero summary.
+     *
+     * @return array{done: int, total: int, avg: float|null}
+     */
+    public function planResultStats(Goal $goal): array
+    {
+        return $this->resultStats($goal->trainingWeeks->flatMap->trainingDays);
+    }
+
+    /**
+     * @param  Collection<int, TrainingDay>  $days
+     * @return array{done: int, total: int, avg: float|null}
+     */
+    private function resultStats(Collection $days): array
+    {
+        $scores = $days
+            ->map(fn (TrainingDay $day): ?float => $day->result?->compliance_score !== null
+                ? (float) $day->result->compliance_score
+                : null)
+            ->filter(fn (?float $score): bool => $score !== null);
+
+        return [
+            'done' => $scores->count(),
+            'total' => $days->count(),
+            'avg' => $scores->isEmpty() ? null : round($scores->avg(), 1),
+        ];
+    }
+
+    private function kmText(float|string|null $km): ?string
+    {
+        if ($km === null) {
+            return null;
+        }
+
+        return rtrim(rtrim(number_format((float) $km, 1), '0'), '.');
+    }
+
+    /**
+     * Seconds as "m:ss" or "h:mm:ss" for activity durations.
+     */
+    private function durationToText(?int $seconds): ?string
+    {
+        if ($seconds === null || $seconds <= 0) {
+            return null;
+        }
+
+        $h = intdiv($seconds, 3600);
+        $m = intdiv($seconds % 3600, 60);
+        $s = $seconds % 60;
+
+        return $h > 0 ? sprintf('%d:%02d:%02d', $h, $m, $s) : sprintf('%d:%02d', $m, $s);
     }
 
     public function getTitle(): string
@@ -157,7 +279,7 @@ class GoalSchedule extends Page implements HasActions
             ->modalWidth(Width::Large)
             ->modalSubmitActionLabel('Save')
             ->fillForm(fn (array $arguments) => $this->dayFormState((int) $arguments['dayId']))
-            ->schema(fn () => $this->dayFormSchema())
+            ->schema(fn (array $arguments) => $this->dayFormSchema((int) ($arguments['dayId'] ?? 0)))
             ->action(fn (array $data, array $arguments) => $this->persistDay((int) $arguments['dayId'], $data))
             ->extraModalFooterActions(fn (Action $action): array => [
                 Action::make('deleteDayInline')
@@ -246,15 +368,210 @@ class GoalSchedule extends Page implements HasActions
     }
 
     /**
+     * Read-only result block shown at the top of the edit modal when the day
+     * has a matched run — rendered by the app-style result panel partial
+     * (compliance ring + sub-score bars + target-vs-actual table).
+     */
+    private function resultSection(?TrainingDay $day): ?Section
+    {
+        $panel = $this->resultPanelData($day);
+        if ($panel === null) {
+            return null;
+        }
+
+        return Section::make('Result')
+            ->description('What the runner actually did — read-only.')
+            ->schema([
+                View::make('filament.coach.components.day-result-panel')
+                    ->viewData(['panel' => $panel]),
+            ]);
+    }
+
+    /**
+     * Display payload for the result panel — mirrors the Flutter training
+     * result screen: a compliance ring, per-sub-score bars, and a
+     * Target vs Actual comparison table whose "actual" cells are colored by
+     * the matching sub-score band. Row inclusion rules match the app's
+     * `_TargetVsActualSection` (no pace row on interval days, HR row shown
+     * when either side has data).
+     *
+     * @return array{score: float, grade: string, band: string, rows: list<array{label: string, target: string, actual: string, band: string|null}>, bars: list<array{label: string, grade: string, band: string}>, activity: string|null, feedback: HtmlString|null}|null
+     */
+    public function resultPanelData(?TrainingDay $day): ?array
+    {
+        $result = $day?->result;
+        if ($result === null) {
+            return null;
+        }
+
+        $score = (float) $result->compliance_score;
+
+        $rows = [];
+        if ($day->target_km !== null) {
+            $rows[] = [
+                'label' => 'Distance',
+                'target' => $this->kmText($day->target_km).' km',
+                'actual' => $this->kmText($result->actual_km).' km',
+                'band' => $result->distance_score !== null ? $this->complianceBand((float) $result->distance_score) : null,
+            ];
+        }
+        if ($day->target_pace_seconds_per_km !== null) {
+            $rows[] = [
+                'label' => 'Pace',
+                'target' => $this->paceToText($day->target_pace_seconds_per_km).'/km',
+                'actual' => $this->paceToText((int) $result->actual_pace_seconds_per_km).'/km',
+                'band' => $result->pace_score !== null ? $this->complianceBand((float) $result->pace_score) : null,
+            ];
+        }
+        if ($day->target_heart_rate_zone !== null || $result->actual_avg_heart_rate !== null) {
+            $rows[] = [
+                'label' => 'Heart rate',
+                'target' => $day->target_heart_rate_zone !== null ? 'Zone '.$day->target_heart_rate_zone : '—',
+                'actual' => $result->actual_avg_heart_rate !== null ? round((float) $result->actual_avg_heart_rate).' bpm' : '—',
+                'band' => $result->heart_rate_score !== null ? $this->complianceBand((float) $result->heart_rate_score) : null,
+            ];
+        }
+
+        $bars = [];
+        foreach (['Distance' => $result->distance_score, 'Pace' => $result->pace_score, 'HR' => $result->heart_rate_score] as $label => $subScore) {
+            if ($subScore === null) {
+                continue;
+            }
+            $bars[] = [
+                'label' => $label,
+                'grade' => $this->formatScore($subScore),
+                'band' => $this->complianceBand((float) $subScore),
+            ];
+        }
+
+        $feedback = null;
+        if ($result->ai_feedback !== null && trim($result->ai_feedback) !== '') {
+            $feedback = new HtmlString(Str::markdown($result->ai_feedback, [
+                'html_input' => 'strip',
+                'allow_unsafe_links' => false,
+            ]));
+        }
+
+        return [
+            'score' => $score,
+            'grade' => $this->formatScore($score),
+            'band' => $this->complianceBand($score),
+            'rows' => $rows,
+            'bars' => $bars,
+            'activity' => $this->activitySummaryLine($result->wearableActivity),
+            'feedback' => $feedback,
+        ];
+    }
+
+    /**
+     * Off-plan ("buiten schema") runs grouped per training week — run-type
+     * activities inside a week's [starts_at, starts_at + 7d) range that never
+     * matched a planned session. Same semantics as
+     * `TrainingScheduleController::attachUnplannedRuns`, so the coach sees
+     * exactly the blue tiles the runner sees. Weeks without off-plan runs
+     * are omitted from the result.
+     *
+     * @return array<int, Collection<int, WearableActivity>>
+     */
+    public function offPlanRunsByWeek(Goal $goal): array
+    {
+        $weeks = $goal->trainingWeeks
+            ->filter(fn (TrainingWeek $week): bool => $week->starts_at !== null)
+            ->sortBy('starts_at')
+            ->values();
+
+        if ($weeks->isEmpty()) {
+            return [];
+        }
+
+        $rangeStart = $weeks->first()->starts_at->copy()->startOfDay();
+        $rangeEnd = $weeks->last()->starts_at->copy()->startOfDay()->addDays(7);
+
+        $runs = WearableActivity::query()
+            ->where('user_id', $goal->user_id)
+            ->whereIn('type', WearableActivity::RUN_TYPES)
+            ->whereBetween('start_date', [$rangeStart, $rangeEnd])
+            ->whereDoesntHave('trainingResults')
+            ->orderBy('start_date')
+            ->get();
+
+        $byWeek = [];
+        foreach ($weeks as $week) {
+            $weekStart = $week->starts_at->copy()->startOfDay();
+            $weekEnd = $weekStart->copy()->addDays(7);
+
+            $weekRuns = $runs
+                ->filter(fn (WearableActivity $run): bool => $run->start_date >= $weekStart && $run->start_date < $weekEnd)
+                ->values();
+
+            if ($weekRuns->isNotEmpty()) {
+                $byWeek[$week->id] = $weekRuns;
+            }
+        }
+
+        return $byWeek;
+    }
+
+    /**
+     * "8.2 km · 4:46/km" subtitle for an off-plan run tile — mirrors the
+     * Flutter `_UnplannedRunTile` subtitle.
+     */
+    public function offPlanRunLine(WearableActivity $run): string
+    {
+        $km = $this->kmText(($run->distance_meters ?? 0) / 1000) ?? '0';
+        $line = "{$km} km";
+
+        $pace = $this->paceToText((int) ($run->average_pace_seconds_per_km ?? 0));
+        if ($pace !== null) {
+            $line .= " · {$pace}/km";
+        }
+
+        return $line;
+    }
+
+    /**
+     * "39:12 · max HR 174 · 124 m elev · 512 kcal" — each fragment omitted
+     * when the activity lacks it; null when there's nothing to show (or the
+     * activity row was deleted).
+     */
+    private function activitySummaryLine(?WearableActivity $activity): ?string
+    {
+        if ($activity === null) {
+            return null;
+        }
+
+        $parts = [];
+        if (($duration = $this->durationToText($activity->duration_seconds)) !== null) {
+            $parts[] = $duration;
+        }
+        if ($activity->max_heartrate !== null) {
+            $parts[] = 'max HR '.round((float) $activity->max_heartrate);
+        }
+        if ($activity->elevation_gain_meters !== null) {
+            $parts[] = round((float) $activity->elevation_gain_meters).' m elev';
+        }
+        if ($activity->calories_kcal !== null) {
+            $parts[] = round((float) $activity->calories_kcal).' kcal';
+        }
+
+        return $parts === [] ? null : implode(' · ', $parts);
+    }
+
+    /**
      * Filament form schema for the edit modal. The intervals section is only
      * rendered for `type === interval`; flipping the type live shows/hides
      * it without remounting the modal.
      *
      * @return array<int, mixed>
      */
-    private function dayFormSchema(): array
+    private function dayFormSchema(?int $dayId = null): array
     {
+        $day = $dayId !== null && $dayId > 0
+            ? TrainingDay::with('result.wearableActivity')->find($dayId)
+            : null;
+
         return [
+            ...array_filter([$this->resultSection($day)]),
             Grid::make(2)->schema([
                 Select::make('type')
                     ->options(collect(TrainingType::cases())
@@ -274,7 +591,15 @@ class GoalSchedule extends Page implements HasActions
                     ->numeric()
                     ->step('0.1')
                     ->suffix('km')
-                    ->label('Distance'),
+                    ->label('Distance')
+                    ->visible(fn (Get $get): bool => $get('type') !== TrainingType::Interval->value),
+                // Interval distance is derived from the session structure
+                // (TrainingDay saving hook enforces it on save) — read-only
+                // here so the coach edits the steps, not the number.
+                Placeholder::make('interval_km_summary')
+                    ->label('Distance (auto)')
+                    ->content(fn (Get $get): string => $this->intervalKmLabel($get))
+                    ->visible(fn (Get $get): bool => $get('type') === TrainingType::Interval->value),
                 TextInput::make('target_pace_text')
                     ->label('Pace')
                     ->placeholder('5:30')
@@ -317,6 +642,10 @@ class GoalSchedule extends Page implements HasActions
                         ->collapsible()
                         ->collapsed()
                         ->defaultItems(0)
+                        // A stepless interval session is meaningless and
+                        // would null the derived target_km — only enforced
+                        // while the section is visible (type = interval).
+                        ->minItems(1)
                         ->addActionLabel('Add step')
                         ->itemLabel(fn (array $state): string => $this->stepLabel($state))
                         ->schema([
@@ -416,6 +745,23 @@ class GoalSchedule extends Page implements HasActions
     }
 
     /**
+     * Live derived-distance label for the read-only Placeholder shown on
+     * interval days — the same `IntervalBlueprint::estimateTotalKm` the
+     * saving hook applies, so the preview matches what will be stored.
+     */
+    private function intervalKmLabel(Get $get): string
+    {
+        $km = IntervalBlueprint::estimateTotalKm($this->serializeIntervals([
+            'has_warmup' => $get('has_warmup'),
+            'warmup_seconds' => $get('warmup_seconds'),
+            'steps' => (array) $get('steps'),
+            'cooldown_seconds' => $get('cooldown_seconds'),
+        ]));
+
+        return $km === null ? '— (add a work step)' : $this->kmText($km).' km';
+    }
+
+    /**
      * Live work-set average pace label for the read-only Placeholder shown
      * on interval days. Reads the steps Repeater straight from form state
      * via Filament's `Get` helper so the label updates the moment a coach
@@ -504,137 +850,60 @@ class GoalSchedule extends Page implements HasActions
             'cooldown_seconds' => 300,
         ];
 
-        if ($segments === null || count($segments) === 0) {
+        // `IntervalBlueprint` folds either the canonical grouped form or a
+        // legacy flat segment list into grouped — the editor maps from there.
+        $grouped = IntervalBlueprint::normalize($segments);
+        if ($grouped === null) {
             return $defaults;
         }
 
-        $warmup = null;
-        $cooldown = null;
-        $middle = [];
-
-        foreach ($segments as $seg) {
-            if (! is_array($seg)) {
-                continue;
-            }
-            $kind = (string) ($seg['kind'] ?? 'work');
-            if ($kind === 'warmup' && $warmup === null) {
-                $warmup = $seg;
-            } elseif ($kind === 'cooldown') {
-                $cooldown = $seg;
-            } else {
-                $middle[] = $seg;
-            }
-        }
-
         $steps = [];
-        $i = 0;
-        while ($i < count($middle)) {
-            $cur = $middle[$i];
-            $kind = $cur['kind'] ?? 'work';
-
-            if ($kind === 'recovery') {
+        foreach ($grouped['steps'] as $step) {
+            if (($step['type'] ?? null) === 'rest') {
                 $steps[] = [
                     'step_type' => 'rest',
-                    'duration_seconds' => (int) ($cur['duration_seconds'] ?? 60),
+                    'duration_seconds' => (int) $step['duration_seconds'],
                 ];
-                $i++;
 
                 continue;
             }
 
-            // Work segment — try to grow a block by matching consecutive
-            // (work, recovery) pairs against this work + the recovery that
-            // follows. Falls back to a single-rep step when there's no
-            // recovery after, or the next pair doesn't match.
-            $next = $middle[$i + 1] ?? null;
-            if ($next === null || ($next['kind'] ?? '') !== 'recovery') {
-                $steps[] = $this->workToRepStep($cur);
-                $i++;
+            $isDistance = ($step['work_distance_m'] ?? null) !== null;
+            $base = [
+                'work_kind' => $isDistance ? 'distance' : 'duration',
+                'work_distance_m' => (int) ($step['work_distance_m'] ?? 400),
+                'work_duration_seconds' => (int) ($step['work_duration_seconds'] ?? 60),
+                'work_pace_text' => $this->paceToText($step['work_pace_seconds_per_km'] ?? null) ?? '',
+            ];
 
-                continue;
+            if (($step['type'] ?? 'block') === 'block') {
+                $steps[] = array_merge([
+                    'step_type' => 'block',
+                    'reps' => max(self::REPS_MIN, min(self::REPS_MAX, (int) $step['reps'])),
+                    'recovery_seconds' => (int) $step['recovery_seconds'],
+                ], $base);
+            } else {
+                $steps[] = array_merge(['step_type' => 'rep'], $base);
             }
-
-            $reps = 1;
-            $j = $i + 2;
-            while ($j + 1 < count($middle)
-                && ($middle[$j]['kind'] ?? '') === 'work'
-                && ($middle[$j + 1]['kind'] ?? '') === 'recovery'
-                && $this->workSegmentEquals($middle[$j], $cur)
-                && $this->recoverySegmentEquals($middle[$j + 1], $next)
-            ) {
-                $reps++;
-                $j += 2;
-            }
-
-            $steps[] = $this->workToBlockStep($cur, $next, $reps);
-            $i = $j;
         }
 
         return [
-            'has_warmup' => $warmup !== null,
-            'warmup_seconds' => (int) ($warmup['duration_seconds'] ?? 60),
+            'has_warmup' => $grouped['warmup_seconds'] !== null,
+            'warmup_seconds' => (int) ($grouped['warmup_seconds'] ?? 60),
             'steps' => $steps,
-            'cooldown_seconds' => (int) ($cooldown['duration_seconds'] ?? 300),
+            'cooldown_seconds' => (int) $grouped['cooldown_seconds'],
         ];
     }
 
     /**
-     * @param  array<string, mixed>  $work
-     * @return array<string, mixed>
-     */
-    private function workToRepStep(array $work): array
-    {
-        $kind = ($work['distance_m'] ?? null) !== null ? 'distance' : 'duration';
-
-        return [
-            'step_type' => 'rep',
-            'work_kind' => $kind,
-            'work_distance_m' => (int) ($work['distance_m'] ?? 400),
-            'work_duration_seconds' => (int) ($work['duration_seconds'] ?? 60),
-            'work_pace_text' => $this->paceToText($work['target_pace_seconds_per_km'] ?? null) ?? '',
-        ];
-    }
-
-    /**
-     * @param  array<string, mixed>  $work
-     * @param  array<string, mixed>  $recovery
-     * @return array<string, mixed>
-     */
-    private function workToBlockStep(array $work, array $recovery, int $reps): array
-    {
-        $kind = ($work['distance_m'] ?? null) !== null ? 'distance' : 'duration';
-
-        return [
-            'step_type' => 'block',
-            'reps' => max(self::REPS_MIN, min(self::REPS_MAX, $reps)),
-            'work_kind' => $kind,
-            'work_distance_m' => (int) ($work['distance_m'] ?? 400),
-            'work_duration_seconds' => (int) ($work['duration_seconds'] ?? 60),
-            'work_pace_text' => $this->paceToText($work['target_pace_seconds_per_km'] ?? null) ?? '',
-            'recovery_seconds' => (int) ($recovery['duration_seconds'] ?? 90),
-        ];
-    }
-
-    /**
-     * Pack the editor form data into a canonical `intervals_json` array.
+     * Pack the editor form data into the canonical grouped `intervals_json`.
      *
      * @param  array<string, mixed>  $data
-     * @return list<array<string, mixed>>
+     * @return array<string, mixed>
      */
     private function serializeIntervals(array $data): array
     {
-        $segments = [];
-
-        if (! empty($data['has_warmup'])) {
-            $sec = max(1, min(self::WARMUP_MAX_SECONDS, (int) ($data['warmup_seconds'] ?? 60)));
-            $segments[] = [
-                'kind' => 'warmup',
-                'label' => 'Warm up',
-                'distance_m' => null,
-                'duration_seconds' => $sec,
-                'target_pace_seconds_per_km' => null,
-            ];
-        }
+        $steps = [];
 
         foreach (($data['steps'] ?? []) as $step) {
             if (! is_array($step)) {
@@ -643,77 +912,47 @@ class GoalSchedule extends Page implements HasActions
             $type = $step['step_type'] ?? 'block';
 
             if ($type === 'rest') {
-                $segments[] = [
-                    'kind' => 'recovery',
-                    'label' => 'Rest',
-                    'distance_m' => null,
-                    'duration_seconds' => max(15, (int) ($step['duration_seconds'] ?? 60)),
-                    'target_pace_seconds_per_km' => null,
+                $steps[] = [
+                    'type' => 'rest',
+                    'duration_seconds' => (int) ($step['duration_seconds'] ?? 60),
                 ];
 
                 continue;
             }
 
             $workKind = $step['work_kind'] ?? 'distance';
-            $workDist = $workKind === 'distance' ? max(1, (int) ($step['work_distance_m'] ?? 400)) : null;
-            $workDur = $workKind === 'duration' ? max(1, (int) ($step['work_duration_seconds'] ?? 60)) : null;
+            $workDist = $workKind === 'distance' ? (int) ($step['work_distance_m'] ?? 400) : null;
+            $workDur = $workKind === 'duration' ? (int) ($step['work_duration_seconds'] ?? 60) : null;
             $workPace = $this->paceFromText($step['work_pace_text'] ?? null);
-            $workLabel = $workKind === 'distance' ? "{$workDist}m rep" : "{$workDur}s rep";
 
-            $reps = $type === 'block'
-                ? max(self::REPS_MIN, min(self::REPS_MAX, (int) ($step['reps'] ?? 1)))
-                : 1;
-
-            for ($r = 0; $r < $reps; $r++) {
-                $segments[] = [
-                    'kind' => 'work',
-                    'label' => $workLabel,
-                    'distance_m' => $workDist,
-                    'duration_seconds' => $workDur,
-                    'target_pace_seconds_per_km' => $workPace,
+            if ($type === 'block') {
+                $steps[] = [
+                    'type' => 'block',
+                    'reps' => (int) ($step['reps'] ?? 1),
+                    'work_distance_m' => $workDist,
+                    'work_duration_seconds' => $workDur,
+                    'work_pace_seconds_per_km' => $workPace,
+                    'recovery_seconds' => (int) ($step['recovery_seconds'] ?? 90),
                 ];
-                if ($type === 'block') {
-                    $segments[] = [
-                        'kind' => 'recovery',
-                        'label' => 'Recovery',
-                        'distance_m' => null,
-                        'duration_seconds' => max(15, (int) ($step['recovery_seconds'] ?? 90)),
-                        'target_pace_seconds_per_km' => null,
-                    ];
-                }
+            } else {
+                $steps[] = [
+                    'type' => 'rep',
+                    'work_distance_m' => $workDist,
+                    'work_duration_seconds' => $workDur,
+                    'work_pace_seconds_per_km' => $workPace,
+                ];
             }
         }
 
-        $cooldownSec = max(self::COOLDOWN_MIN_SECONDS, min(self::COOLDOWN_MAX_SECONDS, (int) ($data['cooldown_seconds'] ?? 300)));
-        $segments[] = [
-            'kind' => 'cooldown',
-            'label' => 'Cool down',
-            'distance_m' => null,
-            'duration_seconds' => $cooldownSec,
-            'target_pace_seconds_per_km' => null,
+        $grouped = [
+            'warmup_seconds' => ! empty($data['has_warmup']) ? (int) ($data['warmup_seconds'] ?? 60) : null,
+            'steps' => $steps,
+            'cooldown_seconds' => (int) ($data['cooldown_seconds'] ?? 300),
         ];
 
-        return $segments;
-    }
-
-    /**
-     * @param  array<string, mixed>  $a
-     * @param  array<string, mixed>  $b
-     */
-    private function workSegmentEquals(array $a, array $b): bool
-    {
-        return ($a['distance_m'] ?? null) === ($b['distance_m'] ?? null)
-            && ($a['duration_seconds'] ?? null) === ($b['duration_seconds'] ?? null)
-            && ($a['target_pace_seconds_per_km'] ?? null) === ($b['target_pace_seconds_per_km'] ?? null);
-    }
-
-    /**
-     * @param  array<string, mixed>  $a
-     * @param  array<string, mixed>  $b
-     */
-    private function recoverySegmentEquals(array $a, array $b): bool
-    {
-        return ($a['duration_seconds'] ?? null) === ($b['duration_seconds'] ?? null);
+        // IntervalBlueprint clamps everything (warmup cap, recovery/cooldown
+        // bounds, reps) and is the single source of truth for the shape.
+        return IntervalBlueprint::normalize($grouped) ?? $grouped;
     }
 
     /**

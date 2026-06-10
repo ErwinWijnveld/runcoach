@@ -3,14 +3,32 @@
 namespace App\Services;
 
 use App\Enums\GoalStatus;
+use App\Enums\TrainingType;
 use App\Models\TrainingDay;
 use App\Models\TrainingResult;
 use App\Models\User;
 use App\Models\WearableActivity;
 use App\Support\HeartRateZones;
+use App\Support\Intervals\IntervalBlueprint;
 
 class ComplianceScoringService
 {
+    /**
+     * Interval scoring is a plausibility model over whole-session aggregates
+     * (we ingest no splits or HR samples yet — see the 2026-06-10
+     * interval-compliance-scoring spec). These knobs shape the full-score
+     * bands; widen them before tightening if real sessions score unfairly.
+     */
+    public const INTERVAL_PACE_BAND_MARGIN_SECONDS = 90;
+
+    public const INTERVAL_DISTANCE_OVERSHOOT_RATIO = 1.8;
+
+    public const INTERVAL_DISTANCE_UNDERSHOOT_SLOPE = 15.0;
+
+    public const INTERVAL_DISTANCE_OVERSHOOT_SLOPE = 7.5;
+
+    public const INTERVAL_HR_TOUCH_ZONE_FALLBACK = 5;
+
     public function matchAndScore(User $user, WearableActivity $activity): ?TrainingResult
     {
         // If this activity is already matched to any training day (e.g. the
@@ -137,14 +155,16 @@ class ComplianceScoringService
 
     /**
      * Pace compliance, or null when we have no defensible target to compare
-     * against. Intervals fall in this bucket: their day-level
-     * `target_pace_seconds_per_km` is null and an actual run's average
-     * (which mixes work + recovery + warmup + cooldown) wouldn't be
-     * meaningful to score against the work-segment target. Until segment
-     * ingestion lands, intervals get distance + HR scoring only.
+     * against. Interval days are scored against a blueprint-derived band for
+     * the session AVERAGE (see intervalPaceScore) — their day-level
+     * `target_pace_seconds_per_km` is null by design.
      */
     private function calculatePaceScore(TrainingDay $day, WearableActivity $activity): ?float
     {
+        if ($day->type === TrainingType::Interval) {
+            return $this->intervalPaceScore($day, $activity);
+        }
+
         if (! $day->target_pace_seconds_per_km) {
             return null;
         }
@@ -156,10 +176,47 @@ class ComplianceScoringService
         return max(1.0, min(10.0, 10.0 - ($deviationPercent / 2.2)));
     }
 
+    /**
+     * A correctly executed interval session's whole-run average pace must
+     * land between the work pace (faster = recoveries skipped / different
+     * session) and the jog pace plus a generous margin (slower = no real
+     * work happened — the margin exists because walking recoveries are
+     * legitimate). Outside the band, the standard deviation penalty applies
+     * against the nearest edge. Null when the blueprint carries no work
+     * paces or the activity has no average pace.
+     */
+    private function intervalPaceScore(TrainingDay $day, WearableActivity $activity): ?float
+    {
+        $workAvg = $day->workSetAveragePaceSecondsPerKm();
+        if ($workAvg === null || ! $activity->average_pace_seconds_per_km) {
+            return null;
+        }
+
+        $bandMin = $workAvg;
+        $bandMax = IntervalBlueprint::estimateJogPace($workAvg) + self::INTERVAL_PACE_BAND_MARGIN_SECONDS;
+
+        $actualPace = $activity->paceSecondsPerKm();
+        if ($actualPace >= $bandMin && $actualPace <= $bandMax) {
+            return 10.0;
+        }
+
+        $nearestEdge = $actualPace < $bandMin ? $bandMin : $bandMax;
+        $deviationPercent = abs($actualPace - $nearestEdge) / $nearestEdge * 100;
+
+        return max(1.0, min(10.0, 10.0 - ($deviationPercent / 2.2)));
+    }
+
     private function calculateDistanceScore(TrainingDay $day, WearableActivity $activity): float
     {
         if (! $day->target_km) {
             return 7.0;
+        }
+
+        if ($day->type === TrainingType::Interval) {
+            $intervalScore = $this->intervalDistanceScore($day, $activity);
+            if ($intervalScore !== null) {
+                return $intervalScore;
+            }
         }
 
         $actualKm = $activity->distanceInKm();
@@ -169,8 +226,49 @@ class ComplianceScoringService
         return max(1.0, min(10.0, 10.0 - ($deviation * 15)));
     }
 
+    /**
+     * Asymmetric distance band for intervals. The blueprint's `target_km`
+     * assumes a 120s-capped warmup and a short cooldown, but a real session
+     * carries 10-15 minutes of each — overshooting the target is correct
+     * execution, not non-compliance. So: full score from the work volume
+     * (the floor below which the reps are demonstrably incomplete) up to
+     * target × INTERVAL_DISTANCE_OVERSHOOT_RATIO; a steep penalty below,
+     * a mild one above. Null when the blueprint yields no work distance —
+     * the caller falls back to the symmetric formula.
+     */
+    private function intervalDistanceScore(TrainingDay $day, WearableActivity $activity): ?float
+    {
+        $workKm = IntervalBlueprint::workDistanceKm($day->intervals_json);
+        if ($workKm === null) {
+            return null;
+        }
+
+        $targetKm = (float) $day->target_km;
+        $bandMin = min($workKm, $targetKm);
+        $bandMax = $targetKm * self::INTERVAL_DISTANCE_OVERSHOOT_RATIO;
+
+        $actualKm = $activity->distanceInKm();
+        if ($actualKm >= $bandMin && $actualKm <= $bandMax) {
+            return 10.0;
+        }
+
+        if ($actualKm < $bandMin) {
+            $deviation = ($bandMin - $actualKm) / $bandMin;
+
+            return max(1.0, min(10.0, 10.0 - ($deviation * self::INTERVAL_DISTANCE_UNDERSHOOT_SLOPE)));
+        }
+
+        $deviation = ($actualKm - $bandMax) / $targetKm;
+
+        return max(1.0, min(10.0, 10.0 - ($deviation * self::INTERVAL_DISTANCE_OVERSHOOT_SLOPE)));
+    }
+
     private function calculateHeartRateScore(TrainingDay $day, WearableActivity $activity): ?float
     {
+        if ($day->type === TrainingType::Interval) {
+            return $this->intervalHeartRateScore($day, $activity);
+        }
+
         if (! $activity->average_heartrate || ! $day->target_heart_rate_zone) {
             return null;
         }
@@ -195,5 +293,36 @@ class ComplianceScoringService
         $distanceBpm = $avgHr < $min ? ($min - $avgHr) : ($avgHr - $max);
 
         return max(1.0, 10.0 - ($distanceBpm / 5.0));
+    }
+
+    /**
+     * Average HR over an interval session mixes warmup + recoveries +
+     * cooldown, so comparing it to the Z5 work label punishes exactly the
+     * runner who executed the session correctly. Instead: the session MAX
+     * must have touched at least the zone below the day's target (Z5 day →
+     * peaks reached Z4). No upper penalty — high peaks are the point of
+     * intervals. Null when the activity has no max HR; the avg-HR
+     * comparison deliberately does NOT kick in as a fallback.
+     */
+    private function intervalHeartRateScore(TrainingDay $day, WearableActivity $activity): ?float
+    {
+        if (! $activity->max_heartrate) {
+            return null;
+        }
+
+        $touchZoneIndex = max(1, ($day->target_heart_rate_zone ?? self::INTERVAL_HR_TOUCH_ZONE_FALLBACK) - 1);
+        $zone = HeartRateZones::zoneFor($activity->user, $touchZoneIndex);
+        if ($zone === null) {
+            return null;
+        }
+
+        $maxHr = (float) $activity->max_heartrate;
+        $threshold = (float) $zone['min'];
+
+        if ($maxHr >= $threshold) {
+            return 10.0;
+        }
+
+        return max(1.0, 10.0 - (($threshold - $maxHr) / 5.0));
     }
 }

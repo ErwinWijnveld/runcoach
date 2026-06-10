@@ -218,13 +218,13 @@ The coach uses **Laravel AI SDK** (`laravel/ai` v0.5.1). Default provider is **A
     - `GetComplianceReport` — compliance breakdown + trends
   - **Plan-mutation tools (the unified Adjust + Build pattern):**
     - `BuildPlan` — generates a complete plan from form-style inputs (goal_type, distance_meters, target_date, goal_time_seconds, days_per_week, preferred_weekdays, run_type_preferences, additional_notes). Used by both onboarding (first plan) AND coach-chat (full rebuilds when the goal changes). No verify loop, no JSON authoring — pure deterministic builder. ~6s wall clock.
-    - `AdjustPlan` — targeted edits to the latest pending proposal OR the active goal (auto-detects). Operations: `replace` / `add` / `remove` / `adjust` / `shift` / `set_goal`. Pace is honored verbatim for every non-interval day (only an absolute [150, 720] s/km sanity window applies — no relative-to-snapshot clamp); distance clamped [4 km, 1.5×]. Race day untouchable. Used by both agents for ANY tweak. ~10s wall clock.
+    - `AdjustPlan` — targeted edits to the latest pending proposal OR the active goal (auto-detects). Operations: `replace` / `add` / `remove` / `adjust` / `shift` / `set_goal`. Pace AND distance are honored verbatim for every non-interval day (wide sanity windows only — pace [150, 720] s/km, distance [1, 80] km; no relative-to-snapshot clamp). Race day untouchable. Returns an enriched `applied[]` (before→after per touched day + an `adjustments[]` note array for anything the server changed — including interval normalization: an invalid `intervals` structure replaced by the default skeleton, clamped reps via `IntervalBlueprint::normalizationNotes`, intervals sent to a non-interval day; warm-up/cool-down clamps are deliberately NOT noted since these notes render verbatim on the runner-facing diff card) so the agent reports honestly. Every interval-day snapshot (before AND after, all actions incl. `shift`) carries an `intervals` summary string of the stored WORK SETS (`IntervalBlueprint::summary`, e.g. `"4×800m @4:30/km (rec 90s)"` — warm-up/cool-down omitted by design); the Flutter revision modal renders it in the detail line. Used by both agents for ANY tweak. ~10s wall clock.
     - `ModifySchedule` — legacy bulk-editor for active plans. Largely superseded by `AdjustPlan`; kept only if a legacy proposal type still references it.
     - `EditWorkout` — workout-chat-only single-day edit (used by `WorkoutAgent`); internally delegates to `AdjustPlan`.
     - `ProposeNewPlanCard` — emits `display: new_plan_card` (SSE `data-new-plan`). Replaces the multi-turn `offer_choices` chip flow for new-plan requests; Flutter renders a "Start new training plan" card whose tap drops the runner into `/onboarding/form?for=new-plan&step=goal_type`. `BuildPlan` is no longer in `RunCoachAgent`'s toolset; only `OnboardingAgent` (driven by the form submit) still uses it.
 - `app/Services/ProposalService.php` — detects proposals from `agent_conversation_messages.tool_results` and applies accepted ones. Applies `CreateSchedule` (creates new goal + activates), `EditActivePlan` (updates active goal in place), `ModifySchedule` (legacy), `AlternativeWeek` (legacy). `applyCreateSchedule()` drops any training day whose date is before today.
 
-**How proposals work:** When the agent calls `BuildPlan` or `AdjustPlan`, the tool returns JSON with `requires_approval: true`. The SDK stores that in `tool_results`. After `$agent->prompt()` returns, `ProposalService::detectProposalFromConversation()` queries that column, finds the proposal, and stores a `CoachProposal` record. The user accepts/rejects via `/coach/proposals/{id}/accept` or `/reject`. Before acceptance they can open a details modal fed by `GET /coach/proposals/{id}/explanation` (cached 7 days per proposal via `Cache::remember`). Active-goal edits via `AdjustPlan` carry a `diff` array on the payload so the Flutter `ProposalCard` renders a "PLAN REVISION (N changes)" pill.
+**How proposals work:** When the agent calls `BuildPlan` or `AdjustPlan`, the tool returns JSON with `requires_approval: true`. The SDK stores that in `tool_results`. After `$agent->prompt()` returns, `ProposalService::detectProposalFromConversation()` queries that column, finds the proposal, and stores a `CoachProposal` record. The user accepts/rejects via `/coach/proposals/{id}/accept` or `/reject`. Before acceptance they can open a details modal fed by `GET /coach/proposals/{id}/explanation` (cached 7 days per proposal via `Cache::remember`). Active-goal edits via `AdjustPlan` carry a `diff` array on the payload so the Flutter `ProposalCard` renders a "PLAN REVISION (N changes)" pill. Each diff entry is the true before→after of a touched day (a `before` snapshot + the new flat fields) plus an optional `adjustments[]` note list — built post-optimize in `AdjustPlan::buildDiff`, so the modal shows exactly what was stored, not just what was requested.
 
 **The SDK manages conversations automatically** via `agent_conversations` and `agent_conversation_messages` tables (created by SDK migrations). Do NOT use `CoachConversation` or `CoachMessage` models — they no longer exist. Conversation IDs are UUIDs (36-char strings), not integers.
 
@@ -354,7 +354,7 @@ RunCoachAgent ── tools ──→
 ```
 
 Plan-mutation contract:
-- **Tweaks** (change a day, swap session type, shift weekday, update goal time, race date moved, etc) → `adjust_plan`. Pace honored verbatim (non-interval days, sanity window only), distance clamped, race-day untouchable. Active-goal edits emit `EditActivePlan` proposals carrying a `diff` array for the "PLAN REVISION" UI.
+- **Tweaks** (change a day, swap session type, shift weekday, update goal time, race date moved, etc) → `adjust_plan`. Pace AND distance honored verbatim (non-interval days, sanity window only), race-day untouchable. Active-goal edits emit `EditActivePlan` proposals carrying a before→after `diff` array for the "PLAN REVISION" UI.
 - **Rebuilds** (different goal_type, race cancelled, original goal complete) → `build_plan`. Same form-style input as onboarding. On accept, `applyCreateSchedule` creates a new `Goal` and `GoalService::activate` deactivates the old one.
 
 #### Plan generation lifecycle (async, onboarding only)
@@ -388,7 +388,7 @@ The plan-builder code lives under `app/Services/Onboarding/`, `app/Support/Onboa
 - **Quality-pace ramps** (`tempoPace` + `intervalBlueprint` workPace) — peak at the LAST BUILD WEEK (`weeksToRace = taperLen`). Tempos end at `goal_pace + 5s` (sustainable); interval work ends at `goal_pace` (race-pace specificity in intervals, not tempos).
 - **`FitnessSnapshot`** + **`OnboardingFormInput`** + **`AmbitionAssessment`** (`app/Support/Onboarding/`) — readonly value objects. `OnboardingFormInput::fromArray()` normalises form aliases (`'pr'` → `pr_attempt`, `'fitness'` / `'weight_loss'` → `general_fitness`) and the `runTypePreferences` ranking. The ranking influences quality-slot type, easy→quality upgrade at 5+ days, and long-run length cap. `AmbitionAssessment::toFeasibilityPayload()` exposes the wire-shape `{feasibility_pct, pace_score_pct, volume_score_pct, verdict_zone, verdict_label, detail, adjust_prefill, ...}` consumed by the Flutter plan-details modal; returns null when no measurable goal. Constants `PACE_WEIGHT` (0.6), `VOLUME_WEIGHT` (0.4), `ZONE_OK_MIN_PCT` (70), `ZONE_STRETCH_MIN_PCT` (40) are tunable on the class. Spec: `../docs/superpowers/specs/2026-05-12-plan-feasibility-analysis-design.md`.
 - **`BuildPlan` tool** (`app/Ai/Tools/`) — used by BOTH agents. Wraps snapshot → ambition (two-pass) → builder → optimizer → proposal. Returns `{requires_approval, proposal_id, plan_structure, fitness_summary, ambition}`. The `ambition` field carries `level + summary + suggestion` so the agent can warn the runner naturally. Also injects `AmbitionAssessment::toFeasibilityPayload()` into the persisted `CoachProposal.payload['ambition']` so the Flutter plan-details modal can render its feasibility section without re-running the analyzer (skipped when goal has no measurable target). Spec: `../docs/superpowers/specs/2026-05-12-plan-feasibility-analysis-design.md`.
-- **`AdjustPlan` tool** (`app/Ai/Tools/`) — used by BOTH agents. Auto-targets latest pending proposal → active goal → fallback. Operations: `replace` / `add` / `remove` / `adjust` / `shift` / `set_goal`. Pace honored verbatim for every non-interval day (only an absolute [150, 720] s/km sanity window — no relative clamp; interval pace lives per-segment in `intervals[]`), distance [4 km, 1.5× existing], race-day untouchable, `add` respects `preferred_weekdays`. Active-goal edits emit `EditActivePlan` proposals carrying a `diff` array for the "PLAN REVISION" UI. **Type-swap behavior**: when a `replace`/`adjust` op changes `type`, the old `title` and `target_pace_seconds_per_km` are cleared so the optimizer regenerates them; switching TO `interval` without an explicit `intervals[]` triggers `PlanOptimizerService::defaultIntervalSkeleton` (4×400m + 90s recovery + warmup + cooldown).
+- **`AdjustPlan` tool** (`app/Ai/Tools/`) — used by BOTH agents. Auto-targets latest pending proposal → active goal → fallback. Operations: `replace` / `add` / `remove` / `adjust` / `shift` / `set_goal`. Pace AND distance honored verbatim for every non-interval day (absolute sanity windows only — pace [150, 720] s/km, distance [1, 80] km; no relative clamp; interval pace lives per work block in the grouped `intervals` blueprint), race-day untouchable, `add` respects `preferred_weekdays`. Interval sessions are authored in the COMPACT grouped form (`{warmup_seconds, steps:[{type:block,reps,…}], cooldown_seconds}` — see the tool description). Active-goal edits emit `EditActivePlan` proposals carrying a before→after `diff` array (built by `buildDiff`, includes `adjustments[]` notes) for the "PLAN REVISION" UI. **Type-swap behavior**: when a `replace`/`adjust` op changes `type`, the old `title` and `target_pace_seconds_per_km` are cleared so the optimizer regenerates them; switching TO `interval` without an explicit `intervals` triggers `PlanOptimizerService::defaultIntervalBlueprint` (one 4×400m + 90s block + warmup + cooldown).
 - **`OnboardingAgent`** (`app/Ai/Agents/`) — minimal Sonnet agent. Tools: `BuildPlan`, `AdjustPlan`, `GetRecentRuns`. Prompt has injury-aware step 2 (any mention of pain / tendonitis / "coming back from" MUST trigger `adjust_plan` to replace tempos+intervals with easy in early weeks).
 - **`RunCoachAgent`** (`app/Ai/Agents/`) — full coach-chat agent. Tools: query tools (`GetRunningProfile`, `GetRecentRuns`, `SearchActivities`, `GetActivityDetails`, `GetCurrentSchedule`, `GetCurrentProposal`, `GetGoalInfo`, `GetComplianceReport`) + `BuildPlan` + `AdjustPlan` (gated by `planMutationsAllowed()` for coach-managed clients).
 
@@ -403,7 +403,7 @@ The plan-builder code lives under `app/Services/Onboarding/`, `app/Support/Onboa
 - Long-run cap: `LONG_RUN_CAP_BY_RANK` (gold=0.48, silver=0.44, bronze=0.40, last=0.36) + session-count boost (+0.20 for 2-day weeks, +0.10 for 3-day).
 - Interval reps: `TrainingPlanBuilder::intervalBlueprint()` (4×400 → 5×800 → 6×800 progression, sharpener at goal pace).
 - Taper: `TrainingPlanBuilder::TAPER_WEEKS` (3), `TAPER_FRACTIONS` ([0.70, 0.55, 0.40]).
-- Adjust clamps: `AdjustPlan::PACE_MIN_SECONDS` (150) / `PACE_MAX_SECONDS` (720) — absolute pace sanity window only, no relative-to-snapshot clamp (explicit pace requests are honored verbatim on non-interval days), `KM_MAX_MULTIPLIER` (1.5), `KM_MIN` (4), `KM_ADD_CEILING` (30).
+- Adjust clamps: `AdjustPlan::PACE_MIN_SECONDS` (150) / `PACE_MAX_SECONDS` (720) + `KM_SANITY_MIN` (1) / `KM_SANITY_MAX` (80) — absolute sanity windows only, no relative-to-snapshot clamp (explicit pace AND distance requests are honored verbatim on non-interval days). `KM_MIN` (4) is now just the `add`-skeleton default. `enforceMinimumRunLength` is **create-only** (gated on `alignRaceDay`) so an explicit edit like "make Tuesday 3 km" is no longer bumped.
 
 Tests: `tests/Feature/Services/Onboarding/FitnessSnapshotServiceTest.php`, `TrainingPlanBuilderTest.php`, `tests/Feature/Ai/Tools/AdjustPlanTest.php`. Each derivation tier, each days-per-week branch, ranking effects, low-volume long-run regressions, and adjust-tool guard rails (clamps, race-day protection, shift collisions, set_goal validation, active-goal targeting + diff) all have coverage.
 
@@ -418,7 +418,7 @@ Tests: `tests/Feature/Services/Onboarding/FitnessSnapshotServiceTest.php`, `Trai
 | # | Pass | What it does |
 |---|---|---|
 | 1 | `enforcePreferredWeekdays` | Drop days whose DOW isn't in `preferred_weekdays[]`. Race-day exempt by date match. |
-| 2 | `enforceMinimumRunLength` | Bump per-run km up to `max(4, min(6, avg_run_km × 0.4))`. Prevents 3km runs for an 8.6km/run runner. |
+| 2 | `enforceMinimumRunLength` | **Create-only** (`alignRaceDay=true`). Bump per-run km up to `max(4, min(6, avg_run_km × 0.4))`. Prevents 3km runs for an 8.6km/run runner. Skipped on edits so an explicit short-run request sticks. |
 | 3 | `deduplicateDaysPerWeek` | Drop duplicate `day_of_week` within a single week. |
 | 4 | **`alignTargetDateToLastDay`** (create only) | For open-ended plans (no `target_date`), snap it to the last training day. **Runs BEFORE the race-day passes** — without this, `enforceRaceDay` sees `target_date=null` and becomes a no-op for PR-attempt / general-fitness goals, leaving the runner's last day mislabeled as long_run/easy at snapshot pace instead of race-pace tempo. |
 | 5 | **`ensureRaceDayEntry`** | If no day matches `target_date`, salvage a misplaced race-like day (`type=tempo` AND `target_km` within 10% of goal_km) and relocate it; otherwise insert a skeleton on target_date. Runs BEFORE drop so the agent's nice description survives when the agent miscounts weeks and puts the race past target_date. See `extractMisplacedRaceDay`. |
@@ -583,7 +583,9 @@ Leap-year edge (Feb 29) is intentionally not handled in v1 — affected users (~
 - 422 if the day already has a `TrainingResult` linked (unlink first)
 - 422 if the day IS the race day (its `date` equals `goal.target_date`) — moving it would break the optimizer's race-day-on-target-date invariant. The user has to edit the goal date instead.
 
-After update, the day is auto-re-assigned to the matching `TrainingWeek` (week whose `[starts_at, starts_at + 7d)` contains the new date) so weekly views stay coherent. The optimizer is NOT re-run — `updateDay` is a date-only mutation.
+After update, the day is auto-re-assigned to the matching `TrainingWeek` (week whose `[starts_at, starts_at + 7d)` contains the new date) so weekly views stay coherent. The optimizer is NOT re-run on `updateDay`.
+
+Besides `date`, the endpoint accepts in-place content edits (the app's edit-day sheet): `target_km`, `target_pace_seconds_per_km` (dropped on interval days), `target_heart_rate_zone`, and `intervals` — the grouped blueprint from the app's interval block editor. `intervals` is 422 on non-interval days and 422 when `IntervalBlueprint::normalize` rejects it (empty/garbage — storing that would null the derived `target_km`); accepted structures are stored normalized and the saving hook derives `target_km`, which the response carries back. Spec: `../docs/superpowers/specs/2026-06-10-app-interval-editor-design.md`. Tests: `tests/Feature/TrainingScheduleTest.php` (search `intervals`).
 
 ### Off-plan run linking ("buiten schema")
 
@@ -629,20 +631,36 @@ Coach-managed clients (`organizations.coaches_own_plans = true`) get read tools 
 
 **Tests:** `tests/Feature/Http/NotificationControllerTest.php` (accept/dismiss/auth flow).
 
-### Interval pace contract (must read before touching interval code)
+### Interval data shape — GROUPED blueprint (must read before touching interval code)
 
-**Day-level pace is always null on interval days.** This is a hard invariant enforced in three places:
-1. `PlanOptimizerService::computePaces` — actively NULLS `target_pace_seconds_per_km` on interval days even when the AI tried to set one. Per-segment paces in `intervals` are still backfilled.
-2. `App\Filament\Coach\Pages\GoalSchedule::persistDay` — same rule for coach edits via the admin schedule page.
-3. The Flutter app reads pace via `TrainingDay::workSetAveragePaceSecondsPerKm()` — the unweighted mean of every `kind=work` segment's `target_pace_seconds_per_km`.
+**`intervals_json` stores the canonical GROUPED blueprint, not a flat segment list.** Shape:
+```
+{warmup_seconds:int|null, steps:[
+  {type:"block", reps, work_distance_m|null, work_duration_seconds|null, work_pace_seconds_per_km|null, recovery_seconds},
+  {type:"rep",   work_distance_m|null, work_duration_seconds|null, work_pace_seconds_per_km|null},
+  {type:"rest",  duration_seconds}
+], cooldown_seconds:int}
+```
+"4×800m/2min then 4×400m/1min" = TWO `block` steps (no expanded repetition). Multi-loop, pyramids, warmup/cooldown all native.
 
-The reason: an interval session has multiple distinct paces (different per rep, optionally a pyramid), and storing one number at the day level would mask that. The accessor surfaces a single representative number for UI labels without fudging the underlying truth.
+**`App\Support\Intervals\IntervalBlueprint` is the single source of truth** — `collapse(flat)→grouped`, `expand(grouped)→flat`, `normalize(either)→clamped grouped`. Lifted from the (proven) Filament parse/serialize. Everything that touches intervals delegates to it:
+- `PlanOptimizerService::normalizeIntervals` runs `IntervalBlueprint::normalize` on every interval day (accepts grouped OR legacy flat, returns grouped; naked interval day → `defaultIntervalBlueprint` 4×400m).
+- `ProposalService::normalizeIntervals` = thin wrapper over the helper.
+- `TrainingPlanBuilder::intervalBlueprint` emits grouped directly.
+- Filament `GoalSchedule` parse/serialize map form-state ↔ grouped via the helper.
+- Existing flat-shaped rows are migrated by `2026_06_09_..._convert_intervals_json_to_grouped_blueprint` (idempotent data migration; folds flat→grouped, skips already-grouped). Rows that fail conversion are nulled WITH a `Log::warning` carrying the day id + raw JSON, so data loss is auditable. The accessor + helper also tolerate flat at read-time as a belt-and-braces fallback.
 
-**`training_results.pace_score` is nullable.** `ComplianceScoringService::calculatePaceScore` returns `null` when there's no day-level target pace (always the case for intervals). `weightedOverall` then renormalises distance + HR (50/50 after renorm) so an interval session can still produce a meaningful `compliance_score`. Without segment-level ingestion of the user's actual workout (TODO: native iOS `HKWorkoutEvent` extraction), comparing a full-run avg to per-rep targets would be wrong — so we explicitly DO NOT.
+**Day-level pace is still always null on interval days.** Per-block work pace lives in `steps[].work_pace_seconds_per_km` (filled by `PlanOptimizerService::computePaces` when null). `TrainingDay::workSetAveragePaceSecondsPerKm()` = unweighted mean across non-rest steps' work pace (per-STEP, not per-rep). Storing one day-level number would mask the per-block paces.
+
+**Interval-day `target_km` is DERIVED, never authored (recompute-on-write invariant).** After any write, an interval day's `target_km` equals `IntervalBlueprint::estimateTotalKm(intervals_json)` — work steps by literal distance (or duration ÷ pace), time segments (warmup/recoveries/rests/cooldown) at a jog pace = avg work pace + 100 s/km clamped [180, 720] (fallback 360 when no work pace; constants `ESTIMATE_*` on the helper). Pure function of the blueprint — no user/snapshot input — so every write path stores the same number. Enforced in THREE places: `PlanOptimizerService::recomputeIntervalDistances` (payload pass, after `computePaces`, before `recalculateWeeklyTotals`), the `TrainingDay::saving` hook (Filament/ProposalService/any direct row write), and the `2026_06_10_..._recompute_interval_day_target_km` backfill (also re-sums affected `training_weeks.total_km`). The builder's old `max(estimated, allocated)` inflation is gone — `TrainingPlanBuilder::renderQuality` emits the estimate directly. Agent-supplied `target_km` on interval days is overridden and flagged in `adjustments[]` ("derived from the session structure"); both `AdjustPlan` and `EditWorkout` descriptions tell the agent to change `intervals` instead. The Filament edit modal hides the Distance input on interval days behind a live "Distance (auto)" placeholder. Spec: `../docs/superpowers/specs/2026-06-10-interval-target-km-recompute.md`. Tests: `tests/Feature/Support/IntervalBlueprintTest.php` (estimator), `tests/Feature/Models/TrainingDayTargetKmRecomputeTest.php` (hook), `tests/Feature/Migrations/RecomputeIntervalTargetKmTest.php` (backfill).
+
+**Wire format = grouped end-to-end** (A-volledig): the API returns grouped, the Flutter `IntervalBlueprint`/`IntervalStep` Freezed models parse it (with a flat fallback for unmigrated rows), and the watch path expands to flat in Dart so the native WorkoutKit bridge is unchanged (native `IntervalBlock(iterations:)` mapping is a deferred refinement).
+
+**`training_results.pace_score` is nullable.** On interval days `ComplianceScoringService::intervalPaceScore` scores the whole-run average against a blueprint-derived band `[work-set avg pace, jog pace + 90s]` (see "Interval compliance scoring" below) and returns null only when the blueprint carries no work paces or the activity has no average pace. On non-interval days it stays null when there's no day-level target pace. `weightedOverall` renormalises whatever components are missing.
 
 **Filament editor**:
 - `Action`-based modal (not the old custom CSS modal — Filament's `<x-filament-actions::modals />` gives proper scrolling/positioning).
-- Steps Repeater with three row types: `block` (loop with reps count), `rep` (single one-off rep), `rest` (one-off rest). Greedy parser collapses uniform `(work, recovery)` runs into `block` steps; mixed/pyramid sessions stay as multiple blocks/reps.
+- Steps Repeater with three row types: `block` (loop with reps count), `rep` (single one-off rep), `rest` (one-off rest). Maps form-state ↔ canonical grouped `intervals_json` via `IntervalBlueprint` (no more flat round-trip); multi-loop + pyramid sessions are first-class.
 - Read-only Placeholder shows the live work-set average ("Pace (work-set avg): 4:30/km") while editing; updates as the coach tweaks any work segment.
 - Pace text inputs validated by regex `^\d{1,2}:[0-5]\d$` — invalid input fails Filament validation rather than silently coercing to null on save.
 
@@ -650,18 +668,24 @@ The reason: an interval session has multiple distinct paces (different per rep, 
 
 ### Interval session rules
 
-Enforced by `PlanOptimizerService::normalizeIntervals` (runs in `optimize()` for every create/edit) AND by the `RunCoachAgent` / `CreateSchedule` prompts. Only applies when `day.type === 'interval'`:
+Enforced by `IntervalBlueprint::normalize` (called from `PlanOptimizerService::normalizeIntervals` for every create/edit) AND documented for the agent in the `AdjustPlan` tool description. Only applies when `day.type === 'interval'`:
 
-- **Warmup**: optional, ALWAYS time-based (`distance_m: null`), capped at 120s, default 60s when omitted.
-- **Work reps**: exactly ONE of `distance_m` (e.g. "800m rep") or `duration_seconds` (e.g. "3-min hill"). If the agent sets both, the optimizer prefers distance and nulls the time.
-- **Recovery**: ALWAYS time-based, default 90s. Distance-based recoveries are converted to seconds via the recovery pace (`baseline + 60 sec/km`).
-- **Cooldown**: REQUIRED at the END, ALWAYS time-based, clamped to [60s, 600s], default 300s. Synthesized as the last segment if the agent forgot one.
+- **Warmup**: optional (`warmup_seconds` null = none), time-based, capped at 120s.
+- **Work step**: exactly ONE of `work_distance_m` or `work_duration_seconds` per block/rep (distance preferred when both set).
+- **Recovery**: `block.recovery_seconds` / `rest.duration_seconds`, time-based, min 15s default 90s. (Distance-based recoveries are no longer converted — canonical recovery is time only.)
+- **Cooldown**: REQUIRED, time-based, clamped to [60s, 600s], default 300s. Always present.
+- **Reps**: clamped [1, 60].
 
 `PlanVerifierAgent` is told NOT to flag any of these (the optimizer handles them). When adding interval-shape rules, update both the agent prompt AND `normalizeIntervals` so the deterministic pass keeps the plan canonical regardless of agent compliance.
 
-**Interval pace is per-segment, never on the day** — `training_days.target_pace_seconds_per_km` is forced null for interval days by `PlanOptimizerService::computePaces` (and by `GoalSchedule::persistDay` in the Filament editor). The "day-level" pace is computed at read time via `TrainingDay::workSetAveragePaceSecondsPerKm()` (unweighted mean of every `kind=work` segment's `target_pace_seconds_per_km`). Don't reintroduce day-level pace writes on intervals — it'd mask the per-rep pace and produce confusing UI/feedback. Tests: `tests/Feature/Models/TrainingDayWorkAvgPaceTest.php`.
+**Interval pace is per work block, never on the day** — `training_days.target_pace_seconds_per_km` is forced null for interval days by `PlanOptimizerService::computePaces`. The "day-level" pace is computed at read time via `TrainingDay::workSetAveragePaceSecondsPerKm()` (unweighted mean of non-rest steps' `work_pace_seconds_per_km`). Don't reintroduce day-level pace writes on intervals. Tests: `tests/Feature/Models/TrainingDayWorkAvgPaceTest.php`, `tests/Feature/Support/IntervalBlueprintTest.php`, `tests/Feature/Migrations/ConvertIntervalsToGroupedTest.php`.
 
-**Compliance scoring excludes pace on intervals** — `ComplianceScoringService::calculatePaceScore` returns null when `target_pace_seconds_per_km` is null (always the case on intervals). `weightedOverall` then renormalises the remaining components (distance 30% + HR 30% → 50/50 after renorm; or 100% distance if HR also missing). This is a placeholder until segment ingestion lands — full-run avg pace mixes work + recovery + warmup + cooldown so scoring it against a per-rep target would be wrong. `training_results.pace_score` is nullable for this reason. Tests: `tests/Feature/ComplianceScoringTest.php` (search for `interval_day_`).
+**Interval compliance scoring is a plausibility model over whole-session aggregates** (we ingest no splits/HR samples yet — the app sends `raw_data: {}` apart from `route`). All three components branch on `day.type === 'interval'` in `ComplianceScoringService`:
+- **HR** — the session **max** HR must touch the zone BELOW the day's target (Z5 day → peaks ≥ default Z4 min). The old avg-HR-vs-Z5 comparison structurally scored 1-5 on correctly executed sessions (avg mixes warmup/recoveries/cooldown → lands Z3/Z4). No upper penalty; missing `max_heartrate` → null (avg fallback deliberately does NOT kick in).
+- **Pace** — whole-run average must land in `[work-set avg, IntervalBlueprint::estimateJogPace(workAvg) + 90s]` (`INTERVAL_PACE_BAND_MARGIN_SECONDS` — generous because walking recoveries are legitimate). Outside → standard deviation penalty vs the nearest edge. Faster than work avg = recoveries skipped, also penalised.
+- **Distance** — asymmetric band `[IntervalBlueprint::workDistanceKm(...), target_km × 1.8]` scores 10 (target assumes a 120s-capped warmup; a real 10-15 min warmup overshoots it — that's correct execution). Below the work floor → steep ×15 slope; above the band → mild ×7.5 slope. Constants `INTERVAL_DISTANCE_*` on the service.
+
+This stays as the fallback path once segment ingestion (HKWorkoutEvents + HR samples → per-rep scoring) lands. One-off backfill after deploy: `php artisan compliance:rescore-intervals` (`--dry-run` prints old → new and rolls back). Spec: `../docs/superpowers/specs/2026-06-10-interval-compliance-scoring-design.md`. Tests: `tests/Feature/ComplianceScoringTest.php` (`interval_day_*`), `tests/Feature/Console/RescoreIntervalComplianceTest.php`.
 
 ### i18n (locale resolution + translation files)
 
@@ -761,7 +785,7 @@ Why: Laravel Cloud's deploy command runs `php artisan migrate --force`, which is
 4. Test locally with `migrate:fresh --seed` AND with a mid-cycle migrate (run only the new migration on a DB that has the prior state).
 5. Ship it.
 
-**The previously-stored memory `feedback_migrations.md` ("pre-launch, rewrite migrations directly + migrate:fresh")** is now incorrect — RunCoach is past launch (TestFlight builds against `https://runcoach.free.laravel.cloud`). Treat all committed migrations as immutable.
+**The previously-stored memory `feedback_migrations.md` ("pre-launch, rewrite migrations directly + migrate:fresh")** is now incorrect — RunCoach is past launch (TestFlight builds against `https://runcoach.laravel.cloud`). Treat all committed migrations as immutable.
 
 If you spot an in-place edit happening (e.g. `git diff` shows changes to a migration file whose timestamp predates the last main-branch deploy), STOP and write a forward migration instead, even if the schema is "obviously safe."
 
@@ -851,7 +875,7 @@ When invoked, `run-dev.sh` auto-loads the seeded dev user via `Auth.loginDev()` 
 
 ## Deployment (Laravel Cloud)
 
-Prod at **https://runcoach.free.laravel.cloud**. Full workaround + commands in `../.laravel-cloud/README.md` and the monorepo-level `../CLAUDE.md` → Deployment. Key points:
+Prod at **https://runcoach.laravel.cloud**. Full workaround + commands in `../.laravel-cloud/README.md` and the monorepo-level `../CLAUDE.md` → Deployment. Key points:
 
 - Cloud does not officially support monorepos. `../composer.lock` is a copy of `api/composer.lock` used purely for framework detection; keep them in sync or CI (`.github/workflows/composer-lock-sync.yml`) fails.
 - Build command in Cloud: `bash .laravel-cloud/build.sh` — promotes `api/` to the deployment root, then runs `composer install --no-dev` + `npm ci && npm run build`.

@@ -8,6 +8,7 @@ use App\Models\Goal;
 use App\Models\TrainingDay;
 use App\Models\TrainingWeek;
 use App\Models\User;
+use App\Support\Intervals\IntervalBlueprint;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -51,14 +52,16 @@ class GoalScheduleIntervalsTest extends TestCase
             ->mountAction('editDay', ['dayId' => $day->id])
             ->callMountedAction();
 
-        $segments = $day->fresh()->intervals_json;
+        $grouped = $day->fresh()->intervals_json;
 
-        // 1 warmup + 6 × (work + recovery) + 1 cooldown = 14
-        $this->assertCount(14, $segments);
-        $this->assertSame('warmup', $segments[0]['kind']);
-        $this->assertSame('cooldown', $segments[13]['kind']);
-        $this->assertSame(6, collect($segments)->where('kind', 'work')->count());
-        $this->assertSame(6, collect($segments)->where('kind', 'recovery')->count());
+        // Canonical grouped: warmup + one 6-rep block + cooldown.
+        $this->assertSame(60, $grouped['warmup_seconds']);
+        $this->assertSame(300, $grouped['cooldown_seconds']);
+        $this->assertCount(1, $grouped['steps']);
+        $this->assertSame('block', $grouped['steps'][0]['type']);
+        $this->assertSame(6, $grouped['steps'][0]['reps']);
+        $this->assertSame(400, $grouped['steps'][0]['work_distance_m']);
+        $this->assertSame(90, $grouped['steps'][0]['recovery_seconds']);
     }
 
     public function test_pyramid_intervals_keep_distinct_blocks_per_unique_pair(): void
@@ -103,6 +106,42 @@ class GoalScheduleIntervalsTest extends TestCase
             ->callMountedAction();
 
         $this->assertNull($day->fresh()->intervals_json);
+    }
+
+    public function test_interval_day_cannot_be_saved_without_steps(): void
+    {
+        // A stepless interval session is meaningless AND would null the
+        // derived target_km — block it at the form layer.
+        [$user, $day] = $this->intervalDay($this->uniformSegments(reps: 4));
+        $this->actingAs($user);
+        $originalIntervals = $day->fresh()->intervals_json;
+
+        Livewire::test(GoalSchedule::class, ['goal' => $day->trainingWeek->goal])
+            ->mountAction('editDay', ['dayId' => $day->id])
+            ->setActionData(['steps' => []])
+            ->callMountedAction()
+            ->assertHasActionErrors();
+
+        $this->assertSame($originalIntervals, $day->fresh()->intervals_json);
+    }
+
+    public function test_saving_interval_day_stores_derived_distance(): void
+    {
+        [$user, $day] = $this->intervalDay($this->uniformSegments(reps: 6));
+        $this->actingAs($user);
+
+        // Coach-typed distance must lose: target_km on interval days is
+        // derived from the session structure by the TrainingDay saving hook.
+        Livewire::test(GoalSchedule::class, ['goal' => $day->trainingWeek->goal])
+            ->mountAction('editDay', ['dayId' => $day->id])
+            ->setActionData(['target_km' => 99])
+            ->callMountedAction();
+
+        $fresh = $day->fresh();
+        $this->assertSame(
+            IntervalBlueprint::estimateTotalKm($fresh->intervals_json),
+            (float) $fresh->target_km,
+        );
     }
 
     /**

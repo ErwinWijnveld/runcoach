@@ -5,6 +5,7 @@ import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/birth_date_picker.dart';
 import 'package:app/core/widgets/hr_zone_constants.dart';
+import 'package:app/core/widgets/primary_cta_button.dart';
 import 'package:app/features/auth/models/derived_zones.dart';
 import 'package:app/features/auth/models/hr_zone.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
@@ -401,25 +402,14 @@ class _HeartRateZonesSheetState extends ConsumerState<HeartRateZonesSheet> {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: CupertinoButton.filled(
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 14),
-                          borderRadius: BorderRadius.circular(14),
-                          // Disable Save while a recompute is in flight so
-                          // the user can't persist stale field values that
-                          // are about to be overwritten by the deriver.
+                        // Disable Save while a recompute is in flight so
+                        // the user can't persist stale field values that
+                        // are about to be overwritten by the deriver.
+                        child: PrimaryCtaButton(
+                          label: context.l10n.commonSave,
+                          busy: _saving,
                           onPressed:
                               (_saving || _recomputing) ? null : _save,
-                          child: _saving
-                              ? const CupertinoActivityIndicator(
-                                  color: CupertinoColors.white)
-                              : Text(
-                                  context.l10n.commonSave,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
                         ),
                       ),
                     ],

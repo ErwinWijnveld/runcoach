@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\TrainingType;
+use App\Support\Intervals\IntervalBlueprint;
 use Database\Factories\TrainingDayFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -24,6 +25,30 @@ class TrainingDay extends Model
             'target_km' => 'decimal:1',
             'intervals_json' => 'array',
         ];
+    }
+
+    /**
+     * Interval-distance invariant: on every save of an interval day that
+     * carries a blueprint, `target_km` is derived from the session structure
+     * (`IntervalBlueprint::estimateTotalKm`) — never stored independently.
+     * This is the row-level twin of the optimizer's payload pass, covering
+     * direct writes (Filament coach editor, ProposalService upserts) so the
+     * displayed distance can never drift from the intervals table beneath
+     * it. Pure + idempotent, so date-only saves are no-ops.
+     * Spec: docs/superpowers/specs/2026-06-10-interval-target-km-recompute.md.
+     */
+    protected static function booted(): void
+    {
+        static::saving(function (TrainingDay $day): void {
+            if ($day->type !== TrainingType::Interval) {
+                return;
+            }
+
+            $estimated = IntervalBlueprint::estimateTotalKm($day->intervals_json);
+            if ($estimated !== null) {
+                $day->target_km = $estimated;
+            }
+        });
     }
 
     public function trainingWeek(): BelongsTo
@@ -57,20 +82,19 @@ class TrainingDay extends Model
             return null;
         }
 
-        $segments = $this->intervals_json;
-        if (! is_array($segments) || $segments === []) {
+        // `intervals_json` is the canonical grouped blueprint; normalize also
+        // tolerates legacy flat rows (pre-migration) by folding them first.
+        $grouped = IntervalBlueprint::normalize($this->intervals_json);
+        if ($grouped === null) {
             return null;
         }
 
         $paces = [];
-        foreach ($segments as $segment) {
-            if (! is_array($segment)) {
+        foreach ($grouped['steps'] as $step) {
+            if (($step['type'] ?? null) === 'rest') {
                 continue;
             }
-            if (($segment['kind'] ?? null) !== 'work') {
-                continue;
-            }
-            $pace = $segment['target_pace_seconds_per_km'] ?? null;
+            $pace = $step['work_pace_seconds_per_km'] ?? null;
             if (is_int($pace) && $pace > 0) {
                 $paces[] = $pace;
             }

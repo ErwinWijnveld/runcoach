@@ -8,6 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../helpers/finders.dart';
+
 /// Stub auth that resolves to a fixed user without firing any network calls.
 class _StubAuth extends Auth {
   _StubAuth(this._user);
@@ -78,7 +80,7 @@ void main() {
 
     await _pumpScreen(tester, user: user);
 
-    expect(find.text('Your training zones'), findsOneWidget);
+    expect(findHeading('Your training zones'), findsOneWidget);
     expect(find.text('June 15, 1990'), findsOneWidget);
     expect(find.text('Show zones (advanced)'), findsOneWidget);
     // The bpm table is hidden until expanded.
@@ -94,7 +96,7 @@ void main() {
 
     await _pumpScreen(tester, user: user);
 
-    expect(find.text('Your training zones'), findsOneWidget);
+    expect(findHeading('Your training zones'), findsOneWidget);
     // DOB picker sheet auto-opens on first frame; pump again to settle that.
     await tester.pumpAndSettle();
     // Either the sheet is open (showing date wheel) OR we cancelled it.

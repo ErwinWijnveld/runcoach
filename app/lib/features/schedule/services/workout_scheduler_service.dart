@@ -86,7 +86,9 @@ class IntervalPlan {
 /// `steps.isEmpty` to surface a friendly error before invoking the bridge.
 /// Returns `null` when the day has no intervals.
 IntervalPlan? buildIntervalPlan(TrainingDay day) {
-  final segments = day.intervals;
+  // Unroll the grouped blueprint to flat segments; the WorkoutKit payload
+  // builder + native bridge consume the flat shape unchanged.
+  final segments = day.intervals?.expand();
   if (segments == null || segments.isEmpty) return null;
 
   int? warmupSeconds;

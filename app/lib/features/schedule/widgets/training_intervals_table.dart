@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/features/schedule/models/interval_blueprint.dart';
 import 'package:app/features/schedule/models/training_interval.dart';
 import 'package:app/l10n/app_localizations.dart';
 
@@ -13,13 +14,16 @@ import 'package:app/l10n/app_localizations.dart';
 ///    (work, recovery) pairs are collapsed into one block: "10× 800m @ 4:30 /
 ///    90s recovery", so a 10-rep session is two rows instead of twenty.
 class TrainingIntervalsTable extends StatelessWidget {
-  final List<TrainingInterval> intervals;
+  final IntervalBlueprint intervals;
 
   const TrainingIntervalsTable({super.key, required this.intervals});
 
   @override
   Widget build(BuildContext context) {
-    final groups = _groupIntervals(intervals);
+    // The chart + breakdown work on the flat segment list; the blueprint
+    // is the canonical grouped form, so unroll it once here.
+    final flat = intervals.expand();
+    final groups = _groupIntervals(flat);
 
     return Container(
       decoration: BoxDecoration(
@@ -30,7 +34,7 @@ class TrainingIntervalsTable extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _IntervalEffortChart(intervals: intervals),
+          _IntervalEffortChart(intervals: flat),
           const SizedBox(height: 20),
           for (var i = 0; i < groups.length; i++) ...[
             _GroupRow(group: groups[i]),

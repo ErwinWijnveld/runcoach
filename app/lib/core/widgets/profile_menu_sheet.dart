@@ -7,6 +7,7 @@ import 'package:app/core/theme/app_theme.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/heart_rate_zones_sheet.dart';
 import 'package:app/core/widgets/language_picker_sheet.dart';
+import 'package:app/core/widgets/primary_cta_button.dart';
 import 'package:app/features/auth/providers/auth_provider.dart';
 import 'package:app/features/subscriptions/providers/pro_entitlement_provider.dart';
 import 'package:app/features/subscriptions/services/purchases_service.dart';
@@ -546,21 +547,10 @@ class _AccountEditSheetState extends ConsumerState<_AccountEditSheet> {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: CupertinoButton.filled(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        borderRadius: BorderRadius.circular(14),
+                      child: PrimaryCtaButton(
+                        label: context.l10n.commonSave,
+                        busy: _saving,
                         onPressed: _saving ? null : _save,
-                        child: _saving
-                            ? const CupertinoActivityIndicator(
-                                color: CupertinoColors.white,
-                              )
-                            : Text(
-                                context.l10n.commonSave,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
                       ),
                     ),
                   ],

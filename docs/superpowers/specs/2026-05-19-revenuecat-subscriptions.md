@@ -93,7 +93,7 @@ Manual steps, listed for completeness.
 4. Products: import `runcoach_pro_monthly` + `runcoach_pro_yearly`. Attach both to `pro`.
 5. Offering `default` with packages `$rc_monthly` + `$rc_annual`, mark as current.
 6. **Paywall** on offering `default`: start from a built-in template, override colors to the RunCoach palette (cream `#FAF8F4` background, gold CTA), yearly package above monthly, "Bespaar 50%" badge on yearly, localize copy in `en-US` + `nl-NL`. Save & publish — re-publishes are live in the app on next `PaywallView` mount, no app build needed.
-7. **Webhook**: Integrations → Webhooks. URL: `https://runcoach.free.laravel.cloud/api/webhooks/revenuecat`. Authorization header: long random secret stored in Laravel as `REVENUECAT_WEBHOOK_SECRET`. Enable all event types — we filter server-side.
+7. **Webhook**: Integrations → Webhooks. URL: `https://runcoach.laravel.cloud/api/webhooks/revenuecat`. Authorization header: long random secret stored in Laravel as `REVENUECAT_WEBHOOK_SECRET`. Enable all event types — we filter server-side.
 8. Enable "Send sandbox events to webhook" for TestFlight + sandbox testing.
 
 ### Backend

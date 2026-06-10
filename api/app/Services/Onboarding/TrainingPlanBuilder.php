@@ -6,6 +6,7 @@ use App\Enums\GoalDistance;
 use App\Enums\GoalType;
 use App\Enums\RunnerToneBucket;
 use App\Enums\TrainingType;
+use App\Support\Intervals\IntervalBlueprint;
 use App\Support\Onboarding\AmbitionAssessment;
 use App\Support\Onboarding\FitnessSnapshot;
 use App\Support\Onboarding\OnboardingFormInput;
@@ -1041,14 +1042,18 @@ class TrainingPlanBuilder
             isSharpener: $isSharpener,
         );
 
-        // Compute approximate distance from the rendered intervals so the
-        // weekly total tracks reality. Warmup / cooldown / recoveries get
-        // a rough easy-pace conversion; work uses the work pace.
-        $estimatedKm = $this->estimateIntervalKm($intervals, $snapshot);
+        // Interval-distance invariant: target_km IS the blueprint estimate —
+        // shared definition with the optimizer pass and the TrainingDay
+        // saving hook, so the km a runner sees always equals what the
+        // session structure sums to. Deliberately NOT floored to the week's
+        // allocated volume share ($km): inflating the day to fill the curve
+        // is what caused the "distance contradicts the intervals table"
+        // bug this replaces.
+        $estimatedKm = IntervalBlueprint::estimateTotalKm($intervals);
 
         return [
             'type' => TrainingType::Interval->value,
-            'target_km' => round(max($estimatedKm, $km), 1),
+            'target_km' => $estimatedKm ?? round($km, 1),
             'description' => $isSharpener
                 ? __('enums.training_day_descriptions.interval_sharpener')
                 : __('enums.training_day_descriptions.interval_standard'),
@@ -1145,78 +1150,24 @@ class TrainingPlanBuilder
             $workPace = (int) round($workPace + ($goalPace - $workPace) * $rampProgress);
         }
 
-        $intervals = [
-            [
-                'kind' => 'warmup',
-                'label' => 'Warm up',
-                'distance_m' => null,
-                'duration_seconds' => 60,
-                'target_pace_seconds_per_km' => null,
+        // Canonical grouped form: one block of `reps`×(work + recovery),
+        // plus the optional warmup and required cooldown. `IntervalBlueprint`
+        // is the single source of truth for this shape.
+        return [
+            'warmup_seconds' => 60,
+            'steps' => [
+                [
+                    'type' => 'block',
+                    'reps' => $reps,
+                    'work_distance_m' => $repDistanceM,
+                    'work_duration_seconds' => null,
+                    'work_pace_seconds_per_km' => $workPace,
+                    'recovery_seconds' => $recoverySeconds,
+                ],
             ],
+            'cooldown_seconds' => 300,
         ];
-
-        for ($i = 0; $i < $reps; $i++) {
-            $intervals[] = [
-                'kind' => 'work',
-                'label' => sprintf('%dm rep', $repDistanceM),
-                'distance_m' => $repDistanceM,
-                'duration_seconds' => null,
-                'target_pace_seconds_per_km' => $workPace,
-            ];
-            $intervals[] = [
-                'kind' => 'recovery',
-                'label' => 'Recovery',
-                'distance_m' => null,
-                'duration_seconds' => $recoverySeconds,
-                'target_pace_seconds_per_km' => null,
-            ];
-        }
-
-        $intervals[] = [
-            'kind' => 'cooldown',
-            'label' => 'Cool down',
-            'distance_m' => null,
-            'duration_seconds' => 300,
-            'target_pace_seconds_per_km' => null,
-        ];
-
-        return $intervals;
     }
-
-    /**
-     * Approximate distance contribution of an interval session, so the
-     * weekly total reflects the work. Warmup/cooldown/recoveries are
-     * estimated at easy pace; work segments at work pace if known.
-     *
-     * @param  list<array<string, mixed>>  $intervals
-     */
-    private function estimateIntervalKm(array $intervals, FitnessSnapshot $snapshot): float
-    {
-        $easyPace = max(180, (int) ($snapshot->easyPaceSecondsPerKm ?? self::FALLBACK_EASY_PACE_SECONDS));
-        $totalMeters = 0.0;
-        foreach ($intervals as $segment) {
-            $distance = (int) ($segment['distance_m'] ?? 0);
-            if ($distance > 0) {
-                $totalMeters += $distance;
-
-                continue;
-            }
-            $duration = (int) ($segment['duration_seconds'] ?? 0);
-            if ($duration <= 0) {
-                continue;
-            }
-            $pace = (int) ($segment['target_pace_seconds_per_km'] ?? 0);
-            if ($pace <= 0) {
-                $pace = $easyPace;
-            }
-            // duration_sec / pace_sec_per_km = km
-            $totalMeters += ($duration / $pace) * 1000;
-        }
-
-        return round($totalMeters / 1000, 1);
-    }
-
-    private const FALLBACK_EASY_PACE_SECONDS = 360;
 
     /**
      * Goal pace = goal_time_seconds / distance_km when both are set.

@@ -12,6 +12,7 @@ use App\Models\Goal;
 use App\Models\User;
 use App\Services\PlanOptimizerService;
 use App\Services\ProposalService;
+use App\Support\Intervals\IntervalBlueprint;
 use App\Support\PlanPayload;
 use Carbon\Carbon;
 use Illuminate\Contracts\JsonSchema\JsonSchema;
@@ -40,7 +41,9 @@ use Laravel\Ai\Tools\Request;
  *   • Pace overrides are honored verbatim for every non-interval day —
  *     an explicit request always wins, bounded only by an absolute
  *     physiological sanity window [150, 720] sec/km. Interval days carry
- *     pace per `work` segment in `intervals[]`, never at the day level.
+ *     pace per `work` block in the grouped `intervals` blueprint
+ *     ({warmup_seconds, steps:[{type:block,reps,…}], cooldown_seconds}),
+ *     never at the day level.
  *   • Distance clamped to [4 km, 1.5× the existing day's km] (or 30 km
  *     ceiling when adding from scratch).
  *   • Race day (date == target_date) is untouchable. Any op against it
@@ -64,12 +67,14 @@ class AdjustPlan implements Tool
     /** Absolute physiological sanity ceiling for an explicit pace request (12:00/km). */
     public const PACE_MAX_SECONDS = 720;
 
-    public const KM_MAX_MULTIPLIER = 1.5;
-
+    /** Default distance for an `add`ed day when none is supplied. */
     public const KM_MIN = 4.0;
 
-    /** Absolute distance ceiling for added (no-prior-km) days. */
-    public const KM_ADD_CEILING = 30.0;
+    /** Absolute sanity floor for an explicit distance request (km). */
+    public const KM_SANITY_MIN = 1.0;
+
+    /** Absolute sanity ceiling for an explicit distance request (km). */
+    public const KM_SANITY_MAX = 80.0;
 
     public function __construct(
         private User $user,
@@ -117,8 +122,15 @@ class AdjustPlan implements Tool
           Update goal metadata. `distance` must be a GoalDistance enum value (one of: {$distanceCsv}). `goal_type` and `coach_style` are NOT editable here — use `build_plan` for those.
 
         Server clamps (silent — out-of-range values get capped):
-        - target_pace_seconds_per_km: honored verbatim for every non-interval day (easy, long-run, tempo, threshold) — set whatever pace the runner explicitly asks for. Only an absolute sanity window applies (150–720 s/km, i.e. 2:30–12:00/km). Interval days take their pace per `work` segment inside `intervals[]`, never at the day level.
-        - target_km: [4 km min, 1.5× the existing value max], or [4, 30] for `add`.
+        - target_pace_seconds_per_km: honored verbatim for every non-interval day (easy, long-run, tempo, threshold) — set whatever pace the runner explicitly asks for. Only an absolute sanity window applies (150–720 s/km, i.e. 2:30–12:00/km). Interval days take their pace per `work` block inside `intervals`, never at the day level.
+        - target_km: [4 km min, 1.5× the existing value max], or [4, 30] for `add` — non-interval days only. On INTERVAL days target_km is DERIVED from the session structure (reps × distance + warmup/recoveries/cooldown at jog pace) and any value you send is overridden — to make an interval session longer or shorter, change `intervals` (more/longer reps), not target_km.
+
+        Authoring interval sessions — set `intervals` on a `replace`/`add`/`adjust` op for an interval day. Use the COMPACT grouped form (one block per loop, NEVER repeat reps yourself):
+          {"intervals": {"warmup_seconds": 60, "steps": [
+            {"type": "block", "reps": 4, "work_distance_m": 800, "work_pace_seconds_per_km": 270, "recovery_seconds": 120},
+            {"type": "block", "reps": 4, "work_distance_m": 400, "work_pace_seconds_per_km": 255, "recovery_seconds": 60}
+          ], "cooldown_seconds": 300}}
+          So "4×800m w/ 2min, then 4×400m w/ 1min" is TWO blocks. `type:"rep"` = a single work effort (no recovery); `type:"rest"` = a standalone recovery. Use `work_duration_seconds` instead of `work_distance_m` for time-based reps. Omit `intervals` entirely to let the server synthesize a default 4×400m skeleton. An INVALID structure is replaced by that default and flagged in `adjustments[]`; the `applied[]` entry's `intervals` string always shows the exact stored session — report from it.
 
         Use as many operations as the runner needs (no hard cap), but don't rewrite the whole plan — for that, call `build_plan`. The reply should NOT mention this tool, "operations", or internal mechanics; describe changes in human terms ("I added an interval on Wednesday").
         DESC;
@@ -151,25 +163,23 @@ class AdjustPlan implements Tool
             ]);
         }
 
-        $applied = [];
+        // Snapshot the plan BEFORE any edits so the diff can show before→after.
+        $before = $payload;
+
+        $appliedOps = [];
         $rejected = [];
 
         foreach ($operations as $i => $op) {
             $result = $this->applyOperation($payload, $op);
             if ($result['ok']) {
                 $payload = $result['payload'];
-                $applied[] = [
-                    'index' => $i,
-                    'action' => $op['action'] ?? null,
-                    'week' => $op['week'] ?? null,
-                    'day_of_week' => $op['day_of_week'] ?? $op['from_day_of_week'] ?? null,
-                ];
+                $appliedOps[] = ['index' => $i, 'op' => $op];
             } else {
                 $rejected[] = ['index' => $i, 'reason' => $result['reason']];
             }
         }
 
-        if ($applied === []) {
+        if ($appliedOps === []) {
             return json_encode([
                 'requires_approval' => false,
                 'applied' => [],
@@ -191,12 +201,19 @@ class AdjustPlan implements Tool
             strictPreferredWeekdays: $strictPrefs,
         );
 
+        // Build a truthful diff: before→after per touched day, plus explicit
+        // `adjustments` notes whenever the server stored something different
+        // from what the runner asked (sanity clamp, interval-pace nulling, a
+        // structural reclassification). Both the agent — so it can describe
+        // the change honestly — and the revision modal render this.
+        $diff = $this->buildDiff($appliedOps, $before, $payload);
+
         // Attach `diff` only for active-goal edits — that's where the
         // "PLAN REVISION (N changes)" UI is meaningful. Onboarding edits
         // (still-pending proposal) get no diff: the runner hasn't seen
         // any prior version of the plan.
         if ($proposalType === ProposalType::EditActivePlan) {
-            $payload['diff'] = array_values($operations);
+            $payload['diff'] = $diff;
         } else {
             unset($payload['diff']);
         }
@@ -208,10 +225,211 @@ class AdjustPlan implements Tool
             'proposal_type' => $proposalType->value,
             'proposal_id' => $newProposal->id,
             'plan_structure' => PlanPayload::weekStructure($payload),
-            'applied' => $applied,
+            'applied' => $diff,
             'rejected' => $rejected,
             'reason' => $request['reason'] ?? null,
         ]);
+    }
+
+    /**
+     * Build before→after diff entries for each applied operation. The flat
+     * after-fields (type/title/target_km/pace/hr) keep the existing revision
+     * renderer working; `before` + `adjustments` are additive.
+     *
+     * @param  list<array{index:int, op:array<string,mixed>}>  $appliedOps
+     * @param  array<string,mixed>  $before
+     * @param  array<string,mixed>  $after
+     * @return list<array<string,mixed>>
+     */
+    private function buildDiff(array $appliedOps, array $before, array $after): array
+    {
+        $entries = [];
+
+        foreach ($appliedOps as $applied) {
+            $op = $applied['op'];
+            $action = (string) ($op['action'] ?? '');
+
+            if ($action === 'set_goal') {
+                $entries[] = array_filter([
+                    'action' => 'set_goal',
+                    'goal_name' => $op['goal_name'] ?? null,
+                    'distance' => $op['distance'] ?? null,
+                    'target_date' => $op['target_date'] ?? null,
+                    'goal_time_seconds' => $op['goal_time_seconds'] ?? null,
+                    'preferred_weekdays' => $op['preferred_weekdays'] ?? null,
+                ], fn ($v) => $v !== null);
+
+                continue;
+            }
+
+            $week = (int) ($op['week'] ?? 0);
+
+            if ($action === 'shift') {
+                $from = (int) ($op['from_day_of_week'] ?? 0);
+                $to = (int) ($op['to_day_of_week'] ?? 0);
+                $entry = ['action' => 'shift', 'week' => $week, 'from_day_of_week' => $from, 'to_day_of_week' => $to];
+                $beforeDay = $this->daySnapshot($this->locateDay($before, $week, $from));
+                if ($beforeDay !== null) {
+                    $entry['before'] = $beforeDay;
+                }
+                $afterDay = $this->daySnapshot($this->locateDay($after, $week, $to));
+                if ($afterDay !== null) {
+                    $entry = array_merge($entry, $afterDay);
+                }
+                $notes = $this->adjustmentNotes($op, $afterDay);
+                if ($notes !== []) {
+                    $entry['adjustments'] = $notes;
+                }
+                $entries[] = $entry;
+
+                continue;
+            }
+
+            $dow = (int) ($op['day_of_week'] ?? 0);
+            $entry = ['action' => $action, 'week' => $week, 'day_of_week' => $dow];
+
+            $beforeDay = $this->daySnapshot($this->locateDay($before, $week, $dow));
+            if ($beforeDay !== null) {
+                $entry['before'] = $beforeDay;
+            }
+
+            if ($action !== 'remove') {
+                $afterDay = $this->daySnapshot($this->locateDay($after, $week, $dow));
+                if ($afterDay !== null) {
+                    $entry = array_merge($entry, $afterDay);
+                }
+                $notes = $this->adjustmentNotes($op, $afterDay);
+                if ($notes !== []) {
+                    $entry['adjustments'] = $notes;
+                }
+            }
+
+            $entries[] = $entry;
+        }
+
+        return $entries;
+    }
+
+    /**
+     * @param  array<string,mixed>  $payload
+     * @return array<string,mixed>|null
+     */
+    private function locateDay(array $payload, int $week, int $dow): ?array
+    {
+        foreach (($payload['schedule']['weeks'] ?? []) as $w) {
+            if ((int) ($w['week_number'] ?? 0) !== $week) {
+                continue;
+            }
+            foreach (($w['days'] ?? []) as $d) {
+                if ((int) ($d['day_of_week'] ?? 0) === $dow) {
+                    return $d;
+                }
+            }
+
+            return null;
+        }
+
+        return null;
+    }
+
+    /**
+     * The renderable subset of a day's fields (nulls dropped).
+     *
+     * @param  array<string,mixed>|null  $day
+     * @return array<string,mixed>|null
+     */
+    private function daySnapshot(?array $day): ?array
+    {
+        if ($day === null) {
+            return null;
+        }
+
+        $snapshot = array_filter([
+            'type' => $day['type'] ?? null,
+            'title' => $day['title'] ?? null,
+            'target_km' => $day['target_km'] ?? null,
+            'target_pace_seconds_per_km' => $day['target_pace_seconds_per_km'] ?? null,
+            'target_heart_rate_zone' => $day['target_heart_rate_zone'] ?? null,
+            // Compact stored work-set summary ("4×800m @4:30/km (rec 90s)")
+            // — without it interval restructures are invisible in the diff
+            // and the agent can't report them.
+            'intervals' => IntervalBlueprint::summary($day['intervals'] ?? null),
+        ], fn ($v) => $v !== null);
+
+        return $snapshot === [] ? null : $snapshot;
+    }
+
+    /**
+     * Human-readable notes when the stored value differs from what the op
+     * requested — sanity clamp, interval-pace nulling, invalid HR zone, or a
+     * structural reclassification. Empty when the request was honored as-is.
+     *
+     * @param  array<string,mixed>  $op
+     * @param  array<string,mixed>|null  $afterDay
+     * @return list<string>
+     */
+    private function adjustmentNotes(array $op, ?array $afterDay): array
+    {
+        if ($afterDay === null) {
+            return [];
+        }
+        $notes = [];
+
+        if (array_key_exists('target_km', $op) && is_numeric($op['target_km'])) {
+            $requested = round((float) $op['target_km'], 1);
+            $stored = isset($afterDay['target_km']) ? round((float) $afterDay['target_km'], 1) : null;
+            $isInterval = (string) ($afterDay['type'] ?? '') === TrainingType::Interval->value;
+            if ($stored !== null && abs($stored - $requested) > 0.05) {
+                $notes[] = $isInterval
+                    ? "Distance on interval days is derived from the session structure (stored: {$stored} km, you asked for {$requested} km) — change the intervals to change the distance."
+                    : "Distance set to {$stored} km (you asked for {$requested} km).";
+            }
+        }
+
+        if (array_key_exists('target_pace_seconds_per_km', $op) && is_numeric($op['target_pace_seconds_per_km'])) {
+            $requested = (int) $op['target_pace_seconds_per_km'];
+            $stored = isset($afterDay['target_pace_seconds_per_km']) ? (int) $afterDay['target_pace_seconds_per_km'] : null;
+            if ($stored === null) {
+                $notes[] = 'Pace is set per interval rep (not at the day level), so the requested day pace was not applied.';
+            } elseif ($stored !== $requested) {
+                $notes[] = 'Pace set to '.$this->formatPace($stored).' (you asked for '.$this->formatPace($requested).').';
+            }
+        }
+
+        if (array_key_exists('target_heart_rate_zone', $op) && is_numeric($op['target_heart_rate_zone'])) {
+            // A valid zone is always applied verbatim; only an out-of-range
+            // request is dropped, which is the only case worth flagging.
+            $requested = (int) $op['target_heart_rate_zone'];
+            if ($requested < 1 || $requested > 5) {
+                $notes[] = "Heart-rate zone {$requested} is outside the valid 1–5 range, so it was not applied.";
+            }
+        }
+
+        if (isset($op['type'])) {
+            $requested = (string) $op['type'];
+            $stored = isset($afterDay['type']) ? (string) $afterDay['type'] : null;
+            if ($stored !== null && $stored !== $requested) {
+                $notes[] = "Session type is {$stored} (you asked for {$requested}).";
+            }
+        }
+
+        if (array_key_exists('intervals', $op) && $op['intervals'] !== null) {
+            $storedType = isset($afterDay['type']) ? (string) $afterDay['type'] : null;
+            if ($storedType !== TrainingType::Interval->value) {
+                $notes[] = "Intervals only apply to interval sessions; this day is {$storedType}, so the interval structure was not applied.";
+            } elseif (IntervalBlueprint::normalize($op['intervals']) === null) {
+                $notes[] = 'The interval structure provided was invalid, so a default interval session was stored instead (see `intervals` for what is on the day now).';
+            } else {
+                array_push($notes, ...IntervalBlueprint::normalizationNotes($op['intervals']));
+            }
+        }
+
+        return $notes;
+    }
+
+    private function formatPace(int $seconds): string
+    {
+        return intdiv($seconds, 60).':'.str_pad((string) ($seconds % 60), 2, '0', STR_PAD_LEFT).'/km';
     }
 
     /**
@@ -220,21 +438,29 @@ class AdjustPlan implements Tool
     private function resolveTarget(): array|string
     {
         // 1. Latest pending CreateSchedule proposal (onboarding flow,
-        //    or post-rejection chat tweak).
+        //    or a brand-new plan the runner is building via the card).
         $pending = CoachProposal::where('user_id', $this->user->id)
             ->where('status', ProposalStatus::Pending)
             ->where('type', ProposalType::CreateSchedule)
             ->latest('id')
             ->first();
-        if ($pending !== null) {
-            return [$pending->payload, ProposalType::CreateSchedule];
-        }
 
         // 2. Active Goal — chat edits to a plan the runner already accepted.
         $activeGoal = $this->user->goals()
             ->where('status', GoalStatus::Active)
             ->latest('id')
             ->first();
+
+        // A pending CreateSchedule only wins over the active plan when it's
+        // NEWER than that plan — i.e. it's a fresh new-plan-in-progress.
+        // A pending left over from an earlier onboarding attempt (older than
+        // the active goal) is stale and must NOT hijack edits meant for the
+        // live plan.
+        if ($pending !== null
+            && ($activeGoal === null || $pending->created_at->greaterThan($activeGoal->created_at))) {
+            return [$pending->payload, ProposalType::CreateSchedule];
+        }
+
         if ($activeGoal !== null) {
             return [PlanPayload::fromGoal($activeGoal), ProposalType::EditActivePlan];
         }
@@ -371,7 +597,7 @@ class AdjustPlan implements Tool
             'description' => 'Added per runner request.',
             'target_pace_seconds_per_km' => null,
         ];
-        $next = $this->mergeDayFields($skeleton, $op, isAdd: true);
+        $next = $this->mergeDayFields($skeleton, $op);
         $next['day_of_week'] = $dow;
         $payload['schedule']['weeks'][$wi]['days'][] = $next;
 
@@ -570,7 +796,7 @@ class AdjustPlan implements Tool
      * @param  array<string, mixed>  $op
      * @return array<string, mixed>
      */
-    private function mergeDayFields(array $existing, array $op, bool $isAdd = false): array
+    private function mergeDayFields(array $existing, array $op): array
     {
         $next = $existing;
 
@@ -599,12 +825,11 @@ class AdjustPlan implements Tool
         }
 
         if (array_key_exists('target_km', $op) && is_numeric($op['target_km'])) {
-            $existingKm = (float) ($existing['target_km'] ?? 0);
-            $maxKm = $existingKm > 0
-                ? $existingKm * self::KM_MAX_MULTIPLIER
-                : ($isAdd ? self::KM_ADD_CEILING : 30.0);
+            // An explicit distance request is honored verbatim — only an
+            // absolute sanity window applies (1–80 km) so a fat-fingered
+            // value can't corrupt the plan. No relative-to-existing clamp.
             $km = (float) $op['target_km'];
-            $next['target_km'] = max(self::KM_MIN, min($maxKm, $km));
+            $next['target_km'] = round(max(self::KM_SANITY_MIN, min(self::KM_SANITY_MAX, $km)), 1);
         }
 
         if (array_key_exists('description', $op) && is_string($op['description'])) {

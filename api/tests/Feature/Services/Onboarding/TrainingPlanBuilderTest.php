@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Onboarding\FitnessSnapshotService;
 use App\Services\Onboarding\TrainingPlanBuilder;
 use App\Services\PlanOptimizerService;
+use App\Support\Intervals\IntervalBlueprint;
 use App\Support\Onboarding\AmbitionAssessment;
 use App\Support\Onboarding\EffectiveAmbitionLevel;
 use App\Support\Onboarding\FitnessSnapshot;
@@ -306,14 +307,40 @@ class TrainingPlanBuilderTest extends TestCase
             ->firstWhere('type', TrainingType::Interval->value);
 
         $this->assertNotNull($intervalDay, 'plan must contain at least one interval session');
-        $segments = $intervalDay['intervals'] ?? [];
-        $this->assertNotEmpty($segments);
+        $intervals = $intervalDay['intervals'] ?? [];
+        // Canonical grouped blueprint: warmup + a work block + cooldown.
+        $this->assertArrayHasKey('steps', $intervals);
+        $this->assertNotEmpty($intervals['steps']);
+        $this->assertSame('block', $intervals['steps'][0]['type']);
+        $this->assertGreaterThan(0, $intervals['steps'][0]['reps']);
+        $this->assertGreaterThan(0, $intervals['steps'][0]['work_distance_m']);
+        $this->assertSame(60, $intervals['warmup_seconds']);
+        $this->assertSame(300, $intervals['cooldown_seconds']);
+    }
 
-        $kinds = array_map(fn ($s) => $s['kind'], $segments);
-        $this->assertSame('warmup', $kinds[0]);
-        $this->assertSame('cooldown', end($kinds));
-        $this->assertContains('work', $kinds);
-        $this->assertContains('recovery', $kinds);
+    public function test_interval_day_target_km_equals_blueprint_estimate(): void
+    {
+        // The interval-distance invariant holds from the very first render:
+        // no max(estimated, allocated) inflation — the km a runner sees is
+        // exactly what the session structure sums to.
+        $payload = app(TrainingPlanBuilder::class)->build(
+            $this->snapshot(),
+            $this->form(['days_per_week' => 4]),
+        );
+
+        $intervalDays = collect($payload['schedule']['weeks'])
+            ->flatMap(fn ($w) => $w['days'])
+            ->where('type', TrainingType::Interval->value);
+
+        $this->assertNotEmpty($intervalDays, 'plan must contain interval sessions');
+
+        foreach ($intervalDays as $day) {
+            $this->assertSame(
+                IntervalBlueprint::estimateTotalKm($day['intervals']),
+                $day['target_km'],
+                'interval day target_km must equal the blueprint estimate',
+            );
+        }
     }
 
     public function test_tempo_pace_ramps_toward_goal_pace_across_plan(): void
@@ -408,12 +435,13 @@ class TrainingPlanBuilderTest extends TestCase
             ]),
         );
 
+        // Grouped blueprint: work pace lives on non-rest steps.
         $workPaces = collect($payload['schedule']['weeks'])
             ->flatMap(fn ($w) => $w['days'])
             ->where('type', TrainingType::Interval->value)
-            ->flatMap(fn ($d) => $d['intervals'] ?? [])
-            ->where('kind', 'work')
-            ->pluck('target_pace_seconds_per_km')
+            ->flatMap(fn ($d) => $d['intervals']['steps'] ?? [])
+            ->reject(fn ($s) => ($s['type'] ?? null) === 'rest')
+            ->pluck('work_pace_seconds_per_km')
             ->filter()
             ->values();
 

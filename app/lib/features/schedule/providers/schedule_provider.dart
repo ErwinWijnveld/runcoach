@@ -1,6 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:app/features/schedule/data/schedule_api.dart';
 import 'package:app/features/schedule/models/available_activity.dart';
+import 'package:app/features/schedule/models/interval_blueprint.dart';
 import 'package:app/features/schedule/models/training_week.dart';
 import 'package:app/features/schedule/models/training_day.dart';
 import 'package:app/features/schedule/models/training_result.dart';
@@ -116,6 +117,46 @@ class RescheduleDay extends _$RescheduleDay {
     final ymd =
         '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
     final response = await api.updateTrainingDay(dayId, {'date': ymd});
+    planVersion.bump();
+    return TrainingDay.fromJson(
+      Map<String, dynamic>.from(response['data'] as Map),
+    );
+  }
+}
+
+/// Edit a single training day's content (distance / pace / interval
+/// structure) in place via PATCH /training-days/{id}. Date is untouched (use
+/// [RescheduleDay] for that). Captures deps before the await (§1b) — the host
+/// sheet can be torn down mid-request. The backend drops day-level pace on
+/// interval days and derives their `target_km` from the stored blueprint.
+@riverpod
+class EditTrainingDay extends _$EditTrainingDay {
+  @override
+  void build() {}
+
+  Future<TrainingDay> edit({
+    required int dayId,
+    double? targetKm,
+    int? targetPaceSecondsPerKm,
+    IntervalBlueprint? intervals,
+  }) async {
+    final api = ref.read(scheduleApiProvider);
+    final planVersion = ref.read(planVersionProvider.notifier);
+    final body = <String, dynamic>{};
+    if (targetKm != null) body['target_km'] = targetKm;
+    if (targetPaceSecondsPerKm != null) {
+      body['target_pace_seconds_per_km'] = targetPaceSecondsPerKm;
+    }
+    if (intervals != null) {
+      // Explicit map (not jsonEncode magic) — steps must serialize to the
+      // wire grouped form the backend's IntervalBlueprint::normalize reads.
+      body['intervals'] = {
+        'warmup_seconds': intervals.warmupSeconds,
+        'steps': intervals.steps.map((s) => s.toJson()).toList(),
+        'cooldown_seconds': intervals.cooldownSeconds,
+      };
+    }
+    final response = await api.updateTrainingDay(dayId, body);
     planVersion.bump();
     return TrainingDay.fromJson(
       Map<String, dynamic>.from(response['data'] as Map),

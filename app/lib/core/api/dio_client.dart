@@ -6,7 +6,7 @@ import 'package:app/core/storage/token_storage.dart';
 
 part 'dio_client.g.dart';
 
-// Release builds pass --dart-define=API_BASE_URL=https://runcoach.free.laravel.cloud/api/v1
+// Release builds pass --dart-define=API_BASE_URL=https://runcoach.laravel.cloud/api/v1
 // (see scripts/build-ios.sh). Local `flutter run` falls back to the LAN IP so
 // physical iPhones can reach the Mac's `php artisan serve --host=0.0.0.0`.
 const String baseUrl = String.fromEnvironment(

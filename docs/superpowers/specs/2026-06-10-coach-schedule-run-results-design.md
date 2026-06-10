@@ -42,11 +42,19 @@ extras don't N+1.
 
 ### 2. Inline day row (completed days only)
 
-- Status pill becomes `✓ Completed · 87%`. The pill is color-banded by
-  `compliance_score`: green ≥ 80, amber 50–79, red < 50, reusing the existing
-  `--rc-success-bg` / `--rc-warn-bg` / `--rc-danger-bg` theme tokens. A
-  completed day with a null `compliance_score` keeps the plain green
-  "Completed" pill without a percentage.
+> **Scale note (changed during implementation):** compliance scores are a
+> **1–10 grade** product-wide, not a percentage — the Flutter compliance ring
+> renders "8.7" with band thresholds good ≥ 8.0 / ok ≥ 5.0
+> (`app/lib/core/theme/compliance_colors.dart`), and
+> `ComplianceScoringService` clamps every sub-score to [1.0, 10.0]. The coach
+> panel matches that convention so coach and runner talk about the same
+> number. Also: `compliance_score` is a NOT NULL column, so there is no
+> null-compliance pill case.
+
+- Status pill becomes `✓ Completed · 8.7`. The pill is color-banded by
+  `compliance_score`: green ≥ 8.0, amber 5.0–7.9, red < 5.0, reusing the
+  existing `--rc-success-bg` / `--rc-warn-bg` / `--rc-danger-bg` theme
+  tokens (thresholds mirror Flutter's `ComplianceColors`).
 - Below the planned description, one muted actuals line:
   `Ran 8.2 km @ 4:46/km · avg HR 162`. Each fragment (distance, pace, HR) is
   omitted when its value on the `TrainingResult` is null — avg HR in
@@ -58,15 +66,15 @@ extras don't N+1.
 ### 3. Week header rollup
 
 For weeks with ≥ 1 result, the week-stats area gains
-`3/4 done · avg 87%` before the existing `N sessions · X km`. The average is
-the mean of non-null `compliance_score` values across that week's results.
-Weeks with zero results render exactly as today.
+`3/4 done · avg 8.7` before the existing `N sessions · X km`. The average is
+the mean of `compliance_score` values across that week's results, rounded to
+one decimal. Weeks with zero results render exactly as today.
 
 ### 4. Hero summary rollup
 
 - The "Sessions" cell becomes `12 / 34 done` (results count / total days).
-- A sixth cell **Compliance** shows the plan-wide mean of all non-null
-  `compliance_score` values, or `—` when there are no results yet.
+- A sixth cell **Compliance** shows the plan-wide mean `compliance_score`
+  grade (one decimal), or `—` when there are no results yet.
 - The hero grid template gains one column (responsive collapse already
   handled by the existing `@media` rule).
 
@@ -77,7 +85,7 @@ schema, `visible` only when the day has a `TrainingResult`. Built from
 Filament `Placeholder` components (display-only; the editable planned fields
 below stay exactly as they are). Contents, in order:
 
-1. **Compliance headline** — overall % (or `—` if null).
+1. **Compliance headline** — `8.7 / 10`.
 2. **Sub-scores** — pace / distance / HR scores on one line; null renders
    `—` (pace is always null on interval days by design;
    HR is null when the activity had no HR data).
@@ -111,8 +119,7 @@ Livewire-testing the page):
 
 - Completed day renders compliance pill text + actuals line; pill band class
   matches the score (green/amber/red cases).
-- Completed day with null compliance score renders plain "Completed" pill.
-- Week header shows `done/total · avg %` only for weeks with results.
+- Week header shows `done/total · avg grade` only for weeks with results.
 - Hero shows sessions-done fraction and plan-wide compliance; `—` when no
   results exist.
 - Edit-day modal form/schema includes the Result section for a completed day
@@ -121,9 +128,59 @@ Livewire-testing the page):
   errors.
 - Result with missing wearable activity renders without the extras block.
 
+## Iteration 2 — app-style visuals + off-plan runs (same day)
+
+Follow-up request: "runs outside of schedule should also show; comparison
+table actual vs plan like the app; big compliance ring in the overview with
+the same color thresholds — make it look more like the app."
+
+### Off-plan ("buiten schema") runs per week
+
+`GoalSchedule::offPlanRunsByWeek(Goal)` mirrors
+`TrainingScheduleController::attachUnplannedRuns` exactly (run-type
+activities inside a week's `[starts_at, starts_at + 7d)` range with no
+`TrainingResult`; one query for the plan span, grouped in PHP) so the coach
+sees the same blue tiles the runner sees. Rendered after the day rows in
+each week card, styled like Flutter's `_UnplannedRunTile`: blue accent
+`#3E72C7` / `#D8E6FB`, gradient glow from the right, `Off-plan` pill,
+"Run outside schedule" title, `8.2 km · 4:46/km` blue subtitle, blue plus
+circle. Non-interactive in v1 (linking runs to sessions stays a
+runner-side action).
+
+### Compliance ring (shared partial)
+
+`resources/views/filament/coach/components/compliance-ring.blade.php` —
+HTML/SVG port of Flutter's `ComplianceRing` (15%-alpha track, round-cap arc
+from 12 o'clock, grade centered in serif, band color). Band colors are the
+app's `ComplianceColors` values verbatim: good `#34C759` (≥ 8.0), ok
+`#E9B638` (≥ 5.0), bad `#8F3A3A`. Used at 84px in the hero Compliance cell
+(replaces the plain number; `—` when no results) and at 96px in the modal.
+
+### Modal Result panel (replaces the placeholder rows)
+
+The Result section now renders one
+`View::make('filament.coach.components.day-result-panel')` fed by
+`GoalSchedule::resultPanelData(TrainingDay)` — a public, directly-testable
+method returning `{score, grade, band, rows[], bars[], activity, feedback}`.
+Layout mirrors the Flutter training-result screen:
+
+- Ring + vertical sub-score bars (distance / pace / HR; null scores omitted).
+- **Target vs Actual table** with per-row inclusion rules matching the
+  app's `_TargetVsActualSection`: Distance when `target_km` set; Pace when
+  `target_pace_seconds_per_km` set (so interval days get no pace row); Heart
+  rate when either the target zone or an actual HR exists (`Zone N` / `—`
+  target, `162 bpm` / `—` actual). Actual cells are colored by the matching
+  sub-score band; null sub-score → ink color.
+- Activity extras line and AI feedback markdown as before.
+
+Testing note: the modal HTML ships via `wire:partial` effects and is not in
+the Livewire test render, so tests assert `resultPanelData` output directly
+plus one structural check that the mounted action schema contains the
+result-panel View component only for completed days.
+
 ## Out of scope
 
 - Per-km splits in the modal.
 - Compliance columns on `ClientsTable` / `GoalsRelationManager`.
-- Off-plan ("buiten schema") runs in the coach view.
+- Coach-side linking of off-plan runs to planned sessions.
 - Any Flutter or API changes.

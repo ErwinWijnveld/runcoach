@@ -13,6 +13,10 @@ class AppColors {
   static const success = Color(0xFF4CAF50);
   static const danger = Color(0xFF8F3A3A);
   static const dangerBg = Color(0xFFFBE9E3);
+  // Darker green for TEXT on light surfaces (`success` fails contrast at
+  // small sizes) + its soft chip background.
+  static const successInk = Color(0xFF2F8F4E);
+  static const successBg = Color(0xFFE7F4EA);
   static const todayHighlight = Color(0xFF8B7355);
 
   // RunCore design system tokens (Figma)

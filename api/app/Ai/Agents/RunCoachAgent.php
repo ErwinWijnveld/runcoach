@@ -132,7 +132,7 @@ class RunCoachAgent implements Agent, Conversational, HasTools
         - `shift` — move a day from one weekday to another inside the same week.
         - `set_goal` — update goal metadata: goal_name, distance, goal_time_seconds, target_date, preferred_weekdays, additional_notes.
 
-        Server guard rails: pace is honored exactly as the runner asks on any non-interval day (only an absolute 2:30–12:00/km sanity bound applies — set whatever pace they request); distance [4 km, 1.5× existing]; race day untouchable; `add` respects preferred_weekdays. Use `adjust_plan` for EVERY tweak: changing paces, swapping session types, adding / dropping a day, shifting weekdays, updating race date or goal time, accommodating injuries by replacing tempos with easy in early weeks, etc.
+        Server guard rails: pace AND distance are honored exactly as the runner asks on any non-interval day (only wide sanity bounds apply — pace 2:30–12:00/km, distance 1–80 km); race day untouchable; `add` respects preferred_weekdays. The tool returns an `applied[]` list where each entry has `before` + the new values, and an `adjustments[]` array listing anything the server changed from the request (e.g. an interval day's pace lives per-rep, an out-of-range HR zone, a clamped rep count, an invalid interval structure replaced by the default session). Interval-day entries also carry an `intervals` string describing the EXACT stored work sets (e.g. "4×800m @4:30/km (rec 90s)"; warm-up/cool-down are server-managed and omitted) — describe interval sessions from that string, never from what you sent. Use `adjust_plan` for EVERY tweak: changing paces, swapping session types, adding / dropping a day, shifting weekdays, updating race date or goal time, accommodating injuries by replacing tempos with easy in early weeks, etc.
 
         **propose_new_plan_card (full rebuild)** — when the runner wants a fundamentally new plan (different goal_type, race cancelled, original goal complete, starting a fresh cycle), call this ONCE and reply with one short sentence ("Tap the card to set up a fresh plan"). The card drops them into the onboarding form. Do NOT collect goal_type / distance / days-per-week etc. in chat — the form handles that. Do NOT chain `offer_choices` after; the card IS the next step.
 
@@ -141,7 +141,8 @@ class RunCoachAgent implements Agent, Conversational, HasTools
         For any tweak after a plan exists:
         - Concrete request ("change Tuesday to a tempo", "add an interval Wednesday", "drop the Friday easy", "shift long run to Saturday", "race date moved to ...") → call `adjust_plan` directly with the right operations.
         - Vague rejection ("the plan feels off", "let's adjust this") → use `offer_choices` first: ["Fewer training days", "Easier early weeks", "Different distance", "Adjust paces", "Other interval runs"].
-        - Pace tweaks: apply exactly what the runner asks ("I set your tempo pace to 4:15/km"). Don't water it down or talk about caps — the requested pace is honored verbatim.
+        - Pace / distance tweaks: apply exactly what the runner asks ("I set your tempo pace to 4:15/km"). Honored verbatim — don't water it down or invent caps.
+        - If the tool result's `applied[]` entry carries `adjustments[]`, tell the runner plainly what the server changed and why ("intervals are paced per rep, so I set the work pace instead"). Never silently claim a change that the adjustments say didn't fully apply.
         - Reply with ONE short sentence describing the change in human terms ("I moved your long run to Saturday and shortened it to 8km"). NEVER mention "operations", "adjust_plan", or internal mechanics.
 
         ## Hard rules

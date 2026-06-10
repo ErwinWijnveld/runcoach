@@ -213,91 +213,109 @@ class ComplianceScoringTest extends TestCase
         $this->assertEqualsWithDelta(10.0, (float) $day->fresh()->result->heart_rate_score, 0.01);
     }
 
-    public function test_interval_day_returns_null_pace_score(): void
+    /**
+     * Canonical grouped blueprint used by the interval scoring tests:
+     * 5×800m @ 4:30/km (270 s/km), 90s recoveries, 60s warmup, 300s cooldown.
+     * Derived values (asserted against below):
+     *  - work volume    = 4.0 km
+     *  - jog pace       = 370 s/km (work + 100) → pace band [270, 460]
+     *  - target_km      = 6.2 (estimateTotalKm via the saving hook)
+     *  - distance band  = [4.0, 6.2 × 1.8 = 11.16]
+     */
+    private const INTERVAL_BLUEPRINT = [
+        'warmup_seconds' => 60,
+        'steps' => [
+            ['type' => 'block', 'reps' => 5, 'work_distance_m' => 800, 'work_duration_seconds' => null, 'work_pace_seconds_per_km' => 270, 'recovery_seconds' => 90],
+        ],
+        'cooldown_seconds' => 300,
+    ];
+
+    private function createIntervalPlan(array $dayOverrides = [], array $blueprint = self::INTERVAL_BLUEPRINT): array
     {
-        // Interval days have no day-level target_pace_seconds_per_km — the
-        // work pace lives per segment in `intervals_json`. The actual run's
-        // full-run avg pace mixes work + recovery + warmup + cooldown so
-        // we explicitly DO NOT score it. Compliance falls back to
-        // distance + HR.
-        [$user, $day] = $this->createUserWithPlan([
+        return $this->createUserWithPlan(array_merge([
             'type' => TrainingType::Interval,
             'target_pace_seconds_per_km' => null,
-            'intervals_json' => [
-                ['kind' => 'warmup', 'label' => 'Warm', 'distance_m' => null, 'duration_seconds' => 60, 'target_pace_seconds_per_km' => null],
-                ['kind' => 'work', 'label' => '400m', 'distance_m' => 400, 'duration_seconds' => null, 'target_pace_seconds_per_km' => 270],
-                ['kind' => 'recovery', 'label' => 'Rec', 'distance_m' => null, 'duration_seconds' => 90, 'target_pace_seconds_per_km' => null],
-                ['kind' => 'work', 'label' => '400m', 'distance_m' => 400, 'duration_seconds' => null, 'target_pace_seconds_per_km' => 270],
-                ['kind' => 'cooldown', 'label' => 'Cool', 'distance_m' => null, 'duration_seconds' => 300, 'target_pace_seconds_per_km' => null],
-            ],
-        ]);
-
-        $activity = WearableActivity::factory()->create([
-            'user_id' => $user->id,
-            'distance_meters' => 8000,
-            // Full-run avg pace — intentionally far off the work-set target
-            // (270s/km) because it includes the warmup/recovery/cooldown.
-            // The scoring service must NOT penalise this; pace_score → null.
-            'average_pace_seconds_per_km' => 360,
-            'average_heartrate' => 160,
-            'start_date' => now(),
-        ]);
-
-        $this->service->matchAndScore($user, $activity);
-
-        $result = $day->fresh()->result;
-        $this->assertNotNull($result);
-        $this->assertNull($result->pace_score, 'interval days must not produce a pace score');
-        $this->assertNotNull($result->distance_score);
-        $this->assertNotNull($result->heart_rate_score);
+            'target_heart_rate_zone' => 5,
+            'intervals_json' => $blueprint,
+        ], $dayOverrides));
     }
 
-    public function test_interval_day_overall_uses_distance_and_hr_only(): void
+    public function test_interval_day_correct_execution_scores_full_compliance(): void
     {
-        [$user, $day] = $this->createUserWithPlan([
-            'type' => TrainingType::Interval,
-            'target_km' => 5.0,
-            'target_pace_seconds_per_km' => null,
-            'target_heart_rate_zone' => 4,
-            'intervals_json' => [
-                ['kind' => 'work', 'label' => '400m', 'distance_m' => 400, 'duration_seconds' => null, 'target_pace_seconds_per_km' => 270],
-            ],
-        ]);
+        // The whole point of the 2026-06-10 scoring change: a session run
+        // exactly as prescribed — reps done, peaks touched Z4, average pace
+        // mid-band because recoveries/warmup/cooldown dilute it — must score
+        // 10, where the old avg-HR-vs-Z5 + symmetric-distance model gave 2-4.
+        [$user, $day] = $this->createIntervalPlan();
 
-        // Distance perfect + HR perfect → overall must be ~10.0 even though
-        // pace_score is null. Under the previous weighting an interval
-        // session would have inherited the bogus 7.0 pace default and
-        // dragged compliance down (~8.2). Now it sits at 10.0.
         $activity = WearableActivity::factory()->create([
             'user_id' => $user->id,
-            'distance_meters' => 5000,
-            'average_pace_seconds_per_km' => 360, // anything — must not matter
-            'average_heartrate' => 175, // squarely in default Z4 [171-190]
+            'distance_meters' => 6200,
+            'average_pace_seconds_per_km' => 360, // inside [270, 460]
+            'average_heartrate' => 152, // session average — must NOT be compared to Z5
+            'max_heartrate' => 178, // peaks touched default Z4 [171, 190]
             'start_date' => now(),
         ]);
 
         $this->service->matchAndScore($user, $activity);
 
         $result = $day->fresh()->result;
+        $this->assertEqualsWithDelta(10.0, (float) $result->pace_score, 0.05);
+        $this->assertEqualsWithDelta(10.0, (float) $result->distance_score, 0.05);
+        $this->assertEqualsWithDelta(10.0, (float) $result->heart_rate_score, 0.05);
         $this->assertEqualsWithDelta(10.0, (float) $result->compliance_score, 0.05);
     }
 
-    public function test_interval_day_without_hr_falls_back_to_distance_only(): void
+    public function test_interval_day_pace_slower_than_band_is_penalised(): void
     {
-        [$user, $day] = $this->createUserWithPlan([
-            'type' => TrainingType::Interval,
-            'target_km' => 5.0,
-            'target_pace_seconds_per_km' => null,
-            'intervals_json' => [
-                ['kind' => 'work', 'label' => '400m', 'distance_m' => 400, 'duration_seconds' => null, 'target_pace_seconds_per_km' => 270],
-            ],
+        [$user, $day] = $this->createIntervalPlan();
+
+        // Band max = jog (370) + 90 margin = 460. 520 is 60s over.
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'distance_meters' => 6200,
+            'average_pace_seconds_per_km' => 520,
+            'max_heartrate' => 178,
+            'start_date' => now(),
         ]);
+
+        $this->service->matchAndScore($user, $activity);
+
+        $expected = 10 - ((520 - 460) / 460 * 100) / 2.2;
+        $this->assertEqualsWithDelta(round($expected, 1), (float) $day->fresh()->result->pace_score, 0.05);
+    }
+
+    public function test_interval_day_pace_faster_than_work_pace_is_penalised(): void
+    {
+        // Faster than the work-set average means the recoveries were skipped
+        // (or a different session entirely) — that's non-compliance too.
+        [$user, $day] = $this->createIntervalPlan();
 
         $activity = WearableActivity::factory()->create([
             'user_id' => $user->id,
-            'distance_meters' => 5000, // perfect
+            'distance_meters' => 6200,
+            'average_pace_seconds_per_km' => 240, // below band min 270
+            'max_heartrate' => 178,
+            'start_date' => now(),
+        ]);
+
+        $this->service->matchAndScore($user, $activity);
+
+        $expected = 10 - ((270 - 240) / 270 * 100) / 2.2;
+        $this->assertEqualsWithDelta(round($expected, 1), (float) $day->fresh()->result->pace_score, 0.05);
+    }
+
+    public function test_interval_day_pace_score_null_without_work_paces(): void
+    {
+        $blueprint = self::INTERVAL_BLUEPRINT;
+        $blueprint['steps'][0]['work_pace_seconds_per_km'] = null;
+        [$user, $day] = $this->createIntervalPlan(blueprint: $blueprint);
+
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'distance_meters' => 6200,
             'average_pace_seconds_per_km' => 360,
-            'average_heartrate' => null,
+            'max_heartrate' => 178,
             'start_date' => now(),
         ]);
 
@@ -305,39 +323,130 @@ class ComplianceScoringTest extends TestCase
 
         $result = $day->fresh()->result;
         $this->assertNull($result->pace_score);
-        $this->assertNull($result->heart_rate_score);
-        $this->assertEqualsWithDelta(10.0, (float) $result->compliance_score, 0.05);
+        $this->assertNotNull($result->distance_score);
+        $this->assertNotNull($result->heart_rate_score);
     }
 
-    public function test_interval_day_distance_off_drops_compliance_proportionally(): void
+    public function test_interval_day_max_hr_touching_zone_below_target_scores_full(): void
     {
-        [$user, $day] = $this->createUserWithPlan([
-            'type' => TrainingType::Interval,
-            'target_km' => 5.0,
-            'target_pace_seconds_per_km' => null,
-            'target_heart_rate_zone' => 4, // default Z4 = [171, 190]
-            'intervals_json' => [
-                ['kind' => 'work', 'label' => '400m', 'distance_m' => 400, 'duration_seconds' => null, 'target_pace_seconds_per_km' => 270],
-            ],
-        ]);
+        // Z5 day → the peaks must have touched Z4 (default min 171). The
+        // session AVERAGE is irrelevant — set it absurdly low to prove the
+        // old avg-vs-Z5 comparison is gone.
+        [$user, $day] = $this->createIntervalPlan();
 
-        // Distance 4km vs target 5km = 20% short → distance score ~7.0
-        // (10 - 0.2 * 15 = 7.0). HR perfect = 10. Weighted 50/50 = 8.5.
         $activity = WearableActivity::factory()->create([
             'user_id' => $user->id,
-            'distance_meters' => 4000,
+            'distance_meters' => 6200,
             'average_pace_seconds_per_km' => 360,
-            'average_heartrate' => 175,
+            'average_heartrate' => 130,
+            'max_heartrate' => 172,
+            'start_date' => now(),
+        ]);
+
+        $this->service->matchAndScore($user, $activity);
+
+        $this->assertEqualsWithDelta(10.0, (float) $day->fresh()->result->heart_rate_score, 0.05);
+    }
+
+    public function test_interval_day_max_hr_below_touch_zone_is_penalised(): void
+    {
+        [$user, $day] = $this->createIntervalPlan();
+
+        // Default Z4 min = 171; max HR 156 is 15 bpm short → 10 − 15/5 = 7.0.
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'distance_meters' => 6200,
+            'average_pace_seconds_per_km' => 360,
+            'max_heartrate' => 156,
+            'start_date' => now(),
+        ]);
+
+        $this->service->matchAndScore($user, $activity);
+
+        $this->assertEqualsWithDelta(7.0, (float) $day->fresh()->result->heart_rate_score, 0.05);
+    }
+
+    public function test_interval_day_without_max_hr_scores_null_hr(): void
+    {
+        // No max HR → HR component drops out entirely. The avg-HR-vs-zone
+        // comparison must NOT kick in as a fallback (avg is present here).
+        [$user, $day] = $this->createIntervalPlan();
+
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'distance_meters' => 6200,
+            'average_pace_seconds_per_km' => 360,
+            'average_heartrate' => 160,
+            'max_heartrate' => null,
             'start_date' => now(),
         ]);
 
         $this->service->matchAndScore($user, $activity);
 
         $result = $day->fresh()->result;
-        $this->assertEqualsWithDelta(7.0, (float) $result->distance_score, 0.05);
-        $this->assertEqualsWithDelta(10.0, (float) $result->heart_rate_score, 0.05);
-        // (7 * 0.3 + 10 * 0.3) / 0.6 = 8.5
-        $this->assertEqualsWithDelta(8.5, (float) $result->compliance_score, 0.05);
+        $this->assertNull($result->heart_rate_score);
+        // Distance + pace both perfect → renormalised overall stays 10.
+        $this->assertEqualsWithDelta(10.0, (float) $result->compliance_score, 0.05);
+    }
+
+    public function test_interval_day_distance_overshoot_within_band_scores_full(): void
+    {
+        // target_km (6.2) assumes a 120s-capped warmup; a real 10-15 min
+        // warmup + cooldown easily lands at 1.7× the target. Up to 1.8× is
+        // correct execution, not non-compliance.
+        [$user, $day] = $this->createIntervalPlan();
+
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'distance_meters' => 10500, // 10.5 km ≤ 6.2 × 1.8 = 11.16
+            'average_pace_seconds_per_km' => 360,
+            'max_heartrate' => 178,
+            'start_date' => now(),
+        ]);
+
+        $this->service->matchAndScore($user, $activity);
+
+        $this->assertEqualsWithDelta(10.0, (float) $day->fresh()->result->distance_score, 0.05);
+    }
+
+    public function test_interval_day_distance_under_work_volume_is_penalised(): void
+    {
+        // Below the work volume (5×800m = 4.0 km) the reps are demonstrably
+        // incomplete — steep penalty relative to the work floor.
+        [$user, $day] = $this->createIntervalPlan();
+
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'distance_meters' => 3000,
+            'average_pace_seconds_per_km' => 360,
+            'max_heartrate' => 178,
+            'start_date' => now(),
+        ]);
+
+        $this->service->matchAndScore($user, $activity);
+
+        $expected = 10 - ((4.0 - 3.0) / 4.0) * 15; // 6.25
+        $this->assertEqualsWithDelta(round($expected, 1), (float) $day->fresh()->result->distance_score, 0.05);
+    }
+
+    public function test_interval_day_distance_far_overshoot_mildly_penalised(): void
+    {
+        [$user, $day] = $this->createIntervalPlan();
+
+        $targetKm = (float) $day->fresh()->target_km; // 6.2
+        $activity = WearableActivity::factory()->create([
+            'user_id' => $user->id,
+            'distance_meters' => 14300, // well past the 1.8× band edge
+            'average_pace_seconds_per_km' => 360,
+            'max_heartrate' => 178,
+            'start_date' => now(),
+        ]);
+
+        $this->service->matchAndScore($user, $activity);
+
+        $bandMax = $targetKm * 1.8;
+        $expected = 10 - ((14.3 - $bandMax) / $targetKm) * 7.5;
+        $this->assertEqualsWithDelta(round($expected, 1), (float) $day->fresh()->result->distance_score, 0.05);
     }
 
     private function createUserWithPlanForUser(User $user, array $dayOverrides = []): array

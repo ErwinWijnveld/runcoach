@@ -7,7 +7,8 @@
     @else
         @php
             $totalKm = $goal->trainingWeeks->sum('total_km');
-            $totalDays = $goal->trainingWeeks->sum(fn ($w) => $w->trainingDays->count());
+            $planStats = $this->planResultStats($goal);
+            $offPlanRuns = $this->offPlanRunsByWeek($goal);
         @endphp
 
         <style>
@@ -17,7 +18,7 @@
 
             .gs-summary {
                 display: grid;
-                grid-template-columns: 1.6fr repeat(4, 1fr);
+                grid-template-columns: 1.6fr repeat(5, 1fr);
                 gap: 1.25rem;
                 align-items: center;
                 padding: 1.25rem 1.5rem;
@@ -226,6 +227,168 @@
             .gs-status-today     { background: var(--rc-warn-bg);    color: #8A6618; }
             .gs-status-upcoming  { background: var(--rc-tan);        color: var(--rc-ink-muted); }
 
+            .gs-day-ring {
+                display: flex;
+                align-items: center;
+                padding-left: 0.25rem;
+                flex-shrink: 0;
+            }
+
+            .gs-day-actual {
+                font-family: var(--rc-font-body);
+                font-size: 0.8rem;
+                font-weight: 500;
+                color: var(--rc-ink-muted);
+                margin-top: 0.3rem;
+            }
+
+            .gs-week-comp {
+                font-weight: 600;
+                color: var(--rc-ink);
+            }
+
+            /* ---- Compliance ring (shared: hero + result modal) ----------
+               Band colors are the app's ComplianceColors values. */
+            .rc-band-good { color: #34C759; }
+            .rc-band-ok   { color: #E9B638; }
+            .rc-band-bad  { color: #8F3A3A; }
+            .rc-bg-good   { background: #34C759; }
+            .rc-bg-ok     { background: #E9B638; }
+            .rc-bg-bad    { background: #8F3A3A; }
+
+            .rc-ring { position: relative; display: inline-block; flex-shrink: 0; }
+            .rc-ring svg { display: block; }
+            .rc-ring-grade {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-family: var(--rc-font-serif);
+                font-weight: 500;
+            }
+
+            /* ---- Result panel in the edit-day modal --------------------- */
+            .rc-result-panel { display: flex; flex-direction: column; gap: 1rem; }
+            .rc-result-top { display: flex; align-items: center; gap: 1.75rem; }
+            .rc-result-bars { display: flex; gap: 1.5rem; align-items: flex-end; }
+            .rc-bar { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+            .rc-bar-track {
+                width: 7px;
+                height: 48px;
+                border-radius: 999px;
+                background: var(--rc-border-soft);
+                display: flex;
+                flex-direction: column;
+                justify-content: flex-end;
+                overflow: hidden;
+            }
+            .rc-bar-fill { width: 100%; border-radius: 999px; }
+            .rc-bar-grade {
+                font-family: var(--rc-font-serif);
+                font-size: 0.9rem;
+                font-weight: 600;
+            }
+            .rc-bar-label {
+                font-family: var(--rc-font-display);
+                font-size: 0.58rem;
+                font-weight: 700;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                color: var(--rc-ink-muted);
+            }
+
+            .rc-comp-card {
+                background: var(--rc-card-soft);
+                border: 1px solid var(--rc-border-soft);
+                border-radius: 1rem;
+                padding: 0.5rem 1.1rem;
+            }
+            .rc-comp-table { width: 100%; border-collapse: collapse; }
+            .rc-comp-table th {
+                font-family: var(--rc-font-display);
+                font-size: 0.62rem;
+                font-weight: 600;
+                letter-spacing: 0.14em;
+                text-transform: uppercase;
+                color: var(--rc-ink-muted);
+                text-align: right;
+                padding: 0.6rem 0 0.35rem;
+            }
+            .rc-comp-table td { padding: 0.6rem 0; border-top: 1px solid var(--rc-border-soft); }
+            .rc-comp-table tbody tr:first-child td { border-top: 0; }
+            .rc-comp-label {
+                font-family: var(--rc-font-body);
+                font-size: 0.9rem;
+                color: var(--rc-ink);
+            }
+            .rc-comp-target {
+                font-family: var(--rc-font-serif);
+                font-style: italic;
+                font-size: 1.05rem;
+                color: var(--rc-ink-muted);
+                text-align: right;
+            }
+            .rc-comp-actual {
+                font-family: var(--rc-font-serif);
+                font-style: italic;
+                font-size: 1.15rem;
+                font-weight: 500;
+                color: var(--rc-ink);
+                text-align: right;
+                padding-left: 1rem;
+            }
+
+            .rc-result-activity {
+                font-family: var(--rc-font-body);
+                font-size: 0.82rem;
+                color: var(--rc-ink-muted);
+            }
+            .rc-result-feedback {
+                font-family: var(--rc-font-body);
+                font-size: 0.88rem;
+                color: var(--rc-ink);
+                line-height: 1.55;
+                border-top: 1px solid var(--rc-border-soft);
+                padding-top: 0.85rem;
+            }
+            .rc-result-feedback p { margin: 0 0 0.6rem; }
+            .rc-result-feedback p:last-child { margin-bottom: 0; }
+
+            /* ---- "Buiten schema" run tiles -------------------------------
+               Mirrors Flutter's _UnplannedRunTile: calm blue accent
+               (#3E72C7 with #D8E6FB glow), gradient from the right,
+               km · pace subtitle in blue. */
+            .gs-offplan {
+                cursor: default;
+                background: linear-gradient(to left, rgba(62, 114, 199, 0.12), rgba(62, 114, 199, 0) 65%);
+            }
+            .gs-offplan:hover { background: linear-gradient(to left, rgba(62, 114, 199, 0.12), rgba(62, 114, 199, 0) 65%); }
+            .gs-offplan-pill { background: #D8E6FB; color: #3E72C7; }
+            .gs-offplan-line {
+                font-family: var(--rc-font-display);
+                font-size: 0.72rem;
+                font-weight: 700;
+                color: #3E72C7;
+                margin-top: 0.3rem;
+            }
+            .gs-offplan-plus {
+                align-self: center;
+                margin-right: 1.25rem;
+                width: 28px;
+                height: 28px;
+                border-radius: 999px;
+                background: #3E72C7;
+                color: #fff;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1rem;
+                font-weight: 600;
+                line-height: 1;
+                flex-shrink: 0;
+            }
+
             .gs-status-dot {
                 width: 0.4rem;
                 height: 0.4rem;
@@ -271,7 +434,17 @@
             </div>
             <div>
                 <div class="gs-label">Sessions</div>
-                <div class="gs-value-num">{{ $totalDays }}</div>
+                <div class="gs-value-num">{{ $planStats['done'] }} / {{ $planStats['total'] }} done</div>
+            </div>
+            <div>
+                <div class="gs-label">Compliance</div>
+                @if ($planStats['avg'] !== null)
+                    <div style="margin-top: 6px;">
+                        @include('filament.coach.components.compliance-ring', ['score' => $planStats['avg'], 'size' => 84, 'stroke' => 6])
+                    </div>
+                @else
+                    <div class="gs-value-num">—</div>
+                @endif
             </div>
             <div>
                 <div class="gs-label">Total volume</div>
@@ -284,6 +457,7 @@
             @php
                 $weekKm = (float) ($week->total_km ?? 0);
                 $weekDayCount = $week->trainingDays->count();
+                $weekStats = $this->weekResultStats($week);
             @endphp
 
             <div class="gs-week">
@@ -298,6 +472,9 @@
                         @endif
                     </div>
                     <div class="gs-week-stats">
+                        @if ($weekStats)
+                            <span class="gs-week-comp">{{ $weekStats['done'] }}/{{ $weekStats['total'] }} done · avg {{ $this->formatScore($weekStats['avg']) }}</span>
+                        @endif
                         <span>{{ $weekDayCount }} {{ Str::plural('session', $weekDayCount) }}</span>
                         <span class="gs-week-km">{{ number_format($weekKm, 0) }} km</span>
                     </div>
@@ -316,6 +493,8 @@
                             'today'     => 'Today',
                             default     => 'Upcoming',
                         };
+
+                        $result = $status === 'completed' ? $day->result : null;
                     @endphp
 
                     <button type="button" class="gs-day" wire:click="openEditDay({{ $day->id }})">
@@ -337,6 +516,9 @@
                             @if ($day->description)
                                 <div class="gs-day-desc">{{ $day->description }}</div>
                             @endif
+                            @if ($result)
+                                <div class="gs-day-actual">{{ $this->resultSummaryLine($result) }}</div>
+                            @endif
                         </div>
 
                         <div class="gs-day-stats">
@@ -348,12 +530,40 @@
                             @endif
                         </div>
 
+                        @if ($result)
+                            <div class="gs-day-ring">
+                                @include('filament.coach.components.compliance-ring', ['score' => (float) $result->compliance_score, 'size' => 44, 'stroke' => 4, 'fontSize' => 13])
+                            </div>
+                        @endif
+
                         <div class="gs-day-chev">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
                             </svg>
                         </div>
                     </button>
+                @endforeach
+
+                @foreach ($offPlanRuns[$week->id] ?? [] as $run)
+                    <div class="gs-day gs-offplan">
+                        <div class="gs-day-date">
+                            <div class="gs-day-dow">{{ $run->start_date?->format('D') ?? '—' }}</div>
+                            <div class="gs-day-md">{{ $run->start_date?->format('M j') ?? '—' }}</div>
+                        </div>
+
+                        <div class="gs-day-body">
+                            <div class="gs-day-row1">
+                                <span class="gs-status-pill gs-offplan-pill">
+                                    <span class="gs-status-dot"></span>
+                                    <span>Off-plan</span>
+                                </span>
+                                <span class="gs-day-title">Run outside schedule</span>
+                            </div>
+                            <div class="gs-offplan-line">{{ $this->offPlanRunLine($run) }}</div>
+                        </div>
+
+                        <div class="gs-offplan-plus">+</div>
+                    </div>
                 @endforeach
 
                 <button type="button" class="gs-add-btn" wire:click="addDay({{ $week->id }})">

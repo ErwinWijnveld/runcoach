@@ -17,6 +17,7 @@ return [
         'fallback_title' => 'Loop van vandaag',
         'fallback_body' => 'Tik voor de details.',
         'title_with_km' => 'Vandaag: :km km :type',
+        'title_without_km' => 'Vandaag: :type',
         'target_pace' => 'Richttempo :pace/km',
         'tap_for_details' => 'Tik voor details.',
     ],

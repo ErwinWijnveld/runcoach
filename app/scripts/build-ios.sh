@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-API_BASE_URL="${API_BASE_URL:-https://runcoach.free.laravel.cloud/api/v1}"
+API_BASE_URL="${API_BASE_URL:-https://runcoach.laravel.cloud/api/v1}"
 
 # RevenueCat public iOS SDK key — bundled into the release binary. MUST be set
 # in ~/.zshrc as REVENUECAT_PUBLIC_SDK_KEY=appl_xxx. Production builds without

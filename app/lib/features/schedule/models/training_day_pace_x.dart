@@ -16,11 +16,11 @@ extension TrainingDayPaceX on TrainingDay {
   /// sessions where no work segment carries a target pace.
   int? get workSetAveragePaceSecondsPerKm {
     if (type != 'interval') return null;
-    final segments = intervals;
-    if (segments == null || segments.isEmpty) return null;
-    final paces = segments
-        .where((s) => s.kind == 'work' && (s.targetPaceSecondsPerKm ?? 0) > 0)
-        .map((s) => s.targetPaceSecondsPerKm!)
+    final bp = intervals;
+    if (bp == null || bp.isEmpty) return null;
+    final paces = bp.steps
+        .where((s) => s.type != 'rest' && (s.workPaceSecondsPerKm ?? 0) > 0)
+        .map((s) => s.workPaceSecondsPerKm!)
         .toList(growable: false);
     if (paces.isEmpty) return null;
     final sum = paces.fold<int>(0, (a, b) => a + b);

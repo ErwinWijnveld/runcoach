@@ -80,6 +80,48 @@ class PlanContent extends StatelessWidget {
         .toList(growable: false);
   }
 
+  /// For a brand-new plan (no `diff`, no `goal_id` yet) whose week 1 is the
+  /// current calendar week, returns the date of the first session that will
+  /// actually survive — `ProposalService::applyCreateSchedule` drops any
+  /// week-1 day dated before today. Returns null when nothing is dropped or
+  /// the payload is an active-goal / revision preview (dates are real there).
+  DateTime? _firstWeekStartDate(List<Map<String, dynamic>> weeks) {
+    final diff = payload['diff'];
+    if (diff is List && diff.isNotEmpty) return null;
+    if (payload['goal_id'] != null) return null;
+
+    Map<String, dynamic>? week1;
+    for (final w in weeks) {
+      if ((w['week_number'] as num?)?.toInt() == 1) {
+        week1 = w;
+        break;
+      }
+    }
+    if (week1 == null) return null;
+    final days = week1['days'];
+    if (days is! List) return null;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final monday = today.subtract(Duration(days: today.weekday - 1));
+
+    DateTime? earliest;
+    DateTime? firstKept;
+    for (final d in days) {
+      final dow = (d is Map ? d['day_of_week'] : null) as num?;
+      if (dow == null || dow < 1 || dow > 7) continue;
+      final date = monday.add(Duration(days: dow.toInt() - 1));
+      if (earliest == null || date.isBefore(earliest)) earliest = date;
+      if (!date.isBefore(today) && (firstKept == null || date.isBefore(firstKept))) {
+        firstKept = date;
+      }
+    }
+
+    if (earliest == null || firstKept == null) return null;
+    // Only worth a note when something actually gets dropped.
+    return earliest.isBefore(today) ? firstKept : null;
+  }
+
   double _averageWeeklyKm(List<Map<String, dynamic>> weeks) {
     if (weeks.isEmpty) return 0.0;
     final totals =
@@ -156,6 +198,10 @@ class PlanContent extends StatelessWidget {
             avgWeeklyKm: avgKm,
             weeklyRuns: runsRange,
           ),
+          if (_firstWeekStartDate(weeks) case final DateTime startDate) ...[
+            const SizedBox(height: 12),
+            _StartsNote(date: startDate),
+          ],
           const SizedBox(height: 20),
           _WeeklyVolumeChart(
             weeks: weeks,
@@ -208,6 +254,44 @@ class PlanContent extends StatelessWidget {
 /// The remaining week cards rendered for real, then frosted over with a blur +
 /// a lock badge — so the runner can tell there's more plan beneath the glass
 /// without reading the details. Tapping anywhere opens the paywall.
+/// Small gold note shown on a fresh plan when this week's earlier days fall
+/// before today and will be trimmed on accept — so the runner isn't surprised
+/// the schedule looks shorter than the preview.
+class _StartsNote extends StatelessWidget {
+  final DateTime date;
+  const _StartsNote({required this.date});
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    final label = DateFormat('EEEE d MMM', locale).format(date);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.goldGlow,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.event_available_rounded, size: 16, color: AppColors.eyebrow),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              context.l10n.planStartsNote(label),
+              style: GoogleFonts.publicSans(
+                fontSize: 12.5,
+                height: 1.35,
+                color: AppColors.primaryInk,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _LockedWeeks extends StatelessWidget {
   final List<Map<String, dynamic>> weeks;
   final VoidCallback? onTap;
@@ -663,14 +747,22 @@ class _DayRow extends StatelessWidget {
       final raw = day['target_pace_seconds_per_km'];
       return raw is num ? raw.toInt() : null;
     }
-    final segments = day['intervals'];
-    if (segments is! List || segments.isEmpty) return null;
+    final iv = day['intervals'];
     final paces = <int>[];
-    for (final s in segments) {
-      if (s is! Map) continue;
-      if (s['kind'] != 'work') continue;
-      final p = s['target_pace_seconds_per_km'];
-      if (p is num && p > 0) paces.add(p.toInt());
+    if (iv is Map && iv['steps'] is List) {
+      // Canonical grouped blueprint: one pace per work block/rep step.
+      for (final s in iv['steps'] as List) {
+        if (s is! Map || s['type'] == 'rest') continue;
+        final p = s['work_pace_seconds_per_km'];
+        if (p is num && p > 0) paces.add(p.toInt());
+      }
+    } else if (iv is List) {
+      // Legacy flat segment list.
+      for (final s in iv) {
+        if (s is! Map || s['kind'] != 'work') continue;
+        final p = s['target_pace_seconds_per_km'];
+        if (p is num && p > 0) paces.add(p.toInt());
+      }
     }
     if (paces.isEmpty) return null;
     return (paces.reduce((a, b) => a + b) / paces.length).round();

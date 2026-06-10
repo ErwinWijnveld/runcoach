@@ -43,7 +43,7 @@ Order matters: dashboard setup first (manual), then backend, then Flutter. Migra
 ### Step 6 — RevenueCat: webhook + secrets
 - [ ] `openssl rand -hex 32` → save as `REVENUECAT_WEBHOOK_SECRET`.
 - [ ] Integrations → Webhooks → new endpoint:
-  - URL: `https://runcoach.free.laravel.cloud/api/webhooks/revenuecat`
+  - URL: `https://runcoach.laravel.cloud/api/webhooks/revenuecat`
   - Authorization header: the secret you just generated
   - Enable **all** event types
   - Enable "Send sandbox events to webhook"

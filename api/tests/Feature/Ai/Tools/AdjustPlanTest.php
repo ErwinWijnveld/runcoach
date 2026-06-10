@@ -10,10 +10,14 @@ use App\Enums\ProposalStatus;
 use App\Enums\ProposalType;
 use App\Enums\TrainingType;
 use App\Models\CoachProposal;
+use App\Models\Goal;
+use App\Models\TrainingDay;
+use App\Models\TrainingWeek;
 use App\Models\User;
 use App\Services\Onboarding\TrainingPlanBuilder;
 use App\Services\PlanOptimizerService;
 use App\Services\ProposalService;
+use App\Support\Intervals\IntervalBlueprint;
 use App\Support\Onboarding\FitnessSnapshot;
 use App\Support\Onboarding\OnboardingFormInput;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -74,6 +78,38 @@ class AdjustPlanTest extends TestCase
             ProposalType::CreateSchedule,
             $payload,
         );
+    }
+
+    /**
+     * An active goal with a single editable easy day on week 1, Tuesday.
+     * target_date is null so the race-day optimizer passes stay no-ops.
+     */
+    private function seedActiveGoal(User $user): Goal
+    {
+        $goal = Goal::factory()->create([
+            'user_id' => $user->id,
+            'status' => GoalStatus::Active,
+            'target_date' => null,
+        ]);
+        $week = TrainingWeek::factory()->create([
+            'goal_id' => $goal->id,
+            'week_number' => 1,
+            'starts_at' => now()->startOfWeek(),
+            'total_km' => 20,
+        ]);
+        TrainingDay::factory()->create([
+            'training_week_id' => $week->id,
+            'order' => 2,
+            'date' => now()->startOfWeek()->addDay(),
+            'type' => TrainingType::Easy->value,
+            'title' => 'Easy',
+            'target_km' => 5.0,
+            'target_pace_seconds_per_km' => 360,
+            'target_heart_rate_zone' => 2,
+            'intervals_json' => null,
+        ]);
+
+        return $goal->fresh();
     }
 
     public function test_replace_swaps_session_type(): void
@@ -152,13 +188,14 @@ class AdjustPlanTest extends TestCase
         $this->assertSame(TrainingType::Interval->value, $editedDay['type']);
         $this->assertSame('Intervals', $editedDay['title']);
         $this->assertNull($editedDay['target_pace_seconds_per_km']);
-        $this->assertIsArray($editedDay['intervals']);
-        $this->assertNotEmpty($editedDay['intervals']);
-        $kinds = array_map(fn ($s) => $s['kind'], $editedDay['intervals']);
-        $this->assertContains('warmup', $kinds);
-        $this->assertContains('work', $kinds);
-        $this->assertContains('recovery', $kinds);
-        $this->assertSame('cooldown', end($kinds), 'cooldown must be the last segment');
+        // Canonical grouped blueprint synthesized for a naked interval swap.
+        $intervals = $editedDay['intervals'];
+        $this->assertIsArray($intervals);
+        $this->assertArrayHasKey('steps', $intervals);
+        $this->assertNotEmpty($intervals['steps']);
+        $this->assertSame('block', $intervals['steps'][0]['type']);
+        $this->assertNotNull($intervals['warmup_seconds']);
+        $this->assertNotNull($intervals['cooldown_seconds']);
     }
 
     public function test_remove_drops_session(): void
@@ -379,6 +416,300 @@ class AdjustPlanTest extends TestCase
             ->firstWhere('week_number', $easyWeek['week_number']);
         $editedDay = collect($newWeek['days'])->firstWhere('day_of_week', $easyDay['day_of_week']);
         $this->assertSame($requested, $editedDay['target_pace_seconds_per_km']);
+    }
+
+    public function test_distance_override_is_honored_below_old_minimum(): void
+    {
+        $user = User::factory()->create();
+        $proposal = $this->seedProposal($user);
+
+        // Find an easy day and ask for a 3km shakeout — below the old 4km
+        // floor + the optimizer's min-run-length bump. Must stick verbatim.
+        $easyDay = null;
+        $easyWeek = null;
+        foreach ($proposal->payload['schedule']['weeks'] as $w) {
+            foreach ($w['days'] as $d) {
+                if ($d['type'] === TrainingType::Easy->value) {
+                    $easyDay = $d;
+                    $easyWeek = $w;
+                    break 2;
+                }
+            }
+        }
+        if ($easyDay === null) {
+            $this->markTestSkipped('Plan has no easy day.');
+        }
+
+        $result = json_decode($this->makeTool($user)->handle(new Request([
+            'reason' => 'Runner wants a short shakeout.',
+            'operations' => json_encode([
+                'operations' => [
+                    [
+                        'action' => 'adjust',
+                        'week' => $easyWeek['week_number'],
+                        'day_of_week' => $easyDay['day_of_week'],
+                        'target_km' => 3,
+                    ],
+                ],
+            ]),
+        ])), true);
+
+        $newProposal = CoachProposal::find($result['proposal_id']);
+        $newWeek = collect($newProposal->payload['schedule']['weeks'])
+            ->firstWhere('week_number', $easyWeek['week_number']);
+        $edited = collect($newWeek['days'])->firstWhere('day_of_week', $easyDay['day_of_week']);
+        $this->assertSame(3.0, (float) $edited['target_km']);
+    }
+
+    public function test_diff_carries_before_and_after_snapshots(): void
+    {
+        $user = User::factory()->create();
+        // Active-goal edit so the proposal carries a `diff`.
+        $goal = $this->seedActiveGoal($user);
+
+        $result = json_decode($this->makeTool($user)->handle(new Request([
+            'reason' => 'Swap the easy day for a tempo.',
+            'operations' => json_encode([
+                'operations' => [
+                    ['action' => 'replace', 'week' => 1, 'day_of_week' => 2, 'type' => TrainingType::Tempo->value],
+                ],
+            ]),
+        ])), true);
+
+        $this->assertSame(ProposalType::EditActivePlan->value, $result['proposal_type']);
+        $newProposal = CoachProposal::find($result['proposal_id']);
+        $diff = $newProposal->payload['diff'];
+        $this->assertNotEmpty($diff);
+        $entry = $diff[0];
+        // before = the original easy day; after (flat) = the new tempo day.
+        $this->assertSame(TrainingType::Easy->value, $entry['before']['type']);
+        $this->assertSame(TrainingType::Tempo->value, $entry['type']);
+    }
+
+    public function test_diff_notes_out_of_range_hr_zone_was_not_applied(): void
+    {
+        $user = User::factory()->create();
+        $goal = $this->seedActiveGoal($user);
+
+        $result = json_decode($this->makeTool($user)->handle(new Request([
+            'reason' => 'Set an impossible HR zone.',
+            'operations' => json_encode([
+                'operations' => [
+                    ['action' => 'adjust', 'week' => 1, 'day_of_week' => 2, 'target_heart_rate_zone' => 9],
+                ],
+            ]),
+        ])), true);
+
+        $applied = $result['applied'][0];
+        $this->assertArrayHasKey('adjustments', $applied);
+        $this->assertStringContainsString('1–5', implode(' ', $applied['adjustments']));
+    }
+
+    public function test_diff_carries_interval_summary_for_interval_day(): void
+    {
+        $user = User::factory()->create();
+        $this->seedActiveGoal($user);
+
+        $result = json_decode($this->makeTool($user)->handle(new Request([
+            'reason' => 'Swap the easy day for a specific interval session.',
+            'operations' => json_encode([
+                'operations' => [
+                    [
+                        'action' => 'replace',
+                        'week' => 1,
+                        'day_of_week' => 2,
+                        'type' => TrainingType::Interval->value,
+                        'intervals' => [
+                            'warmup_seconds' => 60,
+                            'steps' => [['type' => 'block', 'reps' => 5, 'work_distance_m' => 1000, 'work_pace_seconds_per_km' => 250, 'recovery_seconds' => 90]],
+                            'cooldown_seconds' => 300,
+                        ],
+                    ],
+                ],
+            ]),
+        ])), true);
+
+        $entry = $result['applied'][0];
+        // The diff shows the exact stored interval structure, so the agent
+        // can describe the session from what landed, not what it sent.
+        $this->assertIsString($entry['intervals']);
+        $this->assertStringContainsString('5×1000m', $entry['intervals']);
+    }
+
+    public function test_interval_day_distance_is_derived_from_blueprint_and_noted(): void
+    {
+        $user = User::factory()->create();
+        $this->seedActiveGoal($user);
+
+        $blueprint = [
+            'warmup_seconds' => 60,
+            'steps' => [['type' => 'block', 'reps' => 5, 'work_distance_m' => 1000, 'work_pace_seconds_per_km' => 250, 'recovery_seconds' => 90]],
+            'cooldown_seconds' => 300,
+        ];
+
+        $result = json_decode($this->makeTool($user)->handle(new Request([
+            'reason' => 'Interval session with an explicit distance the structure contradicts.',
+            'operations' => json_encode([
+                'operations' => [[
+                    'action' => 'replace',
+                    'week' => 1,
+                    'day_of_week' => 2,
+                    'type' => TrainingType::Interval->value,
+                    'target_km' => 15.0,
+                    'intervals' => $blueprint,
+                ]],
+            ]),
+        ])), true);
+
+        $entry = $result['applied'][0];
+        // Stored distance is derived from the session structure, not the
+        // agent's claim — and the note tells the agent why.
+        $this->assertSame(IntervalBlueprint::estimateTotalKm($blueprint), $entry['target_km']);
+        $this->assertStringContainsString('session structure', implode(' ', $entry['adjustments']));
+    }
+
+    public function test_invalid_intervals_are_replaced_with_default_and_noted(): void
+    {
+        $user = User::factory()->create();
+        $this->seedActiveGoal($user);
+
+        $result = json_decode($this->makeTool($user)->handle(new Request([
+            'reason' => 'Send a broken interval structure.',
+            'operations' => json_encode([
+                'operations' => [
+                    [
+                        'action' => 'replace',
+                        'week' => 1,
+                        'day_of_week' => 2,
+                        'type' => TrainingType::Interval->value,
+                        'intervals' => ['steps' => ['not-a-step']],
+                    ],
+                ],
+            ]),
+        ])), true);
+
+        $entry = $result['applied'][0];
+        $this->assertStringContainsString('default interval session', implode(' ', $entry['adjustments']));
+        // The diff shows the skeleton that was actually stored.
+        $this->assertStringContainsString('4×400m', $entry['intervals']);
+    }
+
+    public function test_intervals_on_non_interval_day_are_not_applied_and_noted(): void
+    {
+        $user = User::factory()->create();
+        $this->seedActiveGoal($user);
+
+        $result = json_decode($this->makeTool($user)->handle(new Request([
+            'reason' => 'Intervals on an easy day.',
+            'operations' => json_encode([
+                'operations' => [
+                    [
+                        'action' => 'adjust',
+                        'week' => 1,
+                        'day_of_week' => 2,
+                        'intervals' => ['steps' => [['type' => 'block', 'reps' => 4, 'work_distance_m' => 400, 'recovery_seconds' => 90]]],
+                    ],
+                ],
+            ]),
+        ])), true);
+
+        $entry = $result['applied'][0];
+        $this->assertStringContainsString('was not applied', implode(' ', $entry['adjustments']));
+        $this->assertArrayNotHasKey('intervals', $entry);
+    }
+
+    public function test_interval_clamp_notes_surface_in_adjustments(): void
+    {
+        $user = User::factory()->create();
+        $this->seedActiveGoal($user);
+
+        $result = json_decode($this->makeTool($user)->handle(new Request([
+            'reason' => 'A hundred reps.',
+            'operations' => json_encode([
+                'operations' => [
+                    [
+                        'action' => 'replace',
+                        'week' => 1,
+                        'day_of_week' => 2,
+                        'type' => TrainingType::Interval->value,
+                        'intervals' => [
+                            'steps' => [['type' => 'block', 'reps' => 100, 'work_distance_m' => 400, 'recovery_seconds' => 90]],
+                            'cooldown_seconds' => 300,
+                        ],
+                    ],
+                ],
+            ]),
+        ])), true);
+
+        $entry = $result['applied'][0];
+        $this->assertStringContainsString('you asked for 100', implode(' ', $entry['adjustments']));
+        $this->assertStringContainsString('60×400m', $entry['intervals']);
+    }
+
+    public function test_shift_entry_carries_interval_summary(): void
+    {
+        $user = User::factory()->create();
+        $goal = Goal::factory()->create([
+            'user_id' => $user->id,
+            'status' => GoalStatus::Active,
+            'target_date' => null,
+        ]);
+        $week = TrainingWeek::factory()->create([
+            'goal_id' => $goal->id,
+            'week_number' => 1,
+            'starts_at' => now()->startOfWeek(),
+            'total_km' => 20,
+        ]);
+        TrainingDay::factory()->create([
+            'training_week_id' => $week->id,
+            'order' => 4,
+            'date' => now()->startOfWeek()->addDays(3),
+            'type' => TrainingType::Interval->value,
+            'title' => 'Intervals',
+            'target_km' => 6.0,
+            'target_pace_seconds_per_km' => null,
+            'intervals_json' => [
+                'warmup_seconds' => 60,
+                'steps' => [['type' => 'block', 'reps' => 4, 'work_distance_m' => 800, 'work_duration_seconds' => null, 'work_pace_seconds_per_km' => 270, 'recovery_seconds' => 90]],
+                'cooldown_seconds' => 300,
+            ],
+        ]);
+
+        $result = json_decode($this->makeTool($user)->handle(new Request([
+            'reason' => 'Move intervals to Saturday.',
+            'operations' => json_encode([
+                'operations' => [
+                    ['action' => 'shift', 'week' => 1, 'from_day_of_week' => 4, 'to_day_of_week' => 6],
+                ],
+            ]),
+        ])), true);
+
+        $entry = $result['applied'][0];
+        $this->assertStringContainsString('4×800m', $entry['intervals']);
+        $this->assertStringContainsString('4×800m', $entry['before']['intervals']);
+    }
+
+    public function test_stale_pending_proposal_does_not_hijack_active_plan_edit(): void
+    {
+        $user = User::factory()->create();
+        $goal = $this->seedActiveGoal($user);
+
+        // A leftover pending CreateSchedule from an earlier onboarding
+        // attempt, created BEFORE the active goal — must not be the target.
+        $stale = $this->seedProposal($user);
+        $stale->forceFill(['created_at' => now()->subWeek()])->save();
+        $goal->forceFill(['created_at' => now()->subDay()])->save();
+
+        $result = json_decode($this->makeTool($user)->handle(new Request([
+            'reason' => 'Edit the live plan.',
+            'operations' => json_encode([
+                'operations' => [
+                    ['action' => 'adjust', 'week' => 1, 'day_of_week' => 2, 'target_km' => 7],
+                ],
+            ]),
+        ])), true);
+
+        $this->assertSame(ProposalType::EditActivePlan->value, $result['proposal_type']);
     }
 
     public function test_no_pending_proposal_returns_error(): void

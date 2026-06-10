@@ -11,6 +11,7 @@ use App\Models\TrainingWeek;
 use App\Models\User;
 use App\Models\WearableActivity;
 use App\Services\ComplianceScoringService;
+use App\Support\Intervals\IntervalBlueprint;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -168,9 +169,31 @@ class TrainingScheduleController extends Controller
             'target_km' => ['sometimes', 'nullable', 'numeric', 'min:1', 'max:80'],
             'target_pace_seconds_per_km' => ['sometimes', 'nullable', 'integer', 'min:150', 'max:720'],
             'target_heart_rate_zone' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:5'],
+            'intervals' => ['sometimes', 'array'],
         ]);
 
         $updates = [];
+
+        // Interval-structure edit (the app's block editor). Only meaningful
+        // on interval days; normalize() clamps the structure and rejects
+        // empty/garbage input — storing that would null the derived
+        // target_km (the saving hook recomputes it from this blueprint).
+        if (array_key_exists('intervals', $validated)) {
+            abort_unless(
+                $day->type === TrainingType::Interval,
+                422,
+                'Intervals can only be set on interval days.',
+            );
+
+            $normalized = IntervalBlueprint::normalize($validated['intervals']);
+            abort_if(
+                $normalized === null,
+                422,
+                'The interval structure must contain at least one step.',
+            );
+
+            $updates['intervals_json'] = $normalized;
+        }
 
         if (array_key_exists('date', $validated)) {
             $newDate = Carbon::parse($validated['date'])->startOfDay();

@@ -194,14 +194,15 @@ class ProposalServiceScheduleTest extends TestCase
 
         $intervalDay = $days->firstWhere('title', '6x800m');
         $this->assertNotNull($intervalDay->intervals_json);
-        $this->assertCount(4, $intervalDay->intervals_json);
-        $this->assertSame('warmup', $intervalDay->intervals_json[0]['kind']);
-        $this->assertSame(800, $intervalDay->intervals_json[1]['distance_m']);
-        $this->assertSame('recovery', $intervalDay->intervals_json[2]['kind']);
-        $this->assertNull($intervalDay->intervals_json[2]['distance_m']);
-        $this->assertSame(90, $intervalDay->intervals_json[2]['duration_seconds']);
-        $this->assertSame('cooldown', $intervalDay->intervals_json[3]['kind']);
-        $this->assertSame(300, $intervalDay->intervals_json[3]['duration_seconds']);
+        // Persisted as the canonical grouped blueprint (flat input folded).
+        $grouped = $intervalDay->intervals_json;
+        $this->assertSame(60, $grouped['warmup_seconds']);
+        $this->assertSame(300, $grouped['cooldown_seconds']);
+        $this->assertCount(1, $grouped['steps']);
+        $this->assertSame('block', $grouped['steps'][0]['type']);
+        $this->assertSame(800, $grouped['steps'][0]['work_distance_m']);
+        $this->assertSame(270, $grouped['steps'][0]['work_pace_seconds_per_km']);
+        $this->assertSame(90, $grouped['steps'][0]['recovery_seconds']);
 
         $easyDay = $days->firstWhere('title', 'Easy run');
         $this->assertNull($easyDay->intervals_json);

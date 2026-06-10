@@ -1,6 +1,5 @@
 import 'package:app/features/goals/models/goal.dart';
 import 'package:app/features/schedule/models/training_day.dart';
-import 'package:app/features/schedule/models/training_interval.dart';
 import 'package:app/features/schedule/models/training_week.dart';
 
 /// Convert a [Goal] + its [TrainingWeek]s into the same map shape that
@@ -47,16 +46,6 @@ Map<String, dynamic> _dayToMap(TrainingDay day) {
     'target_km': day.targetKm,
     'target_pace_seconds_per_km': day.targetPaceSecondsPerKm,
     if (intervals != null && intervals.isNotEmpty)
-      'intervals': intervals.map(_intervalToMap).toList(),
-  };
-}
-
-Map<String, dynamic> _intervalToMap(TrainingInterval interval) {
-  return {
-    'kind': interval.kind,
-    'label': interval.label,
-    'distance_m': interval.distanceM,
-    'duration_seconds': interval.durationSeconds,
-    'target_pace_seconds_per_km': interval.targetPaceSecondsPerKm,
+      'intervals': intervals.toJson(),
   };
 }

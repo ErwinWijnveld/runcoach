@@ -35,7 +35,7 @@ class EditWorkout implements Tool
 
         `fields` is a JSON-encoded object. Allowed keys (omit any you don't want to change):
         - `type`: one of `easy`, `long_run`, `tempo`, `interval`, `threshold`
-        - `target_km`: positive number
+        - `target_km`: positive number. On interval days the distance is DERIVED from the interval structure (reps × distance + warmup/recoveries/cooldown) and any value sent here is overridden — change `intervals` instead to make the session longer/shorter.
         - `target_pace_seconds_per_km`: integer 60-1800 (or null to clear)
         - `target_heart_rate_zone`: integer 1-5 (or null to clear)
         - `intervals`: array of segments (warmup/work/recovery/cooldown) — same shape `build_plan` uses

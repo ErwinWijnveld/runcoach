@@ -5,6 +5,7 @@ namespace Tests\Feature\Services;
 use App\Models\User;
 use App\Models\UserRunningProfile;
 use App\Services\PlanOptimizerService;
+use App\Support\Intervals\IntervalBlueprint;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
@@ -304,12 +305,14 @@ class PlanOptimizerServiceTest extends TestCase
 
         $result = $this->optimizer->optimize($payload, $user);
 
+        // Canonical grouped: warmup/recovery/cooldown carry only seconds; the
+        // work pace is filled per block from the interval baseline (300-50).
         $intervals = $result['schedule']['weeks'][0]['days'][0]['intervals'];
-        $this->assertCount(4, $intervals);
-        $this->assertSame(330, $intervals[0]['target_pace_seconds_per_km']); // warmup = easy = 300+30
-        $this->assertSame(250, $intervals[1]['target_pace_seconds_per_km']); // work = interval = 300-50
-        $this->assertSame(360, $intervals[2]['target_pace_seconds_per_km']); // recovery = 300+60
-        $this->assertSame(330, $intervals[3]['target_pace_seconds_per_km']); // cooldown = easy
+        $this->assertSame(60, $intervals['warmup_seconds']);
+        $this->assertSame(300, $intervals['cooldown_seconds']);
+        $this->assertCount(1, $intervals['steps']);
+        $this->assertSame(250, $intervals['steps'][0]['work_pace_seconds_per_km']);
+        $this->assertSame(60, $intervals['steps'][0]['recovery_seconds']);
     }
 
     public function test_normalize_intervals_caps_warmup_clamps_cooldown_and_time_only_recovery(): void
@@ -345,22 +348,17 @@ class PlanOptimizerServiceTest extends TestCase
         $result = $this->optimizer->optimize($payload, $user);
         $intervals = $result['schedule']['weeks'][0]['days'][0]['intervals'];
 
-        $this->assertCount(4, $intervals);
+        // Warmup: time-based, capped at 120s.
+        $this->assertSame(120, $intervals['warmup_seconds']);
+        // Cooldown: time-based, clamped to 600s.
+        $this->assertSame(600, $intervals['cooldown_seconds']);
 
-        // Warmup: time-based, capped at 120s, distance cleared.
-        $this->assertSame('warmup', $intervals[0]['kind']);
-        $this->assertSame(120, $intervals[0]['duration_seconds']);
-        $this->assertNull($intervals[0]['distance_m']);
-
-        // Recovery: time-based, distance converted to seconds (400m at 360s/km recovery pace = 144s).
-        $this->assertSame('recovery', $intervals[2]['kind']);
-        $this->assertNull($intervals[2]['distance_m']);
-        $this->assertGreaterThan(60, $intervals[2]['duration_seconds']);
-
-        // Cooldown: always last, time-based, clamped to 600s, distance cleared.
-        $this->assertSame('cooldown', $intervals[3]['kind']);
-        $this->assertSame(600, $intervals[3]['duration_seconds']);
-        $this->assertNull($intervals[3]['distance_m']);
+        // One work block; distance preferred over duration; recovery is
+        // always time-based (canonical recovery carries seconds only).
+        $this->assertCount(1, $intervals['steps']);
+        $this->assertSame(800, $intervals['steps'][0]['work_distance_m']);
+        $this->assertNull($intervals['steps'][0]['work_duration_seconds']);
+        $this->assertGreaterThanOrEqual(15, $intervals['steps'][0]['recovery_seconds']);
     }
 
     public function test_normalize_intervals_synthesizes_cooldown_when_missing(): void
@@ -392,10 +390,10 @@ class PlanOptimizerServiceTest extends TestCase
         $result = $this->optimizer->optimize($payload, $user);
         $intervals = $result['schedule']['weeks'][0]['days'][0]['intervals'];
 
-        // Cooldown synthesized at the end with default 300s.
-        $this->assertCount(4, $intervals);
-        $this->assertSame('cooldown', $intervals[3]['kind']);
-        $this->assertSame(300, $intervals[3]['duration_seconds']);
+        // Cooldown synthesized with the default 300s even though the input omitted it.
+        $this->assertSame(300, $intervals['cooldown_seconds']);
+        $this->assertSame(60, $intervals['warmup_seconds']);
+        $this->assertNotEmpty($intervals['steps']);
     }
 
     public function test_keeps_user_stated_target_date_and_drops_days_past_it(): void
@@ -1087,6 +1085,85 @@ class PlanOptimizerServiceTest extends TestCase
         $this->assertSame(335, $result['schedule']['weeks'][0]['days'][0]['target_pace_seconds_per_km']);
 
         Carbon::setTestNow();
+    }
+
+    public function test_recomputes_interval_day_target_km_from_blueprint(): void
+    {
+        $user = $this->userWithBaseline(300); // interval work pace = 250, jog = 350
+
+        $payload = [
+            'goal_name' => 'Test',
+            'schedule' => [
+                'weeks' => [[
+                    'week_number' => 1,
+                    'focus' => 'build',
+                    'days' => [
+                        [
+                            // Agent claims 12 km; blueprint sums to far less.
+                            'day_of_week' => 3,
+                            'type' => 'interval',
+                            'target_km' => 12.0,
+                            'intervals' => [
+                                'warmup_seconds' => 60,
+                                // Pace deliberately null: computePaces must fill
+                                // it (250) BEFORE the estimate runs, otherwise
+                                // the jog fallback (360) yields a different km.
+                                'steps' => [['type' => 'block', 'reps' => 4, 'work_distance_m' => 800, 'work_duration_seconds' => null, 'work_pace_seconds_per_km' => null, 'recovery_seconds' => 90]],
+                                'cooldown_seconds' => 300,
+                            ],
+                        ],
+                        ['day_of_week' => 5, 'type' => 'easy', 'target_km' => 8.0],
+                    ],
+                ]],
+            ],
+        ];
+
+        $result = $this->optimizer->optimize($payload, $user);
+        $days = $result['schedule']['weeks'][0]['days'];
+
+        // Work 3200m + (60+360+300)s at jog 350 ≈ 2057m → 5.3 km.
+        $this->assertSame(5.3, $days[0]['target_km']);
+        // Non-interval day untouched.
+        $this->assertSame(8.0, $days[1]['target_km']);
+        // Weekly total reflects the recomputed value, not the agent's claim.
+        $this->assertSame(13.3, $result['schedule']['weeks'][0]['total_km']);
+    }
+
+    public function test_interval_target_km_recompute_is_idempotent(): void
+    {
+        $user = $this->userWithBaseline(300);
+
+        $payload = [
+            'goal_name' => 'Test',
+            'schedule' => [
+                'weeks' => [[
+                    'week_number' => 1,
+                    'focus' => 'build',
+                    'days' => [[
+                        'day_of_week' => 3,
+                        'type' => 'interval',
+                        'target_km' => 1.0,
+                        'intervals' => [
+                            'warmup_seconds' => 60,
+                            'steps' => [['type' => 'block', 'reps' => 5, 'work_distance_m' => 1000, 'work_duration_seconds' => null, 'work_pace_seconds_per_km' => 255, 'recovery_seconds' => 120]],
+                            'cooldown_seconds' => 300,
+                        ],
+                    ]],
+                ]],
+            ],
+        ];
+
+        $once = $this->optimizer->optimize($payload, $user);
+        $twice = $this->optimizer->optimize($once, $user);
+
+        $this->assertSame(
+            $once['schedule']['weeks'][0]['days'][0]['target_km'],
+            $twice['schedule']['weeks'][0]['days'][0]['target_km'],
+        );
+        $this->assertSame(
+            IntervalBlueprint::estimateTotalKm($once['schedule']['weeks'][0]['days'][0]['intervals']),
+            $once['schedule']['weeks'][0]['days'][0]['target_km'],
+        );
     }
 
     private function userWithBaseline(int $paceSeconds): User

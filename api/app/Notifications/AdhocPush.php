@@ -9,7 +9,8 @@ use NotificationChannels\Apn\ApnChannel;
 use NotificationChannels\Apn\ApnMessage;
 
 /**
- * Ad-hoc push for ops/admin use — drives the `push:send` artisan command.
+ * Ad-hoc push for ops/admin use — drives the `push:send` artisan command
+ * and the "Send push notification" actions on the Filament Users resource.
  * Don't dispatch this from app code; use a dedicated typed notification
  * (PlanGenerationCompleted, TrainingDayReminder, …) so taps deep-link
  * correctly via PushService.routeFromPayload.

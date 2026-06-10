@@ -45,6 +45,14 @@ class TrainingDayReminder extends Notification implements ShouldQueue
             return __('notifications.training_day.fallback_title');
         }
 
+        // target_km can be null (derived from an emptied interval blueprint)
+        // — drop the km rather than rendering "Today: 0 km Intervals".
+        if ($day->target_km === null || (float) $day->target_km <= 0) {
+            return __('notifications.training_day.title_without_km', [
+                'type' => $day->type->label(),
+            ]);
+        }
+
         return __('notifications.training_day.title_with_km', [
             'km' => self::formatKm((float) $day->target_km),
             'type' => $day->type->label(),

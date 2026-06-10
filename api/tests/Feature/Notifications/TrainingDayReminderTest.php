@@ -74,6 +74,27 @@ class TrainingDayReminderTest extends TestCase
         $this->assertStringContainsString('Rotterdam Marathon', $message->body);
     }
 
+    public function test_title_omits_km_when_target_km_is_null(): void
+    {
+        // Reachable edge: an interval day whose blueprint was emptied —
+        // target_km is derived from the blueprint, so it can be null. The
+        // title must not render "Today: 0 km Intervals".
+        $week = TrainingWeek::factory()->create();
+        $day = TrainingDay::factory()->create([
+            'training_week_id' => $week->id,
+            'type' => TrainingType::Interval,
+            'title' => 'Intervals',
+            'target_km' => null,
+            'target_pace_seconds_per_km' => null,
+            'intervals_json' => null,
+        ]);
+
+        $message = (new TrainingDayReminder($day->id))->toApn(User::factory()->make());
+
+        $this->assertSame('Today: Intervals', $message->title);
+        $this->assertStringNotContainsString('0 km', $message->title);
+    }
+
     public function test_handles_missing_pace_gracefully(): void
     {
         $week = TrainingWeek::factory()->create();

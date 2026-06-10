@@ -1,6 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:app/core/utils/json_converters.dart';
-import 'package:app/features/schedule/models/training_interval.dart';
+import 'package:app/features/schedule/models/interval_blueprint.dart';
 import 'package:app/features/schedule/models/training_result.dart';
 
 part 'training_day.freezed.dart';
@@ -20,10 +20,10 @@ sealed class TrainingDay with _$TrainingDay {
     @JsonKey(name: 'target_heart_rate_zone', fromJson: toIntOrNull)
     int? targetHeartRateZone,
 
-    /// Structured interval session — present for `type == 'interval'` days.
-    /// Null for easy/tempo/long/recovery runs.
+    /// Structured interval session (grouped blueprint) — present for
+    /// `type == 'interval'` days. Null for easy/tempo/long/recovery runs.
     @JsonKey(name: 'intervals_json', fromJson: _intervalsFromJson)
-    List<TrainingInterval>? intervals,
+    IntervalBlueprint? intervals,
     @JsonKey(fromJson: toInt) required int order,
     TrainingResult? result,
 
@@ -37,16 +37,17 @@ sealed class TrainingDay with _$TrainingDay {
       _$TrainingDayFromJson(json);
 }
 
-List<TrainingInterval>? _intervalsFromJson(Object? raw) {
-  // Current shape: JSON array of segment objects. Legacy rows pre-rewrite
-  // may have stored a flat Map — silently treat those as "no intervals"
-  // rather than crashing; user can regenerate the plan.
-  if (raw is! List) return null;
-  final segments = raw
-      .whereType<Map>()
-      .map(
-        (m) => TrainingInterval.fromJson(Map<String, dynamic>.from(m)),
-      )
-      .toList(growable: false);
-  return segments.isEmpty ? null : segments;
+IntervalBlueprint? _intervalsFromJson(Object? raw) {
+  // Canonical: a grouped Map ({warmup_seconds, steps, cooldown_seconds}).
+  // Legacy rows (pre-migration) may still be a flat segment List — fold
+  // those so they keep rendering. Anything else → no intervals.
+  if (raw is Map && raw['steps'] is List) {
+    final bp = IntervalBlueprint.fromJson(Map<String, dynamic>.from(raw));
+    return bp.isEmpty ? null : bp;
+  }
+  if (raw is List) {
+    final bp = IntervalBlueprint.fromFlatSegments(raw);
+    return bp.isEmpty ? null : bp;
+  }
+  return null;
 }

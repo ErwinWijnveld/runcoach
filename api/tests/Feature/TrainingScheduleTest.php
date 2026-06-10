@@ -8,6 +8,7 @@ use App\Models\TrainingResult;
 use App\Models\TrainingWeek;
 use App\Models\User;
 use App\Models\WearableActivity;
+use App\Support\Intervals\IntervalBlueprint;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Tests\TestCase;
 
@@ -186,6 +187,192 @@ class TrainingScheduleTest extends TestCase
         $response->assertOk();
         $this->assertEquals($newDate, substr($response->json('data.date'), 0, 10));
         $this->assertEquals($weekB->id, $response->json('data.training_week_id'));
+    }
+
+    public function test_update_day_edits_distance_and_pace_in_place(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $goal = Goal::factory()->create(['user_id' => $user->id, 'target_date' => null]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
+        $day = TrainingDay::factory()->create([
+            'training_week_id' => $week->id,
+            'type' => 'easy',
+            'target_km' => 8.0,
+            'target_pace_seconds_per_km' => 360,
+        ]);
+
+        $response = $this->patchJson(
+            "/api/v1/training-days/{$day->id}",
+            ['target_km' => 3, 'target_pace_seconds_per_km' => 300],
+            $headers,
+        );
+
+        $response->assertOk();
+        $day->refresh();
+        $this->assertEquals(3.0, (float) $day->target_km);
+        $this->assertEquals(300, $day->target_pace_seconds_per_km);
+    }
+
+    public function test_update_day_never_stores_day_pace_on_interval(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $goal = Goal::factory()->create(['user_id' => $user->id, 'target_date' => null]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
+        $day = TrainingDay::factory()->create([
+            'training_week_id' => $week->id,
+            'type' => 'interval',
+            'target_pace_seconds_per_km' => null,
+        ]);
+
+        $response = $this->patchJson(
+            "/api/v1/training-days/{$day->id}",
+            ['target_pace_seconds_per_km' => 240],
+            $headers,
+        );
+
+        $response->assertOk();
+        $this->assertNull($day->fresh()->target_pace_seconds_per_km);
+    }
+
+    public function test_update_day_stores_intervals_and_derives_distance(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $goal = Goal::factory()->create(['user_id' => $user->id, 'target_date' => null]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
+        $day = TrainingDay::factory()->create([
+            'training_week_id' => $week->id,
+            'type' => 'interval',
+            'target_km' => 5.0,
+            'target_pace_seconds_per_km' => null,
+            'intervals_json' => null,
+        ]);
+
+        $blueprint = [
+            'warmup_seconds' => 60,
+            'steps' => [['type' => 'block', 'reps' => 4, 'work_distance_m' => 800, 'work_duration_seconds' => null, 'work_pace_seconds_per_km' => 270, 'recovery_seconds' => 90]],
+            'cooldown_seconds' => 300,
+        ];
+
+        $response = $this->patchJson(
+            "/api/v1/training-days/{$day->id}",
+            ['intervals' => $blueprint],
+            $headers,
+        );
+
+        $response->assertOk();
+        $day->refresh();
+        $this->assertSame(4, $day->intervals_json['steps'][0]['reps']);
+        $this->assertSame(800, $day->intervals_json['steps'][0]['work_distance_m']);
+        // Distance is derived from the stored blueprint (saving hook), and
+        // the response carries the fresh value so the app can render it.
+        $expectedKm = IntervalBlueprint::estimateTotalKm($blueprint);
+        $this->assertSame($expectedKm, (float) $day->target_km);
+        $this->assertSame($expectedKm, (float) $response->json('data.target_km'));
+    }
+
+    public function test_update_day_rejects_intervals_on_non_interval_day(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $goal = Goal::factory()->create(['user_id' => $user->id, 'target_date' => null]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
+        $day = TrainingDay::factory()->create([
+            'training_week_id' => $week->id,
+            'type' => 'easy',
+            'intervals_json' => null,
+        ]);
+
+        $response = $this->patchJson(
+            "/api/v1/training-days/{$day->id}",
+            ['intervals' => ['steps' => [['type' => 'block', 'reps' => 4, 'work_distance_m' => 400, 'recovery_seconds' => 90]]]],
+            $headers,
+        );
+
+        $response->assertStatus(422);
+        $this->assertNull($day->fresh()->intervals_json);
+    }
+
+    public function test_update_day_rejects_empty_or_garbage_intervals(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $goal = Goal::factory()->create(['user_id' => $user->id, 'target_date' => null]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
+        $original = [
+            'warmup_seconds' => 60,
+            'steps' => [['type' => 'block', 'reps' => 4, 'work_distance_m' => 800, 'work_duration_seconds' => null, 'work_pace_seconds_per_km' => 270, 'recovery_seconds' => 90]],
+            'cooldown_seconds' => 300,
+        ];
+        $day = TrainingDay::factory()->create([
+            'training_week_id' => $week->id,
+            'type' => 'interval',
+            'intervals_json' => $original,
+        ]);
+
+        $this->patchJson("/api/v1/training-days/{$day->id}", ['intervals' => ['steps' => []]], $headers)
+            ->assertStatus(422);
+        $this->patchJson("/api/v1/training-days/{$day->id}", ['intervals' => ['totally' => 'wrong']], $headers)
+            ->assertStatus(422);
+
+        // Nothing was overwritten by the rejected bodies.
+        $this->assertSame(4, $day->fresh()->intervals_json['steps'][0]['reps']);
+    }
+
+    public function test_update_day_clamps_interval_values(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $goal = Goal::factory()->create(['user_id' => $user->id, 'target_date' => null]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
+        $day = TrainingDay::factory()->create([
+            'training_week_id' => $week->id,
+            'type' => 'interval',
+            'intervals_json' => null,
+        ]);
+
+        $response = $this->patchJson("/api/v1/training-days/{$day->id}", [
+            'intervals' => [
+                'warmup_seconds' => 999,
+                'steps' => [['type' => 'block', 'reps' => 100, 'work_distance_m' => 400, 'recovery_seconds' => 5]],
+                'cooldown_seconds' => 30,
+            ],
+        ], $headers);
+
+        $response->assertOk();
+        $stored = $day->fresh()->intervals_json;
+        $this->assertSame(120, $stored['warmup_seconds']);
+        $this->assertSame(60, $stored['steps'][0]['reps']);
+        $this->assertSame(15, $stored['steps'][0]['recovery_seconds']);
+        $this->assertSame(60, $stored['cooldown_seconds']);
+    }
+
+    public function test_update_day_preserves_rep_and_rest_steps(): void
+    {
+        [$user, $headers] = $this->authUser();
+        $goal = Goal::factory()->create(['user_id' => $user->id, 'target_date' => null]);
+        $week = TrainingWeek::factory()->create(['goal_id' => $goal->id]);
+        $day = TrainingDay::factory()->create([
+            'training_week_id' => $week->id,
+            'type' => 'interval',
+            'intervals_json' => null,
+        ]);
+
+        // Coach-authored pyramid shape: block + standalone rep + rest. The
+        // app editor sends these back untouched — order must survive.
+        $response = $this->patchJson("/api/v1/training-days/{$day->id}", [
+            'intervals' => [
+                'warmup_seconds' => null,
+                'steps' => [
+                    ['type' => 'block', 'reps' => 3, 'work_distance_m' => 400, 'work_pace_seconds_per_km' => 270, 'recovery_seconds' => 60],
+                    ['type' => 'rep', 'work_distance_m' => 1000, 'work_pace_seconds_per_km' => 280],
+                    ['type' => 'rest', 'duration_seconds' => 120],
+                ],
+                'cooldown_seconds' => 300,
+            ],
+        ], $headers);
+
+        $response->assertOk();
+        $steps = $day->fresh()->intervals_json['steps'];
+        $this->assertSame(['block', 'rep', 'rest'], array_column($steps, 'type'));
+        $this->assertSame(1000, $steps[1]['work_distance_m']);
+        $this->assertSame(120, $steps[2]['duration_seconds']);
     }
 
     public function test_update_day_rejects_past_date(): void

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/widgets/primary_cta_button.dart';
 import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
 import 'package:app/features/schedule/services/watch_sync_service.dart';
@@ -152,24 +153,10 @@ class _RescheduleDaySheetState extends ConsumerState<RescheduleDaySheet> {
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              child: SizedBox(
-                width: double.infinity,
-                child: CupertinoButton.filled(
-                  onPressed: _busy ? null : _save,
-                  borderRadius: BorderRadius.circular(14),
-                  child: _busy
-                      ? const CupertinoActivityIndicator(
-                          color: CupertinoColors.white,
-                        )
-                      : Text(
-                          context.l10n.rescheduleMoveTo(_formatHumanDate(context, _selected)),
-                          style: GoogleFonts.spaceGrotesk(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.neutral,
-                          ),
-                        ),
-                ),
+              child: PrimaryCtaButton(
+                label: context.l10n.rescheduleMoveTo(_formatHumanDate(context, _selected)),
+                busy: _busy,
+                onPressed: _busy ? null : _save,
               ),
             ),
           ],

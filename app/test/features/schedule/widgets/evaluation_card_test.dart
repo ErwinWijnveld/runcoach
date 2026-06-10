@@ -5,6 +5,8 @@ import 'package:app/l10n/app_localizations.dart';
 import 'package:app/features/schedule/models/plan_evaluation.dart';
 import 'package:app/features/schedule/widgets/evaluation_card.dart';
 
+import '../../../helpers/finders.dart';
+
 void main() {
   Widget wrap(Locale locale, Widget child) {
     return CupertinoApp(
@@ -48,7 +50,7 @@ void main() {
     );
 
     expect(find.text('CHECK-IN'), findsOneWidget);
-    expect(find.text('Week 2 check-in'), findsOneWidget);
+    expect(findHeading('Week 2 check-in'), findsOneWidget);
     // The status word is no longer rendered as the visible title.
     expect(find.text('Report ready'), findsNothing);
     expect(find.text('Open'), findsOneWidget);
@@ -69,7 +71,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Week 4 check-in'), findsOneWidget);
+    expect(findHeading('Week 4 check-in'), findsOneWidget);
     expect(find.text('Up next'), findsNothing);
     expect(find.text('Open'), findsNothing);
   });
@@ -86,8 +88,8 @@ void main() {
       ),
     );
 
-    expect(find.text('2-week check-in'), findsOneWidget);
-    expect(find.textContaining('Week '), findsNothing);
+    expect(findHeading('2-week check-in'), findsOneWidget);
+    expect(findHeadingContaining('Week '), findsNothing);
   });
 
   testWidgets('renders Dutch copy when locale=nl', (tester) async {
@@ -105,7 +107,7 @@ void main() {
     );
 
     expect(find.text('EVALUATIE'), findsOneWidget);
-    expect(find.text('Week 2 check-in'), findsOneWidget);
+    expect(findHeading('Week 2 check-in'), findsOneWidget);
     expect(find.text('Openen'), findsOneWidget);
   });
 
@@ -124,7 +126,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Week 2 check-in'), findsOneWidget);
+    expect(findHeading('Week 2 check-in'), findsOneWidget);
     expect(find.text('Open'), findsOneWidget);
   });
 

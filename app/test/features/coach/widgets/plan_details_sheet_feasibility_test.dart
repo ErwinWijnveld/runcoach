@@ -4,6 +4,8 @@ import 'package:app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../helpers/finders.dart';
+
 void main() {
   group('PlanDetailsSheet feasibility', () {
     testWidgets('renders zone-bar when ambition payload present',
@@ -26,7 +28,7 @@ void main() {
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Pittig maar haalbaar'), findsOneWidget);
+      expect(findHeading('Pittig maar haalbaar'), findsOneWidget);
       expect(find.text('78%'), findsOneWidget);
       expect(find.text('Unrealistic'), findsOneWidget);
       expect(find.text('Stretch'), findsOneWidget);
@@ -45,7 +47,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Unrealistic'), findsNothing);
-      expect(find.text('Pittig maar haalbaar'), findsNothing);
+      expect(findHeading('Pittig maar haalbaar'), findsNothing);
     });
 
     testWidgets('red CTA fires onAdjust with prefill when zone unrealistic',
@@ -138,7 +140,7 @@ CoachProposal _makeProposal({Map<String, dynamic>? ambition}) {
           },
         ],
       },
-      if (ambition != null) 'ambition': ambition,
+      'ambition': ?ambition,
     },
   );
 }

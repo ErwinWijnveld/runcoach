@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\TrainingType;
 use App\Models\User;
+use App\Support\Intervals\IntervalBlueprint;
 use App\Support\PlanPayload;
 use Carbon\Carbon;
 
@@ -87,7 +88,13 @@ class PlanOptimizerService
         // verify-loop cleanup (thinking it's a duplicate) and without
         // re-adding it, the plan has no entry on target_date.
         $payload = $this->enforcePreferredWeekdays($payload, $strictPreferredWeekdays);
-        $payload = $this->enforceMinimumRunLength($payload, $user);
+        // Create-only: the min-length bump is a sanity floor against the
+        // builder/agent emitting pointlessly short runs at generation time.
+        // On EDITS (alignRaceDay=false) the runner is explicit — "make
+        // Tuesday a 3km shakeout" must stick, so we don't fight it here.
+        if ($alignRaceDay) {
+            $payload = $this->enforceMinimumRunLength($payload, $user);
+        }
         $payload = $this->deduplicateDaysPerWeek($payload);
 
         // Create-only: when NO target_date was stated (open-ended general
@@ -116,8 +123,12 @@ class PlanOptimizerService
 
         $payload = $this->reclassifyLongRuns($payload);
         $payload = $this->promoteLongRuns($payload);
-        $payload = $this->normalizeIntervals($payload, $baseline);
+        $payload = $this->normalizeIntervals($payload);
         $payload = $this->computePaces($payload, $baseline);
+        // Must run AFTER computePaces (work paces are filled by then, so the
+        // estimate uses the runner's real pace rather than the jog fallback)
+        // and BEFORE recalculateWeeklyTotals (totals pick up the result).
+        $payload = $this->recomputeIntervalDistances($payload);
         $payload = $this->generateTitles($payload, $goalName);
         $payload = $this->recalculateWeeklyTotals($payload);
 
@@ -540,99 +551,22 @@ class PlanOptimizerService
      * @param  array<string, mixed>  $payload
      * @return array<string, mixed>
      */
-    private function normalizeIntervals(array $payload, int $baseline): array
+    private function normalizeIntervals(array $payload): array
     {
-        $recoveryPace = max(150, $baseline + self::PACE_DELTA_INTERVAL_RECOVERY);
-
         foreach ($payload['schedule']['weeks'] as $wi => $week) {
             foreach (($week['days'] ?? []) as $di => $day) {
                 $type = (string) ($day['type'] ?? TrainingType::Easy->value);
                 if ($type !== TrainingType::Interval->value) {
                     continue;
                 }
-                if (! isset($day['intervals']) || ! is_array($day['intervals']) || empty($day['intervals'])) {
-                    // Naked interval day → synthesize a sensible default
-                    // skeleton (4×400m + 90s recovery, warmup, cooldown).
-                    // Reached when `AdjustPlan` replaces tempo→interval
-                    // without supplying segments, or when the agent emits
-                    // a bare interval entry. `computePaces` will fill
-                    // per-segment paces from `$baseline` downstream.
-                    $payload['schedule']['weeks'][$wi]['days'][$di]['intervals']
-                        = $this->defaultIntervalSkeleton();
 
-                    continue;
-                }
-
-                $clean = [];
-                $cooldownSeen = null;
-
-                foreach ($day['intervals'] as $segment) {
-                    if (! is_array($segment)) {
-                        continue;
-                    }
-                    $kind = (string) ($segment['kind'] ?? 'work');
-
-                    if ($kind === 'warmup') {
-                        $segment['distance_m'] = null;
-                        $duration = $segment['duration_seconds'] ?? null;
-                        if (! is_int($duration) || $duration <= 0) {
-                            $duration = self::DEFAULT_WARMUP_SECONDS;
-                        }
-                        $segment['duration_seconds'] = min($duration, self::MAX_WARMUP_SECONDS);
-                        $clean[] = $segment;
-                    } elseif ($kind === 'recovery') {
-                        $duration = $segment['duration_seconds'] ?? null;
-                        $distance = $segment['distance_m'] ?? null;
-                        if (! is_int($duration) || $duration <= 0) {
-                            // Convert distance to time using recovery pace if
-                            // we have a distance — otherwise fall back to a
-                            // sensible default. Either way, distance_m is
-                            // cleared so the watch sees only seconds.
-                            if (is_int($distance) && $distance > 0) {
-                                $duration = (int) round(($distance / 1000) * $recoveryPace);
-                            } else {
-                                $duration = self::DEFAULT_RECOVERY_SECONDS;
-                            }
-                        }
-                        $segment['duration_seconds'] = max(15, $duration);
-                        $segment['distance_m'] = null;
-                        $clean[] = $segment;
-                    } elseif ($kind === 'cooldown') {
-                        // Hold the cooldown aside; it's appended at the very
-                        // end of the segment list so trailing position is
-                        // guaranteed regardless of agent ordering.
-                        $duration = $segment['duration_seconds'] ?? null;
-                        if (! is_int($duration) || $duration <= 0) {
-                            $duration = self::DEFAULT_COOLDOWN_SECONDS;
-                        }
-                        $segment['duration_seconds'] = max(
-                            self::MIN_COOLDOWN_SECONDS,
-                            min($duration, self::MAX_COOLDOWN_SECONDS),
-                        );
-                        $segment['distance_m'] = null;
-                        $cooldownSeen = $segment;
-                    } else {
-                        // Work segment: prefer distance_m if both are set.
-                        $duration = $segment['duration_seconds'] ?? null;
-                        $distance = $segment['distance_m'] ?? null;
-                        if (is_int($distance) && $distance > 0
-                            && is_int($duration) && $duration > 0) {
-                            $segment['duration_seconds'] = null;
-                        }
-                        $clean[] = $segment;
-                    }
-                }
-
-                // Synthesize a cooldown if the agent forgot one. Always last.
-                $clean[] = $cooldownSeen ?? [
-                    'kind' => 'cooldown',
-                    'label' => 'Cool down',
-                    'distance_m' => null,
-                    'duration_seconds' => self::DEFAULT_COOLDOWN_SECONDS,
-                    'target_pace_seconds_per_km' => null,
-                ];
-
-                $payload['schedule']['weeks'][$wi]['days'][$di]['intervals'] = $clean;
+                // IntervalBlueprint accepts either the canonical grouped form
+                // or a legacy flat segment list and returns the clamped
+                // grouped form. A naked interval day (no segments) → a default
+                // 4×400m + 90s skeleton; `computePaces` fills the work pace.
+                $payload['schedule']['weeks'][$wi]['days'][$di]['intervals']
+                    = IntervalBlueprint::normalize($day['intervals'] ?? null)
+                    ?? $this->defaultIntervalBlueprint();
             }
         }
 
@@ -640,52 +574,57 @@ class PlanOptimizerService
     }
 
     /**
-     * Skeleton used when an `interval`-type day arrives without an
-     * `intervals[]` array — e.g. AdjustPlan swapping a tempo day to
-     * interval without authoring segments. 4×400m work at VO2max pace
-     * (filled by `computePaces`), 90s recovery between each, plus a
-     * required cooldown at the end.
+     * Enforce the interval-distance invariant: an interval day's `target_km`
+     * always equals `IntervalBlueprint::estimateTotalKm` of its blueprint.
+     * Whatever the agent (or any earlier pass — min-length bump, race-day km)
+     * put on the day is overridden; the session structure is the single
+     * source of truth for distance. The TrainingDay saving hook applies the
+     * same rule to direct row writes, and a data migration backfilled
+     * existing rows — see docs/superpowers/specs/2026-06-10-interval-target-km-recompute.md.
      *
-     * @return list<array<string, mixed>>
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
      */
-    private function defaultIntervalSkeleton(): array
+    private function recomputeIntervalDistances(array $payload): array
     {
-        $intervals = [[
-            'kind' => 'warmup',
-            'label' => 'Warm up',
-            'distance_m' => null,
-            'duration_seconds' => self::DEFAULT_WARMUP_SECONDS,
-            'target_pace_seconds_per_km' => null,
-        ]];
+        foreach ($payload['schedule']['weeks'] as $wi => $week) {
+            foreach (($week['days'] ?? []) as $di => $day) {
+                if ((string) ($day['type'] ?? '') !== TrainingType::Interval->value) {
+                    continue;
+                }
 
-        for ($i = 0; $i < 4; $i++) {
-            $intervals[] = [
-                'kind' => 'work',
-                'label' => '400m rep',
-                'distance_m' => 400,
-                'duration_seconds' => null,
-                'target_pace_seconds_per_km' => null,
-            ];
-            if ($i < 3) {
-                $intervals[] = [
-                    'kind' => 'recovery',
-                    'label' => 'Recovery',
-                    'distance_m' => null,
-                    'duration_seconds' => self::DEFAULT_RECOVERY_SECONDS,
-                    'target_pace_seconds_per_km' => null,
-                ];
+                $estimated = IntervalBlueprint::estimateTotalKm($day['intervals'] ?? null);
+                if ($estimated !== null) {
+                    $payload['schedule']['weeks'][$wi]['days'][$di]['target_km'] = $estimated;
+                }
             }
         }
 
-        $intervals[] = [
-            'kind' => 'cooldown',
-            'label' => 'Cool down',
-            'distance_m' => null,
-            'duration_seconds' => self::DEFAULT_COOLDOWN_SECONDS,
-            'target_pace_seconds_per_km' => null,
-        ];
+        return $payload;
+    }
 
-        return $intervals;
+    /**
+     * Default grouped blueprint when an `interval`-type day arrives without
+     * any segments — e.g. AdjustPlan swapping a tempo day to interval without
+     * authoring steps. One 4×400m block (work pace filled by `computePaces`),
+     * 90s recovery, optional warmup, required cooldown.
+     *
+     * @return array<string, mixed>
+     */
+    private function defaultIntervalBlueprint(): array
+    {
+        return [
+            'warmup_seconds' => self::DEFAULT_WARMUP_SECONDS,
+            'steps' => [[
+                'type' => 'block',
+                'reps' => 4,
+                'work_distance_m' => 400,
+                'work_duration_seconds' => null,
+                'work_pace_seconds_per_km' => null,
+                'recovery_seconds' => self::DEFAULT_RECOVERY_SECONDS,
+            ]],
+            'cooldown_seconds' => self::DEFAULT_COOLDOWN_SECONDS,
+        ];
     }
 
     /**
@@ -704,39 +643,33 @@ class PlanOptimizerService
             foreach (($week['days'] ?? []) as $di => $day) {
                 $type = (string) ($day['type'] ?? TrainingType::Easy->value);
 
-                // Interval days carry pace per work segment inside
-                // `intervals` — never on the day itself. The "day pace" for
-                // an interval session is conceptually the avg across its
-                // working sets, computed on the fly via
-                // `TrainingDay::workSetAveragePaceSecondsPerKm()`. Forcing a
-                // null here means a single source of truth: any AI/optimizer
-                // value we used to write would mask the real per-rep pace.
+                // Interval days carry pace per work STEP inside the grouped
+                // `intervals` blueprint — never on the day itself. The
+                // "day pace" is the avg across working sets, computed on the
+                // fly via `TrainingDay::workSetAveragePaceSecondsPerKm()`.
                 if ($type === TrainingType::Interval->value) {
                     $payload['schedule']['weeks'][$wi]['days'][$di]['target_pace_seconds_per_km'] = null;
-                } elseif (($day['target_pace_seconds_per_km'] ?? null) === null) {
-                    $payload['schedule']['weeks'][$wi]['days'][$di]['target_pace_seconds_per_km']
-                        = $this->paceForType($baseline, $type);
-                }
 
-                if (! isset($day['intervals']) || ! is_array($day['intervals'])) {
+                    $grouped = $day['intervals'] ?? null;
+                    if (is_array($grouped) && isset($grouped['steps']) && is_array($grouped['steps'])) {
+                        $workPace = $this->paceForType($baseline, TrainingType::Interval->value);
+                        foreach ($grouped['steps'] as $si => $step) {
+                            if (! is_array($step) || ($step['type'] ?? null) === 'rest') {
+                                continue;
+                            }
+                            if (($step['work_pace_seconds_per_km'] ?? null) === null) {
+                                $grouped['steps'][$si]['work_pace_seconds_per_km'] = $workPace;
+                            }
+                        }
+                        $payload['schedule']['weeks'][$wi]['days'][$di]['intervals'] = $grouped;
+                    }
+
                     continue;
                 }
 
-                foreach ($day['intervals'] as $si => $segment) {
-                    if (! is_array($segment)) {
-                        continue;
-                    }
-                    if (($segment['target_pace_seconds_per_km'] ?? null) !== null) {
-                        continue;
-                    }
-                    $kind = (string) ($segment['kind'] ?? 'work');
-                    $segPace = match ($kind) {
-                        'work' => $this->paceForType($baseline, TrainingType::Interval->value),
-                        'recovery' => max(150, $baseline + self::PACE_DELTA_INTERVAL_RECOVERY),
-                        'warmup', 'cooldown' => $this->paceForType($baseline, TrainingType::Easy->value),
-                        default => $this->paceForType($baseline, TrainingType::Easy->value),
-                    };
-                    $payload['schedule']['weeks'][$wi]['days'][$di]['intervals'][$si]['target_pace_seconds_per_km'] = $segPace;
+                if (($day['target_pace_seconds_per_km'] ?? null) === null) {
+                    $payload['schedule']['weeks'][$wi]['days'][$di]['target_pace_seconds_per_km']
+                        = $this->paceForType($baseline, $type);
                 }
             }
         }
