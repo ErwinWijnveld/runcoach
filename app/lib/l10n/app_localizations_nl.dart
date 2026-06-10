@@ -806,6 +806,15 @@ class AppLocalizationsNl extends AppLocalizations {
   String get dashEmptyCta => 'Naar Doelen';
 
   @override
+  String get dashRecentRunsEyebrow => 'RECENTE RUNS';
+
+  @override
+  String get dashRecentRunsSeeAll => 'Bekijk alles';
+
+  @override
+  String get dashRecentRunFallbackTitle => 'Run';
+
+  @override
   String get schedWeeklyPlanTitle => 'Weekplan';
 
   @override
@@ -959,6 +968,26 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get schedDayCouldNotReschedule => 'Verplaatsen mislukt';
+
+  @override
+  String planStartsNote(String date) {
+    return 'Je plan start $date — eerdere dagen deze week zijn al voorbij.';
+  }
+
+  @override
+  String get schedDayEditAction => 'Training aanpassen';
+
+  @override
+  String get editDayTitle => 'Training aanpassen';
+
+  @override
+  String get editDayDistanceLabel => 'Afstand';
+
+  @override
+  String get editDayPaceLabel => 'Tempo';
+
+  @override
+  String get editDayErrorTitle => 'Opslaan mislukt';
 
   @override
   String get commonOk => 'OK';
@@ -1411,6 +1440,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String coachRevisionWeek(String number) {
     return 'WEEK $number';
   }
+
+  @override
+  String get coachRevisionBeforeChip => 'VOOR';
+
+  @override
+  String get coachRevisionAfterChip => 'NA';
 
   @override
   String coachRevisionChangeCount(int count) {

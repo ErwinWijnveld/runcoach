@@ -804,6 +804,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dashEmptyCta => 'Go to Goals';
 
   @override
+  String get dashRecentRunsEyebrow => 'RECENT RUNS';
+
+  @override
+  String get dashRecentRunsSeeAll => 'See all';
+
+  @override
+  String get dashRecentRunFallbackTitle => 'Run';
+
+  @override
   String get schedWeeklyPlanTitle => 'Weekly Plan';
 
   @override
@@ -956,6 +965,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get schedDayCouldNotReschedule => 'Could not reschedule';
+
+  @override
+  String planStartsNote(String date) {
+    return 'Your plan starts $date — earlier days this week have already passed.';
+  }
+
+  @override
+  String get schedDayEditAction => 'Edit workout';
+
+  @override
+  String get editDayTitle => 'Edit workout';
+
+  @override
+  String get editDayDistanceLabel => 'Distance';
+
+  @override
+  String get editDayPaceLabel => 'Pace';
+
+  @override
+  String get editDayErrorTitle => 'Couldn\'t save changes';
 
   @override
   String get commonOk => 'OK';
@@ -1408,6 +1437,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String coachRevisionWeek(String number) {
     return 'WEEK $number';
   }
+
+  @override
+  String get coachRevisionBeforeChip => 'BEFORE';
+
+  @override
+  String get coachRevisionAfterChip => 'AFTER';
 
   @override
   String coachRevisionChangeCount(int count) {

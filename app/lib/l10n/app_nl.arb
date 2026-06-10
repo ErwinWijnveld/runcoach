@@ -265,6 +265,9 @@
   "dashEmptyTitle": "Geen actief plan",
   "dashEmptyBody": "Kies een doel (of vraag de coach er een te bouwen) om je training op het dashboard te zien.",
   "dashEmptyCta": "Naar Doelen",
+  "dashRecentRunsEyebrow": "RECENTE RUNS",
+  "dashRecentRunsSeeAll": "Bekijk alles",
+  "dashRecentRunFallbackTitle": "Run",
 
   "schedWeeklyPlanTitle": "Weekplan",
   "schedKmTotal": "KM TOTAAL",
@@ -314,6 +317,12 @@
   "schedDayMoveItAction": "Verplaats",
   "schedDayRescheduleAction": "Verplaatsen",
   "schedDayCouldNotReschedule": "Verplaatsen mislukt",
+  "planStartsNote": "Je plan start {date} — eerdere dagen deze week zijn al voorbij.",
+  "schedDayEditAction": "Training aanpassen",
+  "editDayTitle": "Training aanpassen",
+  "editDayDistanceLabel": "Afstand",
+  "editDayPaceLabel": "Tempo",
+  "editDayErrorTitle": "Opslaan mislukt",
 
   "commonOk": "OK",
   "commonCancel": "Annuleren",
@@ -467,6 +476,8 @@
 
   "coachRevisionGoal": "DOEL",
   "coachRevisionWeek": "WEEK {number}",
+  "coachRevisionBeforeChip": "VOOR",
+  "coachRevisionAfterChip": "NA",
   "coachRevisionChangeCount": "{count, plural, =1{1 wijziging in je plan} other{{count} wijzigingen in je plan}}",
   "coachRevisionDayFallback": "Dag",
   "coachRevisionAddedOn": "Toegevoegd op {day}",

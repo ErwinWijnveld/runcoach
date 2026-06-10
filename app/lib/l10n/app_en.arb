@@ -322,6 +322,9 @@
   "dashEmptyTitle": "No active plan",
   "dashEmptyBody": "Pick a goal (or ask the coach to build one) to see your training on the dashboard.",
   "dashEmptyCta": "Go to Goals",
+  "dashRecentRunsEyebrow": "RECENT RUNS",
+  "dashRecentRunsSeeAll": "See all",
+  "dashRecentRunFallbackTitle": "Run",
 
   "schedWeeklyPlanTitle": "Weekly Plan",
   "schedKmTotal": "KM TOTAL",
@@ -389,6 +392,17 @@
   "schedDayMoveItAction": "Move it",
   "schedDayRescheduleAction": "Reschedule",
   "schedDayCouldNotReschedule": "Could not reschedule",
+  "planStartsNote": "Your plan starts {date} — earlier days this week have already passed.",
+  "@planStartsNote": {
+    "placeholders": {
+      "date": { "type": "String" }
+    }
+  },
+  "schedDayEditAction": "Edit workout",
+  "editDayTitle": "Edit workout",
+  "editDayDistanceLabel": "Distance",
+  "editDayPaceLabel": "Pace",
+  "editDayErrorTitle": "Couldn't save changes",
 
   "commonOk": "OK",
   "commonCancel": "Cancel",
@@ -566,6 +580,8 @@
 
   "coachRevisionGoal": "GOAL",
   "coachRevisionWeek": "WEEK {number}",
+  "coachRevisionBeforeChip": "BEFORE",
+  "coachRevisionAfterChip": "AFTER",
   "@coachRevisionWeek": {
     "placeholders": { "number": { "type": "String" } }
   },

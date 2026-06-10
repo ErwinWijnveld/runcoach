@@ -1538,6 +1538,24 @@ abstract class AppLocalizations {
   /// **'Go to Goals'**
   String get dashEmptyCta;
 
+  /// No description provided for @dashRecentRunsEyebrow.
+  ///
+  /// In en, this message translates to:
+  /// **'RECENT RUNS'**
+  String get dashRecentRunsEyebrow;
+
+  /// No description provided for @dashRecentRunsSeeAll.
+  ///
+  /// In en, this message translates to:
+  /// **'See all'**
+  String get dashRecentRunsSeeAll;
+
+  /// No description provided for @dashRecentRunFallbackTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Run'**
+  String get dashRecentRunFallbackTitle;
+
   /// No description provided for @schedWeeklyPlanTitle.
   ///
   /// In en, this message translates to:
@@ -1813,6 +1831,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not reschedule'**
   String get schedDayCouldNotReschedule;
+
+  /// No description provided for @planStartsNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Your plan starts {date} — earlier days this week have already passed.'**
+  String planStartsNote(String date);
+
+  /// No description provided for @schedDayEditAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit workout'**
+  String get schedDayEditAction;
+
+  /// No description provided for @editDayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit workout'**
+  String get editDayTitle;
+
+  /// No description provided for @editDayDistanceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance'**
+  String get editDayDistanceLabel;
+
+  /// No description provided for @editDayPaceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Pace'**
+  String get editDayPaceLabel;
+
+  /// No description provided for @editDayErrorTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save changes'**
+  String get editDayErrorTitle;
 
   /// No description provided for @commonOk.
   ///
@@ -2617,6 +2671,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'WEEK {number}'**
   String coachRevisionWeek(String number);
+
+  /// No description provided for @coachRevisionBeforeChip.
+  ///
+  /// In en, this message translates to:
+  /// **'BEFORE'**
+  String get coachRevisionBeforeChip;
+
+  /// No description provided for @coachRevisionAfterChip.
+  ///
+  /// In en, this message translates to:
+  /// **'AFTER'**
+  String get coachRevisionAfterChip;
 
   /// No description provided for @coachRevisionChangeCount.
   ///

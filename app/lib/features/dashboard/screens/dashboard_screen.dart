@@ -1,11 +1,13 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Icons, Material, InkWell;
+import 'package:flutter/material.dart'
+    show Icons, Material, InkWell, MaterialType;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
+import 'package:app/core/theme/compliance_colors.dart';
 import 'package:app/core/widgets/app_header.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/coach_prompt_bar.dart';
@@ -14,11 +16,13 @@ import 'package:app/core/widgets/intro_fx.dart';
 import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/features/coach/providers/coach_provider.dart';
 import 'package:app/features/dashboard/models/dashboard_data.dart';
+import 'package:app/features/dashboard/models/recent_run.dart';
 import 'package:app/features/dashboard/providers/dashboard_provider.dart';
 import 'package:app/features/schedule/models/training_day.dart';
 import 'package:app/features/schedule/models/training_week.dart';
 import 'package:app/features/schedule/models/wearable_activity_summary.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
+import 'package:app/features/schedule/widgets/unplanned_run_sheet.dart';
 import 'package:app/features/wearable/widgets/analyzing_run_chip.dart';
 import 'package:app/router/app_router.dart'
     show floatingPromptBarBottomOffset, kBottomStackedReservedHeight;
@@ -181,6 +185,8 @@ class _DashboardContent extends StatelessWidget {
             daysToGo: daysToGo,
             onTap: () => context.go('/schedule'),
           ),
+          if (dashboard.recentRuns.isNotEmpty)
+            _RecentRunsSection(runs: dashboard.recentRuns, goalId: goal.id),
         ],
       ),
     );
@@ -929,6 +935,201 @@ class _LegendDot extends StatelessWidget {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Recent runs — every synced run, linked (compliance in the icon slot,
+// taps through to the day detail) or off-plan (blue plus → link sheet).
+// ---------------------------------------------------------------------------
+
+class _RecentRunsSection extends StatelessWidget {
+  final List<RecentRun> runs;
+  final int goalId;
+
+  const _RecentRunsSection({required this.runs, required this.goalId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(6, 4, 6, 10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Text(
+                  context.l10n.dashRecentRunsEyebrow,
+                  style: RunCoreText.sectionEyebrow(color: _inkBlack),
+                ),
+              ),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => context.go('/schedule'),
+                child: Text(
+                  context.l10n.dashRecentRunsSeeAll,
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: _eyebrowGold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        _RoundedCard(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Column(
+            children: [
+              for (var i = 0; i < runs.length; i++) ...[
+                if (i > 0) Container(height: 1, color: _lineSoft),
+                _RecentRunRow(entry: runs[i], goalId: goalId),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RecentRunRow extends StatelessWidget {
+  final RecentRun entry;
+  final int goalId;
+
+  const _RecentRunRow({required this.entry, required this.goalId});
+
+  bool get _linked => entry.trainingDayId != null;
+
+  String _subtitle(BuildContext context) {
+    final run = entry.run;
+    final parts = <String>[];
+    final date = DateTime.tryParse(run.startDate);
+    if (date != null) {
+      parts.add(
+        DateFormat.E(Localizations.localeOf(context).toString()).format(date),
+      );
+    }
+    if (run.averagePaceSecondsPerKm > 0) {
+      parts.add('${_formatPace(run.averagePaceSecondsPerKm)} /km');
+    }
+    if (run.durationSeconds > 0) {
+      parts.add(_formatClock(run.durationSeconds));
+    }
+    return parts.join(' · ');
+  }
+
+  Widget _leadingIcon() {
+    if (!_linked) {
+      return Container(
+        width: 40,
+        height: 40,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          color: AppColors.offPlan,
+        ),
+        alignment: Alignment.center,
+        child: const Icon(
+          Icons.add_rounded,
+          color: CupertinoColors.white,
+          size: 22,
+        ),
+      );
+    }
+    final score = entry.complianceScore;
+    final color = ComplianceColors.forScore10(score);
+    if (score == null || color == null) {
+      return Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: AppColors.goldGlow,
+        ),
+        alignment: Alignment.center,
+        child: const RunBoostSpark(size: 20),
+      );
+    }
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: color.withValues(alpha: 0.15),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        score.toStringAsFixed(1),
+        style: GoogleFonts.spaceGrotesk(
+          fontSize: 13,
+          fontWeight: FontWeight.w800,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final run = entry.run;
+    final km = run.distanceMeters / 1000;
+
+    return Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: _linked
+            ? () => context.go('/schedule/day/${entry.trainingDayId}')
+            : () => showUnplannedRunSheet(context, run: run, goalId: goalId),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            children: [
+              _leadingIcon(),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      run.name ?? context.l10n.dashRecentRunFallbackTitle,
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primaryInk,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _subtitle(context),
+                      style: RunCoreText.statSuffix(color: _muted),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Transform(
+                alignment: Alignment.bottomRight,
+                transform: kRunBoostLean,
+                child: Text(
+                  km.toStringAsFixed(1),
+                  style: RunBoostText.display(
+                    size: 22,
+                    color: AppColors.primaryInk,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _RoundedCard extends StatelessWidget {
   final Widget child;
   final VoidCallback? onTap;
@@ -1207,6 +1408,16 @@ String _formatPace(int secondsPerKm) {
   final m = secondsPerKm ~/ 60;
   final s = secondsPerKm % 60;
   return '$m:${s.toString().padLeft(2, '0')}';
+}
+
+/// 1710 → "28:30", 5400 → "1:30:00".
+String _formatClock(int seconds) {
+  final h = seconds ~/ 3600;
+  final m = (seconds % 3600) ~/ 60;
+  final s = seconds % 60;
+  final mm = m.toString().padLeft(2, '0');
+  final ss = s.toString().padLeft(2, '0');
+  return h > 0 ? '$h:$mm:$ss' : '$m:$ss';
 }
 
 String? _estimatedDuration(double? km, int? paceSecPerKm) {
