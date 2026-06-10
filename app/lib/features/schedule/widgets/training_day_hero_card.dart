@@ -36,7 +36,6 @@ class TrainingDayHeroCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      constraints: const BoxConstraints(minHeight: 160),
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         gradient: _gradient,
@@ -56,8 +55,12 @@ class TrainingDayHeroCard extends StatelessWidget {
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 48, 18, 16),
+          // Bottom-left anchored content; the breathing room falls at the
+          // top of the slab (mockup B: justify-content flex-end).
+          Container(
+            constraints: const BoxConstraints(minHeight: 170),
+            alignment: Alignment.bottomLeft,
+            padding: const EdgeInsets.fromLTRB(18, 40, 18, 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,12 +84,13 @@ class TrainingDayHeroCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 RunBoostHeading(
                   title,
                   size: 32,
                   height: 1.02,
                   maxLines: 2,
+                  topPadding: 0,
                 ),
                 const SizedBox(height: 6),
                 Row(
