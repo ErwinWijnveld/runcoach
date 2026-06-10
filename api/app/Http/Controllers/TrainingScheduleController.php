@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\TrainingType;
 use App\Jobs\GenerateActivityFeedback;
 use App\Models\Goal;
 use App\Models\TrainingDay;
@@ -64,34 +65,10 @@ class TrainingScheduleController extends Controller
 
             $week->setAttribute('unplanned_runs', $runs
                 ->filter(fn (WearableActivity $r) => $r->start_date >= $weekStart && $r->start_date < $weekEnd)
-                ->map(fn (WearableActivity $r) => $this->unplannedRunPayload($r))
+                ->map(fn (WearableActivity $r) => $r->toSummaryPayload())
                 ->values()
                 ->all());
         }
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function unplannedRunPayload(WearableActivity $activity): array
-    {
-        return [
-            'id' => $activity->id,
-            'source' => $activity->source,
-            'source_activity_id' => $activity->source_activity_id,
-            'type' => $activity->type,
-            'name' => $activity->name,
-            'distance_meters' => $activity->distance_meters,
-            'duration_seconds' => $activity->duration_seconds,
-            'elapsed_seconds' => $activity->elapsed_seconds,
-            'average_pace_seconds_per_km' => $activity->average_pace_seconds_per_km,
-            'average_heartrate' => $activity->average_heartrate !== null ? (float) $activity->average_heartrate : null,
-            'max_heartrate' => $activity->max_heartrate !== null ? (float) $activity->max_heartrate : null,
-            'elevation_gain_meters' => $activity->elevation_gain_meters,
-            'calories_kcal' => $activity->calories_kcal,
-            'start_date' => $activity->start_date->toIso8601String(),
-            'end_date' => $activity->end_date?->toIso8601String(),
-        ];
     }
 
     public function currentWeek(Request $request, Goal $goal): JsonResponse
@@ -178,32 +155,60 @@ class TrainingScheduleController extends Controller
         }
 
         $minDate = now()->startOfDay()->toDateString();
-        $rules = ['date' => ['required', 'date', "after_or_equal:{$minDate}"]];
+        $dateRules = ['sometimes', 'date', "after_or_equal:{$minDate}"];
         if ($goal->target_date !== null) {
-            $rules['date'][] = 'before_or_equal:'.$goal->target_date->toDateString();
+            $dateRules[] = 'before_or_equal:'.$goal->target_date->toDateString();
         }
-        $request->validate($rules);
-
-        $newDate = Carbon::parse($request->input('date'))->startOfDay();
-
-        // Re-assign to the week whose [starts_at, starts_at+7) range contains
-        // the new date. Falls back to the existing week if no match (defensive
-        // — shouldn't happen when validation passes).
-        $matchingWeek = $goal->trainingWeeks()
-            ->where('starts_at', '<=', $newDate->toDateString())
-            ->where('starts_at', '>', $newDate->copy()->subDays(7)->toDateString())
-            ->orderByDesc('starts_at')
-            ->first();
-
-        // `order` is repurposed as day_of_week (1=Mon..7=Sun) across the
-        // app (see PlanPayload, ProposalService::applyEditActivePlan). Keep
-        // it in sync with the new date so AI-input and any order-based
-        // sorts don't go stale.
-        $day->update([
-            'date' => $newDate->toDateString(),
-            'training_week_id' => $matchingWeek?->id ?? $day->training_week_id,
-            'order' => (int) $newDate->isoWeekday(),
+        // `date` moves the day; the three content fields let the runner tweak
+        // a session in place (the minimal edit-day UI). All optional — a
+        // date-only body keeps the original reschedule behaviour. Pace/km
+        // honor the same wide sanity windows as the AdjustPlan tool.
+        $validated = $request->validate([
+            'date' => $dateRules,
+            'target_km' => ['sometimes', 'nullable', 'numeric', 'min:1', 'max:80'],
+            'target_pace_seconds_per_km' => ['sometimes', 'nullable', 'integer', 'min:150', 'max:720'],
+            'target_heart_rate_zone' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:5'],
         ]);
+
+        $updates = [];
+
+        if (array_key_exists('date', $validated)) {
+            $newDate = Carbon::parse($validated['date'])->startOfDay();
+
+            // Re-assign to the week whose [starts_at, starts_at+7) range
+            // contains the new date. Falls back to the existing week if no
+            // match (defensive — shouldn't happen when validation passes).
+            $matchingWeek = $goal->trainingWeeks()
+                ->where('starts_at', '<=', $newDate->toDateString())
+                ->where('starts_at', '>', $newDate->copy()->subDays(7)->toDateString())
+                ->orderByDesc('starts_at')
+                ->first();
+
+            // `order` is repurposed as day_of_week (1=Mon..7=Sun) across the
+            // app (see PlanPayload, ProposalService::applyEditActivePlan). Keep
+            // it in sync with the new date so AI-input and any order-based
+            // sorts don't go stale.
+            $updates['date'] = $newDate->toDateString();
+            $updates['training_week_id'] = $matchingWeek?->id ?? $day->training_week_id;
+            $updates['order'] = (int) $newDate->isoWeekday();
+        }
+
+        foreach (['target_km', 'target_pace_seconds_per_km', 'target_heart_rate_zone'] as $field) {
+            if (array_key_exists($field, $validated)) {
+                $updates[$field] = $validated[$field];
+            }
+        }
+
+        // Interval invariant: day-level pace is never stored on interval days
+        // (the per-rep paces live in `intervals_json`). Drop any attempt to set
+        // one so the contract holds regardless of client.
+        if ($day->type === TrainingType::Interval) {
+            unset($updates['target_pace_seconds_per_km']);
+        }
+
+        if ($updates !== []) {
+            $day->update($updates);
+        }
 
         return response()->json([
             'data' => $day->fresh(['trainingWeek', 'result.wearableActivity']),

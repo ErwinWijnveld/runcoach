@@ -56,6 +56,34 @@ class WearableActivity extends Model
         ];
     }
 
+    /**
+     * Compact wire shape matching the Flutter `WearableActivitySummary` model.
+     * Single source for the schedule's off-plan runs and the dashboard's
+     * recent runs so the two payloads can't drift.
+     *
+     * @return array<string, mixed>
+     */
+    public function toSummaryPayload(): array
+    {
+        return [
+            'id' => $this->id,
+            'source' => $this->source,
+            'source_activity_id' => $this->source_activity_id,
+            'type' => $this->type,
+            'name' => $this->name,
+            'distance_meters' => $this->distance_meters,
+            'duration_seconds' => $this->duration_seconds,
+            'elapsed_seconds' => $this->elapsed_seconds,
+            'average_pace_seconds_per_km' => $this->average_pace_seconds_per_km,
+            'average_heartrate' => $this->average_heartrate !== null ? (float) $this->average_heartrate : null,
+            'max_heartrate' => $this->max_heartrate !== null ? (float) $this->max_heartrate : null,
+            'elevation_gain_meters' => $this->elevation_gain_meters,
+            'calories_kcal' => $this->calories_kcal,
+            'start_date' => $this->start_date->toIso8601String(),
+            'end_date' => $this->end_date?->toIso8601String(),
+        ];
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

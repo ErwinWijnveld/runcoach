@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Enums\GoalStatus;
+use App\Models\User;
+use App\Models\WearableActivity;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -19,6 +21,7 @@ class DashboardController extends Controller
                 'next_training' => null,
                 'active_goal' => null,
                 'coach_insight' => null,
+                'recent_runs' => $this->recentRuns($user),
             ]);
         }
 
@@ -70,6 +73,37 @@ class DashboardController extends Controller
                 'weeks_until_target_date' => $goal->weeksUntilTargetDate(),
             ],
             'coach_insight' => $coachInsight,
+            'recent_runs' => $this->recentRuns($user),
         ]);
+    }
+
+    /**
+     * The five newest synced runs with their training-day linkage, so the
+     * dashboard renders linked runs (compliance in the icon slot) and
+     * off-plan runs (link CTA) in one list.
+     *
+     * @return list<array{run: array<string, mixed>, training_day_id: int|null, compliance_score: float|null}>
+     */
+    private function recentRuns(User $user): array
+    {
+        return WearableActivity::query()
+            ->where('user_id', $user->id)
+            ->whereIn('type', WearableActivity::RUN_TYPES)
+            ->with('trainingResults:id,wearable_activity_id,training_day_id,compliance_score')
+            ->orderByDesc('start_date')
+            ->limit(5)
+            ->get()
+            ->map(function (WearableActivity $activity): array {
+                $result = $activity->trainingResults->first();
+
+                return [
+                    'run' => $activity->toSummaryPayload(),
+                    'training_day_id' => $result?->training_day_id,
+                    'compliance_score' => $result?->compliance_score !== null
+                        ? (float) $result->compliance_score
+                        : null,
+                ];
+            })
+            ->all();
     }
 }
