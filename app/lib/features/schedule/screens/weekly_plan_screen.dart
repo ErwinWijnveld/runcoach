@@ -95,7 +95,6 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
                               weeks: weeks,
                               initialIndex: initialIdx,
                               onTapDay: (id) => context.go('/schedule/day/$id'),
-                              onTapCoach: () => _openWeekChat(weeks),
                               onWeekChanged: (i) {
                                 if (i < 0 || i >= weeks.length) return;
                                 setState(() => _visibleWeek = weeks[i]);
@@ -137,16 +136,6 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
     );
   }
 
-  void _openWeekChat(List<TrainingWeek> weeks) {
-    final week = _visibleWeek;
-    if (week != null) {
-      ScheduleWeekChatSheet.show(context, week);
-    } else if (weeks.isNotEmpty) {
-      ScheduleWeekChatSheet.show(context, weeks[_initialWeekIndex(weeks)]);
-    } else {
-      startNewCoachChat(context, ref);
-    }
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -232,7 +221,6 @@ class _WeekPages extends StatefulWidget {
   final List<TrainingWeek> weeks;
   final int initialIndex;
   final ValueChanged<int> onTapDay;
-  final VoidCallback onTapCoach;
   // Fires whenever the visible week changes (swipe or chevron). Used by
   // the parent to keep its "current view" state in sync so the floating
   // prompt bar opens the chat sheet against the right week.
@@ -242,7 +230,6 @@ class _WeekPages extends StatefulWidget {
     required this.weeks,
     required this.initialIndex,
     required this.onTapDay,
-    required this.onTapCoach,
     this.onWeekChanged,
   });
 
@@ -282,31 +269,60 @@ class _WeekPagesState extends State<_WeekPages> {
     final todayIdx = _todayIdx;
     final showBackToToday =
         todayIdx != null && _currentPage != todayIdx;
-    return PageView.builder(
-      controller: _controller,
-      itemCount: widget.weeks.length,
-      physics: const BouncingScrollPhysics(),
-      onPageChanged: (i) {
-        setState(() => _currentPage = i);
-        widget.onWeekChanged?.call(i);
-      },
-      itemBuilder: (context, i) {
-        return _WeekBody(
-          week: widget.weeks[i],
-          index: i,
-          count: widget.weeks.length,
-          highlight: _highlight,
-          canGoPrev: i > 0,
-          canGoNext: i < widget.weeks.length - 1,
-          onPrev: () => _animateTo(i - 1),
-          onNext: () => _animateTo(i + 1),
-          onBackToToday: showBackToToday
-              ? () => _animateTo(todayIdx)
-              : null,
-          onTapDay: widget.onTapDay,
-          onTapCoach: widget.onTapCoach,
-        );
-      },
+    final count = widget.weeks.length;
+    final week = widget.weeks[_currentPage];
+
+    // Header + progress strip live OUTSIDE the PageView so only the day
+    // cards peek/page during a swipe — the neighbouring week's title and
+    // KM total never slide into view.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 32),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: _WeekHeader(
+              key: ValueKey(week.id),
+              week: week,
+              canGoPrev: _currentPage > 0,
+              canGoNext: _currentPage < count - 1,
+              onPrev: () => _animateTo(_currentPage - 1),
+              onNext: () => _animateTo(_currentPage + 1),
+              onBackToToday: showBackToToday
+                  ? () => _animateTo(todayIdx)
+                  : null,
+            ),
+          ),
+        ),
+        if (count > 1) ...[
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _WeekProgressStrip(index: _currentPage, count: count),
+          ),
+        ],
+        const SizedBox(height: 10),
+        Expanded(
+          child: PageView.builder(
+            controller: _controller,
+            itemCount: count,
+            physics: const BouncingScrollPhysics(),
+            onPageChanged: (i) {
+              setState(() => _currentPage = i);
+              widget.onWeekChanged?.call(i);
+            },
+            itemBuilder: (context, i) {
+              return _WeekBody(
+                week: widget.weeks[i],
+                highlight: _highlight,
+                onTapDay: widget.onTapDay,
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
@@ -317,29 +333,13 @@ class _WeekPagesState extends State<_WeekPages> {
 
 class _WeekBody extends ConsumerWidget {
   final TrainingWeek week;
-  final int index;
-  final int count;
   final _Highlight highlight;
-  final bool canGoPrev;
-  final bool canGoNext;
-  final VoidCallback onPrev;
-  final VoidCallback onNext;
-  final VoidCallback? onBackToToday;
   final ValueChanged<int> onTapDay;
-  final VoidCallback onTapCoach;
 
   const _WeekBody({
     required this.week,
-    required this.index,
-    required this.count,
     required this.highlight,
-    required this.canGoPrev,
-    required this.canGoNext,
-    required this.onPrev,
-    required this.onNext,
-    required this.onBackToToday,
     required this.onTapDay,
-    required this.onTapCoach,
   });
 
   @override
@@ -371,26 +371,6 @@ class _WeekBody extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 32),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: _pageHPad),
-            child: _WeekHeader(
-              week: week,
-              canGoPrev: canGoPrev,
-              canGoNext: canGoNext,
-              onPrev: onPrev,
-              onNext: onNext,
-              onBackToToday: onBackToToday,
-            ),
-          ),
-          if (count > 1) ...[
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: _pageHPad),
-              child: _WeekProgressStrip(index: index, count: count),
-            ),
-          ],
-          const SizedBox(height: 10),
           Padding(
             padding: const EdgeInsets.fromLTRB(_pageHPad, 4, _pageHPad, 4),
             child: Column(
@@ -544,6 +524,7 @@ class _WeekHeader extends StatelessWidget {
   final VoidCallback? onBackToToday;
 
   const _WeekHeader({
+    super.key,
     required this.week,
     required this.canGoPrev,
     required this.canGoNext,
