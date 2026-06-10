@@ -20,7 +20,7 @@ subtitle, and the distance (km, italic) on the right. Eyebrow header
 
 | Question | Decision |
 |---|---|
-| Compliance display | **Score in the icon slot** — leading icon becomes a colored circle (green/gold/red via `ComplianceColors.forScore10`) containing the 0–10 score (e.g. "8.2"). No analysis yet → default gold mark. |
+| Compliance display | ~~Score in the icon slot~~ **Revised (Erwin, same day): no compliance number in the list** — linked runs always show the gold RunBoost spark; `compliance_score` still ships in the payload for future use. |
 | "See all" | Navigates to the **Schedule tab** (`/schedule`). No new screen. |
 | Count | **5** most recent runs. |
 | Tap on linked run | **Training-day detail** (`/schedule/day/{id}`). |
@@ -73,12 +73,12 @@ link sheet):
   fallback l10n "Run"), subtitle `EEE · M:SS/km · MM:SS`, trailing italic
   distance (km, 1 decimal) with a small muted " KM" suffix.
 - **Icon slot = status:**
-  - Linked + `complianceScore != null` → circle tinted by
-    `ComplianceColors.forScore10(score)` with the score (1 decimal) inside.
-  - Linked, score still null (analysis pending) → default gold mark
-    (same icon style as the mockup rows).
+  - Linked → gold-glow rounded square with the `RunBoostSpark` mark
+    (no compliance number — revised decision).
   - Unlinked → blue circle (`AppColors.offPlan`) with a white
     `Icons.add_rounded`, mirroring the off-plan tiles in the weekly plan.
+- Rows are full-width `InkWell`s (horizontal padding lives on the row, not
+  the card) so the pressed state spans the whole card.
 - **Tap:**
   - Linked → `context.go('/schedule/day/{trainingDayId}')`.
   - Unlinked → `showUnplannedRunSheet(context, run: r.run, goalId: goal.id)`.

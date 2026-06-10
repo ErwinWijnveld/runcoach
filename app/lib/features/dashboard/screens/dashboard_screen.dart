@@ -7,7 +7,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/theme/app_theme.dart';
-import 'package:app/core/theme/compliance_colors.dart';
 import 'package:app/core/widgets/app_header.dart';
 import 'package:app/core/widgets/app_widgets.dart';
 import 'package:app/core/widgets/coach_prompt_bar.dart';
@@ -978,11 +977,16 @@ class _RecentRunsSection extends StatelessWidget {
           ),
         ),
         _RoundedCard(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: const EdgeInsets.symmetric(vertical: 6),
           child: Column(
             children: [
               for (var i = 0; i < runs.length; i++) ...[
-                if (i > 0) Container(height: 1, color: _lineSoft),
+                if (i > 0)
+                  Container(
+                    height: 1,
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    color: _lineSoft,
+                  ),
                 _RecentRunRow(entry: runs[i], goalId: goalId),
               ],
             ],
@@ -1036,36 +1040,15 @@ class _RecentRunRow extends StatelessWidget {
         ),
       );
     }
-    final score = entry.complianceScore;
-    final color = ComplianceColors.forScore10(score);
-    if (score == null || color == null) {
-      return Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          color: AppColors.goldGlow,
-        ),
-        alignment: Alignment.center,
-        child: const RunBoostSpark(size: 20),
-      );
-    }
     return Container(
       width: 40,
       height: 40,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: color.withValues(alpha: 0.15),
+        color: AppColors.goldGlow,
       ),
       alignment: Alignment.center,
-      child: Text(
-        score.toStringAsFixed(1),
-        style: GoogleFonts.spaceGrotesk(
-          fontSize: 13,
-          fontWeight: FontWeight.w800,
-          color: color,
-        ),
-      ),
+      child: const RunBoostSpark(size: 20),
     );
   }
 
@@ -1077,11 +1060,12 @@ class _RecentRunRow extends StatelessWidget {
     return Material(
       type: MaterialType.transparency,
       child: InkWell(
+        borderRadius: BorderRadius.circular(16),
         onTap: _linked
             ? () => context.go('/schedule/day/${entry.trainingDayId}')
             : () => showUnplannedRunSheet(context, run: run, goalId: goalId),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
               _leadingIcon(),
