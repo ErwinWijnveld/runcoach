@@ -63,14 +63,15 @@ no-goal and active-goal branches, for shape stability):
 ### UI
 
 New `_RecentRunsSection` in `dashboard_screen.dart`, rendered inside
-`_DashboardContent` after `_WeeksMatrixCard` (so it only appears when there is
-an active goal — which also guarantees `goal.id` for the link sheet):
+`_DashboardContent` between `_ThisWeekCard` and `_WeeksMatrixCard` (so it only
+appears when there is an active goal — which also guarantees `goal.id` for the
+link sheet):
 
 - Header row: eyebrow "RECENT RUNS" (l10n `dashRecentRuns`) + trailing
   "See all" link (l10n `dashRecentRunsSeeAll`) → `context.go('/schedule')`.
 - Row layout per mockup: leading 40×40 icon slot, bold title (run `name`,
   fallback l10n "Run"), subtitle `EEE · M:SS/km · MM:SS`, trailing italic
-  distance (km, 1 decimal).
+  distance (km, 1 decimal) with a small muted " KM" suffix.
 - **Icon slot = status:**
   - Linked + `complianceScore != null` → circle tinted by
     `ComplianceColors.forScore10(score)` with the score (1 decimal) inside.

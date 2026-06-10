@@ -177,6 +177,8 @@ class _DashboardContent extends StatelessWidget {
             raceDate: raceDate,
             onTap: () => context.go('/schedule'),
           ),
+          if (dashboard.recentRuns.isNotEmpty)
+            _RecentRunsSection(runs: dashboard.recentRuns, goalId: goal.id),
           _WeeksMatrixCard(
             weeks: weeks,
             today: today,
@@ -185,8 +187,6 @@ class _DashboardContent extends StatelessWidget {
             daysToGo: daysToGo,
             onTap: () => context.go('/schedule'),
           ),
-          if (dashboard.recentRuns.isNotEmpty)
-            _RecentRunsSection(runs: dashboard.recentRuns, goalId: goal.id),
         ],
       ),
     );
@@ -1114,11 +1114,24 @@ class _RecentRunRow extends StatelessWidget {
               Transform(
                 alignment: Alignment.bottomRight,
                 transform: kRunBoostLean,
-                child: Text(
-                  km.toStringAsFixed(1),
-                  style: RunBoostText.display(
-                    size: 22,
-                    color: AppColors.primaryInk,
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: km.toStringAsFixed(1),
+                        style: RunBoostText.display(
+                          size: 22,
+                          color: AppColors.primaryInk,
+                        ),
+                      ),
+                      TextSpan(
+                        text: ' KM',
+                        style: RunBoostText.display(
+                          size: 11,
+                          color: _muted2,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
