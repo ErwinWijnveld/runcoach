@@ -945,6 +945,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get schedDaySendToWatch => 'SEND TO WATCH';
 
   @override
+  String get schedDayActionMove => 'Move';
+
+  @override
+  String get schedDayActionEdit => 'Edit';
+
+  @override
+  String get schedDayActionLink => 'Link run';
+
+  @override
+  String get schedDayActionWatch => 'To watch';
+
+  @override
   String get schedDaySendingToWatch => 'Sending to your watch…';
 
   @override

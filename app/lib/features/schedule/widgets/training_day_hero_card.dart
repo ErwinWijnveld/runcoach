@@ -1,19 +1,16 @@
-import 'dart:ui';
-
 import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:app/core/i18n/build_context_l10n.dart';
 import 'package:app/core/widgets/runboost_logo.dart';
 import 'package:app/features/schedule/widgets/training_day_status.dart';
 
-/// Figma-faithful hero card: full-bleed illustration background with a
-/// frosted-glass slab layered over the bottom third showing the status pill,
-/// italic serif title, and status line.
+/// Brandkit hero: the cream→gold gradient slab with the RunBoost spark as an
+/// oversized watermark bleeding out of the top-right corner. Status pill +
+/// title + status line sit bottom-left. No image assets — pure code, so it
+/// renders identically on every platform and in every status (only the pill
+/// and dot change color).
 ///
-/// Illustration swaps per [TrainingDayStatus] — currently every state uses
-/// `assets/images/finisher.png` as a single placeholder. Drop additional
-/// per-state PNGs into `assets/images/` (e.g. `missed.png`, `upcoming.png`)
-/// and extend [_backgroundFor] to pick them.
+/// Design: option B of docs/design/2026-06-10-workout-hero-restyle.html.
 class TrainingDayHeroCard extends StatelessWidget {
   final String title;
   final TrainingDayStatus status;
@@ -24,127 +21,102 @@ class TrainingDayHeroCard extends StatelessWidget {
     required this.status,
   });
 
+  /// Same vertical gradient as the brandkit tile (and the dashboard's
+  /// recent-runs icon): #FDF9ED → #FCEFC8 @ 70% (flattened) → #F8E4AE.
+  static const _gradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFFFDF9ED), Color(0xFFFCF2D3), Color(0xFFF8E4AE)],
+    stops: [0.0, 0.5, 1.0],
+  );
+
   @override
   Widget build(BuildContext context) {
     final pillColor = status.pillColor;
 
-    return SizedBox(
-      height: 200,
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 160),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        gradient: _gradient,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFEFE7D2)),
+      ),
       child: Stack(
-        clipBehavior: Clip.none,
         children: [
-          // Background illustration. Use a direct Image.asset (NOT a
-          // Container with DecorationImage + a fallback color) so transparent
-          // edges in the PNG don't reveal a colored ring at the rounded
-          // corners. Default antiAlias clip keeps the corners looking as
-          // round as the original — antiAliasWithSaveLayer renders them
-          // slightly crisper which optically reads as "less rounded".
-          Positioned.fill(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(30),
-              child: Image.asset(
-                _backgroundFor(status),
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: double.infinity,
-                alignment: Alignment.center,
+          Positioned(
+            right: -26,
+            top: -30,
+            child: Transform.rotate(
+              angle: 12 * 3.1415926535 / 180,
+              child: const Opacity(
+                opacity: 0.3,
+                child: RunBoostSpark(size: 170),
               ),
             ),
           ),
-
-          // Frosted-glass overlay slab — anchored to the bottom of the hero
-          // so it always sits neatly regardless of the chosen illustration.
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 16,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 48, 18, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
+                    horizontal: 8,
+                    vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: CupertinoColors.white.withValues(alpha: 0.75),
-                    borderRadius: BorderRadius.circular(24),
+                    color: pillColor,
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Status pill
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: pillColor,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          status.pillLabel(context.l10n),
-                          style: GoogleFonts.spaceGrotesk(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.8,
-                            color: CupertinoColors.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      RunBoostHeading(
-                        title,
-                        size: 30,
-                        height: 1.05,
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: pillColor,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            status.subtitle(context.l10n),
-                            style: GoogleFonts.spaceGrotesk(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.8,
-                              color: pillColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                  child: Text(
+                    status.pillLabel(context.l10n),
+                    style: GoogleFonts.spaceGrotesk(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                      color: CupertinoColors.white,
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(height: 6),
+                RunBoostHeading(
+                  title,
+                  size: 32,
+                  height: 1.02,
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: pillColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      status.subtitle(context.l10n),
+                      style: GoogleFonts.spaceGrotesk(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.8,
+                        color: pillColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
-  }
-
-  /// Per-status background asset. Single placeholder today; add
-  /// `missed.png`, `today.png`, `upcoming.png` when the designs land.
-  String _backgroundFor(TrainingDayStatus status) {
-    return switch (status) {
-      TrainingDayStatus.completed => 'assets/images/finisher.png',
-      TrainingDayStatus.missed => 'assets/images/finisher.png',
-      TrainingDayStatus.today => 'assets/images/finisher.png',
-      TrainingDayStatus.upcoming => 'assets/images/finisher.png',
-    };
   }
 }

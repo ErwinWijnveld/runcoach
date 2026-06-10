@@ -948,6 +948,18 @@ class AppLocalizationsNl extends AppLocalizations {
   String get schedDaySendToWatch => 'STUUR NAAR WATCH';
 
   @override
+  String get schedDayActionMove => 'Verplaatsen';
+
+  @override
+  String get schedDayActionEdit => 'Wijzigen';
+
+  @override
+  String get schedDayActionLink => 'Koppelen';
+
+  @override
+  String get schedDayActionWatch => 'Naar watch';
+
+  @override
   String get schedDaySendingToWatch => 'Wordt naar je watch gestuurd…';
 
   @override

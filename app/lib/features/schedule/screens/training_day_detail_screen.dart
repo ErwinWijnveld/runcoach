@@ -17,6 +17,7 @@ import 'package:app/features/schedule/models/training_day_pace_x.dart';
 import 'package:app/features/schedule/providers/schedule_provider.dart';
 import 'package:app/features/schedule/services/workout_scheduler_service.dart';
 import 'package:app/features/schedule/widgets/coach_analysis_card.dart';
+import 'package:app/features/schedule/widgets/edit_day_sheet.dart';
 import 'package:app/features/schedule/widgets/reschedule_day_sheet.dart';
 import 'package:app/features/schedule/widgets/select_activity_sheet.dart';
 import 'package:app/features/schedule/widgets/training_day_action_buttons.dart';
@@ -88,15 +89,6 @@ class _Loaded extends StatelessWidget {
                         hrZone: _hrZoneTile(day),
                       ),
                     ),
-                    const SizedBox(height: 6),
-                    Padding(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      child: TrainingDayActionButtons(
-                        status: status,
-                        onSendToWatch: () => _sendToWatch(context, day),
-                      ),
-                    ),
                     if (status == TrainingDayStatus.completed &&
                         day.result != null) ...[
                       const SizedBox(height: 16),
@@ -119,6 +111,28 @@ class _Loaded extends StatelessWidget {
                         child: TrainingIntervalsTable(intervals: day.intervals!),
                       ),
                     ],
+                    if (status != TrainingDayStatus.completed)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+                        child: TrainingDayActionButtons(
+                          status: status,
+                          onReschedule: () => RescheduleDaySheet.show(
+                            context,
+                            dayId: day.id,
+                            initialDate: _parseYmd(day.date) ?? DateTime.now(),
+                            onRescheduled: () {},
+                          ),
+                          onEdit: () => EditDaySheet.show(context, day: day),
+                          onLink: () => SelectActivitySheet.show(
+                            context,
+                            dayId: day.id,
+                            // The mutation notifier bumps planVersion, which
+                            // refreshes every plan-derived view automatically.
+                            onMatched: () {},
+                          ),
+                          onSendToWatch: () => _sendToWatch(context, day),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -218,6 +232,8 @@ class _Loaded extends StatelessWidget {
         color: AppColors.primaryInk,
       );
 
+  /// Same three modals as the bottom action grid — the ellipsis menu is the
+  /// muscle-memory route, the grid is the discoverable one.
   void _showMoreActions(
     BuildContext context,
     TrainingDay day,
@@ -227,6 +243,16 @@ class _Loaded extends StatelessWidget {
       context: context,
       builder: (sheetCtx) => CupertinoActionSheet(
         actions: [
+          // Editing a completed day is refused by the backend (a result is
+          // linked), so only offer it on days the runner can still change.
+          if (status != TrainingDayStatus.completed)
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.of(sheetCtx).pop();
+                EditDaySheet.show(context, day: day);
+              },
+              child: Text(context.l10n.schedDayEditAction),
+            ),
           CupertinoActionSheetAction(
             onPressed: () {
               Navigator.of(sheetCtx).pop();

@@ -1784,6 +1784,30 @@ abstract class AppLocalizations {
   /// **'SEND TO WATCH'**
   String get schedDaySendToWatch;
 
+  /// No description provided for @schedDayActionMove.
+  ///
+  /// In en, this message translates to:
+  /// **'Move'**
+  String get schedDayActionMove;
+
+  /// No description provided for @schedDayActionEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get schedDayActionEdit;
+
+  /// No description provided for @schedDayActionLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Link run'**
+  String get schedDayActionLink;
+
+  /// No description provided for @schedDayActionWatch.
+  ///
+  /// In en, this message translates to:
+  /// **'To watch'**
+  String get schedDayActionWatch;
+
   /// No description provided for @schedDaySendingToWatch.
   ///
   /// In en, this message translates to:
