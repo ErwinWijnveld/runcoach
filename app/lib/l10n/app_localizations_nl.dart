@@ -821,6 +821,11 @@ class AppLocalizationsNl extends AppLocalizations {
   String get schedKmTotal => 'KM TOTAAL';
 
   @override
+  String schedWeekCounter(int n) {
+    return 'WEEK $n';
+  }
+
+  @override
   String get schedBackToToday => 'Terug naar vandaag';
 
   @override
@@ -988,6 +993,41 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get editDayErrorTitle => 'Opslaan mislukt';
+
+  @override
+  String get editDayWarmupLabel => 'Warming-up';
+
+  @override
+  String get editDayCooldownLabel => 'Cooling-down';
+
+  @override
+  String get editDayWarmupOff => 'Geen';
+
+  @override
+  String editDayBlockLabel(int n) {
+    return 'Blok $n';
+  }
+
+  @override
+  String get editDayRepsLabel => 'Herhalingen';
+
+  @override
+  String get editDayRepDistanceLabel => 'Afstand per rep';
+
+  @override
+  String get editDayRepDurationLabel => 'Tijd per rep';
+
+  @override
+  String get editDayRecoveryLabel => 'Herstel';
+
+  @override
+  String get editDayAddBlock => 'Blok toevoegen';
+
+  @override
+  String get editDayDerivedDistanceLabel => 'Afstand (auto)';
+
+  @override
+  String get editDayRestStepLabel => 'Rust';
 
   @override
   String get commonOk => 'OK';

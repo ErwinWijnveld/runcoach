@@ -1568,6 +1568,12 @@ abstract class AppLocalizations {
   /// **'KM TOTAL'**
   String get schedKmTotal;
 
+  /// No description provided for @schedWeekCounter.
+  ///
+  /// In en, this message translates to:
+  /// **'WEEK {n}'**
+  String schedWeekCounter(int n);
+
   /// No description provided for @schedBackToToday.
   ///
   /// In en, this message translates to:
@@ -1867,6 +1873,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t save changes'**
   String get editDayErrorTitle;
+
+  /// No description provided for @editDayWarmupLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Warm-up'**
+  String get editDayWarmupLabel;
+
+  /// No description provided for @editDayCooldownLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cool-down'**
+  String get editDayCooldownLabel;
+
+  /// No description provided for @editDayWarmupOff.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get editDayWarmupOff;
+
+  /// No description provided for @editDayBlockLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Block {n}'**
+  String editDayBlockLabel(int n);
+
+  /// No description provided for @editDayRepsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reps'**
+  String get editDayRepsLabel;
+
+  /// No description provided for @editDayRepDistanceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance per rep'**
+  String get editDayRepDistanceLabel;
+
+  /// No description provided for @editDayRepDurationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Time per rep'**
+  String get editDayRepDurationLabel;
+
+  /// No description provided for @editDayRecoveryLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Recovery'**
+  String get editDayRecoveryLabel;
+
+  /// No description provided for @editDayAddBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Add block'**
+  String get editDayAddBlock;
+
+  /// No description provided for @editDayDerivedDistanceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Distance (auto)'**
+  String get editDayDerivedDistanceLabel;
+
+  /// No description provided for @editDayRestStepLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Rest'**
+  String get editDayRestStepLabel;
 
   /// No description provided for @commonOk.
   ///

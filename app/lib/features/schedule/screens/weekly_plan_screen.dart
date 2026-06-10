@@ -32,6 +32,17 @@ import 'package:app/features/schedule/widgets/unplanned_run_sheet.dart';
 const _goldAccent = Color(0xFF785600);
 const _labelMuted = Color(0xFF4F4535);
 
+/// Week-progress strip tints (option B of the swipe-affordance exploration,
+/// docs/design/2026-06-10-schedule-swipe-affordance.html).
+const _segDone = Color(0xFFC9BC9F);
+const _segFuture = Color(0xFFEADFC2);
+
+/// PageView peek (option A): neighbours poke into the viewport so the swipe
+/// gesture explains itself. Page-internal horizontal padding is small so the
+/// neighbour's CARDS are what peek in, not just empty page padding.
+const double _weekViewportFraction = 0.92;
+const double _pageHPad = 4;
+
 class WeeklyPlanScreen extends ConsumerStatefulWidget {
   const WeeklyPlanScreen({super.key});
 
@@ -242,6 +253,7 @@ class _WeekPages extends StatefulWidget {
 class _WeekPagesState extends State<_WeekPages> {
   late final PageController _controller = PageController(
     initialPage: widget.initialIndex.clamp(0, widget.weeks.length - 1),
+    viewportFraction: _weekViewportFraction,
   );
   late final _Highlight _highlight = _resolveHighlight(widget.weeks);
   late final int? _todayIdx = _todayWeekIndex(widget.weeks);
@@ -281,6 +293,8 @@ class _WeekPagesState extends State<_WeekPages> {
       itemBuilder: (context, i) {
         return _WeekBody(
           week: widget.weeks[i],
+          index: i,
+          count: widget.weeks.length,
           highlight: _highlight,
           canGoPrev: i > 0,
           canGoNext: i < widget.weeks.length - 1,
@@ -303,6 +317,8 @@ class _WeekPagesState extends State<_WeekPages> {
 
 class _WeekBody extends ConsumerWidget {
   final TrainingWeek week;
+  final int index;
+  final int count;
   final _Highlight highlight;
   final bool canGoPrev;
   final bool canGoNext;
@@ -314,6 +330,8 @@ class _WeekBody extends ConsumerWidget {
 
   const _WeekBody({
     required this.week,
+    required this.index,
+    required this.count,
     required this.highlight,
     required this.canGoPrev,
     required this.canGoNext,
@@ -355,7 +373,7 @@ class _WeekBody extends ConsumerWidget {
         children: [
           const SizedBox(height: 32),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: _pageHPad),
             child: _WeekHeader(
               week: week,
               canGoPrev: canGoPrev,
@@ -365,9 +383,16 @@ class _WeekBody extends ConsumerWidget {
               onBackToToday: onBackToToday,
             ),
           ),
+          if (count > 1) ...[
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: _pageHPad),
+              child: _WeekProgressStrip(index: index, count: count),
+            ),
+          ],
           const SizedBox(height: 10),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+            padding: const EdgeInsets.fromLTRB(_pageHPad, 4, _pageHPad, 4),
             child: Column(
               children: [
                 for (int i = 0; i < entries.length; i++) ...[
@@ -438,6 +463,72 @@ _Highlight _resolveHighlight(List<TrainingWeek> weeks) {
     return _Highlight(nextFutureDay.id, _DayHighlight.upcoming);
   }
   return _Highlight.empty;
+}
+
+// ---------------------------------------------------------------------------
+// Week progress strip — one segment per week, gold = the week on screen.
+// Doubles as plan progress and as the "there are more pages" cue.
+// ---------------------------------------------------------------------------
+
+class _WeekProgressStrip extends StatelessWidget {
+  final int index;
+  final int count;
+
+  const _WeekProgressStrip({required this.index, required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Row(
+            children: [
+              for (var i = 0; i < count; i++) ...[
+                if (i > 0) const SizedBox(width: 4),
+                Expanded(
+                  flex: i == index ? 26 : 10,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: i == index
+                          ? AppColors.gold
+                          : (i < index ? _segDone : _segFuture),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                    child: const SizedBox(height: 4),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: context.l10n.schedWeekCounter(index + 1),
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.4,
+                  color: AppColors.primaryInk,
+                ),
+              ),
+              TextSpan(
+                text: ' / $count',
+                style: GoogleFonts.spaceGrotesk(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.4,
+                  color: _labelMuted,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -728,8 +819,9 @@ class _DayTile extends StatelessWidget {
   }
 
   /// Title with the target distance prepended when available, e.g.
-  /// `"5km Easy run"`. Falls back to the raw title for interval/mobility days
-  /// where a single target distance doesn't make sense.
+  /// `"5km Easy run"`. Interval days show it too: their targetKm is derived
+  /// server-side from the interval structure (work + warmup/recoveries/
+  /// cooldown), so it always matches the session shown in the detail view.
   String get _displayTitle {
     final km = day.targetKm;
     if (km == null || km <= 0) return day.title;

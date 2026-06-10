@@ -819,6 +819,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get schedKmTotal => 'KM TOTAL';
 
   @override
+  String schedWeekCounter(int n) {
+    return 'WEEK $n';
+  }
+
+  @override
   String get schedBackToToday => 'Back to today';
 
   @override
@@ -985,6 +990,41 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get editDayErrorTitle => 'Couldn\'t save changes';
+
+  @override
+  String get editDayWarmupLabel => 'Warm-up';
+
+  @override
+  String get editDayCooldownLabel => 'Cool-down';
+
+  @override
+  String get editDayWarmupOff => 'None';
+
+  @override
+  String editDayBlockLabel(int n) {
+    return 'Block $n';
+  }
+
+  @override
+  String get editDayRepsLabel => 'Reps';
+
+  @override
+  String get editDayRepDistanceLabel => 'Distance per rep';
+
+  @override
+  String get editDayRepDurationLabel => 'Time per rep';
+
+  @override
+  String get editDayRecoveryLabel => 'Recovery';
+
+  @override
+  String get editDayAddBlock => 'Add block';
+
+  @override
+  String get editDayDerivedDistanceLabel => 'Distance (auto)';
+
+  @override
+  String get editDayRestStepLabel => 'Rest';
 
   @override
   String get commonOk => 'OK';

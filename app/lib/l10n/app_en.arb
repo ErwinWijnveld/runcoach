@@ -328,6 +328,10 @@
 
   "schedWeeklyPlanTitle": "Weekly Plan",
   "schedKmTotal": "KM TOTAL",
+  "schedWeekCounter": "WEEK {n}",
+  "@schedWeekCounter": {
+    "placeholders": { "n": { "type": "int" } }
+  },
   "schedBackToToday": "Back to today",
   "schedNoTrainingWeek": "No training week found",
   "schedEmptyTitle": "No active goal",
@@ -403,6 +407,20 @@
   "editDayDistanceLabel": "Distance",
   "editDayPaceLabel": "Pace",
   "editDayErrorTitle": "Couldn't save changes",
+  "editDayWarmupLabel": "Warm-up",
+  "editDayCooldownLabel": "Cool-down",
+  "editDayWarmupOff": "None",
+  "editDayBlockLabel": "Block {n}",
+  "@editDayBlockLabel": {
+    "placeholders": { "n": { "type": "int" } }
+  },
+  "editDayRepsLabel": "Reps",
+  "editDayRepDistanceLabel": "Distance per rep",
+  "editDayRepDurationLabel": "Time per rep",
+  "editDayRecoveryLabel": "Recovery",
+  "editDayAddBlock": "Add block",
+  "editDayDerivedDistanceLabel": "Distance (auto)",
+  "editDayRestStepLabel": "Rest",
 
   "commonOk": "OK",
   "commonCancel": "Cancel",
