@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RunBoost — Swipe-affordance verkenningen · Weekly Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* RunBoost huisstijl */
+    --cream-0: #FDF9ED;
+    --cream-1: #FCF2D3;
+    --cream-2: #F8E4AE;
+    --gold: #E9B638;
+    --gold-deep: #B8871A;
+    --gold-glow: #FBEFCD;
+    --ink: #1A1510;
+    --muted: #7A6A4E;
+    --muted-2: #A79274;
+    --line: #EFE7D2;
+    --off-plan: #3E72C7;
+    --off-plan-glow: #D8E6FB;
+    --done: #34C759;
+    /* sheet chrome */
+    --paper: #16120C;
+    --paper-2: #221B11;
+    --paper-line: #3A2F1D;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background:
+      radial-gradient(1200px 500px at 70% -10%, #2B2113 0%, transparent 60%),
+      var(--paper);
+    color: var(--cream-0);
+    font-family: 'Inter', sans-serif;
+    padding: 56px clamp(20px, 5vw, 72px) 96px;
+  }
+  /* fijne korrel over het hele vel */
+  body::after {
+    content: ''; position: fixed; inset: 0; pointer-events: none; opacity: .05;
+    background-image: repeating-conic-gradient(#fff 0% .0001%, transparent .0002% .0004%);
+    background-size: 7px 7px; mix-blend-mode: overlay;
+  }
+
+  .sheet-head { max-width: 1320px; margin: 0 auto 48px; }
+  .sheet-tag {
+    font-family: 'Space Grotesk', monospace; font-size: 11px; letter-spacing: .22em;
+    color: var(--gold); text-transform: uppercase; display: flex; align-items: center; gap: 14px;
+  }
+  .sheet-tag::after { content: ''; flex: 1; height: 1px; background: var(--paper-line); }
+  h1 {
+    font-family: 'Anton', sans-serif; font-weight: 400; text-transform: uppercase;
+    font-size: clamp(40px, 6vw, 76px); line-height: .98; letter-spacing: .01em;
+    transform: skewX(-9deg); transform-origin: bottom left; margin-top: 18px;
+  }
+  h1 em { font-style: normal; color: var(--gold); }
+  .sheet-sub { color: var(--muted-2); font-size: 14.5px; line-height: 1.6; max-width: 640px; margin-top: 16px; }
+  .sheet-sub strong { color: var(--cream-0); }
+
+  .grid {
+    max-width: 1320px; margin: 0 auto;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(560px, 1fr)); gap: 56px 48px;
+  }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+
+  /* ---------------- option block ---------------- */
+  .option { display: grid; grid-template-columns: 410px 1fr; gap: 28px; align-items: start; }
+  @media (max-width: 1240px) { .option { grid-template-columns: 1fr; } }
+
+  .annot { padding-top: 22px; position: relative; }
+  .stamp {
+    width: 52px; height: 52px; display: grid; place-items: center;
+    font-family: 'Anton', sans-serif; font-size: 26px; color: var(--ink);
+    background: var(--gold); transform: skewX(-9deg); margin-bottom: 18px;
+    box-shadow: 6px 6px 0 rgba(233, 182, 56, .18);
+  }
+  .stamp.alt { background: var(--cream-0); }
+  .annot h2 {
+    font-family: 'Anton', sans-serif; font-weight: 400; text-transform: uppercase;
+    font-size: 27px; letter-spacing: .015em; line-height: 1.04; transform: skewX(-9deg); transform-origin: left;
+  }
+  .annot .essence { color: var(--gold); font-family: 'Space Grotesk'; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; margin: 10px 0 16px; }
+  .annot p { color: var(--muted-2); font-size: 13.5px; line-height: 1.65; margin-bottom: 14px; }
+  .annot p strong { color: var(--cream-0); font-weight: 600; }
+  .pros { list-style: none; display: grid; gap: 7px; margin: 4px 0 18px; }
+  .pros li { font-size: 13px; line-height: 1.5; color: var(--cream-1); padding-left: 22px; position: relative; }
+  .pros li::before { content: '+'; position: absolute; left: 2px; color: var(--done); font-weight: 800; font-family: 'Space Grotesk'; }
+  .pros li.con::before { content: '–'; color: #E66A5B; }
+  .meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .chip {
+    font-family: 'Space Grotesk'; font-size: 10.5px; font-weight: 700; letter-spacing: .14em;
+    text-transform: uppercase; padding: 6px 12px; border: 1px solid var(--paper-line); border-radius: 999px; color: var(--muted-2);
+  }
+  .chip.rec { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+
+  /* ---------------- phone frame ---------------- */
+  .phone {
+    width: 410px; max-width: 100%; border-radius: 34px; padding: 10px;
+    background: #0D0A06; box-shadow: 0 30px 70px rgba(0,0,0,.55), 0 0 0 1px #2A2114;
+    justify-self: start;
+  }
+  .screen {
+    border-radius: 26px; overflow: hidden; position: relative; height: 560px;
+    background: linear-gradient(180deg, var(--cream-0) 0%, var(--cream-1) 58%, var(--cream-2) 100%);
+    color: var(--ink); font-family: 'Inter', sans-serif;
+  }
+  .app { padding: 18px 16px 0; }
+
+  .appbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+  .brand { display: flex; align-items: center; gap: 7px; }
+  .brand svg { width: 26px; height: 26px; }
+  .wordmark { font-family: 'Anton'; font-size: 19px; letter-spacing: .02em; transform: skewX(-9deg); }
+  .appbar-right { display: flex; gap: 10px; align-items: center; }
+  .bell { color: var(--gold); font-size: 16px; }
+  .avatar { width: 28px; height: 28px; border-radius: 50%; background: #EDE3CC; }
+
+  .daterow {
+    display: flex; align-items: center; gap: 5px;
+    font-family: 'Space Grotesk'; font-size: 12px; font-weight: 500; color: var(--ink);
+  }
+  .chev { color: #C9BC9F; font-size: 14px; line-height: 1; }
+  .chev.on { color: var(--ink); }
+
+  .headrow { display: flex; align-items: flex-end; justify-content: space-between; margin-top: 4px; }
+  .h-title { font-family: 'Anton'; font-size: 33px; text-transform: uppercase; transform: skewX(-9deg); transform-origin: bottom left; line-height: 1; }
+  .km { text-align: right; }
+  .km b { font-family: 'Anton'; font-weight: 400; font-size: 21px; transform: skewX(-9deg); display: inline-block; }
+  .km span { display: block; font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: .18em; color: var(--muted); }
+
+  .cards { display: grid; gap: 12px; margin-top: 16px; }
+  .card {
+    background: #fff; border-radius: 20px; padding: 14px 14px;
+    display: flex; align-items: center; gap: 14px;
+    box-shadow: 0 4px 16px rgba(55, 40, 15, .05); border: 1px solid var(--line);
+  }
+  .card .stampday { width: 36px; text-align: center; }
+  .stampday small { display: block; font-family: 'Space Grotesk'; font-size: 9px; font-weight: 700; letter-spacing: .12em; color: var(--muted); }
+  .stampday b { font-family: 'Space Grotesk'; font-size: 19px; font-weight: 700; }
+  .card .body { flex: 1; min-width: 0; }
+  .row1 { display: flex; align-items: center; gap: 7px; }
+  .pill { font-family: 'Space Grotesk'; font-size: 8.5px; font-weight: 800; letter-spacing: .1em; padding: 3px 7px; border-radius: 5px; }
+  .pill.today { background: var(--gold); color: #fff; }
+  .pill.off { background: var(--off-plan-glow); color: var(--off-plan); }
+  .t { font-weight: 700; font-size: 14.5px; }
+  .sub { font-size: 11.5px; color: var(--gold-deep); margin-top: 3px; font-weight: 600; }
+  .sub.blue { color: var(--off-plan); }
+  .sub.grey { color: var(--muted); font-weight: 500; }
+  .icn { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 15px; flex: none; }
+  .icn.plus { background: var(--off-plan); color: #fff; }
+  .icn.bolt { background: var(--gold); color: #fff; }
+  .icn.clock { background: transparent; border: 1.5px solid #D9CDB2; color: #B6A888; }
+  .card.today-card { border: 1.5px solid #F2D9A0; box-shadow: 0 8px 22px rgba(233, 182, 56, .18); }
+  .card.off-card { border: 1.5px solid #CFE0F8; box-shadow: 0 8px 22px rgba(62, 114, 199, .14); }
+
+  /* ============ A: edge peek ============ */
+  .peek-wrap { position: relative; margin-top: 16px; overflow: hidden; }
+  .peek-track { display: flex; gap: 10px; animation: nudge 3.6s ease-in-out infinite; }
+  .peek-col { flex: none; width: calc(100% - 34px); display: grid; gap: 12px; }
+  .peek-col.next { opacity: .92; }
+  @keyframes nudge {
+    0%, 62%, 100% { transform: translateX(0); }
+    72% { transform: translateX(-16px); }
+    82% { transform: translateX(0); }
+  }
+  .peek-fade {
+    position: absolute; top: 0; bottom: 0; right: 0; width: 26px;
+    background: linear-gradient(90deg, transparent, rgba(252, 242, 211, .9));
+    pointer-events: none;
+  }
+
+  /* ============ B: week-segmentstrip ============ */
+  .segrow { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+  .segs { display: flex; gap: 4px; flex: 1; }
+  .seg { height: 4px; border-radius: 2px; flex: 1; background: #EADFC2; }
+  .seg.done { background: #C9BC9F; }
+  .seg.active { background: var(--gold); flex: 2.6; position: relative; animation: segpulse 2.4s ease-in-out infinite; }
+  @keyframes segpulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(233, 182, 56, .0); }
+    50% { box-shadow: 0 0 0 3px rgba(233, 182, 56, .25); }
+  }
+  .seglabel { font-family: 'Space Grotesk'; font-size: 10px; font-weight: 800; letter-spacing: .14em; color: var(--muted); white-space: nowrap; }
+  .seglabel b { color: var(--ink); }
+
+  /* ============ C: week-chips ============ */
+  .rail-wrap { position: relative; overflow: hidden; margin-top: 14px; }
+  .rail { display: flex; gap: 8px; animation: railslide 4.5s ease-in-out infinite; }
+  @keyframes railslide {
+    0%, 55%, 100% { transform: translateX(0); }
+    70%, 85% { transform: translateX(-30px); }
+  }
+  .wchip {
+    flex: none; font-family: 'Space Grotesk'; font-size: 11px; font-weight: 700;
+    padding: 7px 13px; border-radius: 999px; border: 1px solid #E3D7B8; color: var(--muted); background: rgba(255,255,255,.55);
+  }
+  .wchip.done { color: #B0A285; text-decoration: line-through; text-decoration-thickness: 1px; }
+  .wchip.active { background: var(--ink); border-color: var(--ink); color: var(--gold); }
+  .wchip .dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--done); margin-left: 5px; vertical-align: 1.5px; }
+  .rail-fade { position: absolute; top: 0; bottom: 0; right: 0; width: 36px; background: linear-gradient(90deg, transparent, var(--cream-1)); }
+
+  /* ============ D: prominente pager ============ */
+  .pager-daterow { display: flex; align-items: center; justify-content: space-between; }
+  .weekeyebrow { font-family: 'Space Grotesk'; font-size: 10.5px; font-weight: 800; letter-spacing: .2em; color: var(--gold-deep); }
+  .pagerbtns { display: flex; gap: 8px; }
+  .pbtn {
+    width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+    border: 1.5px solid var(--ink); color: var(--ink); font-size: 16px; background: rgba(255,255,255,.5);
+  }
+  .pbtn.ghost { border-color: #D9CDB2; color: #C9BC9F; }
+  .pbtn.solid { background: var(--ink); color: var(--gold); border-color: var(--ink); }
+
+  .foot {
+    max-width: 1320px; margin: 72px auto 0; border-top: 1px solid var(--paper-line); padding-top: 28px;
+    color: var(--muted-2); font-size: 13.5px; line-height: 1.7;
+  }
+  .foot strong { color: var(--gold); }
+</style>
+</head>
+<body>
+
+<header class="sheet-head">
+  <div class="sheet-tag">RunBoost · design-verkenning · 10 jun 2026</div>
+  <h1>Swipe-affordance<br><em>Weekly Plan</em></h1>
+  <p class="sheet-sub">Vier richtingen om duidelijk te maken dat je tussen weken kunt <strong>swipen</strong>.
+  De huidige chevrons (‹ Jun 8 – Jun 14 ›) zijn te subtiel: niets vertelt je dát er meer weken zijn, hoevéél, of waar je bent.
+  Elke mockup toont de echte schedule-header; de animaties hintten wat er op het device beweegt.</p>
+</header>
+
+<div class="grid">
+
+  <!-- ============ OPTIE A — EDGE PEEK ============ -->
+  <section class="option">
+    <div class="phone"><div class="screen"><div class="app">
+      <div class="appbar">
+        <div class="brand">
+          <svg viewBox="204 203 191 192"><path d="M378.394 381.551C381.022 378.803 381.016 374.792 378.784 371.419C330.402 306.172 329.769 289.287 378.463 225.675C380.989 222.399 380.78 218.178 378.144 215.439C375.508 212.699 371.56 212.6 368.325 215.138C307.465 266.105 291.269 265.499 228.536 215.261C225.294 212.944 221.549 213.056 218.921 215.804C216.294 218.553 216.198 222.458 218.532 225.725C266.912 290.973 267.444 307.963 218.851 371.47C216.326 374.956 216.434 379.072 219.07 381.811C221.706 384.551 225.755 384.755 228.989 382.006C290.762 332.409 305.743 332.174 368.779 381.883C371.92 384.305 375.766 384.299 378.394 381.551Z" fill="#E9B638"/></svg>
+          <span class="wordmark">RUNBOOST</span>
+        </div>
+        <div class="appbar-right"><span class="bell">🔔</span><span class="avatar"></span></div>
+      </div>
+      <div class="daterow"><span class="chev">‹</span> Jun 8 – Jun 14 <span class="chev on">›</span></div>
+      <div class="headrow">
+        <div class="h-title">Weekly plan</div>
+        <div class="km"><b>18.3</b><span>KM TOTAL</span></div>
+      </div>
+      <div class="peek-wrap">
+        <div class="peek-track">
+          <div class="peek-col">
+            <div class="card off-card">
+              <div class="stampday"><small>MON</small><b>8</b></div>
+              <div class="body"><div class="row1"><span class="pill off">OFF-PLAN</span><span class="t">Run</span></div><div class="sub blue">6.3 km · 6:12 /km</div></div>
+              <div class="icn plus">+</div>
+            </div>
+            <div class="card today-card">
+              <div class="stampday"><small>WED</small><b>10</b></div>
+              <div class="body"><div class="row1"><span class="pill today">TODAY</span><span class="t">8.8km Intervals</span></div><div class="sub">Target: 4:14 min/km</div></div>
+              <div class="icn bolt">⚡︎</div>
+            </div>
+            <div class="card">
+              <div class="stampday"><small>SUN</small><b>14</b></div>
+              <div class="body"><div class="row1"><span class="t">9km Long run</span></div><div class="sub grey">Target: 5:59 min/km</div></div>
+              <div class="icn clock">◷</div>
+            </div>
+          </div>
+          <div class="peek-col next">
+            <div class="card">
+              <div class="stampday"><small>TUE</small><b>16</b></div>
+              <div class="body"><div class="row1"><span class="t">5km Easy</span></div><div class="sub grey">Target: 6:05 min/km</div></div>
+              <div class="icn clock">◷</div>
+            </div>
+            <div class="card">
+              <div class="stampday"><small>THU</small><b>18</b></div>
+              <div class="body"><div class="row1"><span class="t">Tempo 6km</span></div><div class="sub grey">Target: 4:5</div></div>
+              <div class="icn clock">◷</div>
+            </div>
+            <div class="card">
+              <div class="stampday"><small>SAT</small><b>20</b></div>
+              <div class="body"><div class="row1"><span class="t">10km Long r</span></div><div class="sub grey">Target: 5:5</div></div>
+              <div class="icn clock">◷</div>
+            </div>
+          </div>
+        </div>
+        <div class="peek-fade"></div>
+      </div>
+    </div></div></div>
+
+    <div class="annot">
+      <div class="stamp">A</div>
+      <h2>Edge peek</h2>
+      <div class="essence">De volgende week steekt fysiek de pagina in</div>
+      <p>PageView krijgt <strong>viewportFraction ≈ 0.92</strong>: de kaarten van de volgende week zijn aan de rechterrand zichtbaar afgesneden. Het universele "hier is meer"-signaal van iOS-carrousels — geen extra UI nodig.</p>
+      <ul class="pros">
+        <li>Nul extra chrome — het gebaar verklaart zichzelf</li>
+        <li>Voelt native en past bij de bestaande BouncingScrollPhysics</li>
+        <li class="con">Zegt niet hoevéél weken er zijn of waar je bent</li>
+        <li class="con">Rustweken met weinig kaarten geven weinig "peek"</li>
+      </ul>
+      <div class="meta"><span class="chip">Effort: S</span><span class="chip">Geen nieuwe UI</span></div>
+    </div>
+  </section>
+
+  <!-- ============ OPTIE B — SEGMENTSTRIP ============ -->
+  <section class="option">
+    <div class="phone"><div class="screen"><div class="app">
+      <div class="appbar">
+        <div class="brand">
+          <svg viewBox="204 203 191 192"><path d="M378.394 381.551C381.022 378.803 381.016 374.792 378.784 371.419C330.402 306.172 329.769 289.287 378.463 225.675C380.989 222.399 380.78 218.178 378.144 215.439C375.508 212.699 371.56 212.6 368.325 215.138C307.465 266.105 291.269 265.499 228.536 215.261C225.294 212.944 221.549 213.056 218.921 215.804C216.294 218.553 216.198 222.458 218.532 225.725C266.912 290.973 267.444 307.963 218.851 371.47C216.326 374.956 216.434 379.072 219.07 381.811C221.706 384.551 225.755 384.755 228.989 382.006C290.762 332.409 305.743 332.174 368.779 381.883C371.92 384.305 375.766 384.299 378.394 381.551Z" fill="#E9B638"/></svg>
+          <span class="wordmark">RUNBOOST</span>
+        </div>
+        <div class="appbar-right"><span class="bell">🔔</span><span class="avatar"></span></div>
+      </div>
+      <div class="daterow"><span class="chev">‹</span> Jun 8 – Jun 14 <span class="chev on">›</span></div>
+      <div class="headrow">
+        <div class="h-title">Weekly plan</div>
+        <div class="km"><b>18.3</b><span>KM TOTAL</span></div>
+      </div>
+      <div class="segrow">
+        <div class="segs">
+          <span class="seg done"></span><span class="seg done"></span><span class="seg active"></span>
+          <span class="seg"></span><span class="seg"></span><span class="seg"></span><span class="seg"></span>
+          <span class="seg"></span><span class="seg"></span><span class="seg"></span>
+        </div>
+        <span class="seglabel"><b>WEEK 3</b> / 10</span>
+      </div>
+      <div class="cards">
+        <div class="card off-card">
+          <div class="stampday"><small>MON</small><b>8</b></div>
+          <div class="body"><div class="row1"><span class="pill off">OFF-PLAN</span><span class="t">Run</span></div><div class="sub blue">6.3 km · 6:12 /km</div></div>
+          <div class="icn plus">+</div>
+        </div>
+        <div class="card today-card">
+          <div class="stampday"><small>WED</small><b>10</b></div>
+          <div class="body"><div class="row1"><span class="pill today">TODAY</span><span class="t">8.8km Intervals</span></div><div class="sub">Target: 4:14 min/km</div></div>
+          <div class="icn bolt">⚡︎</div>
+        </div>
+        <div class="card">
+          <div class="stampday"><small>SUN</small><b>14</b></div>
+          <div class="body"><div class="row1"><span class="t">9km Long run</span></div><div class="sub grey">Target: 5:59 min/km</div></div>
+          <div class="icn clock">◷</div>
+        </div>
+      </div>
+    </div></div></div>
+
+    <div class="annot">
+      <div class="stamp">B</div>
+      <h2>Week-segmentstrip</h2>
+      <div class="essence">Eén segment per week · goud = hier ben je</div>
+      <p>Dunne strip direct onder de header: <strong>afgeronde weken donker, huidige week goud (breder), toekomst zand</strong>. Het is een paginarichting-indicator én plan-voortgang in één — dezelfde taal als de wekenmatrix op het dashboard. Label "WEEK 3 / 10" maakt het expliciet.</p>
+      <ul class="pros">
+        <li>Toont positie, richting én plan-voortgang tegelijk</li>
+        <li>Visueel verwant aan de dashboard-matrix (merkconsistent)</li>
+        <li>Goedkoop te bouwen, geen layout-verschuiving</li>
+        <li class="con">Strip zelf nodigt niet letterlijk tot vegen uit (combineer met A)</li>
+      </ul>
+      <div class="meta"><span class="chip rec">★ Aanbevolen</span><span class="chip">Effort: S</span><span class="chip">Combineert perfect met A</span></div>
+    </div>
+  </section>
+
+  <!-- ============ OPTIE C — WEEK-CHIPS ============ -->
+  <section class="option">
+    <div class="phone"><div class="screen"><div class="app">
+      <div class="appbar">
+        <div class="brand">
+          <svg viewBox="204 203 191 192"><path d="M378.394 381.551C381.022 378.803 381.016 374.792 378.784 371.419C330.402 306.172 329.769 289.287 378.463 225.675C380.989 222.399 380.78 218.178 378.144 215.439C375.508 212.699 371.56 212.6 368.325 215.138C307.465 266.105 291.269 265.499 228.536 215.261C225.294 212.944 221.549 213.056 218.921 215.804C216.294 218.553 216.198 222.458 218.532 225.725C266.912 290.973 267.444 307.963 218.851 371.47C216.326 374.956 216.434 379.072 219.07 381.811C221.706 384.551 225.755 384.755 228.989 382.006C290.762 332.409 305.743 332.174 368.779 381.883C371.92 384.305 375.766 384.299 378.394 381.551Z" fill="#E9B638"/></svg>
+          <span class="wordmark">RUNBOOST</span>
+        </div>
+        <div class="appbar-right"><span class="bell">🔔</span><span class="avatar"></span></div>
+      </div>
+      <div class="headrow" style="margin-top:0">
+        <div class="h-title">Weekly plan</div>
+        <div class="km"><b>18.3</b><span>KM TOTAL</span></div>
+      </div>
+      <div class="rail-wrap">
+        <div class="rail">
+          <span class="wchip done">W1<span class="dot"></span></span>
+          <span class="wchip done">W2<span class="dot"></span></span>
+          <span class="wchip active">WEEK 3 · Jun 8–14</span>
+          <span class="wchip">W4</span>
+          <span class="wchip">W5</span>
+          <span class="wchip">W6</span>
+          <span class="wchip">W7</span>
+        </div>
+        <div class="rail-fade"></div>
+      </div>
+      <div class="cards">
+        <div class="card off-card">
+          <div class="stampday"><small>MON</small><b>8</b></div>
+          <div class="body"><div class="row1"><span class="pill off">OFF-PLAN</span><span class="t">Run</span></div><div class="sub blue">6.3 km · 6:12 /km</div></div>
+          <div class="icn plus">+</div>
+        </div>
+        <div class="card today-card">
+          <div class="stampday"><small>WED</small><b>10</b></div>
+          <div class="body"><div class="row1"><span class="pill today">TODAY</span><span class="t">8.8km Intervals</span></div><div class="sub">Target: 4:14 min/km</div></div>
+          <div class="icn bolt">⚡︎</div>
+        </div>
+        <div class="card">
+          <div class="stampday"><small>SUN</small><b>14</b></div>
+          <div class="body"><div class="row1"><span class="t">9km Long run</span></div><div class="sub grey">Target: 5:59 min/km</div></div>
+          <div class="icn clock">◷</div>
+        </div>
+      </div>
+    </div></div></div>
+
+    <div class="annot">
+      <div class="stamp alt">C</div>
+      <h2>Week-chip rail</h2>
+      <div class="essence">Scrollbare chips · halve chip = "er is meer"</div>
+      <p>Horizontale rail met een chip per week; de actieve chip is ink-op-goud en draagt de datumrange (de aparte datumregel vervalt). De <strong>half afgesneden chip aan de rand</strong> is de affordance, en elke chip is direct tapbaar — springen naar week 7 zonder zes keer vegen.</p>
+      <ul class="pros">
+        <li>Sterkste affordance + direct random access naar elke week</li>
+        <li>Groene stip per afgeronde week = voortgang op de rail</li>
+        <li class="con">Extra UI-regel; drukker beeld boven de kaarten</li>
+        <li class="con">Overlapt functioneel met de "vandaag"-pill</li>
+      </ul>
+      <div class="meta"><span class="chip">Effort: M</span><span class="chip">Beste voor lange plannen (16+ wkn)</span></div>
+    </div>
+  </section>
+
+  <!-- ============ OPTIE D — PROMINENTE PAGER ============ -->
+  <section class="option">
+    <div class="phone"><div class="screen"><div class="app">
+      <div class="appbar">
+        <div class="brand">
+          <svg viewBox="204 203 191 192"><path d="M378.394 381.551C381.022 378.803 381.016 374.792 378.784 371.419C330.402 306.172 329.769 289.287 378.463 225.675C380.989 222.399 380.78 218.178 378.144 215.439C375.508 212.699 371.56 212.6 368.325 215.138C307.465 266.105 291.269 265.499 228.536 215.261C225.294 212.944 221.549 213.056 218.921 215.804C216.294 218.553 216.198 222.458 218.532 225.725C266.912 290.973 267.444 307.963 218.851 371.47C216.326 374.956 216.434 379.072 219.07 381.811C221.706 384.551 225.755 384.755 228.989 382.006C290.762 332.409 305.743 332.174 368.779 381.883C371.92 384.305 375.766 384.299 378.394 381.551Z" fill="#E9B638"/></svg>
+          <span class="wordmark">RUNBOOST</span>
+        </div>
+        <div class="appbar-right"><span class="bell">🔔</span><span class="avatar"></span></div>
+      </div>
+      <div class="pager-daterow">
+        <span class="weekeyebrow">WEEK 3 VAN 10 · JUN 8 – JUN 14</span>
+        <div class="pagerbtns">
+          <span class="pbtn ghost">‹</span>
+          <span class="pbtn solid">›</span>
+        </div>
+      </div>
+      <div class="headrow">
+        <div class="h-title">Weekly plan</div>
+        <div class="km"><b>18.3</b><span>KM TOTAL</span></div>
+      </div>
+      <div class="cards">
+        <div class="card off-card">
+          <div class="stampday"><small>MON</small><b>8</b></div>
+          <div class="body"><div class="row1"><span class="pill off">OFF-PLAN</span><span class="t">Run</span></div><div class="sub blue">6.3 km · 6:12 /km</div></div>
+          <div class="icn plus">+</div>
+        </div>
+        <div class="card today-card">
+          <div class="stampday"><small>WED</small><b>10</b></div>
+          <div class="body"><div class="row1"><span class="pill today">TODAY</span><span class="t">8.8km Intervals</span></div><div class="sub">Target: 4:14 min/km</div></div>
+          <div class="icn bolt">⚡︎</div>
+        </div>
+        <div class="card">
+          <div class="stampday"><small>SUN</small><b>14</b></div>
+          <div class="body"><div class="row1"><span class="t">9km Long run</span></div><div class="sub grey">Target: 5:59 min/km</div></div>
+          <div class="icn clock">◷</div>
+        </div>
+      </div>
+    </div></div></div>
+
+    <div class="annot">
+      <div class="stamp alt">D</div>
+      <h2>Prominente pager</h2>
+      <div class="essence">Grote knoppen + "Week 3 van 10" teller</div>
+      <p>De mini-chevrons worden volwaardige <strong>34px-cirkelknoppen</strong> rechtsboven; "volgende" is ink-gevuld met gouden pijl (er is bijna altijd een volgende week). De eyebrow draagt de teller + datumrange in één regel.</p>
+      <ul class="pros">
+        <li>Maximaal expliciet — ook voor niet-swipers (tappen werkt altijd)</li>
+        <li>Teller geeft context zonder extra strip</li>
+        <li class="con">Knoppen zeggen "tik", niet per se "veeg"</li>
+        <li class="con">Meer visueel gewicht bovenin het scherm</li>
+      </ul>
+      <div class="meta"><span class="chip">Effort: S</span><span class="chip">Meest conservatief</span></div>
+    </div>
+  </section>
+
+</div>
+
+<footer class="foot">
+  <p><strong>Aanbeveling: B + A samen.</strong> De segmentstrip geeft permanent antwoord op "waar ben ik / hoeveel is er" in dezelfde visuele taal als de dashboard-matrix, en de edge-peek maakt het swipe-gebaar zelf-verklarend — samen dekken ze affordance én oriëntatie, voor één maat extra UI (4px strip). C is het overwegen waard zodra plannen van 16+ weken normaal worden (random access). D is de veilige terugvaloptie als je het beeld rustig wilt houden. Een eenmalige swipe-nudge (kaarten schuiven 16px en veren terug bij het allereerste bezoek — zie de animatie in mockup A) versterkt elk van deze opties en is 10 regels code.</p>
+</footer>
+
+</body>
+</html>
